@@ -32,7 +32,7 @@ class PhotoStreamer {
     if (paths.isEmpty) return [];
 
     // Retrieve all assets in the main Recent / Album path
-    final int count = await paths[0].assetCount;
+    final int count = await paths[0].assetCountAsync;
     return await paths[0].getAssetListRange(start: 0, end: count);
   }
 

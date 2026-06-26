@@ -219,7 +219,7 @@ class SyncViewModel extends ChangeNotifier {
     final state = _syncEngine?.dataChannelState.value;
     logMessage("WebRTC DataChannel state: $state");
 
-    if (state == RTCDataChannelState.RTCDataChannelStateOpen) {
+    if (state == RTCDataChannelState.RTCDataChannelOpen) {
       appState = AppState.connected;
       logMessage("WebRTC DataChannel is OPEN. Load sync album console.");
       _photoStreamer = PhotoStreamer(syncEngine: _syncEngine!);

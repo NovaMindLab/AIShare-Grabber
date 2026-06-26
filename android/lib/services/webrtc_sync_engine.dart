@@ -16,7 +16,7 @@ class WebRtcSyncEngine {
       ValueNotifier<RTCPeerConnectionState>(RTCPeerConnectionState.RTCPeerConnectionStateNew);
 
   final ValueNotifier<RTCDataChannelState> dataChannelState = 
-      ValueNotifier<RTCDataChannelState>(RTCDataChannelState.RTCDataChannelStateClosed);
+      ValueNotifier<RTCDataChannelState>(RTCDataChannelState.RTCDataChannelClosed);
 
   WebRtcSyncEngine({
     required this.onLocalIceCandidate,
@@ -116,12 +116,12 @@ class WebRtcSyncEngine {
 
   Future<bool> sendBinary(Uint8List data) async {
     final dc = _dataChannel;
-    if (dc == null || dataChannelState.value != RTCDataChannelState.RTCDataChannelStateOpen) {
+    if (dc == null || dataChannelState.value != RTCDataChannelState.RTCDataChannelOpen) {
       return false;
     }
 
     try {
-      await dc.send(RTCDataChannelMessage(data, isBinary: true));
+      await dc.send(RTCDataChannelMessage.fromBinary(data));
       return true;
     } catch (e) {
       debugPrint("[WebRTC] Failed to transmit package over DataChannel: $e");
@@ -146,6 +146,6 @@ class WebRtcSyncEngine {
     _peerConnection = null;
 
     connectionState.value = RTCPeerConnectionState.RTCPeerConnectionStateClosed;
-    dataChannelState.value = RTCDataChannelState.RTCDataChannelStateClosed;
+    dataChannelState.value = RTCDataChannelState.RTCDataChannelClosed;
   }
 }

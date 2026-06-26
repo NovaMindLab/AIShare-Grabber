@@ -85,9 +85,7 @@ class _QrScannerViewState extends State<QrScannerView> with SingleTickerProvider
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.bottomInterval == null
-                  ? const EdgeInsets.only(bottom: 80.0)
-                  : const EdgeInsets.only(bottom: 80.0),
+              padding: const EdgeInsets.only(bottom: 80.0),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
                 decoration: BoxDecoration(

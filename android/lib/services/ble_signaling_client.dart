@@ -119,7 +119,7 @@ class BleSignalingClient {
     });
 
     try {
-      await device.connect(autoConnect: false);
+      await device.connect(autoConnect: false, license: License.nonprofit);
       
       // Request MTU negotiation
       connectionState.value = BleState.negotiatingMtu;
