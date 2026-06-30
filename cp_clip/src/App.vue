@@ -168,59 +168,138 @@
         <!-- ==================== TABS SWITCH ==================== -->
         
         <!-- 1. LINK TAB -->
-        <div v-if="currentTab === 'link'" style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-          <div v-if="!isSyncActive" style="padding: 40px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; max-width: 600px; margin: 0 auto; gap: 24px;">
-            <div style="font-size: 72px; animation: float 4s ease-in-out infinite;">📱</div>
-            <h2 style="font-size: 24px; font-weight: 700;">{{ t.link.linkTitle }}</h2>
-            <p style="color: var(--text-secondary); line-height: 1.6; font-size: 14px;">
-              {{ t.link.linkDesc }}
-            </p>
-            <button class="btn btn-primary" style="padding: 12px 32px; font-size: 15px; border-radius: var(--border-radius-md);" @click="toggleSyncService">
-              {{ t.link.startBtn }}
+        <div v-if="currentTab === 'link'" style="height: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; overflow-y: auto; width: 100%;">
+          
+          <!-- Mode Tabs (Only when not connected) -->
+          <div v-if="syncStatus !== 'connected'" style="display: flex; gap: 8px; margin-bottom: 24px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 4px; border-radius: 20px;">
+            <button 
+              class="btn" 
+              :class="linkMode === 'qr' ? 'btn-primary' : 'btn-secondary'" 
+              style="padding: 6px 16px; font-size: 13px; border-radius: 16px; border: none;"
+              @click="linkMode = 'qr'"
+              :disabled="isSyncActive || isHotspotActive"
+            >
+              📱 {{ t.link.qrTab }}
+            </button>
+            <button 
+              class="btn" 
+              :class="linkMode === 'hotspot' ? 'btn-primary' : 'btn-secondary'" 
+              style="padding: 6px 16px; font-size: 13px; border-radius: 16px; border: none;"
+              @click="linkMode = 'hotspot'"
+              :disabled="isSyncActive || isHotspotActive"
+            >
+              ⚡ {{ t.link.hotspotTab }}
             </button>
           </div>
-          
-          <div v-else style="padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 20px; width: 100%;">
-            <div v-if="syncStatus === 'starting'" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-              <span class="spinner" style="width: 32px; height: 32px;"></span>
-              <p style="color: var(--text-secondary);">{{ t.link.initializing }}</p>
-            </div>
-            
-            <div v-else-if="syncStatus === 'advertising'" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-              <canvas ref="qrCanvas" style="background-color: white; border-radius: 8px; padding: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); width: 180px; height: 180px;"></canvas>
-              <h3 style="margin-top: 8px; font-size: 18px; font-weight: 600;">{{ t.link.advertisingTitle }}</h3>
-              <p style="color: var(--text-secondary); font-size: 13px; max-width: 400px; line-height: 1.5;">
-                {{ t.link.advertisingDesc }}
+
+          <!-- A. QR CODE MODE VIEW -->
+          <div v-if="linkMode === 'qr' && syncStatus !== 'connected'" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 600px; gap: 20px; margin: auto 0;">
+            <div v-if="!isSyncActive" style="display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center;">
+              <div style="font-size: 72px; animation: float 4s ease-in-out infinite;">📱</div>
+              <h2 style="font-size: 24px; font-weight: 700;">{{ t.link.linkTitle }}</h2>
+              <p style="color: var(--text-secondary); line-height: 1.6; font-size: 14px;">
+                {{ t.link.linkDesc }}
               </p>
-              <button class="btn btn-danger btn-sm" @click="toggleSyncService">
-                {{ t.link.stopBtn }}
+              <button class="btn btn-primary" style="padding: 12px 32px; font-size: 15px; border-radius: var(--border-radius-md);" @click="toggleSyncService">
+                {{ t.link.startBtn }}
               </button>
             </div>
             
-            <div v-else-if="syncStatus === 'handshaking'" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-              <span class="spinner" style="width: 32px; height: 32px; border-top-color: var(--accent-primary);"></span>
-              <p style="color: var(--text-secondary);">{{ t.link.handshaking }}</p>
+            <div v-else style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
+              <div v-if="syncStatus === 'starting'" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                <span class="spinner" style="width: 32px; height: 32px;"></span>
+                <p style="color: var(--text-secondary);">{{ t.link.initializing }}</p>
+              </div>
+              
+              <div v-else-if="syncStatus === 'advertising'" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                <canvas ref="qrCanvas" style="background-color: white; border-radius: 8px; padding: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); width: 180px; height: 180px;"></canvas>
+                <h3 style="margin-top: 8px; font-size: 18px; font-weight: 600;">{{ t.link.advertisingTitle }}</h3>
+                <p style="color: var(--text-secondary); font-size: 13px; max-width: 400px; line-height: 1.5; text-align: center;">
+                  {{ t.link.advertisingDesc }}
+                </p>
+                <button class="btn btn-danger btn-sm" @click="toggleSyncService">
+                  {{ t.link.stopBtn }}
+                </button>
+              </div>
+              
+              <div v-else-if="syncStatus === 'handshaking'" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                <span class="spinner" style="width: 32px; height: 32px; border-top-color: var(--accent-primary);"></span>
+                <p style="color: var(--text-secondary);">{{ t.link.handshaking }}</p>
+              </div>
             </div>
-            
-            <div v-else-if="syncStatus === 'connected'" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-              <div style="font-size: 56px; color: var(--success); filter: drop-shadow(0 0 10px rgba(16,185,129,0.4));">🟢</div>
-              <h3 style="color: var(--success); font-size: 18px; font-weight: 600;">{{ t.link.connectedTitle }}</h3>
-              <p style="color: var(--text-secondary); font-size: 13px;">{{ t.link.connectedDesc }}</p>
-              <button class="btn btn-danger btn-sm" @click="toggleSyncService">
-                {{ t.link.disconnectBtn }}
+          </div>
+
+          <!-- B. WI-FI HOTSPOT MODE VIEW -->
+          <div v-else-if="linkMode === 'hotspot' && syncStatus !== 'connected'" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 600px; gap: 20px; margin: auto 0;">
+            <div v-if="!isHotspotActive && hotspotStatus !== 'starting'" style="display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center;">
+              <div style="font-size: 72px; animation: float 4s ease-in-out infinite;">⚡</div>
+              <h2 style="font-size: 24px; font-weight: 700;">{{ t.link.hotspotTab }}</h2>
+              <p style="color: var(--text-secondary); line-height: 1.6; font-size: 14px;">
+                开启本地高速直连热点，手机连上此热点即可在完全离线、或无法使用路由器局域网的环境下进行跨设备同步。支持多重开启技术保障。
+              </p>
+              <div v-if="hotspotError" style="color: var(--danger); font-size: 13px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 16px; border-radius: 8px;">
+                {{ t.link.hotspotFailed }} ({{ hotspotError }})
+              </div>
+              <button class="btn btn-primary" style="padding: 12px 32px; font-size: 15px; border-radius: var(--border-radius-md);" @click="toggleHotspot">
+                {{ t.link.startHotspot }}
               </button>
             </div>
-            
-            <!-- Connection logs panel inside Link Tab -->
-            <div style="margin-top: 16px; border: 1px solid var(--glass-border); border-radius: 8px; background: rgba(0, 0, 0, 0.4); padding: 12px; text-align: left; width: 100%; max-width: 600px; box-sizing: border-box;">
-              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 6px;">
-                <span>{{ t.link.logsTitle }}</span>
-                <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px; border-radius: 4px;" @click="syncLogs = []">{{ t.link.clearLogs }}</button>
+
+            <div v-else style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
+              <!-- Hotspot Starting state -->
+              <div v-if="hotspotStatus === 'starting'" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                <span class="spinner" style="width: 32px; height: 32px;"></span>
+                <p style="color: var(--text-secondary);">{{ t.link.hotspotStarting }}</p>
               </div>
-              <div ref="logTerminalRef" style="height: 120px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #38bdf8; line-height: 1.5; white-space: pre-wrap; padding: 4px;">
-                <div v-for="(log, idx) in syncLogs" :key="idx">{{ log }}</div>
-                <div v-if="syncLogs.length === 0" style="color: var(--text-muted); text-align: center; padding-top: 40px;">{{ t.link.waitingLogs }}</div>
+
+              <!-- Hotspot Started/Running state -->
+              <div v-else-if="hotspotStatus === 'started'" style="display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%;">
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 12px 24px; text-align: center; width: 100%; max-width: 440px;">
+                  <h4 style="color: var(--success); font-weight: bold; margin-bottom: 8px;">{{ t.link.hotspotRunning }}</h4>
+                  <div style="font-size: 14px; color: var(--text-primary); display: flex; flex-direction: column; gap: 6px; align-items: center;">
+                    <div>Wi-Fi SSID: <strong style="color: #38bdf8; font-size: 15px;">{{ hotspotSsid }}</strong></div>
+                    <div>Password: <strong style="color: #38bdf8; font-size: 15px;">{{ hotspotPassword }}</strong></div>
+                  </div>
+                </div>
+
+                <!-- Pairing QR Code canvas when BLE sync is running concurrently -->
+                <div v-if="syncStatus === 'advertising'" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                  <canvas ref="qrCanvas" style="background-color: white; border-radius: 8px; padding: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); width: 150px; height: 150px;"></canvas>
+                  <p style="color: var(--text-secondary); font-size: 12px; max-width: 400px; line-height: 1.5; text-align: center; margin-top: 4px;">
+                    {{ t.link.hotspotInstructions }}
+                  </p>
+                </div>
+                <div v-else style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                  <span class="spinner" style="width: 24px; height: 24px;"></span>
+                  <p style="color: var(--text-muted); font-size: 12px;">{{ t.link.initializing }}</p>
+                </div>
+
+                <button class="btn btn-danger btn-sm" @click="toggleHotspot">
+                  {{ t.link.stopHotspot }}
+                </button>
               </div>
+            </div>
+          </div>
+
+          <!-- C. CONNECTED VIEW (Shared by both modes) -->
+          <div v-if="syncStatus === 'connected'" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 600px; gap: 20px; margin: auto 0;">
+            <div style="font-size: 56px; color: var(--success); filter: drop-shadow(0 0 10px rgba(16,185,129,0.4));">🟢</div>
+            <h3 style="color: var(--success); font-size: 18px; font-weight: 600;">{{ t.link.connectedTitle }}</h3>
+            <p style="color: var(--text-secondary); font-size: 13px;">{{ t.link.connectedDesc }}</p>
+            <button class="btn btn-danger btn-sm" @click="isHotspotActive ? toggleHotspot() : toggleSyncService()">
+              {{ isHotspotActive ? t.link.stopHotspot : t.link.disconnectBtn }}
+            </button>
+          </div>
+
+          <!-- Connection logs panel (Shared by all states) -->
+          <div style="margin-top: 24px; border: 1px solid var(--glass-border); border-radius: 8px; background: rgba(0, 0, 0, 0.4); padding: 12px; text-align: left; width: 100%; max-width: 600px; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 6px;">
+              <span>{{ t.link.logsTitle }}</span>
+              <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px; border-radius: 4px;" @click="syncLogs = []">{{ t.link.clearLogs }}</button>
+            </div>
+            <div ref="logTerminalRef" style="height: 110px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #38bdf8; line-height: 1.5; white-space: pre-wrap; padding: 4px;">
+              <div v-for="(log, idx) in syncLogs" :key="idx">{{ log }}</div>
+              <div v-if="syncLogs.length === 0" style="color: var(--text-muted); text-align: center; padding-top: 35px;">{{ t.link.waitingLogs }}</div>
             </div>
           </div>
         </div>
@@ -597,6 +676,14 @@ const qrPayload = ref(null);
 const qrCanvas = ref(null);
 const syncLogs = ref([]);
 const logTerminalRef = ref(null);
+
+// Hotspot State Variables
+const linkMode = ref('qr'); // 'qr' | 'hotspot'
+const isHotspotActive = ref(false);
+const hotspotStatus = ref('idle'); // 'idle' | 'starting' | 'started' | 'failed'
+const hotspotSsid = ref('');
+const hotspotPassword = ref('');
+const hotspotError = ref('');
 const pcActiveTransferName = ref(null);
 const pcActiveProgress = ref(0.0);
 const incomingTransfer = ref(null);
@@ -638,6 +725,61 @@ function cleanupWebRtc() {
   if (peerConnection) {
     try { peerConnection.close(); } catch (e) {}
     peerConnection = null;
+  }
+}
+
+function generateHotspotCredentials() {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000).toString();
+  hotspotSsid.value = `ShareCLIP_${randomSuffix}`;
+  
+  let pass = '';
+  for (let i = 0; i < 8; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  hotspotPassword.value = pass;
+}
+
+async function toggleHotspot() {
+  if (isHotspotActive.value) {
+    hotspotStatus.value = 'idle';
+    isHotspotActive.value = false;
+    logSyncEvent('[Hotspot] Stopping Wi-Fi hotspot...');
+    
+    // Stop BLE sync service as well if running
+    if (isSyncActive.value) {
+      await toggleSyncService();
+    }
+
+    try {
+      await window.api.stopHotspot();
+      logSyncEvent('🟢 [Hotspot] Wi-Fi hotspot stopped.');
+    } catch (err) {
+      logSyncEvent(`⚠️ [Hotspot] Error stopping: ${err.message}`);
+    }
+  } else {
+    generateHotspotCredentials();
+    hotspotStatus.value = 'starting';
+    isHotspotActive.value = true;
+    hotspotError.value = '';
+    logSyncEvent(`[Hotspot] Starting Wi-Fi hotspot (SSID: ${hotspotSsid.value})...`);
+    
+    try {
+      const res = await window.api.startHotspot(hotspotSsid.value, hotspotPassword.value);
+      hotspotStatus.value = 'started';
+      logSyncEvent(`🟢 [Hotspot] Wi-Fi hotspot active (SSID: ${res.ssid}).`);
+      
+      // Automatically start BLE sync service if not already active
+      if (!isSyncActive.value) {
+        logSyncEvent('[Hotspot] Starting BLE sync service concurrently...');
+        await toggleSyncService();
+      }
+    } catch (err) {
+      hotspotStatus.value = 'failed';
+      isHotspotActive.value = false;
+      hotspotError.value = err.message || 'Unknown error';
+      logSyncEvent(`❌ [Hotspot] Activation failed: ${err.message}`);
+    }
   }
 }
 
@@ -958,6 +1100,15 @@ onMounted(() => {
     // 5. System log messages received from BLE Server Process
     window.api.onLogReceived((msg) => {
       logSyncEvent(msg);
+    });
+
+    // 6. Wi-Fi Hotspot status changes
+    window.api.onHotspotStatusChanged((status) => {
+      logSyncEvent(`[Hotspot] Status changed: ${status}`);
+      if (status === 'stopped') {
+        isHotspotActive.value = false;
+        hotspotStatus.value = 'idle';
+      }
     });
   }
 });

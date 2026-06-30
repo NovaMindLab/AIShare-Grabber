@@ -61,7 +61,15 @@ export const locales = {
       disconnectBtn: "Disconnect",
       logsTitle: "📝 Connection Logs",
       clearLogs: "Clear",
-      waitingLogs: "Waiting for logs..."
+      waitingLogs: "Waiting for logs...",
+      hotspotTab: "Wi-Fi Hotspot",
+      qrTab: "Scan QR Code",
+      startHotspot: "🚀 Create Wi-Fi Hotspot",
+      stopHotspot: "Stop Hotspot",
+      hotspotRunning: "🟢 Local Wi-Fi Hotspot Active",
+      hotspotStarting: "Starting local Wi-Fi hotspot...",
+      hotspotFailed: "Failed to start Wi-Fi hotspot. Please verify Wi-Fi is enabled.",
+      hotspotInstructions: "1. Connect your phone's Wi-Fi to the hotspot shown below. 2. Scan the pairing QR code to pair and sync."
     },
     images: {
       emptyImages: "No image resources",
@@ -131,7 +139,15 @@ export const locales = {
       disconnectBtn: "断开连接",
       logsTitle: "📝 实时连接日志 (Live Logs)",
       clearLogs: "清空",
-      waitingLogs: "等待同步日志..."
+      waitingLogs: "等待同步日志...",
+      hotspotTab: "本地热点模式",
+      qrTab: "扫码配对模式",
+      startHotspot: "🚀 开启本地 Wi-Fi 热点",
+      stopHotspot: "关闭本地热点",
+      hotspotRunning: "🟢 本地 Wi-Fi 热点已开启",
+      hotspotStarting: "正在创建本地直连热点...",
+      hotspotFailed: "开启本地热点失败，请确保电脑的无线网卡已开启。",
+      hotspotInstructions: "1. 请先将手机的 Wi-Fi 连接至下方创建的直连热点。2. 连接成功后，使用手机端 App 扫描下方的配对二维码进行握手同步。"
     },
     images: {
       emptyImages: "暂无本地图片资源",
@@ -208,7 +224,15 @@ langList.forEach(lang => {
         disconnectBtn: "斷開連線",
         logsTitle: "📝 即時連線日誌 (Live Logs)",
         clearLogs: "清空",
-        waitingLogs: "等待同步日誌..."
+        waitingLogs: "等待同步日誌...",
+        hotspotTab: "本地熱點模式",
+        qrTab: "掃碼配對模式",
+        startHotspot: "🚀 開啟本地 Wi-Fi 熱點",
+        stopHotspot: "關閉本地熱點",
+        hotspotRunning: "🟢 本地 Wi-Fi 熱點已開啟",
+        hotspotStarting: "正在創建本地直連熱點...",
+        hotspotFailed: "開啟本地熱點失敗，請確保電腦的無線網卡已開啟。",
+        hotspotInstructions: "1. 請先將手機的 Wi-Fi 連線至下方創建的直連熱點。2. 連線成功後，使用手機端 App 掃描下方的配對二維碼進行握手連線。"
       },
       images: {
         emptyImages: "暫無本地圖片資源",

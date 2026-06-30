@@ -38,5 +38,13 @@ contextBridge.exposeInMainWorld('api', {
   onLogReceived: (callback) => {
     ipcRenderer.removeAllListeners('sync-log');
     ipcRenderer.on('sync-log', (event, msg) => callback(msg));
+  },
+
+  // Wi-Fi Hotspot APIs
+  startHotspot: (ssid, password) => ipcRenderer.invoke('start-hotspot', { ssid, password }),
+  stopHotspot: () => ipcRenderer.invoke('stop-hotspot'),
+  onHotspotStatusChanged: (callback) => {
+    ipcRenderer.removeAllListeners('hotspot-status-changed');
+    ipcRenderer.on('hotspot-status-changed', (event, status) => callback(status));
   }
 });

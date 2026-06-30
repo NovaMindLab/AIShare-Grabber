@@ -48,6 +48,7 @@ const imageEmbeddingsCache = {}; // imagePath -> Float32Array (512-dim)
 
 // BLE Signaling and chunk transfer state
 let bleProcess = null;
+let hotspotProcess = null;
 const pendingTransfers = {}; // fileId -> { chunks: [], received: 0, total: 0 }
 
 
@@ -240,6 +241,12 @@ app.on('will-quit', () => {
     try {
       activeDeviceDb.close();
     } catch (_) {}
+  }
+  if (hotspotProcess) {
+    try {
+      hotspotProcess.kill();
+    } catch (_) {}
+    hotspotProcess = null;
   }
 });
 
@@ -548,6 +555,96 @@ ipcMain.handle('stop-ble-server', async () => {
   if (bleProcess) {
     bleProcess.kill();
     bleProcess = null;
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle('start-hotspot', async (event, { ssid, password }) => {
+  if (hotspotProcess) {
+    try {
+      hotspotProcess.kill();
+    } catch (_) {}
+    hotspotProcess = null;
+  }
+
+  const { spawn } = require('child_process');
+  const scriptPath = path.join(__dirname, 'wifi_ap.ps1');
+
+  return new Promise((resolve, reject) => {
+    // Spawn PowerShell executing our multi-fallback script
+    hotspotProcess = spawn('powershell.exe', [
+      '-ExecutionPolicy', 'Bypass',
+      '-File', scriptPath,
+      '-SSID', ssid,
+      '-Password', password
+    ], {
+      cwd: __dirname
+    });
+
+    let resolved = false;
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        reject(new Error("Wi-Fi Hotspot startup timeout"));
+      }
+    }, 15000);
+
+    const readline = require('readline');
+    const rl = readline.createInterface({
+      input: hotspotProcess.stdout,
+      terminal: false
+    });
+
+    rl.on('line', (line) => {
+      console.log(`[Hotspot Stdout]: ${line}`);
+      if (mainWindow) {
+        mainWindow.webContents.send('sync-log', `[Hotspot] ${line}`);
+      }
+
+      if (line.startsWith("STATUS: STARTED")) {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          resolve({ status: 'started', ssid, password });
+        }
+      } else if (line.startsWith("STATUS: FAILED")) {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          reject(new Error("All hotspot methods failed."));
+        }
+      }
+    });
+
+    hotspotProcess.stderr.on('data', (data) => {
+      const msg = data.toString().trim();
+      console.error(`[Hotspot Stderr]: ${msg}`);
+      if (mainWindow && msg) {
+        mainWindow.webContents.send('sync-log', `[Hotspot Error] ${msg}`);
+      }
+    });
+
+    hotspotProcess.on('close', (code) => {
+      console.log(`[Hotspot] Process closed with code ${code}`);
+      if (mainWindow) {
+        mainWindow.webContents.send('hotspot-status-changed', 'stopped');
+      }
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        reject(new Error(`Hotspot process exited with code ${code}`));
+      }
+    });
+  });
+});
+
+ipcMain.handle('stop-hotspot', async () => {
+  if (hotspotProcess) {
+    try {
+      hotspotProcess.kill();
+    } catch (_) {}
+    hotspotProcess = null;
     return true;
   }
   return false;
