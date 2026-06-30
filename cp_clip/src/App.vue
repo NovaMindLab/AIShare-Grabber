@@ -1048,11 +1048,15 @@ const displayDevices = computed(() => {
   if (discoveredDevicesList.value.length > 0) {
     return discoveredDevicesList.value;
   }
-  return [
-    { uuid: 'mock-1', name: 'Galaxy S24 Ultra', ip: '192.168.1.105', type: 'Mobile', isMock: true },
-    { uuid: 'mock-2', name: 'Xiaomi 14 Pro', ip: '192.168.1.106', type: 'Mobile', isMock: true },
-    { uuid: 'mock-3', name: 'OnePlus 12', ip: '192.168.1.107', type: 'Mobile', isMock: true }
-  ];
+  if (!hasApi) {
+    // Only return mock data in web preview mode
+    return [
+      { uuid: 'mock-1', name: 'Galaxy S24 Ultra', ip: '192.168.1.105', type: 'Mobile', isMock: true },
+      { uuid: 'mock-2', name: 'Xiaomi 14 Pro', ip: '192.168.1.106', type: 'Mobile', isMock: true },
+      { uuid: 'mock-3', name: 'OnePlus 12', ip: '192.168.1.107', type: 'Mobile', isMock: true }
+    ];
+  }
+  return [];
 });
 
 async function connectToDevice(ip) {
