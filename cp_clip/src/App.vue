@@ -800,7 +800,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue';
 import QRCode from 'qrcode';
 import { locales, languages } from './locales.js';
 
@@ -870,6 +870,18 @@ const qrPayload = ref(null);
 const qrCanvas = ref(null);
 const syncLogs = ref([]);
 const logTerminalRef = ref(null);
+
+// Watch tab and payload changes to render the QR Code reliably
+watch([currentTab, qrPayload], async () => {
+  if (currentTab.value === 'link' && qrPayload.value) {
+    await nextTick();
+    if (qrCanvas.value) {
+      QRCode.toCanvas(qrCanvas.value, JSON.stringify(qrPayload.value), { width: 140, margin: 1 }, (error) => {
+        if (error) console.error("QR Code rendering error:", error);
+      });
+    }
+  }
+}, { immediate: true });
 
 // Hotspot State Variables
 const linkMode = ref('qr'); // 'qr' | 'hotspot'
