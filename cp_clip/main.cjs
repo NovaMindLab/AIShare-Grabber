@@ -1,6 +1,10 @@
 const { app, BrowserWindow, ipcMain, dialog, protocol, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const sqlite3 = require('sqlite3').verbose();
+
+let activeDeviceUuid = null;
+let activeDeviceDb = null;
 const { pathToFileURL } = require('url');
 let ort;
 let sharp;
@@ -41,6 +45,10 @@ let tokenizer = null;
 let textEmbeddings = {};
 let isMockMode = false;
 const imageEmbeddingsCache = {}; // imagePath -> Float32Array (512-dim)
+
+// BLE Signaling and chunk transfer state
+let bleProcess = null;
+const pendingTransfers = {}; // fileId -> { chunks: [], received: 0, total: 0 }
 
 
 // Load ONNX model and embeddings
@@ -142,6 +150,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 850,
+    title: "ShareCLIP",
     backgroundColor: '#0f172a', // Dark theme background color
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -149,6 +158,8 @@ function createWindow() {
       nodeIntegration: false
     }
   });
+
+  mainWindow.setMenu(null);
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
@@ -224,6 +235,14 @@ app.on('window-all-closed', () => {
   }
 });
 
+app.on('will-quit', () => {
+  if (activeDeviceDb) {
+    try {
+      activeDeviceDb.close();
+    } catch (_) {}
+  }
+});
+
 // IPC Communication
 ipcMain.handle('select-folder', async () => {
   if (!mainWindow) return null;
@@ -236,12 +255,17 @@ ipcMain.handle('select-folder', async () => {
   const folderPath = result.filePaths[0];
   try {
     const files = fs.readdirSync(folderPath);
-    const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'];
-    const images = files
-      .filter(file => supportedExtensions.includes(path.extname(file).toLowerCase()))
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'];
+    const videoExtensions = ['.mp4', '.mkv', '.mov', '.avi', '.webm'];
+    const audioExtensions = ['.mp3', '.wav', '.m4a', '.ogg', '.flac'];
+    const fileExtensions = ['.pdf', '.doc', '.docx', '.txt', '.zip', '.rar', '.xlsx', '.pptx'];
+    const allExtensions = [...imageExtensions, ...videoExtensions, ...audioExtensions, ...fileExtensions];
+    
+    const allFiles = files
+      .filter(file => allExtensions.includes(path.extname(file).toLowerCase()))
       .map(file => path.join(folderPath, file));
     
-    return { folderPath, images };
+    return { folderPath, images: allFiles }; // Key remains 'images' for backwards compatibility
   } catch (err) {
     console.error("Failed to read folder directory:", err);
     return { folderPath, images: [] };
@@ -253,7 +277,11 @@ ipcMain.handle('select-images', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile', 'multiSelections'],
     filters: [
-      { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif'] }
+      { name: 'All Supported Files', extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'mp4', 'mkv', 'mov', 'avi', 'webm', 'mp3', 'wav', 'm4a', 'ogg', 'flac', 'pdf', 'doc', 'docx', 'txt', 'zip', 'rar', 'xlsx', 'pptx'] },
+      { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif'] },
+      { name: 'Videos', extensions: ['mp4', 'mkv', 'mov', 'avi', 'webm'] },
+      { name: 'Audios', extensions: ['mp3', 'wav', 'm4a', 'ogg', 'flac'] },
+      { name: 'Documents', extensions: ['pdf', 'doc', 'docx', 'txt', 'zip', 'rar', 'xlsx', 'pptx'] }
     ]
   });
   if (result.canceled) {
@@ -262,7 +290,21 @@ ipcMain.handle('select-images', async () => {
   return result.filePaths;
 });
 
-ipcMain.handle('classify-photo', async (event, imagePath) => {
+ipcMain.handle('read-image-bytes', async (event, filePath) => {
+  try {
+    const fs = require('fs');
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`File does not exist: ${filePath}`);
+    }
+    const data = fs.readFileSync(filePath);
+    return data;
+  } catch (error) {
+    console.error("Failed to read image bytes:", error);
+    throw error;
+  }
+});
+
+async function classifyPhotoInternal(imagePath) {
   try {
     if (!fs.existsSync(imagePath)) {
       throw new Error(`File not found: ${imagePath}`);
@@ -375,7 +417,381 @@ ipcMain.handle('classify-photo', async (event, imagePath) => {
       { category: error.message || "Unknown error", score: 0.0 }
     ];
   }
+}
+
+ipcMain.handle('classify-photo', async (event, imagePath) => {
+  return await classifyPhotoInternal(imagePath);
 });
+
+// BLE Signaling and WebRTC synchronization handlers
+ipcMain.handle('start-ble-server', async (event) => {
+  if (bleProcess) {
+    console.log("[Main] BLE process already running, killing first.");
+    bleProcess.kill();
+    bleProcess = null;
+  }
+  
+  const service_uuid = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+  const char_uuid = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+  const session_id = (1000 + Math.floor(Math.random() * 9000)).toString();
+  
+  const { spawn } = require('child_process');
+  const pythonExecutable = 'py';
+  const scriptPath = path.join(__dirname, 'ble_signaling_server.py');
+  
+  return new Promise((resolve, reject) => {
+    bleProcess = spawn(pythonExecutable, [scriptPath, service_uuid, char_uuid, session_id], {
+      cwd: __dirname
+    });
+    
+    let resolved = false;
+    let macAddress = null;
+    
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        reject(new Error("BLE GATT Server startup timeout"));
+      }
+    }, 10000);
+    
+    const readline = require('readline');
+    const rl = readline.createInterface({
+      input: bleProcess.stdout,
+      terminal: false
+    });
+    
+    rl.on('line', (line) => {
+      console.log(`[BLE Helper Stdout]: ${line}`);
+      if (mainWindow) {
+        if (line.startsWith("SDP:OFFER:")) {
+          mainWindow.webContents.send('sync-log', `[BLE] Received SDP Offer (Length: ${line.length - 10}B)`);
+        } else if (line.startsWith("ICE:")) {
+          mainWindow.webContents.send('sync-log', `[BLE] Received remote ICE Candidate`);
+        } else if (line.startsWith("PHONE_LOG:")) {
+          mainWindow.webContents.send('sync-log', `[Phone] ${line.substring(10)}`);
+        } else {
+          mainWindow.webContents.send('sync-log', `[BLE] ${line}`);
+        }
+      }
+
+      if (line.startsWith("MAC:")) {
+        macAddress = line.substring(4).trim();
+      } else if (line.startsWith("STATUS:ADVERTISING")) {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          resolve({
+            ble_mac: macAddress,
+            service_uuid,
+            char_uuid,
+            session_id
+          });
+        }
+      } else if (line === "STATUS:CONNECTED") {
+        if (mainWindow) {
+          mainWindow.webContents.send('ble-status-changed', 'connected');
+        }
+      } else if (line.startsWith("SDP:OFFER:")) {
+        const offerEscaped = line.substring(10);
+        const offerSdp = offerEscaped.replace(/\\n/g, "\n").replace(/\\r/g, "\r");
+        if (mainWindow) {
+          mainWindow.webContents.send('ble-offer-received', offerSdp);
+        }
+      } else if (line.startsWith("ICE:")) {
+        const parts = line.substring(4).split(":", 2);
+        if (parts.length >= 2) {
+          const sdpMid = parts[0];
+          const sdpMLineIndex = parseInt(parts[1], 10);
+          const prefix = `ICE:${sdpMid}:${sdpMLineIndex}:`;
+          const candidate = line.substring(4 + prefix.length);
+          if (mainWindow) {
+            mainWindow.webContents.send('ble-ice-received', { sdpMid, sdpMLineIndex, candidate });
+          }
+        }
+      }
+    });
+    
+    bleProcess.stderr.on('data', (data) => {
+      const msg = data.toString().trim();
+      console.error(`[BLE Helper Stderr]: ${msg}`);
+      if (mainWindow && msg) {
+        // Filter out debug/warning noise if needed, or send everything
+        mainWindow.webContents.send('sync-log', `[BLE Debug/Err] ${msg}`);
+      }
+    });
+    
+    bleProcess.on('close', (code) => {
+      console.log(`[BLE Helper] Exited with code ${code}`);
+      bleProcess = null;
+      if (mainWindow) {
+        mainWindow.webContents.send('ble-status-changed', 'disconnected');
+      }
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        reject(new Error(`BLE Helper process exited with code ${code}`));
+      }
+    });
+    
+    bleProcess.on('error', (err) => {
+      console.error("[BLE Helper] Process error:", err);
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        reject(err);
+      }
+    });
+  });
+});
+
+ipcMain.handle('stop-ble-server', async () => {
+  if (bleProcess) {
+    bleProcess.kill();
+    bleProcess = null;
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle('send-answer-sdp', async (event, sdp) => {
+  if (bleProcess && bleProcess.stdin) {
+    const escapedSdp = sdp.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+    bleProcess.stdin.write(`ANSWER:${escapedSdp}\n`);
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle('send-ice-candidate', async (event, { sdpMid, sdpMLineIndex, candidate }) => {
+  if (bleProcess && bleProcess.stdin) {
+    bleProcess.stdin.write(`ICE:${sdpMid}:${sdpMLineIndex}:${candidate}\n`);
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => {
+  activeDeviceUuid = deviceUuid;
+  
+  const baseDir = path.join(__dirname, 'sync_storage', deviceUuid);
+  if (!fs.existsSync(baseDir)) {
+    fs.mkdirSync(baseDir, { recursive: true });
+  }
+  
+  // Create folders for sub-resources
+  const dirs = ['images', 'videos', 'audios', 'files'];
+  for (const d of dirs) {
+    const subpath = path.join(baseDir, d);
+    if (!fs.existsSync(subpath)) {
+      fs.mkdirSync(subpath, { recursive: true });
+    }
+  }
+  
+  // Close old database connection if any
+  if (activeDeviceDb) {
+    try {
+      activeDeviceDb.close();
+    } catch (_) {}
+  }
+  
+  // Open SQLite database file for this device
+  const dbPath = path.join(baseDir, 'database.sqlite');
+  activeDeviceDb = new sqlite3.Database(dbPath);
+  
+  // Initialize table
+  await new Promise((resolve, reject) => {
+    activeDeviceDb.run(`
+      CREATE TABLE IF NOT EXISTS resources (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        path TEXT,
+        type TEXT,
+        size INTEGER,
+        predictions TEXT,
+        sync_time INTEGER
+      )
+    `, (err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+  
+  // Read and return already synced assets
+  const syncInfo = await new Promise((resolve, reject) => {
+    activeDeviceDb.all(`SELECT id, name, path, type, size, predictions FROM resources`, (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        const syncedIds = rows.map(r => r.id);
+        resolve({ syncedIds, resources: rows });
+      }
+    });
+  });
+  
+  console.log(`[Database] Initialized for device: ${deviceName} (${deviceUuid}). Loaded ${syncInfo.syncedIds.length} synced assets.`);
+  return syncInfo;
+});
+
+ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChunks, payload, metadata }) => {
+  const chunkBuffer = Buffer.from(payload);
+  
+  if (!pendingTransfers[fileId]) {
+    pendingTransfers[fileId] = {
+      chunks: new Array(totalChunks),
+      received: 0,
+      total: totalChunks
+    };
+  }
+  
+  const transfer = pendingTransfers[fileId];
+  if (!transfer.chunks[chunkIndex]) {
+    transfer.chunks[chunkIndex] = chunkBuffer;
+    transfer.received++;
+  }
+  
+  if (transfer.received === transfer.total) {
+    const fullBuffer = Buffer.concat(transfer.chunks);
+    delete pendingTransfers[fileId];
+    
+    // Resolve filename, type, and target path
+    const ext = getExtension(fullBuffer);
+    
+    let filename = '';
+    let assetId = '';
+    
+    if (metadata && metadata.name) {
+      filename = metadata.name;
+      assetId = metadata.assetId || filename;
+    } else {
+      filename = `synced_${Date.now()}_${fileId}${ext}`;
+      assetId = filename;
+    }
+    
+    let type = 'files';
+    if (['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext.toLowerCase())) {
+      type = 'images';
+    } else if (['.mp4', '.mkv', '.mov', '.avi', '.webm'].includes(ext.toLowerCase())) {
+      type = 'videos';
+    } else if (['.mp3', '.wav', '.m4a', '.ogg', '.flac'].includes(ext.toLowerCase())) {
+      type = 'audios';
+    }
+    
+    let targetPath = '';
+    if (activeDeviceUuid) {
+      const targetDir = path.join(__dirname, 'sync_storage', activeDeviceUuid, type);
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+      targetPath = path.join(targetDir, filename);
+    } else {
+      const aiimageDir = path.join(__dirname, 'aiimage');
+      if (!fs.existsSync(aiimageDir)) {
+        fs.mkdirSync(aiimageDir, { recursive: true });
+      }
+      targetPath = path.join(aiimageDir, filename);
+    }
+    
+    fs.writeFileSync(targetPath, fullBuffer);
+    console.log(`[Sync] Saved reassembled file to ${targetPath}`);
+    
+    // Auto classify only if it is an image
+    let predictions = [];
+    if (type === 'images') {
+      try {
+        predictions = await classifyPhotoInternal(targetPath);
+      } catch (err) {
+        console.error(`Auto classification failed for ${targetPath}:`, err);
+      }
+    }
+    
+    // Register record in SQLite database if device is connected
+    if (activeDeviceUuid && activeDeviceDb) {
+      const size = fullBuffer.length;
+      const predictionsStr = JSON.stringify(predictions);
+      const syncTime = Date.now();
+      
+      activeDeviceDb.run(`
+        INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [assetId, filename, targetPath, type, size, predictionsStr, syncTime], (err) => {
+        if (err) {
+          console.error(`[Database] Error registering synced asset ${assetId}:`, err);
+        } else {
+          console.log(`[Database] Registered synced asset: ${filename} (ID: ${assetId})`);
+        }
+      });
+    }
+    
+    // Notify renderer that a new file is synced!
+    if (mainWindow) {
+      mainWindow.webContents.send('photo-synced', {
+        path: targetPath,
+        name: filename,
+        src: `local:///${targetPath.replace(/\\/g, '/')}`,
+        predictions
+      });
+    }
+  }
+  return true;
+});
+
+function getExtension(buffer) {
+  if (buffer.length >= 4) {
+    // 1. Image Formats
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+      return '.png';
+    }
+    if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+      return '.jpg';
+    }
+    if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
+      return '.gif';
+    }
+    if (buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') {
+      return '.webp';
+    }
+    if (buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WAVE') {
+      return '.wav';
+    }
+    if (buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'AVI ') {
+      return '.avi';
+    }
+
+    // 2. Document/Archive Formats
+    if (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) {
+      return '.pdf';
+    }
+    if (buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04) {
+      return '.zip';
+    }
+    if (buffer[0] === 0x52 && buffer[1] === 0x61 && buffer[2] === 0x72 && buffer[3] === 0x21) {
+      return '.rar';
+    }
+    if (buffer[0] === 0x37 && buffer[1] === 0x7A && buffer[2] === 0xBC && buffer[3] === 0xAF) {
+      return '.7z';
+    }
+
+    // 3. Audio Formats
+    if (buffer[0] === 0x49 && buffer[1] === 0x44 && buffer[2] === 0x33) {
+      return '.mp3';
+    }
+    if (buffer[0] === 0xFF && (buffer[1] === 0xFB || buffer[1] === 0xF3 || buffer[1] === 0xF2)) {
+      return '.mp3';
+    }
+    if (buffer[0] === 0x66 && buffer[1] === 0x4C && buffer[2] === 0x61 && buffer[3] === 0x43) {
+      return '.flac';
+    }
+
+    // 4. Video Formats
+    if (buffer.toString('ascii', 4, 8) === 'ftyp') {
+      return '.mp4';
+    }
+    if (buffer[0] === 0x1A && buffer[1] === 0x45 && buffer[2] === 0xDF && buffer[3] === 0xA3) {
+      return '.mkv';
+    }
+  }
+  return '.bin';
+}
 
 ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
   try {

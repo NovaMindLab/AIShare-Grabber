@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
@@ -58,8 +59,30 @@ class BleSignalingClient {
       return;
     }
 
-    // Wait for Bluetooth to be turn on
-    await FlutterBluePlus.adapterState.where((val) => val == BluetoothAdapterState.on).first;
+    // Programmatically request to turn on Bluetooth on Android
+    if (Platform.isAndroid) {
+      try {
+        await FlutterBluePlus.turnOn();
+      } catch (e) {
+        debugPrint("[BLE] Failed to turn on Bluetooth: $e");
+      }
+    }
+
+    // Wait for Bluetooth to be turned on (with a timeout so it doesn't hang forever)
+    try {
+      if (FlutterBluePlus.adapterStateNow != BluetoothAdapterState.on) {
+        await FlutterBluePlus.adapterState
+            .where((val) => val == BluetoothAdapterState.on)
+            .first
+            .timeout(const Duration(seconds: 10));
+      }
+    } on TimeoutException {
+      _setError("Please turn on Bluetooth to connect");
+      return;
+    } catch (e) {
+      _setError("Bluetooth state error: $e");
+      return;
+    }
 
     startScan();
   }
@@ -72,7 +95,23 @@ class BleSignalingClient {
       for (ScanResult r in results) {
         final address = r.device.remoteId.str.replaceAll(':', '').toLowerCase();
         final target = _targetMac!.replaceAll(':', '').toLowerCase();
-        if (address == target) {
+        
+        bool isTarget = (address == target);
+        
+        // Match by Service UUID fallback if MAC address is randomized/masked by OS
+        if (!isTarget && _serviceUuid != null) {
+          final targetUuidStr = _serviceUuid!.toLowerCase().replaceAll('-', '');
+          for (var uuid in r.advertisementData.serviceUuids) {
+            final uuidStr = uuid.toString().toLowerCase().replaceAll('-', '');
+            if (uuidStr == targetUuidStr) {
+              isTarget = true;
+              debugPrint("[BLE] Found target device via advertised Service UUID: ${r.device.platformName} (${r.device.remoteId.str})");
+              break;
+            }
+          }
+        }
+
+        if (isTarget) {
           debugPrint("[BLE] Target device found: ${r.device.platformName} (${r.device.remoteId.str})");
           stopScan();
           connectToDevice(r.device);
@@ -303,6 +342,19 @@ class BleSignalingClient {
       return true;
     } catch (e) {
       debugPrint("[BLE] Failed to send ICE candidate over BLE: $e");
+      return false;
+    }
+  }
+
+  Future<bool> sendLog(String log) async {
+    final char = _targetCharacteristic;
+    if (char == null || connectionState.value != BleState.connected) return false;
+    final msg = "LOG:$_sessionId:$log";
+    try {
+      await char.write(utf8.encode(msg), withoutResponse: false);
+      return true;
+    } catch (e) {
+      debugPrint("[BLE] Failed to send log to PC: $e");
       return false;
     }
   }

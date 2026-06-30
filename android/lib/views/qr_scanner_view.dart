@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:provider/provider.dart';
 import '../models/qr_payload.dart';
+import '../services/localization_service.dart';
 
 class QrScannerView extends StatefulWidget {
   final void Function(QrPayload payload) onQrScanned;
@@ -92,9 +94,9 @@ class _QrScannerViewState extends State<QrScannerView> with SingleTickerProvider
                   color: const Color(0x990F172A),
                   borderRadius: BorderRadius.circular(12.0),
                 ),
-                child: const Text(
-                  "Align the PC QR code inside the frame",
-                  style: TextStyle(
+                child: Text(
+                  Provider.of<LocalizationService>(context).get('scannerBanner'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15.0,
                     fontWeight: FontWeight.w500,
