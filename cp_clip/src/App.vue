@@ -7,14 +7,7 @@
         <h1 class="brand-title">ShareCLIP</h1>
       </div>
 
-      <div class="sidebar-section">
-        <button class="btn btn-primary" style="width: 100%; margin-bottom: 12px;" @click="handleSelectFolder">
-          <span>📁</span> {{ t.sidebar.importFolder }}
-        </button>
-        <button class="btn btn-secondary" style="width: 100%;" @click="handleSelectImages">
-          <span>🖼️</span> {{ t.sidebar.importFiles }}
-        </button>
-      </div>
+
 
       <!-- Connection Manager Navigation -->
       <div class="sidebar-section">
@@ -167,7 +160,7 @@
       <section class="gallery-container">
         <!-- ==================== TABS SWITCH ==================== -->
         
-        <div v-if="currentTab === 'link'" style="height: 100%; display: flex; flex-direction: column; padding: 24px; box-sizing: border-box; overflow-y: auto; width: 100%; gap: 24px;">
+        <div v-if="currentTab === 'link'" style="display: flex; flex-direction: column; width: 100%; gap: 24px;">
           
           <!-- Top Header Row -->
           <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
@@ -194,18 +187,18 @@
           </div>
 
           <!-- Main Split Pairing Panel -->
-          <div v-if="syncStatus !== 'connected'" style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(147, 51, 234, 0.2); box-shadow: 0 8px 32px rgba(147, 51, 234, 0.05); border-radius: 16px; padding: 32px; display: flex; width: 100%; gap: 24px; box-sizing: border-box; justify-content: space-between; align-items: stretch; position: relative; overflow: hidden; backdrop-filter: blur(12px);">
+          <div v-if="syncStatus !== 'connected'" style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(147, 51, 234, 0.2); box-shadow: 0 8px 32px rgba(147, 51, 234, 0.05); border-radius: 16px; padding: 32px; display: flex; width: 100%; gap: 24px; box-sizing: border-box; justify-content: space-between; align-items: center; min-height: 290px; flex-shrink: 0; position: relative; overflow: hidden; backdrop-filter: blur(12px);">
             
             <!-- Left Column: Scan QR Code -->
-            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px;">
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; flex-shrink: 0;">
               <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                 <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
                 推荐方式：扫码连接
               </h4>
               
               <!-- QR Code Block with glow -->
-              <div style="position: relative; padding: 12px; background: white; border-radius: 12px; box-shadow: 0 0 24px rgba(168, 85, 247, 0.25); display: flex; align-items: center; justify-content: center; width: 160px; height: 160px; box-sizing: border-box; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
-                <canvas ref="qrCanvas" style="width: 136px; height: 136px; display: block;"></canvas>
+              <div style="position: relative; padding: 12px; background: white; border-radius: 12px; box-shadow: 0 0 24px rgba(168, 85, 247, 0.25); display: flex; align-items: center; justify-content: center; width: 160px; height: 160px; box-sizing: border-box; flex-shrink: 0; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+                <canvas ref="qrCanvas" style="width: 136px; height: 136px; display: block; flex-shrink: 0;"></canvas>
               </div>
 
               <!-- SSID & Password Credentials card when Local Hotspot is active -->
@@ -286,8 +279,8 @@
               </div>
 
               <!-- Phone Mockup Container -->
-              <div style="display: flex; align-items: center; justify-content: center;">
-                <div style="width: 105px; height: 215px; border-radius: 20px; border: 4px solid #334155; background: #0f172a; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.5); box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 12px 6px;">
+              <div style="display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <div style="width: 105px; height: 215px; border-radius: 20px; border: 4px solid #334155; background: #0f172a; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.5); box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 12px 6px; flex-shrink: 0;">
                   <!-- Phone Notch / Dynamic Island -->
                   <div style="width: 32px; height: 7px; background: #334155; border-radius: 10px; position: absolute; top: 5px;"></div>
                   
