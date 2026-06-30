@@ -46,5 +46,31 @@ contextBridge.exposeInMainWorld('api', {
   onHotspotStatusChanged: (callback) => {
     ipcRenderer.removeAllListeners('hotspot-status-changed');
     ipcRenderer.on('hotspot-status-changed', (event, status) => callback(status));
-  }
+  },
+
+  // UDP P2P Discovery & Signaling APIs
+  onDiscoveredDevicesChanged: (callback) => {
+    ipcRenderer.removeAllListeners('discovered-devices');
+    ipcRenderer.on('discovered-devices', (event, devices) => callback(devices));
+  },
+  onConnectionRequestReceived: (callback) => {
+    ipcRenderer.removeAllListeners('connection-request');
+    ipcRenderer.on('connection-request', (event, request) => callback(request));
+  },
+  onConnectionResponseReceived: (callback) => {
+    ipcRenderer.removeAllListeners('connection-response');
+    ipcRenderer.on('connection-response', (event, res) => callback(res));
+  },
+  onDirectSdpReceived: (callback) => {
+    ipcRenderer.removeAllListeners('direct-sdp-received');
+    ipcRenderer.on('direct-sdp-received', (event, data) => callback(data));
+  },
+  onDirectIceReceived: (callback) => {
+    ipcRenderer.removeAllListeners('direct-ice-received');
+    ipcRenderer.on('direct-ice-received', (event, data) => callback(data));
+  },
+  sendUdpConnectRequest: (ip) => ipcRenderer.invoke('send-udp-connect-request', { ip }),
+  respondToConnectionRequest: (ip, accept) => ipcRenderer.invoke('respond-to-connection-request', { ip, accept }),
+  sendUdpSdp: (ip, sdp, sdpType) => ipcRenderer.invoke('send-udp-sdp', { ip, sdp, sdpType }),
+  sendUdpIce: (ip, candidate) => ipcRenderer.invoke('send-udp-ice', { ip, candidate })
 });

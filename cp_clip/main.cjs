@@ -49,6 +49,7 @@ const imageEmbeddingsCache = {}; // imagePath -> Float32Array (512-dim)
 // BLE Signaling and chunk transfer state
 let bleProcess = null;
 let hotspotProcess = null;
+let pcSessionId = (1000 + Math.floor(Math.random() * 9000)).toString();
 const pendingTransfers = {}; // fileId -> { chunks: [], received: 0, total: 0 }
 
 
@@ -224,6 +225,9 @@ app.whenReady().then(async () => {
 
   await initializeAI();
   createWindow();
+  
+  // Start local network UDP discovery
+  startUdpDiscoveryService();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -440,14 +444,13 @@ ipcMain.handle('start-ble-server', async (event) => {
   
   const service_uuid = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
   const char_uuid = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
-  const session_id = (1000 + Math.floor(Math.random() * 9000)).toString();
   
   const { spawn } = require('child_process');
   const pythonExecutable = 'py';
   const scriptPath = path.join(__dirname, 'ble_signaling_server.py');
   
   return new Promise((resolve, reject) => {
-    bleProcess = spawn(pythonExecutable, [scriptPath, service_uuid, char_uuid, session_id], {
+    bleProcess = spawn(pythonExecutable, [scriptPath, service_uuid, char_uuid, pcSessionId], {
       cwd: __dirname
     });
     
@@ -491,7 +494,7 @@ ipcMain.handle('start-ble-server', async (event) => {
             ble_mac: macAddress,
             service_uuid,
             char_uuid,
-            session_id
+            session_id: pcSessionId
           });
         }
       } else if (line === "STATUS:CONNECTED") {
@@ -977,5 +980,224 @@ ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
     console.error("Error during photo search:", error);
     return [];
   }
+});
+
+// ─────────────────────────────────────────────────────────────────
+// 📶 UDP DISCOVERY & DIRECT CONNECTION SERVICES
+// ─────────────────────────────────────────────────────────────────
+const dgram = require('dgram');
+let udpSocket = null;
+const discoveredDevices = new Map(); // uuid -> { uuid, name, ip, type, lastSeen, sessionId }
+
+let computerUuid = null;
+function getComputerUuid() {
+  if (computerUuid) return computerUuid;
+  const fs = require('fs');
+  const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const data = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      if (data.computerUuid) {
+        computerUuid = data.computerUuid;
+        return computerUuid;
+      }
+    }
+  } catch (_) {}
+  
+  computerUuid = 'pc-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  try {
+    fs.writeFileSync(settingsPath, JSON.stringify({ computerUuid }), 'utf8');
+  } catch (_) {}
+  return computerUuid;
+}
+
+function startUdpDiscoveryService() {
+  if (udpSocket) return;
+
+  udpSocket = dgram.createSocket('udp4');
+
+  udpSocket.on('error', (err) => {
+    console.error(`[UDP Error]: ${err.stack}`);
+    try { udpSocket.close(); } catch (_) {}
+    udpSocket = null;
+  });
+
+  udpSocket.on('message', (msg, rinfo) => {
+    try {
+      const data = JSON.parse(msg.toString());
+      if (data.type === 'ShareCLIP_Discovery') {
+        if (data.device_uuid === getComputerUuid()) return;
+
+        discoveredDevices.set(data.device_uuid, {
+          uuid: data.device_uuid,
+          name: data.device_name,
+          ip: rinfo.address,
+          type: data.device_type || 'PC',
+          lastSeen: Date.now(),
+          sessionId: data.session_id
+        });
+        
+        notifyDiscoveredDevices();
+      } else if (data.type === 'ShareCLIP_Connect_Request') {
+        if (mainWindow) {
+          mainWindow.webContents.send('connection-request', {
+            uuid: data.from_uuid,
+            name: data.from_name,
+            ip: rinfo.address
+          });
+        }
+      } else if (data.type === 'ShareCLIP_Connect_Response') {
+        if (mainWindow) {
+          mainWindow.webContents.send('connection-response', {
+            ip: rinfo.address,
+            accept: data.accept,
+            sdp: data.sdp
+          });
+        }
+      } else if (data.type === 'ShareCLIP_Direct_Sdp') {
+        if (mainWindow) {
+          mainWindow.webContents.send('direct-sdp-received', {
+            ip: rinfo.address,
+            sdp: data.sdp,
+            sdpType: data.sdpType
+          });
+        }
+      } else if (data.type === 'ShareCLIP_Direct_Ice') {
+        if (mainWindow) {
+          mainWindow.webContents.send('direct-ice-received', {
+            ip: rinfo.address,
+            candidate: data.candidate
+          });
+        }
+      }
+    } catch (e) {
+      // Ignore parsing errors
+    }
+  });
+
+  udpSocket.on('listening', () => {
+    try {
+      udpSocket.setBroadcast(true);
+    } catch (e) {
+      console.error("[UDP] Failed to set broadcast:", e);
+    }
+    const address = udpSocket.address();
+    console.log(`[UDP Service] Listening on ${address.address}:${address.port}`);
+  });
+
+  try {
+    udpSocket.bind(15185);
+  } catch (e) {
+    console.error("[UDP] Bind failed:", e);
+  }
+
+  // Start timers
+  setInterval(broadcastDiscovery, 3000);
+  setInterval(pruneDiscoveryList, 5000);
+}
+
+function broadcastDiscovery() {
+  if (!udpSocket) return;
+
+  const hostname = require('os').hostname();
+  const payload = JSON.stringify({
+    type: 'ShareCLIP_Discovery',
+    device_uuid: getComputerUuid(),
+    device_name: hostname,
+    device_type: 'PC',
+    session_id: pcSessionId
+  });
+
+  const message = Buffer.from(payload);
+  try {
+    udpSocket.send(message, 0, message.length, 15185, '255.255.255.255', (err) => {
+      if (err) {
+        // Suppress broadcast network-unreachable warnings
+      }
+    });
+  } catch (e) {
+    // Suppress network errors
+  }
+}
+
+function pruneDiscoveryList() {
+  const now = Date.now();
+  let changed = false;
+  for (const [uuid, device] of discoveredDevices.entries()) {
+    if (now - device.lastSeen > 10000) {
+      discoveredDevices.delete(uuid);
+      changed = true;
+    }
+  }
+  if (changed) {
+    notifyDiscoveredDevices();
+  }
+}
+
+function notifyDiscoveredDevices() {
+  if (mainWindow) {
+    const list = Array.from(discoveredDevices.values());
+    mainWindow.webContents.send('discovered-devices', list);
+  }
+}
+
+// IPC Handlers for UDP P2P Discovery & WebRTC signaling
+ipcMain.handle('send-udp-connect-request', async (event, { ip }) => {
+  if (!udpSocket) return false;
+  const hostname = require('os').hostname();
+  const payload = JSON.stringify({
+    type: 'ShareCLIP_Connect_Request',
+    from_uuid: getComputerUuid(),
+    from_name: hostname
+  });
+  const message = Buffer.from(payload);
+  return new Promise((resolve) => {
+    udpSocket.send(message, 0, message.length, 15185, ip, (err) => {
+      resolve(!err);
+    });
+  });
+});
+
+ipcMain.handle('respond-to-connection-request', async (event, { ip, accept }) => {
+  if (!udpSocket) return false;
+  const payload = JSON.stringify({
+    type: 'ShareCLIP_Connect_Response',
+    accept: accept
+  });
+  const message = Buffer.from(payload);
+  return new Promise((resolve) => {
+    udpSocket.send(message, 0, message.length, 15185, ip, (err) => {
+      resolve(!err);
+    });
+  });
+});
+
+ipcMain.handle('send-udp-sdp', async (event, { ip, sdp, sdpType }) => {
+  if (!udpSocket) return false;
+  const payload = JSON.stringify({
+    type: 'ShareCLIP_Direct_Sdp',
+    sdp: sdp,
+    sdpType: sdpType
+  });
+  const message = Buffer.from(payload);
+  return new Promise((resolve) => {
+    udpSocket.send(message, 0, message.length, 15185, ip, (err) => {
+      resolve(!err);
+    });
+  });
+});
+
+ipcMain.handle('send-udp-ice', async (event, { ip, candidate }) => {
+  if (!udpSocket) return false;
+  const payload = JSON.stringify({
+    type: 'ShareCLIP_Direct_Ice',
+    candidate: candidate
+  });
+  const message = Buffer.from(payload);
+  return new Promise((resolve) => {
+    udpSocket.send(message, 0, message.length, 15185, ip, (err) => {
+      resolve(!err);
+    });
+  });
 });
 

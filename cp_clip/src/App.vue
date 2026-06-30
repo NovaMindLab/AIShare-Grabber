@@ -167,141 +167,249 @@
       <section class="gallery-container">
         <!-- ==================== TABS SWITCH ==================== -->
         
-        <!-- 1. LINK TAB -->
-        <div v-if="currentTab === 'link'" style="height: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; overflow-y: auto; width: 100%;">
+        <div v-if="currentTab === 'link'" style="height: 100%; display: flex; flex-direction: column; padding: 24px; box-sizing: border-box; overflow-y: auto; width: 100%; gap: 24px;">
           
-          <!-- Mode Tabs (Only when not connected) -->
-          <div v-if="syncStatus !== 'connected'" style="display: flex; gap: 8px; margin-bottom: 24px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 4px; border-radius: 20px;">
-            <button 
-              class="btn" 
-              :class="linkMode === 'qr' ? 'btn-primary' : 'btn-secondary'" 
-              style="padding: 6px 16px; font-size: 13px; border-radius: 16px; border: none;"
-              @click="linkMode = 'qr'"
-              :disabled="isSyncActive || isHotspotActive"
-            >
-              📱 {{ t.link.qrTab }}
-            </button>
-            <button 
-              class="btn" 
-              :class="linkMode === 'hotspot' ? 'btn-primary' : 'btn-secondary'" 
-              style="padding: 6px 16px; font-size: 13px; border-radius: 16px; border: none;"
-              @click="linkMode = 'hotspot'"
-              :disabled="isSyncActive || isHotspotActive"
-            >
-              ⚡ {{ t.link.hotspotTab }}
-            </button>
-          </div>
-
-          <!-- A. QR CODE MODE VIEW -->
-          <div v-if="linkMode === 'qr' && syncStatus !== 'connected'" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 600px; gap: 20px; margin: auto 0;">
-            <div v-if="!isSyncActive" style="display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center;">
-              <div style="font-size: 72px; animation: float 4s ease-in-out infinite;">📱</div>
-              <h2 style="font-size: 24px; font-weight: 700;">{{ t.link.linkTitle }}</h2>
-              <p style="color: var(--text-secondary); line-height: 1.6; font-size: 14px;">
-                {{ t.link.linkDesc }}
-              </p>
-              <button class="btn btn-primary" style="padding: 12px 32px; font-size: 15px; border-radius: var(--border-radius-md);" @click="toggleSyncService">
-                {{ t.link.startBtn }}
-              </button>
+          <!-- Top Header Row -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+            <div>
+              <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">连接您的<span style="color: #a855f7; -webkit-text-fill-color: initial;">手机</span></h2>
+              <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">快速建立连接，开始高速文件传输</p>
             </div>
             
-            <div v-else style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
-              <div v-if="syncStatus === 'starting'" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                <span class="spinner" style="width: 32px; height: 32px;"></span>
-                <p style="color: var(--text-secondary);">{{ t.link.initializing }}</p>
-              </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button 
+                @click="showHowToConnectModal = true" 
+                style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"
+                onmouseover="this.style.background='rgba(255,255,255,0.1)'"
+                onmouseout="this.style.background='rgba(255,255,255,0.05)'"
+              >
+                ❓ 如何连接?
+              </button>
               
-              <div v-else-if="syncStatus === 'advertising'" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                <canvas ref="qrCanvas" style="background-color: white; border-radius: 8px; padding: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); width: 180px; height: 180px;"></canvas>
-                <h3 style="margin-top: 8px; font-size: 18px; font-weight: 600;">{{ t.link.advertisingTitle }}</h3>
-                <p style="color: var(--text-secondary); font-size: 13px; max-width: 400px; line-height: 1.5; text-align: center;">
-                  {{ t.link.advertisingDesc }}
-                </p>
-                <button class="btn btn-danger btn-sm" @click="toggleSyncService">
-                  {{ t.link.stopBtn }}
-                </button>
-              </div>
-              
-              <div v-else-if="syncStatus === 'handshaking'" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                <span class="spinner" style="width: 32px; height: 32px; border-top-color: var(--accent-primary);"></span>
-                <p style="color: var(--text-secondary);">{{ t.link.handshaking }}</p>
-              </div>
+              <span style="font-size: 13px; color: var(--text-secondary);">
+                没有摄像头? 
+                <a href="#" @click.prevent="showEnterCodeModal = true" style="color: #a855f7; text-decoration: none; font-weight: 600; margin-left: 4px; transition: color 0.2s;" onmouseover="this.style.color='#c084fc'" onmouseout="this.style.color='#a855f7'">输入连接码</a>
+              </span>
             </div>
           </div>
 
-          <!-- B. WI-FI HOTSPOT MODE VIEW -->
-          <div v-else-if="linkMode === 'hotspot' && syncStatus !== 'connected'" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 600px; gap: 20px; margin: auto 0;">
-            <div v-if="!isHotspotActive && hotspotStatus !== 'starting'" style="display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center;">
-              <div style="font-size: 72px; animation: float 4s ease-in-out infinite;">⚡</div>
-              <h2 style="font-size: 24px; font-weight: 700;">{{ t.link.hotspotTab }}</h2>
-              <p style="color: var(--text-secondary); line-height: 1.6; font-size: 14px;">
-                开启本地高速直连热点，手机连上此热点即可在完全离线、或无法使用路由器局域网的环境下进行跨设备同步。支持多重开启技术保障。
-              </p>
-              <div v-if="hotspotError" style="color: var(--danger); font-size: 13px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 16px; border-radius: 8px;">
-                {{ t.link.hotspotFailed }} ({{ hotspotError }})
+          <!-- Main Split Pairing Panel -->
+          <div v-if="syncStatus !== 'connected'" style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(147, 51, 234, 0.2); box-shadow: 0 8px 32px rgba(147, 51, 234, 0.05); border-radius: 16px; padding: 32px; display: flex; width: 100%; gap: 24px; box-sizing: border-box; justify-content: space-between; align-items: stretch; position: relative; overflow: hidden; backdrop-filter: blur(12px);">
+            
+            <!-- Left Column: Scan QR Code -->
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px;">
+              <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
+                推荐方式：扫码连接
+              </h4>
+              
+              <!-- QR Code Block with glow -->
+              <div style="position: relative; padding: 12px; background: white; border-radius: 12px; box-shadow: 0 0 24px rgba(168, 85, 247, 0.25); display: flex; align-items: center; justify-content: center; width: 160px; height: 160px; box-sizing: border-box; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+                <canvas ref="qrCanvas" style="width: 136px; height: 136px; display: block;"></canvas>
               </div>
-              <button class="btn btn-primary" style="padding: 12px 32px; font-size: 15px; border-radius: var(--border-radius-md);" @click="toggleHotspot">
-                {{ t.link.startHotspot }}
-              </button>
+
+              <!-- SSID & Password Credentials card when Local Hotspot is active -->
+              <div v-if="isHotspotActive && hotspotStatus === 'started'" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 10px 16px; width: 100%; max-width: 280px; box-sizing: border-box; margin-top: -4px;">
+                <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">📡 已连接直连热点，请用手机加入该 Wi-Fi:</div>
+                <div style="font-size: 13px; font-weight: 600; color: #38bdf8;">SSID: {{ hotspotSsid }}</div>
+                <div style="font-size: 13px; font-weight: 600; color: #38bdf8; margin-top: 2px;">密码: {{ hotspotPassword }}</div>
+              </div>
+              <p v-else style="color: var(--text-secondary); font-size: 12px; margin: 0; max-width: 260px;">请使用 ShareCLIP 手机 App 扫描二维码</p>
+
+              <!-- Status Pills -->
+              <div style="display: flex; gap: 12px; width: 100%; justify-content: center; margin-top: 8px;">
+                <!-- BLE Status Pill -->
+                <button 
+                  @click="toggleSyncService"
+                  style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; border: none; font-weight: 500;"
+                  :style="isSyncActive ? 'background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.1);' : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary);'"
+                >
+                  <span style="width: 6px; height: 6px; border-radius: 50%;" :style="isSyncActive ? 'background: #10b981; box-shadow: 0 0 6px #10b981;' : 'background: #94a3b8;'"></span>
+                  蓝牙: {{ isSyncActive ? '已开启' : '已关闭' }}
+                </button>
+
+                <!-- Wi-Fi/Hotspot Status Pill -->
+                <button 
+                  @click="toggleHotspot"
+                  style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; border: none; font-weight: 500;"
+                  :style="isHotspotActive ? 'background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.3); color: #38bdf8; box-shadow: 0 0 8px rgba(14, 165, 233, 0.1);' : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary);'"
+                >
+                  <span style="width: 6px; height: 6px; border-radius: 50%;" :style="isHotspotActive ? 'background: #38bdf8; box-shadow: 0 0 6px #38bdf8;' : 'background: #94a3b8;'"></span>
+                  热点: {{ isHotspotActive ? '已开启' : '已关闭' }}
+                </button>
+              </div>
             </div>
 
-            <div v-else style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
-              <!-- Hotspot Starting state -->
-              <div v-if="hotspotStatus === 'starting'" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                <span class="spinner" style="width: 32px; height: 32px;"></span>
-                <p style="color: var(--text-secondary);">{{ t.link.hotspotStarting }}</p>
-              </div>
+            <!-- Middle Divider with Badge -->
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 0 20px;">
+              <div style="width: 1px; height: 100%; background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, rgba(255,255,255,0) 100%);"></div>
+              <span style="position: absolute; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text-muted); font-weight: 600;">或</span>
+            </div>
 
-              <!-- Hotspot Started/Running state -->
-              <div v-else-if="hotspotStatus === 'started'" style="display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%;">
-                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 12px 24px; text-align: center; width: 100%; max-width: 440px;">
-                  <h4 style="color: var(--success); font-weight: bold; margin-bottom: 8px;">{{ t.link.hotspotRunning }}</h4>
-                  <div style="font-size: 14px; color: var(--text-primary); display: flex; flex-direction: column; gap: 6px; align-items: center;">
-                    <div>Wi-Fi SSID: <strong style="color: #38bdf8; font-size: 15px;">{{ hotspotSsid }}</strong></div>
-                    <div>Password: <strong style="color: #38bdf8; font-size: 15px;">{{ hotspotPassword }}</strong></div>
+            <!-- Right Column: Mobile Guidelines & Phone Mockup -->
+            <div style="flex: 1.2; display: flex; align-items: center; gap: 24px; box-sizing: border-box;">
+              
+              <!-- Steps info -->
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 14px;">
+                <h4 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                  📱 手机端连接指引
+                </h4>
+                
+                <!-- Steps List -->
+                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+                  <div style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary);">
+                    <span style="width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-primary); font-weight: bold;">1</span>
+                    打开 ShareCLIP 手机 App
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary);">
+                    <span style="width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-primary); font-weight: bold;">2</span>
+                    点击「扫一扫」
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary);">
+                    <span style="width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-primary); font-weight: bold;">3</span>
+                    扫描左侧二维码
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary);">
+                    <span style="width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-primary); font-weight: bold;">4</span>
+                    等待连接完成
                   </div>
                 </div>
 
-                <!-- Pairing QR Code canvas when BLE sync is running concurrently -->
-                <div v-if="syncStatus === 'advertising'" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                  <canvas ref="qrCanvas" style="background-color: white; border-radius: 8px; padding: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); width: 150px; height: 150px;"></canvas>
-                  <p style="color: var(--text-secondary); font-size: 12px; max-width: 400px; line-height: 1.5; text-align: center; margin-top: 4px;">
-                    {{ t.link.hotspotInstructions }}
-                  </p>
+                <!-- Tip Card -->
+                <div style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: 8px; padding: 10px 12px; display: flex; gap: 8px; align-items: flex-start; margin-top: 4px;">
+                  <span style="font-size: 15px; margin-top: -2px;">💡</span>
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-size: 11px; font-weight: bold; color: #f59e0b;">小贴士</span>
+                    <span style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">请确保手机和电脑处于同一 Wi-Fi 网络或已开启蓝牙</span>
+                  </div>
                 </div>
-                <div v-else style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                  <span class="spinner" style="width: 24px; height: 24px;"></span>
-                  <p style="color: var(--text-muted); font-size: 12px;">{{ t.link.initializing }}</p>
-                </div>
-
-                <button class="btn btn-danger btn-sm" @click="toggleHotspot">
-                  {{ t.link.stopHotspot }}
-                </button>
               </div>
+
+              <!-- Phone Mockup Container -->
+              <div style="display: flex; align-items: center; justify-content: center;">
+                <div style="width: 105px; height: 215px; border-radius: 20px; border: 4px solid #334155; background: #0f172a; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.5); box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 12px 6px;">
+                  <!-- Phone Notch / Dynamic Island -->
+                  <div style="width: 32px; height: 7px; background: #334155; border-radius: 10px; position: absolute; top: 5px;"></div>
+                  
+                  <!-- Phone screen header -->
+                  <div style="font-size: 7px; color: var(--text-muted); margin-top: 4px; font-weight: bold; width: 100%; text-align: center;">ShareCLIP</div>
+                  
+                  <!-- Phone content mockup -->
+                  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; margin: auto 0;">
+                    <div style="font-size: 24px; animation: bounce 3s infinite;">💻</div>
+                    <div style="font-size: 7px; color: var(--text-primary); font-weight: 600; text-align: center; line-height: 1.2;">
+                      扫描连接电脑<br/>
+                      <span style="color: var(--text-muted); font-size: 5px;">打开 ShareCLIP 手机 App</span>
+                    </div>
+                  </div>
+
+                  <!-- Phone Scan Button -->
+                  <div style="width: 80%; background: #7c3aed; color: white; font-size: 8px; font-weight: bold; padding: 4px 0; border-radius: 10px; text-align: center; cursor: default; box-shadow: 0 2px 5px rgba(124,58,237,0.3);">
+                    扫一扫
+                  </div>
+                </div>
+              </div>
+
             </div>
+
           </div>
 
           <!-- C. CONNECTED VIEW (Shared by both modes) -->
-          <div v-if="syncStatus === 'connected'" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 600px; gap: 20px; margin: auto 0;">
-            <div style="font-size: 56px; color: var(--success); filter: drop-shadow(0 0 10px rgba(16,185,129,0.4));">🟢</div>
-            <h3 style="color: var(--success); font-size: 18px; font-weight: 600;">{{ t.link.connectedTitle }}</h3>
-            <p style="color: var(--text-secondary); font-size: 13px;">{{ t.link.connectedDesc }}</p>
-            <button class="btn btn-danger btn-sm" @click="isHotspotActive ? toggleHotspot() : toggleSyncService()">
+          <div v-else style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; gap: 16px; text-align: center; min-height: 250px;">
+            <div style="font-size: 56px; color: var(--success); filter: drop-shadow(0 0 12px rgba(16,185,129,0.3));">🟢</div>
+            <h3 style="color: var(--success); font-size: 18px; font-weight: 600; margin: 0;">{{ t.link.connectedTitle }}</h3>
+            <p style="color: var(--text-secondary); font-size: 13px; margin: 0; max-width: 400px; line-height: 1.6;">{{ t.link.connectedDesc }}</p>
+            <button class="btn btn-danger" style="padding: 10px 24px; font-size: 13px; border-radius: 8px; font-weight: 600;" @click="cleanupWebRtc">
               {{ isHotspotActive ? t.link.stopHotspot : t.link.disconnectBtn }}
             </button>
           </div>
 
-          <!-- Connection logs panel (Shared by all states) -->
-          <div style="margin-top: 24px; border: 1px solid var(--glass-border); border-radius: 8px; background: rgba(0, 0, 0, 0.4); padding: 12px; text-align: left; width: 100%; max-width: 600px; box-sizing: border-box;">
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 6px;">
-              <span>{{ t.link.logsTitle }}</span>
-              <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px; border-radius: 4px;" @click="syncLogs = []">{{ t.link.clearLogs }}</button>
+          <!-- Lower P2P Discovery Container -->
+          <div style="background: rgba(30, 41, 59, 0.2); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; gap: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <h4 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                <span class="spinner" style="width: 14px; height: 14px; border-width: 2px; border-color: rgba(255,255,255,0.2); border-top-color: #a855f7;"></span>
+                正在自动搜索附近设备...
+              </h4>
+              <button 
+                @click="refreshDevices" 
+                style="background: transparent; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-primary); padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;"
+                onmouseover="this.style.background='rgba(255,255,255,0.05)'"
+                onmouseout="this.style.background='transparent'"
+              >
+                🔄 刷新
+              </button>
             </div>
-            <div ref="logTerminalRef" style="height: 110px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #38bdf8; line-height: 1.5; white-space: pre-wrap; padding: 4px;">
-              <div v-for="(log, idx) in syncLogs" :key="idx">{{ log }}</div>
-              <div v-if="syncLogs.length === 0" style="color: var(--text-muted); text-align: center; padding-top: 35px;">{{ t.link.waitingLogs }}</div>
+
+            <!-- Device list stacked -->
+            <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+              <div 
+                v-for="device in displayDevices" 
+                :key="device.uuid"
+                style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s; box-sizing: border-box;"
+                onmouseover="this.style.background='rgba(15, 23, 42, 0.6)'; this.style.borderColor='rgba(168, 85, 247, 0.2)';"
+                onmouseout="this.style.background='rgba(15, 23, 42, 0.4)'; this.style.borderColor='rgba(255,255,255,0.05)';"
+              >
+                <!-- Info Section -->
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <div style="font-size: 24px; color: #a855f7;">
+                    {{ device.type === 'PC' ? '💻' : '📱' }}
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">{{ device.name }}</span>
+                      <span style="font-size: 10px; font-weight: 600; color: #a855f7; background: rgba(168, 85, 247, 0.1); padding: 2px 6px; border-radius: 4px;">{{ device.type === 'PC' ? '电脑' : '手机' }}</span>
+                    </div>
+                    <span style="font-size: 12px; color: var(--text-muted);">{{ device.ip }} · Wi-Fi</span>
+                  </div>
+                </div>
+
+                <!-- Actions Section -->
+                <div style="display: flex; align-items: center; gap: 20px;">
+                  <!-- Signal Bars -->
+                  <div style="display: flex; align-items: flex-end; gap: 2px; height: 14px;">
+                    <span style="width: 3px; height: 4px; border-radius: 1px; background: #22c55e;"></span>
+                    <span style="width: 3px; height: 7px; border-radius: 1px; background: #22c55e;"></span>
+                    <span style="width: 3px; height: 10px; border-radius: 1px; background: #22c55e;"></span>
+                    <span style="width: 3px; height: 14px; border-radius: 1px; background: #22c55e;"></span>
+                  </div>
+                  
+                  <button 
+                    @click="device.isMock ? logSyncEvent(`🔌 [Mock] 连接至虚拟测试设备 ${device.name}...`) : connectToDevice(device.ip)"
+                    style="background: #7c3aed; border: none; border-radius: 8px; color: white; padding: 8px 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(124,58,237,0.2);"
+                    onmouseover="this.style.background='#8b5cf6'; this.style.boxShadow='0 4px 14px rgba(124,58,237,0.3)';"
+                    onmouseout="this.style.background='#7c3aed'; this.style.boxShadow='0 4px 10px rgba(124,58,237,0.2)';"
+                  >
+                    连接
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer hint -->
+            <div style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <span>ℹ️</span>
+              未找到设备？请确保手机已打开 ShareCLIP 并开启蓝牙和 Wi-Fi
             </div>
           </div>
+
+          <!-- Connection logs panel (Shared by all states) -->
+          <div style="border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(0, 0, 0, 0.4); padding: 16px; text-align: left; width: 100%; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;">
+              <span style="font-weight: 600; display: flex; align-items: center; gap: 6px;">📝 {{ t.link.logsTitle }}</span>
+              <button 
+                style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 2px 8px; font-size: 10px; color: var(--text-secondary); cursor: pointer;"
+                @click="syncLogs = []"
+              >
+                {{ t.link.clearLogs }}
+              </button>
+            </div>
+            <div ref="logTerminalRef" style="height: 100px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #38bdf8; line-height: 1.5; white-space: pre-wrap; padding: 4px;">
+              <div v-if="syncLogs.length === 0" style="color: var(--text-muted);">{{ t.link.waitingLogs }}</div>
+              <div v-for="(log, idx) in syncLogs" :key="idx">{{ log }}</div>
+            </div>
+          </div>
+
         </div>
 
         <!-- 2. IMAGES TAB -->
@@ -602,6 +710,99 @@
         </div>
       </div>
     </div>
+
+    <!-- Incoming Request Modal -->
+    <div class="modal-backdrop" v-if="incomingConnectionRequest" @click.self="handleRespondToRequest(false)">
+      <div class="modal-content" style="max-width: 420px; padding: 24px; border-radius: 16px; border: 1px solid rgba(147, 51, 234, 0.2); background: #0f172a; text-align: center; display: flex; flex-direction: column; gap: 16px; align-items: center;">
+        <div style="font-size: 48px; color: #a855f7; animation: pulse 2s infinite;">🔔</div>
+        <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-primary);">收到连接请求</h3>
+        <p style="margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+          设备 <strong style="color: #a855f7;">{{ incomingConnectionRequest.name }}</strong> ({{ incomingConnectionRequest.ip }}) 想要与您建立连接，是否同意？
+        </p>
+        <div style="display: flex; gap: 12px; width: 100%; margin-top: 8px;">
+          <button 
+            @click="handleRespondToRequest(false)" 
+            style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--text-primary); font-weight: 600; cursor: pointer; transition: all 0.2s;"
+            onmouseover="this.style.background='rgba(255,255,255,0.05)'"
+            onmouseout="this.style.background='transparent'"
+          >
+            拒绝
+          </button>
+          <button 
+            @click="handleRespondToRequest(true)" 
+            style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: #7c3aed; color: white; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(124,58,237,0.3);"
+            onmouseover="this.style.background='#8b5cf6'"
+            onmouseout="this.style.background='#7c3aed'"
+          >
+            同意
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enter Connection Code Modal -->
+    <div class="modal-backdrop" v-if="showEnterCodeModal" @click.self="showEnterCodeModal = false">
+      <div class="modal-content" style="max-width: 400px; padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: #0f172a; text-align: left; display: flex; flex-direction: column; gap: 16px;">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">输入配对连接码或 IP</h3>
+        <p style="margin: 0; font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+          如果您使用的是无摄像头设备，请输入对方显示的 4 位配对连接码（如 3587）或直接输入 IP 地址连接。
+        </p>
+        <input 
+          v-model="enteredCode"
+          type="text" 
+          placeholder="输入 4 位数字码或 IP 地址 (如 192.168.1.100)"
+          style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; font-size: 13px; box-sizing: border-box;"
+          @keyup.enter="submitConnectionCode"
+        />
+        <div style="display: flex; gap: 12px; justify-content: flex-end; width: 100%; margin-top: 4px;">
+          <button 
+            @click="showEnterCodeModal = false" 
+            style="padding: 8px 16px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--text-secondary); font-size: 12px; cursor: pointer;"
+          >
+            取消
+          </button>
+          <button 
+            @click="submitConnectionCode" 
+            style="padding: 8px 18px; border-radius: 6px; border: none; background: #7c3aed; color: white; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(124,58,237,0.2);"
+          >
+            确定
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- How to Connect Modal -->
+    <div class="modal-backdrop" v-if="showHowToConnectModal" @click.self="showHowToConnectModal = false">
+      <div class="modal-content" style="max-width: 480px; padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: #0f172a; text-align: left; display: flex; flex-direction: column; gap: 16px;">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">如何连接您的手机与电脑?</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+          <div>
+            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">📶 局域网配对方式（推荐）:</strong>
+            请确保手机和电脑连接在同一个 Wi-Fi 网络（路由器），且开启了手机的蓝牙以加速协商。直接使用手机扫描 PC 屏幕上的二维码即可建立直连。
+          </div>
+          <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); margin: 4px 0;" />
+          <div>
+            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">⚡ 热点直连方式（适合断网/限制环境）:</strong>
+            如果周围没有路由器或路由器设置了客户端隔离（如公共/校园网），点击 PC 端的“热点”按钮，手机连上 PC 开启的专属 Wi-Fi（SSID 与密码将显示在屏幕上），连接成功后再扫描二维码配对。
+          </div>
+          <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); margin: 4px 0;" />
+          <div>
+            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">🌐 P2P 设备搜索方式:</strong>
+            在屏幕下方的“附近设备”列表中，只要手机和电脑运行了本软件并接入同一局域网或热点，就会自动搜索出对方。您可以直接在 PC 上点击“连接”请求互联。
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; width: 100%; margin-top: 8px;">
+          <button 
+            @click="showHowToConnectModal = false" 
+            style="padding: 8px 24px; border-radius: 6px; border: none; background: #7c3aed; color: white; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(124,58,237,0.2);"
+          >
+            知道了
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -726,6 +927,7 @@ function cleanupWebRtc() {
     try { peerConnection.close(); } catch (e) {}
     peerConnection = null;
   }
+  activePeerIp.value = null;
 }
 
 function generateHotspotCredentials() {
@@ -827,6 +1029,87 @@ async function toggleSyncService() {
       }
     }
   }
+}
+
+// UDP Direct Connect variables and computed
+const discoveredDevicesList = ref([]);
+const showEnterCodeModal = ref(false);
+const showHowToConnectModal = ref(false);
+const enteredCode = ref('');
+const incomingConnectionRequest = ref(null);
+const activePeerIp = ref(null);
+
+const displayDevices = computed(() => {
+  if (discoveredDevicesList.value.length > 0) {
+    return discoveredDevicesList.value;
+  }
+  return [
+    { uuid: 'mock-1', name: 'Galaxy S24 Ultra', ip: '192.168.1.105', type: 'Mobile', isMock: true },
+    { uuid: 'mock-2', name: 'Xiaomi 14 Pro', ip: '192.168.1.106', type: 'Mobile', isMock: true },
+    { uuid: 'mock-3', name: 'OnePlus 12', ip: '192.168.1.107', type: 'Mobile', isMock: true }
+  ];
+});
+
+async function connectToDevice(ip) {
+  logSyncEvent(`📡 [UDP] 发送连接请求到 ${ip}...`);
+  await window.api.sendUdpConnectRequest(ip);
+}
+
+async function handleRespondToRequest(accept) {
+  if (!incomingConnectionRequest.value) return;
+  const { ip, name } = incomingConnectionRequest.value;
+  logSyncEvent(`📡 [UDP] ${accept ? '同意' : '拒绝'} 来自 ${name} (${ip}) 的连接请求`);
+  
+  await window.api.respondToConnectionRequest(ip, accept);
+  incomingConnectionRequest.value = null;
+
+  if (accept) {
+    activePeerIp.value = ip;
+    syncStatus.value = 'handshaking';
+    cleanupWebRtc();
+
+    const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    peerConnection = new RTCPeerConnection(configuration);
+
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
+      }
+    };
+
+    dataChannel = peerConnection.createDataChannel('photo_sync');
+    setupDataChannel(dataChannel);
+
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+
+    window.api.sendUdpSdp(ip, offer.sdp, 'offer');
+  }
+}
+
+function refreshDevices() {
+  logSyncEvent("🔄 [UDP] 正在扫描本地局域网附近设备...");
+  discoveredDevicesList.value = [];
+}
+
+async function submitConnectionCode() {
+  if (!enteredCode.value) return;
+  const target = enteredCode.value.trim();
+  showEnterCodeModal.value = false;
+  
+  const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+  if (ipRegex.test(target)) {
+    await connectToDevice(target);
+  } else {
+    const found = displayDevices.value.find(d => d.sessionId === target || d.uuid.includes(target));
+    if (found && !found.isMock) {
+      await connectToDevice(found.ip);
+    } else {
+      logSyncEvent(`⚠️ 未能在发现列表中找到配对码 ${target}，尝试作为 IP 直接连接...`);
+      logSyncEvent("❌ 配对失败，未找到该设备。");
+    }
+  }
+  enteredCode.value = '';
 }
 
 // Set up the WebRTC DataChannel callbacks
@@ -1110,6 +1393,94 @@ onMounted(() => {
         hotspotStatus.value = 'idle';
       }
     });
+
+    // 7. Discovered devices list changed
+    window.api.onDiscoveredDevicesChanged((devices) => {
+      discoveredDevicesList.value = devices;
+    });
+
+    // 8. Connection request received
+    window.api.onConnectionRequestReceived((request) => {
+      logSyncEvent(`📡 [UDP] 收到来自 ${request.name} (${request.ip}) 的连接请求!`);
+      incomingConnectionRequest.value = request;
+    });
+
+    // 9. Connection response received (accept/reject)
+    window.api.onConnectionResponseReceived(async ({ ip, accept }) => {
+      if (accept) {
+        logSyncEvent(`📡 [UDP] 来自 ${ip} 的连接已被接受! 正在等待 SDP Offer...`);
+        activePeerIp.value = ip;
+        syncStatus.value = 'handshaking';
+        cleanupWebRtc();
+        
+        const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        peerConnection = new RTCPeerConnection(configuration);
+        
+        peerConnection.onicecandidate = (event) => {
+          if (event.candidate) {
+            window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
+          }
+        };
+
+        peerConnection.ondatachannel = (event) => {
+          if (event.channel.label === 'photo_sync') {
+            dataChannel = event.channel;
+            setupDataChannel(dataChannel);
+          }
+        };
+      } else {
+        logSyncEvent(`❌ [UDP] 来自 ${ip} 的连接请求已被拒绝。`);
+      }
+    });
+
+    // 10. Direct SDP received
+    window.api.onDirectSdpReceived(async ({ ip, sdp, sdpType }) => {
+      logSyncEvent(`📡 [UDP] 收到 WebRTC SDP ${sdpType} 自 ${ip}`);
+      activePeerIp.value = ip;
+
+      if (sdpType === 'offer') {
+        if (!peerConnection) {
+          const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+          peerConnection = new RTCPeerConnection(configuration);
+          peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+              window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
+            }
+          };
+          peerConnection.ondatachannel = (event) => {
+            if (event.channel.label === 'photo_sync') {
+              dataChannel = event.channel;
+              setupDataChannel(dataChannel);
+            }
+          };
+        }
+
+        await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        window.api.sendUdpSdp(ip, answer.sdp, 'answer');
+      } else if (sdpType === 'answer') {
+        if (peerConnection) {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
+        }
+      }
+    });
+
+    // 11. Direct ICE Candidate received
+    window.api.onDirectIceReceived((data) => {
+      if (peerConnection) {
+        try {
+          const candidateObj = JSON.parse(data.candidate);
+          peerConnection.addIceCandidate(new RTCIceCandidate(candidateObj)).catch(e => {});
+        } catch (_) {}
+      }
+    });
+
+    // Auto-start sync service on mount so the QR Code is immediately shown!
+    if (!isSyncActive.value) {
+      toggleSyncService();
+    }
   }
 });
 
