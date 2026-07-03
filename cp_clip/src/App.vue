@@ -848,7 +848,7 @@
       </section>
 
       <!-- Sleek Unified Transfer Dashboard (Sticky bottom when connected) -->
-      <div class="transfer-dashboard" v-if="isSyncActive && syncStatus === 'connected' && currentTab !== 'link'">
+      <div class="transfer-dashboard" v-if="isSyncActive && syncStatus === 'connected' && currentTab === 'link'">
         <div class="dashboard-header">
           <div class="connection-status">
             <span class="status-indicator connected"></span>
