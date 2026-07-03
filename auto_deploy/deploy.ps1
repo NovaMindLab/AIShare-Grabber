@@ -92,6 +92,7 @@ Set-Location ".."
 Write-Host "`n📁 Step 2: Packaging Electron App..." -ForegroundColor Green
 Set-Location "cp_clip"
 npm install
+npm run build
 npm run dist
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Electron packaging failed!"
@@ -133,7 +134,7 @@ Write-Host "`n📁 Step 5: Creating GitHub Release & Uploading Artifacts..." -Fo
 
 # Find builds
 $ApkPath = "android/build/app/outputs/flutter-apk/app-release.apk"
-$PcPathList = Get-ChildItem -Path "cp_clip/dist_electron/ShareCLIP*.exe"
+$PcPathList = Get-ChildItem -Path "cp_clip/dist_electron/ShareCLIP*.exe" | Sort-Object LastWriteTime -Descending
 
 if (-not (Test-Path $ApkPath)) {
     Write-Error "APK file not found!"
