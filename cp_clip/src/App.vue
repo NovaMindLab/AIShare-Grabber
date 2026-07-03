@@ -193,6 +193,15 @@
             
             <div style="display: flex; align-items: center; gap: 16px;">
               <button 
+                @click="handleOpenThumbnailFolder" 
+                style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(168,85,247,0.3); background: rgba(168,85,247,0.1); color: #c084fc; cursor: pointer; transition: all 0.2s; font-weight: 600;"
+                onmouseover="this.style.background='rgba(168,85,247,0.2)'"
+                onmouseout="this.style.background='rgba(168,85,247,0.1)'"
+              >
+                📁 {{ t.link.openThumbnailFolder }}
+              </button>
+
+              <button 
                 @click="showHowToConnectModal = true" 
                 style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"
                 onmouseover="this.style.background='rgba(255,255,255,0.1)'"
