@@ -339,84 +339,144 @@
           </div>
 
           <!-- C. CONNECTED VIEW (Shared by both modes) -->
-          <div v-else style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; gap: 16px; text-align: center; min-height: 250px;">
-            <div style="font-size: 56px; color: var(--success); filter: drop-shadow(0 0 12px rgba(16,185,129,0.3));">🟢</div>
-            <h3 style="color: var(--success); font-size: 18px; font-weight: 600; margin: 0;">{{ t.link.connectedTitle }}</h3>
-            <p style="color: var(--text-secondary); font-size: 13px; margin: 0; max-width: 400px; line-height: 1.6;">{{ t.link.connectedDesc }}</p>
-            
-            <div style="display: flex; gap: 16px; margin-top: 10px; align-items: center; flex-wrap: wrap; justify-content: center;">
-              <button 
-                class="btn" 
-                :class="isThumbnailSyncing ? 'btn-secondary' : 'btn-accent'" 
-                style="padding: 10px 24px; font-size: 13px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 8px;"
-                :disabled="isThumbnailSyncing"
-                @click="requestThumbnailSync"
-              >
-                <span>🧠</span>
-                {{ isThumbnailSyncing 
-                  ? t.link.thumbnailSyncing.replace('{done}', thumbSyncDone).replace('{total}', thumbSyncTotal) 
-                  : (thumbnailImages.length > 0 ? t.link.thumbnailSyncContinue : t.link.thumbnailSyncBtn) }}
-              </button>
+          <div v-else class="chat-container">
+            <!-- Chat Header -->
+            <div class="chat-header">
+              <div class="chat-header-title">
+                <span class="online-indicator"></span>
+                <span style="font-weight: 600; color: var(--text-primary); font-size: 14px;">已连接到手机 (Companion Connected)</span>
+              </div>
+              <div class="chat-header-actions">
+                <!-- AI Sync Button -->
+                <button 
+                  class="btn btn-primary btn-sm" 
+                  :disabled="isThumbnailSyncing"
+                  @click="requestThumbnailSync"
+                  style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 12px; border-radius: 16px; font-weight: 600;"
+                >
+                  <span>🧠</span>
+                  {{ isThumbnailSyncing 
+                    ? `AI 同步中 ${thumbSyncDone}/${thumbSyncTotal}` 
+                    : (thumbnailImages.length > 0 ? '继续 AI 同步' : '同步手机图片到 AI') }}
+                </button>
 
-              <button 
-                class="btn btn-secondary" 
-                style="padding: 10px 24px; font-size: 13px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 6px;"
-                @click="handleOpenThumbnailFolder"
-              >
-                <span>📁</span>
-                {{ t.link.openThumbnailFolder }}
-              </button>
+                <!-- Open folder -->
+                <button 
+                  class="btn btn-secondary btn-sm" 
+                  @click="handleOpenThumbnailFolder"
+                  style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 12px; border-radius: 16px;"
+                >
+                  📁 缩略图
+                </button>
 
-              <button class="btn btn-danger" style="padding: 10px 24px; font-size: 13px; border-radius: 8px; font-weight: 600;" @click="cleanupWebRtc">
-                {{ isHotspotActive ? t.link.stopHotspot : t.link.disconnectBtn }}
-              </button>
+                <!-- Disconnect button -->
+                <button 
+                  class="btn btn-danger btn-sm" 
+                  @click="cleanupWebRtc"
+                  style="padding: 6px 14px; font-size: 12px; border-radius: 16px;"
+                >
+                  断开
+                </button>
+              </div>
             </div>
 
-            <!-- Synced Thumbnails Grid Area -->
-            <div v-if="thumbnailImages.length > 0" style="width: 100%; max-width: 600px; margin-top: 24px; text-align: left;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
-                <span style="font-size: 14px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-                  🧠 {{ t.link.thumbnailGridTitle }}
-                </span>
-                <span style="font-size: 12px; background: rgba(168, 85, 247, 0.2); color: #c084fc; padding: 2px 8px; border-radius: 12px; font-weight: bold;">
-                  {{ thumbnailImages.length }} 张
-                </span>
+            <!-- Chat Messages Area -->
+            <div 
+              class="chat-messages" 
+              ref="chatMessagesRef" 
+              @dragenter.prevent="dragActive = true"
+              @dragover.prevent="onDragOver"
+              @dragleave.prevent="onDragLeave"
+              @drop.prevent="handleDragDrop"
+              :class="{ 'drag-active': dragActive }"
+            >
+              <!-- Empty State -->
+              <div v-if="chatMessages.length === 0" class="chat-empty-state">
+                <span style="font-size: 48px; margin-bottom: 12px; display: block; filter: drop-shadow(0 0 8px rgba(124,58,237,0.3));">💬</span>
+                <span style="color: var(--text-primary); font-size: 14px; font-weight: 600; margin-bottom: 4px;">P2P 直连通道建立成功</span>
+                <span style="color: var(--text-muted); font-size: 12px; max-width: 320px; line-height: 1.5;">点击下方按钮发送文件，或者直接拖放文件到此区域进行发送。</span>
               </div>
 
-              <!-- Flex Wrap/Grid list of synced thumbnails -->
-              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 12px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
-                <div 
-                  v-for="img in thumbnailImages" 
-                  :key="img.name" 
-                  style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 23, 42, 0.6); aspect-ratio: 1; transition: transform 0.2s;"
-                  onmouseover="this.style.transform='scale(1.05)';"
-                  onmouseout="this.style.transform='scale(1)';"
-                >
-                  <img :src="img.src" style="width: 100%; height: 100%; object-fit: cover;" />
-                  
-                  <!-- Classification Score Badge -->
-                  <div 
-                    v-if="img.predictions && img.predictions[0]" 
-                    style="position: absolute; top: 4px; right: 4px; background: rgba(147, 51, 234, 0.85); color: white; font-size: 8px; padding: 2px 4px; border-radius: 4px; font-weight: bold; backdrop-filter: blur(2px);"
-                  >
-                    {{ (img.predictions[0].score * 100).toFixed(0) }}%
+              <!-- Message Bubble List -->
+              <div 
+                v-for="msg in chatMessages" 
+                :key="msg.id" 
+                class="chat-message-row"
+                :class="msg.type"
+              >
+                <!-- Left Avatar for mobile -->
+                <div v-if="msg.type === 'incoming'" class="chat-avatar mobile-avatar" title="手机端">📱</div>
+
+                <!-- Message bubble -->
+                <div class="chat-message-bubble">
+                  <!-- Meta row -->
+                  <div class="chat-message-meta">
+                    <span class="chat-sender-name">{{ msg.type === 'incoming' ? '手机端' : '我的电脑' }}</span>
+                    <span class="chat-time">{{ msg.time }}</span>
                   </div>
 
-                  <!-- Classification Category Label -->
-                  <div 
-                    style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 42, 0.85); padding: 4px; text-align: center; backdrop-filter: blur(2px);"
-                  >
-                    <div style="font-size: 9px; color: #e2e8f0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                      {{ img.predictions && img.predictions[0] ? img.predictions[0].category : '分类中...' }}
+                  <!-- File card -->
+                  <div class="chat-file-card">
+                    <!-- Image preview -->
+                    <div v-if="msg.isImage && msg.src" class="chat-file-preview">
+                      <img :src="msg.src" class="chat-preview-img" @click="openDetails({ src: msg.src, name: msg.name, path: msg.src })" />
+                    </div>
+
+                    <!-- Icon & details -->
+                    <div class="chat-file-info">
+                      <span class="chat-file-icon">{{ getFileIcon(msg.name) }}</span>
+                      <div class="chat-file-text">
+                        <span class="chat-filename" :title="msg.name">{{ msg.name }}</span>
+                        <span class="chat-filesize">{{ formatBytes(msg.size) }}</span>
+                      </div>
                     </div>
                   </div>
+
+                  <!-- Status/Progress -->
+                  <div v-if="msg.status === 'transferring'" class="chat-progress-container">
+                    <div class="chat-progress-bar">
+                      <div class="chat-progress-fill" :style="{ width: (msg.progress * 100) + '%' }"></div>
+                    </div>
+                    <span class="chat-progress-text">正在传输: {{ Math.round(msg.progress * 100) }}%</span>
+                  </div>
+                  
+                  <div v-else-if="msg.status === 'processing'" class="chat-progress-container">
+                    <span class="chat-progress-text text-processing">🔄 AI 分析归类中...</span>
+                  </div>
+
+                  <div v-else-if="msg.status === 'completed'" class="chat-status-text success">
+                    <span style="display: flex; align-items: center; gap: 4px;">🟢 已完成</span>
+                    <!-- AI Prediction tag -->
+                    <span v-if="msg.predictions && msg.predictions[0]" class="chat-pred-badge">
+                      {{ getShortCategory(msg.predictions[0].category) }} ({{ Math.round(msg.predictions[0].score * 100) }}%)
+                    </span>
+                  </div>
+
+                  <div v-else-if="msg.status === 'failed'" class="chat-status-text error">
+                    <span>🔴 传输失败</span>
+                  </div>
                 </div>
+
+                <!-- Right Avatar for PC -->
+                <div v-if="msg.type === 'outgoing'" class="chat-avatar pc-avatar" title="我的电脑">💻</div>
               </div>
+            </div>
+
+            <!-- Chat Input Area -->
+            <div class="chat-input-area">
+              <button 
+                class="btn btn-accent btn-send-file" 
+                @click="handleSendImagesToMobile"
+                :disabled="pcActiveTransferName !== null"
+                style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; padding: 12px; border-radius: 12px; font-weight: 600;"
+              >
+                <span>📤</span> 选择本地文件发送到手机 (支持任意格式拖放)
+              </button>
             </div>
           </div>
 
           <!-- Lower P2P Discovery Container -->
-          <div style="background: rgba(30, 41, 59, 0.2); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; gap: 16px;">
+          <div v-if="syncStatus !== 'connected'" style="background: rgba(30, 41, 59, 0.2); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; gap: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
               <h4 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                 <span class="spinner" style="width: 14px; height: 14px; border-width: 2px; border-color: rgba(255,255,255,0.2); border-top-color: #a855f7;"></span>
@@ -485,7 +545,7 @@
           </div>
 
           <!-- Connection logs panel (Shared by all states) -->
-          <div style="border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(0, 0, 0, 0.4); padding: 16px; text-align: left; width: 100%; box-sizing: border-box;">
+          <div v-if="syncStatus !== 'connected'" style="border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(0, 0, 0, 0.4); padding: 16px; text-align: left; width: 100%; box-sizing: border-box;">
             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;">
               <span style="font-weight: 600; display: flex; align-items: center; gap: 6px;">📝 {{ t.link.logsTitle }}</span>
               <button 
@@ -1013,6 +1073,64 @@ function toggleTheme() {
   isDarkMode.value = !isDarkMode.value;
 }
 
+// Chat Window state & helpers
+const chatMessages = ref([]);
+const chatMessagesRef = ref(null);
+const dragActive = ref(false);
+
+async function scrollToBottom() {
+  await nextTick();
+  if (chatMessagesRef.value) {
+    chatMessagesRef.value.scrollTop = chatMessagesRef.value.scrollHeight;
+  }
+}
+
+function formatBytes(bytes, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+function getFileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) return '🖼️';
+  if (['mp4', 'mkv', 'mov', 'avi', 'webm'].includes(ext)) return '🎥';
+  if (['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'].includes(ext)) return '🎵';
+  if (['pdf'].includes(ext)) return '📕';
+  if (['doc', 'docx'].includes(ext)) return '📘';
+  if (['xls', 'xlsx'].includes(ext)) return '📗';
+  if (['zip', 'rar', '7z'].includes(ext)) return '📦';
+  return '📄';
+}
+
+function onDragOver(e) {
+  dragActive.value = true;
+}
+
+function onDragLeave(e) {
+  dragActive.value = false;
+}
+
+async function handleDragDrop(event) {
+  dragActive.value = false;
+  const files = event.dataTransfer.files;
+  if (!files || files.length === 0) return;
+
+  const filePaths = [];
+  for (let i = 0; i < files.length; i++) {
+    if (files[i].path) {
+      filePaths.push(files[i].path);
+    }
+  }
+
+  if (filePaths.length > 0) {
+    await sendFilesByPaths(filePaths);
+  }
+}
+
 let peerConnection = null;
 let dataChannel = null;
 let heartbeatTimer = null;
@@ -1048,6 +1166,7 @@ function cleanupWebRtc() {
   }
   activePeerIp.value = null;
   isThumbnailSyncing.value = false;
+  chatMessages.value = [];
 }
 
 function requestThumbnailSync() {
@@ -1352,16 +1471,16 @@ function setupDataChannel(channel) {
         window.api.initDeviceSync(deviceUuid, deviceName).then((syncInfo) => {
           activeDeviceUuid.value = deviceUuid;
           
-          // Clear current media array and populate with the device's SQL catalog (excluding thumbnails)
+          // Populate images.value with both original files AND thumbnails so they can be browsed and searched in the main gallery
           images.value = syncInfo.resources
-            .filter(res => res.type !== 'thumbnail')
             .map(res => ({
               id: res.id,
               path: res.path,
               name: res.name,
               src: `local:///${res.path.replace(/\\/g, '/')}`,
               status: 'completed',
-              predictions: JSON.parse(res.predictions || '[]')
+              predictions: JSON.parse(res.predictions || '[]'),
+              type: res.type
             }));
 
           // Load previously synced AI thumbnails
@@ -1373,6 +1492,23 @@ function setupDataChannel(channel) {
               path: res.path,
               predictions: JSON.parse(res.predictions || '[]')
             }));
+
+          // Map historical assets into chat messages
+          chatMessages.value = syncInfo.resources
+            .filter(res => res.type !== 'thumbnail')
+            .map(res => ({
+              id: res.id,
+              type: 'incoming',
+              name: res.name,
+              size: res.size || 0,
+              progress: 1,
+              status: 'completed',
+              time: res.sync_time ? new Date(res.sync_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '历史记录',
+              isImage: /\.(jpg|jpeg|png|gif|webp)$/i.test(res.name),
+              src: `local:///${res.path.replace(/\\/g, '/')}`,
+              predictions: JSON.parse(res.predictions || '[]')
+            }));
+          scrollToBottom();
           
           logSyncEvent(`📊 本地数据库同步成功，已恢复 ${images.value.length} 个历史传输资源，${thumbnailImages.value.length} 个 AI 缩略图，发送握手回应包...`);
           
@@ -1400,9 +1536,9 @@ function setupDataChannel(channel) {
     if (fileId === -6) {
       const totalCount = view.getInt32(8, false);
       thumbSyncTotal.value = totalCount;
-      thumbSyncDone.value = 0;
-      isThumbnailSyncing.value = true;
-      logSyncEvent(`🧠 收到手机端 AI 缩略图同步开始通知，共 ${totalCount} 张图片`);
+      thumbSyncDone.value = Math.min(thumbnailImages.value.length, totalCount);
+      isThumbnailSyncing.value = thumbSyncDone.value < totalCount;
+      logSyncEvent(`🧠 收到手机端 AI 缩略图同步开始通知，共 ${totalCount} 张图片，本地已缓存 ${thumbSyncDone.value} 张`);
       return;
     }
 
@@ -1418,6 +1554,23 @@ function setupDataChannel(channel) {
         name: metadata.name,
         size: metadata.size
       };
+
+      // Add to chatMessages if not a thumbnail
+      const isThumb = metadata.name.startsWith('thumb_');
+      if (!isThumb && !chatMessages.value.some(m => m.id === metadata.file_id)) {
+        chatMessages.value.push({
+          id: metadata.file_id,
+          type: 'incoming',
+          name: metadata.name,
+          size: metadata.size,
+          progress: 0,
+          status: 'transferring',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isImage: /\.(jpg|jpeg|png|gif|webp)$/i.test(metadata.name),
+          src: ''
+        });
+        scrollToBottom();
+      }
       
       logSyncEvent(`📝 收到文件元数据: [ID: ${metadata.file_id}] ${metadata.name} (${(metadata.size / 1024 / 1024).toFixed(2)} MB)`);
       return;
@@ -1434,6 +1587,15 @@ function setupDataChannel(channel) {
         progress: (chunkIndex + 1) / totalChunks,
         name: activeMetadata[fileId] ? activeMetadata[fileId].name : `文件 ID ${fileId}`
       };
+
+      // Update chatMessage progress
+      const msg = chatMessages.value.find(m => m.id === fileId);
+      if (msg) {
+        msg.progress = (chunkIndex + 1) / totalChunks;
+        if (msg.progress >= 1) {
+          msg.status = 'processing';
+        }
+      }
     }
 
     const payload = new Uint8Array(arrayBuffer, 16, payloadSize);
@@ -1543,24 +1705,66 @@ onMounted(() => {
       if (imageInfo.isThumbnail) {
         const exists = thumbnailImages.value.some(img => img.name === imageInfo.name);
         if (!exists) {
-          thumbnailImages.value.unshift({
+          const newThumb = {
             src: imageInfo.src,
             name: imageInfo.name,
             path: imageInfo.path,
             predictions: imageInfo.predictions
+          };
+          thumbnailImages.value.unshift(newThumb);
+          thumbSyncDone.value++;
+          
+          // Also push to images.value for main gallery browsing
+          images.value.push({
+            id: imageInfo.name,
+            path: imageInfo.path,
+            name: imageInfo.name,
+            src: imageInfo.src,
+            status: 'completed',
+            predictions: imageInfo.predictions,
+            type: 'thumbnail'
           });
         } else {
           const idx = thumbnailImages.value.findIndex(img => img.name === imageInfo.name);
           if (idx !== -1) {
             thumbnailImages.value[idx].predictions = imageInfo.predictions;
           }
+          // Also update predictions in images.value if found
+          const imgIdx = images.value.findIndex(img => img.name === imageInfo.name);
+          if (imgIdx !== -1) {
+            images.value[imgIdx].predictions = imageInfo.predictions;
+          }
         }
-        thumbSyncDone.value++;
         if (thumbSyncTotal.value > 0 && thumbSyncDone.value >= thumbSyncTotal.value) {
           isThumbnailSyncing.value = false;
         }
       } else {
         incomingTransfer.value = null;
+
+        // Update chatMessage to completed
+        const msg = chatMessages.value.find(m => m.name === imageInfo.name);
+        if (msg) {
+          msg.status = 'completed';
+          msg.progress = 1;
+          msg.src = imageInfo.src;
+          msg.predictions = imageInfo.predictions;
+        } else {
+          // fallback
+          chatMessages.value.push({
+            id: Date.now(),
+            type: 'incoming',
+            name: imageInfo.name,
+            size: 0,
+            progress: 1,
+            status: 'completed',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isImage: true,
+            src: imageInfo.src,
+            predictions: imageInfo.predictions
+          });
+          scrollToBottom();
+        }
+
         images.value.push({
           path: imageInfo.path,
           name: imageInfo.name,
@@ -1680,24 +1884,19 @@ onMounted(() => {
   }
 });
 
-// Send local images on PC to the mobile device
-async function handleSendImagesToMobile() {
+// Send files by absolute paths over the DataChannel
+async function sendFilesByPaths(filePaths) {
   if (!dataChannel || dataChannel.readyState !== 'open') {
-    logSyncEvent("⚠️ 无法发送图片：数据通道未建立或已关闭");
+    logSyncEvent("⚠️ 无法发送文件：数据通道未建立或已关闭");
     return;
   }
 
   try {
-    const selectedPaths = await window.api.selectImages();
-    if (!selectedPaths || selectedPaths.length === 0) {
-      return;
-    }
-
-    logSyncEvent(`📤 准备向手机发送 ${selectedPaths.length} 张图片...`);
+    logSyncEvent(`📤 准备向手机发送 ${filePaths.length} 个文件...`);
 
     let fileIdCounter = Math.floor(1000 + Math.random() * 8000);
 
-    for (const filePath of selectedPaths) {
+    for (const filePath of filePaths) {
       const fileName = filePath.split(/[/\\]/).pop();
       logSyncEvent(`📤 正在读取文件: ${fileName}`);
       
@@ -1710,6 +1909,21 @@ async function handleSendImagesToMobile() {
       const chunkSize = 32768; // 32KB
       const totalChunks = Math.ceil(fileBytes.length / chunkSize);
       
+      // Add outgoing message bubble
+      const newMsg = reactive({
+        id: fileId,
+        type: 'outgoing',
+        name: fileName,
+        size: fileBytes.length,
+        progress: 0,
+        status: 'transferring',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isImage: /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName),
+        src: /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName) ? `local:///${filePath.replace(/\\/g, '/')}` : ''
+      });
+      chatMessages.value.push(newMsg);
+      scrollToBottom();
+      
       logSyncEvent(`📤 开始传输: ${fileName} (ID: ${fileId}), 共 ${totalChunks} 分片`);
 
       for (let i = 0; i < totalChunks; i++) {
@@ -1717,7 +1931,6 @@ async function handleSendImagesToMobile() {
         const end = Math.min(start + chunkSize, fileBytes.length);
         const chunkData = fileBytes.subarray(start, end);
         
-        // 16-byte header: file_id(4B), chunk_index(4B), total_chunks(4B), payload_size(4B)
         const packet = new Uint8Array(16 + chunkData.length);
         const view = new DataView(packet.buffer);
         
@@ -1728,17 +1941,15 @@ async function handleSendImagesToMobile() {
         
         packet.set(chunkData, 16);
         
-        // Send packet over DataChannel
         dataChannel.send(packet.buffer);
 
-        // Update progress state
         pcActiveProgress.value = (i + 1) / totalChunks;
+        newMsg.progress = (i + 1) / totalChunks;
 
-        // Control flow pacing to avoid buffer overflow
-        if (dataChannel.bufferedAmount > 1048576) { // 1MB buffer limit
+        if (dataChannel.bufferedAmount > 1048576) {
           await new Promise(resolve => {
             const checkBuffer = () => {
-              if (dataChannel.bufferedAmount < 262144) { // wait until < 256KB
+              if (dataChannel.bufferedAmount < 262144) {
                 resolve();
               } else {
                 setTimeout(checkBuffer, 20);
@@ -1748,20 +1959,39 @@ async function handleSendImagesToMobile() {
           });
         }
 
-        // Tiny inter-packet pacing delay (5ms)
         await new Promise(resolve => setTimeout(resolve, 5));
       }
       
+      newMsg.status = 'completed';
+      newMsg.progress = 1.0;
       logSyncEvent(`🎉 文件发送完成: ${fileName}`);
       pcActiveTransferName.value = null;
       pcActiveProgress.value = 0;
     }
 
   } catch (err) {
-    logSyncEvent(`❌ 发送图片出错: ${err.message || err}`);
+    logSyncEvent(`❌ 发送文件出错: ${err.message || err}`);
     pcActiveTransferName.value = null;
     pcActiveProgress.value = 0;
+    const currentMsg = chatMessages.value.find(m => m.status === 'transferring' && m.type === 'outgoing');
+    if (currentMsg) {
+      currentMsg.status = 'failed';
+    }
   }
+}
+
+// Send local images on PC to the mobile device
+async function handleSendImagesToMobile() {
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    logSyncEvent("⚠️ 无法发送图片：数据通道未建立或已关闭");
+    return;
+  }
+  
+  const selectedPaths = await window.api.selectImages();
+  if (!selectedPaths || selectedPaths.length === 0) {
+    return;
+  }
+  await sendFilesByPaths(selectedPaths);
 }
 
 onUnmounted(() => {

@@ -50,8 +50,8 @@ class PhotoStreamer {
     }
   }
 
-  /// Load all images + videos from the MediaStore (gallery)
-  Future<List<AssetEntity>> loadLocalImages() => _loadAssets(RequestType.common);
+  /// Load all images from the MediaStore (gallery)
+  Future<List<AssetEntity>> loadLocalImages() => _loadAssets(RequestType.image);
 
   /// Load all audio files from the MediaStore
   Future<List<AssetEntity>> loadLocalAudio() => _loadAssets(RequestType.audio);

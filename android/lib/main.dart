@@ -8,6 +8,7 @@ import 'viewmodels/sync_viewmodel.dart';
 import 'views/qr_scanner_view.dart';
 import 'views/transfer_console_view.dart';
 import 'services/localization_service.dart';
+import 'services/theme_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +17,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => SyncViewModel()),
         ChangeNotifierProvider(create: (_) => LocalizationService()),
+        ChangeNotifierProvider(create: (_) => ThemeService()),
       ],
       child: const ImageClipApp(),
     ),
@@ -27,17 +29,43 @@ class ImageClipApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeService = Provider.of<ThemeService>(context);
     return MaterialApp(
       title: 'ShareCLIP Sync',
+      themeMode: themeService.themeMode,
+      // Clear Mode (Light)
       theme: ThemeData(
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF7C3AED), // Violet 600
+          background: Color(0xFFF8FAFC),
+          surface: Colors.white,
+          onBackground: Color(0xFF0F172A),
+          onSurface: Color(0xFF1E293B),
+        ),
+        useMaterial3: true,
+        dividerColor: const Color(0xFFE2E8F0),
+        cardTheme: const CardThemeData(
+          color: Colors.white,
+        ),
+      ),
+      // Dark Mode
+      darkTheme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF090D16),
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF8B5CF6),
+          primary: Color(0xFF8B5CF6), // Violet 500
           background: Color(0xFF090D16),
           surface: Color(0xFF0F172A),
+          onBackground: Color(0xFFF8FAFC),
+          onSurface: Color(0xFFF1F5F9),
         ),
         useMaterial3: true,
+        dividerColor: const Color(0xFF1E293B),
+        cardTheme: const CardThemeData(
+          color: Color(0xFF0F172A),
+        ),
       ),
       home: const MainRouterScreen(),
       debugShowCheckedModeBanner: false,
@@ -140,13 +168,17 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────
   // 🏠 HOME SCREEN — Gallery preview + connect button
   // ─────────────────────────────────────────────────────────────────
   Widget _buildHomeScreen(SyncViewModel viewModel) {
     final t = Provider.of<LocalizationService>(context);
+    final themeService = Provider.of<ThemeService>(context);
+    final isDark = themeService.isDarkMode;
+
+    final totalCount = viewModel.localImages.length + viewModel.localVideos.length;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF090D16),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,7 +192,7 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF8B5CF6),
+                      color: Theme.of(context).colorScheme.primary,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     alignment: Alignment.center,
@@ -174,17 +206,17 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'ShareCLIP',
                         style: TextStyle(
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onBackground,
                             fontSize: 18,
                             fontWeight: FontWeight.bold),
                       ),
-                      Text(
+                      const Text(
                         'Multi-device File Sync',
                         style:
                             TextStyle(color: Color(0xFF64748B), fontSize: 11),
@@ -192,8 +224,16 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                     ],
                   ),
                   const Spacer(),
+                  // Theme Toggle Button
                   IconButton(
-                    icon: const Icon(Icons.language, color: Colors.white70),
+                    icon: Icon(
+                      isDark ? Icons.wb_sunny_outlined : Icons.nightlight_round_outlined,
+                      color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
+                    ),
+                    onPressed: () => themeService.toggleTheme(),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.language, color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7)),
                     onPressed: () => _showLanguageSelector(context),
                   ),
                   const SizedBox(width: 4),
@@ -201,9 +241,9 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A),
+                      color: Theme.of(context).cardTheme.color,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF1E293B)),
+                      border: Border.all(color: Theme.of(context).dividerColor),
                     ),
                     child: Row(
                       children: [
@@ -298,14 +338,14 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                 children: [
                   Text(
                     t.get('localMedia'),
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onBackground,
                         fontSize: 15,
                         fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    viewModel.localImages.isNotEmpty
-                        ? '${viewModel.localImages.length} ${t.get('items')}'
+                    totalCount > 0
+                        ? '$totalCount ${t.get('items')}'
                         : '',
                     style: const TextStyle(
                         color: Color(0xFF64748B), fontSize: 12),
@@ -316,9 +356,9 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
 
             const SizedBox(height: 10),
 
-            // ── Gallery Grid ──
+            // ── Gallery Grid (Images first, then Videos) ──
             Expanded(
-              child: viewModel.localImages.isEmpty
+              child: totalCount == 0
                   ? _buildEmptyGallery()
                   : GridView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -328,9 +368,12 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                         crossAxisSpacing: 4,
                         mainAxisSpacing: 4,
                       ),
-                      itemCount: viewModel.localImages.length,
+                      itemCount: totalCount,
                       itemBuilder: (context, idx) {
-                        final media = viewModel.localImages[idx];
+                        final bool isImg = idx < viewModel.localImages.length;
+                        final media = isImg 
+                            ? viewModel.localImages[idx] 
+                            : viewModel.localVideos[idx - viewModel.localImages.length];
                         final isVideo = media.type == AssetType.video;
                         return ClipRRect(
                           borderRadius: BorderRadius.circular(6),
@@ -344,7 +387,7 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                                     const ThumbnailSize.square(180),
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => Container(
-                                  color: const Color(0xFF1E293B),
+                                  color: Theme.of(context).dividerColor,
                                   alignment: Alignment.center,
                                   child: Text(
                                     isVideo ? '🎥' : '🖼️',
@@ -379,25 +422,25 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
+        children: [
           Icon(Icons.photo_library_outlined,
-              color: Color(0xFF334155), size: 52),
-          SizedBox(height: 12),
+              color: Theme.of(context).colorScheme.onBackground.withOpacity(0.3), size: 52),
+          const SizedBox(height: 12),
           Text(
             'Loading gallery...',
-            style: TextStyle(color: Color(0xFF475569), fontSize: 14),
+            style: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5), fontSize: 14),
           ),
         ],
       ),
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────
   // 🔒 PERMISSIONS REQUIRED
   // ─────────────────────────────────────────────────────────────────
   Widget _buildPermissionsRequiredScreen() {
     final t = Provider.of<LocalizationService>(context);
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Padding(
         padding: const EdgeInsets.all(32.0),
         child: Column(
@@ -408,8 +451,8 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
             const SizedBox(height: 16.0),
             Text(
               t.get('permissionTitle'),
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onBackground,
                   fontSize: 22.0,
                   fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
@@ -417,14 +460,14 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
             const SizedBox(height: 8.0),
             Text(
               t.get('permissionDesc'),
-              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14.0),
+              style: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6), fontSize: 14.0),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24.0),
             ElevatedButton(
               onPressed: _checkAndRequestPermissions,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.0)),
@@ -437,7 +480,6 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────
   // ⏳ CONNECTING PROGRESS
   // ─────────────────────────────────────────────────────────────────
   Widget _buildConnectingProgressScreen(
@@ -456,34 +498,35 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
     final statusText = labels[appState] ?? (isZh ? "正在连接..." : "Handshaking...");
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(
+              SizedBox(
                 width: 60.0,
                 height: 60.0,
                 child: CircularProgressIndicator(
                   strokeWidth: 4.0,
                   valueColor:
-                      AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                      AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
                 ),
               ),
               const SizedBox(height: 32.0),
               Text(
                 t.get('connecting'),
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onBackground,
                     fontSize: 18.0,
                     fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8.0),
               Text(
                 statusText,
-                style: const TextStyle(
-                    color: Color(0xFF8B5CF6),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
                     fontSize: 13.0,
                     fontWeight: FontWeight.w500),
                 textAlign: TextAlign.center,
@@ -501,13 +544,13 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────
   // ⚠️ CONNECTION FAILED
   // ─────────────────────────────────────────────────────────────────
   Widget _buildConnectionFailedScreen(SyncViewModel viewModel) {
     final t = Provider.of<LocalizationService>(context);
     final isZh = t.currentLocale.startsWith('zh');
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Padding(
         padding: const EdgeInsets.all(32.0),
         child: Column(
@@ -517,8 +560,8 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
             const SizedBox(height: 16.0),
             Text(
               t.get('connFailed'),
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onBackground,
                   fontSize: 20.0,
                   fontWeight: FontWeight.bold),
             ),
@@ -536,7 +579,7 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
               child: ElevatedButton(
                 onPressed: () => viewModel.resetToScanner(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B5CF6),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14.0),
                   shape: RoundedRectangleBorder(
@@ -564,10 +607,10 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF0F172A),
+          backgroundColor: Theme.of(context).cardTheme.color,
           title: Text(
             localizationService.get('selectLanguage'),
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
           ),
           content: SizedBox(
             width: double.maxFinite,
@@ -575,9 +618,9 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
               shrinkWrap: true,
               children: LocalizationService.languages.entries.map((entry) {
                 return ListTile(
-                  title: Text(entry.value, style: const TextStyle(color: Colors.white70)),
+                  title: Text(entry.value, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                   trailing: localizationService.currentLocale == entry.key
-                      ? const Icon(Icons.check, color: Color(0xFF8B5CF6))
+                      ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
                       : null,
                   onTap: () {
                     localizationService.setLanguage(entry.key);

@@ -43,9 +43,11 @@ class SyncViewModel extends ChangeNotifier {
 
   // View States
   AppState appState = AppState.idle;
-  List<AssetEntity> localImages = [];   // photos + videos (gallery)
+  List<AssetEntity> localImages = [];   // photos (gallery)
+  List<AssetEntity> localVideos = [];   // videos (gallery)
   List<AssetEntity> localAudios = [];   // music/audio from MediaStore
   final Set<String> selectedImages = {};
+  final Set<String> selectedVideos = {};
   final Set<String> selectedAudios = {};
   List<PlatformFile> chosenFiles = [];
   String? activeTransferName;
@@ -107,16 +109,18 @@ class SyncViewModel extends ChangeNotifier {
   void loadGalleryEarly() async {
     final streamer = PhotoStreamer.standalone();
 
-    // Load images+videos and audio in parallel
+    // Load images, videos and audio in parallel
     final results = await Future.wait([
       streamer.loadLocalImages(),
+      streamer.loadLocalVideos(),
       streamer.loadLocalAudio(),
     ]);
 
     localImages = results[0];
-    localAudios = results[1];
+    localVideos = results[1];
+    localAudios = results[2];
 
-    debugPrint('[ViewModel] Gallery loaded: ${localImages.length} media, ${localAudios.length} audio');
+    debugPrint('[ViewModel] Gallery loaded: ${localImages.length} images, ${localVideos.length} videos, ${localAudios.length} audio');
     notifyListeners();
   }
 
@@ -409,11 +413,13 @@ class SyncViewModel extends ChangeNotifier {
     if (_photoStreamer == null) return;
     final results = await Future.wait([
       _photoStreamer!.loadLocalImages(),
+      _photoStreamer!.loadLocalVideos(),
       _photoStreamer!.loadLocalAudio(),
     ]);
     localImages = results[0];
-    localAudios = results[1];
-    logMessage('Gallery: ${localImages.length} media, ${localAudios.length} audio');
+    localVideos = results[1];
+    localAudios = results[2];
+    logMessage('Gallery: ${localImages.length} images, ${localVideos.length} videos, ${localAudios.length} audio');
     notifyListeners();
   }
 
@@ -422,6 +428,15 @@ class SyncViewModel extends ChangeNotifier {
       selectedImages.remove(id);
     } else {
       selectedImages.add(id);
+    }
+    notifyListeners();
+  }
+
+  void toggleVideoSelection(String id) {
+    if (selectedVideos.contains(id)) {
+      selectedVideos.remove(id);
+    } else {
+      selectedVideos.add(id);
     }
     notifyListeners();
   }
@@ -437,23 +452,28 @@ class SyncViewModel extends ChangeNotifier {
 
   void syncAllSelected() async {
     final imagesToSync = localImages.where((img) => selectedImages.contains(img.id)).toList();
+    final videosToSync = localVideos.where((v) => selectedVideos.contains(v.id)).toList();
     final audiosToSync = localAudios.where((a) => selectedAudios.contains(a.id)).toList();
     final filesToSync = List<PlatformFile>.from(chosenFiles);
 
-    if (imagesToSync.isEmpty && audiosToSync.isEmpty && filesToSync.isEmpty) return;
+    if (imagesToSync.isEmpty && videosToSync.isEmpty && audiosToSync.isEmpty && filesToSync.isEmpty) return;
 
     for (var img in imagesToSync) {
       transferStatusMap[img.id] = TransferStatus.pending;
+    }
+    for (var v in videosToSync) {
+      transferStatusMap[v.id] = TransferStatus.pending;
     }
     for (var a in audiosToSync) {
       transferStatusMap[a.id] = TransferStatus.pending;
     }
     selectedImages.clear();
+    selectedVideos.clear();
     selectedAudios.clear();
     chosenFiles.clear();
     notifyListeners();
 
-    // 1. Sync gallery assets (images & videos)
+    // 1. Sync gallery images
     for (var img in imagesToSync) {
       if (pcSyncedIds.contains(img.id)) {
         transferStatusMap[img.id] = TransferStatus.completed;
@@ -493,7 +513,47 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
     }
 
-    // 2. Sync selected audio assets from MediaStore
+    // 2. Sync gallery videos
+    for (var vid in videosToSync) {
+      if (pcSyncedIds.contains(vid.id)) {
+        transferStatusMap[vid.id] = TransferStatus.completed;
+        logMessage("Skip sending ${vid.title} (already synced to PC)");
+        notifyListeners();
+        continue;
+      }
+
+      transferStatusMap[vid.id] = TransferStatus.transferring;
+      activeTransferName = vid.title;
+      activeProgress = 0.0;
+      activeSpeedKbps = 0.0;
+      notifyListeners();
+
+      final fileId = _fileIdCounter++;
+      final streamer = _photoStreamer;
+      if (streamer == null) continue;
+
+      final startTime = DateTime.now().millisecondsSinceEpoch;
+
+      final success = await streamer.streamImage(
+        entity: vid,
+        fileId: fileId,
+        onProgress: (chunkIndex, totalChunks, bytesSent) {
+          activeProgress = (chunkIndex + 1) / totalChunks;
+          final double elapsedSec = (DateTime.now().millisecondsSinceEpoch - startTime) / 1000.0;
+          activeSpeedKbps = (elapsedSec > 0) ? (bytesSent * 8.0) / 1024.0 / elapsedSec : 0.0;
+          notifyListeners();
+        },
+      );
+
+      transferStatusMap[vid.id] = success ? TransferStatus.completed : TransferStatus.failed;
+      activeTransferName = null;
+      activeProgress = 0.0;
+      activeSpeedKbps = 0.0;
+      logMessage("Sync finished for ${vid.title}. Status: ${transferStatusMap[vid.id]}");
+      notifyListeners();
+    }
+
+    // 3. Sync selected audio assets from MediaStore
     for (var audio in audiosToSync) {
       if (pcSyncedIds.contains(audio.id)) {
         transferStatusMap[audio.id] = TransferStatus.completed;
@@ -601,7 +661,7 @@ class SyncViewModel extends ChangeNotifier {
 
       final String thumbName = 'thumb_${entity.id}.jpg';
       if (pcSyncedIds.contains(entity.id) || pcSyncedIds.contains(thumbName)) {
-        logMessage("Skip sending thumbnail for ${entity.title} (already synced)");
+        debugPrint("Skip sending thumbnail for ${entity.title} (already synced)");
         thumbnailSyncDone++;
         notifyListeners();
         continue;
@@ -739,7 +799,10 @@ class SyncViewModel extends ChangeNotifier {
     _photoStreamer = null;
     appState = AppState.idle;
     localImages.clear();
+    localVideos.clear();
     selectedImages.clear();
+    selectedVideos.clear();
+    selectedAudios.clear();
     chosenFiles.clear();
     transferStatusMap.clear();
     activeTransferName = null;

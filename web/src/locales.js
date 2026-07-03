@@ -39,7 +39,7 @@ export const messages = {
       f1: { title: "BLE Seamless Pairing", desc: "No manual IP inputs. Scan the QR code to establish a BLE GATT command channel, discover peers, and exchange handshake parameters." },
       f2: { title: "WebRTC LAN Direct Transfer", desc: "Pairing triggers WebRTC SCTP DataChannel. Gigabits/s local Wi-Fi transfer directly between phone and PC, bypassing cloud limits." },
       f3: { title: "Local MobileCLIP AI", desc: "PC runs local MobileCLIP ONNX engine. Incoming images classified in 0.2s into Portraits, Animals, Landscapes, etc. 100% offline." },
-      f4: { title: "Bidirectional Flow Control", desc: "Full two-way sharing. High-speed transfers are guarded by BufferedAmount congestion control to prevent packet loss." }
+      f4: { title: "Chat-style P2P & Drag-and-Drop", desc: "PC displays a premium Chat Window on connection. Drag and drop any files to send instantly! Features mobile media separation and Clear/Dark themes." }
     },
     simulator: {
       title: "Interactive Handshake Simulator",
@@ -87,7 +87,7 @@ export const messages = {
       f1: { title: "BLE 蓝牙无缝配对", desc: "摒弃繁琐的传统蓝牙配对或局域网 IP 手动输入。手机端只需扫描 PC 二维码，即可通过 BLE 低功耗蓝牙特性建立端到端的握手信令通道，自动发现彼此并交换连接描述。" },
       f2: { title: "WebRTC 局域网直连", desc: "握手成功后，自动建立 WebRTC 点对点直连（SCTP DataChannel）。在手机和电脑间开启千兆级 Wi-Fi 本地 Socket 传输，秒传高清原图，免去云端服务器流量限制。" },
       f3: { title: "本地 MobileCLIP 智能分类", desc: "电脑端内置 MobileCLIP 零样本图像分类器。传输照片后，直接调用本地 ONNX 引擎在 0.2 秒内计算分类特征，自动将照片归档至“人像、动物、风景”等类别，全程纯本地执行。" },
-      f4: { title: "双向智能流控互传", desc: "本次版本全面打通双向通道：不仅手机可以多选照片推送给电脑，电脑也支持一键选择图片传送至手机，配合 BufferedAmount 算法防阻塞控制，大文件流控防丢包。" }
+      f4: { title: "极速双向互传 & 聊天视窗", desc: "PC端连接成功后自动呈现聊天窗口，支持拖拽文件直接发送！配合手机端图片和视频分栏、深浅双主题切换，给您带来最清爽、最 premium 的互传体验！" }
     },
     simulator: {
       title: "交互式直连握手模拟",
@@ -142,7 +142,7 @@ const translations = {
       f1: { title: "BLE 藍牙無縫配對", desc: "摒棄繁瑣的傳統藍牙配對或局域網 IP 手動輸入。手機端只需掃描 PC 二維碼，即可通過 BLE 低功耗藍牙特性建立端到端的握手信令通道，自動發現彼此並交換連接描述。" },
       f2: { title: "WebRTC 局域網直連", desc: "握手成功後，自動建立 WebRTC 點對點直連（SCTP DataChannel）。在手機和電腦間開啟千兆級 Wi-Fi 本地 Socket 傳輸，秒傳高清原圖，免去雲端伺服器流量限制。" },
       f3: { title: "本地 MobileCLIP 智能分類", desc: "電腦端內置 MobileCLIP 零樣本圖像分類器。傳輸照片後，直接調用本地 ONNX 引擎在 0.2 秒內計算分類特徵，自動將照片歸檔至“人像、動物、風景”等類別，全程純本地執行。" },
-      f4: { title: "雙向智能流控互傳", desc: "本次版本全面打通雙向通道：不僅手機可以多選照片推送給電腦，電腦也支持一鍵選擇圖片傳送至手機，配合 BufferedAmount 算法防阻塞控制，大文件流控防丟包。" }
+      f4: { title: "極速雙向互傳 & 聊天視窗", desc: "PC端連接成功後自動呈現聊天窗口，支援拖拽檔案直接發送！配合手機端圖片和影片分欄、深淺雙主題切換，給您帶來最清爽、最 premium 的互傳體驗！" }
     },
     simulator: {
       title: "交互式直連握手模擬",
