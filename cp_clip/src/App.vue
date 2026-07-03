@@ -1318,6 +1318,56 @@ let peerConnection = null;
 let dataChannel = null;
 let heartbeatTimer = null;
 let lastHeartbeatTime = 0;
+let handshakeTimeoutTimer = null;
+
+function startHandshakeTimeout() {
+  if (handshakeTimeoutTimer) clearTimeout(handshakeTimeoutTimer);
+  handshakeTimeoutTimer = setTimeout(() => {
+    if (syncStatus.value === 'handshaking') {
+      logSyncEvent("⚠️ 连接协商超时：未能在 15 秒内建立 WebRTC 通道，正在重新广播...");
+      handleWebRtcDisconnect();
+    }
+  }, 15000);
+}
+
+function clearHandshakeTimeout() {
+  if (handshakeTimeoutTimer) {
+    clearTimeout(handshakeTimeoutTimer);
+    handshakeTimeoutTimer = null;
+  }
+}
+
+function handleWebRtcDisconnect() {
+  cleanupWebRtc();
+  if (isSyncActive.value) {
+    syncStatus.value = 'advertising';
+    nextTick(() => {
+      if (qrCanvas.value && qrPayload.value) {
+        QRCode.toCanvas(qrCanvas.value, JSON.stringify(qrPayload.value), { width: 140, margin: 1 });
+      }
+    });
+  } else {
+    syncStatus.value = 'idle';
+  }
+}
+
+function setupPeerConnectionListeners(pc) {
+  pc.onconnectionstatechange = () => {
+    console.log(`[WebRTC] Connection State Changed: ${pc.connectionState}`);
+    if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+      logSyncEvent(`⚠️ WebRTC 连接断开或失败 (State: ${pc.connectionState})`);
+      handleWebRtcDisconnect();
+    }
+  };
+  
+  pc.oniceconnectionstatechange = () => {
+    console.log(`[WebRTC] ICE Connection State Changed: ${pc.iceConnectionState}`);
+    if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'closed') {
+      logSyncEvent(`⚠️ ICE 连接断开或失败 (State: ${pc.iceConnectionState})`);
+      handleWebRtcDisconnect();
+    }
+  };
+}
 
 // Custom logging function for terminal view
 function logSyncEvent(msg) {
@@ -1339,6 +1389,7 @@ function cleanupWebRtc() {
     clearInterval(heartbeatTimer);
     heartbeatTimer = null;
   }
+  clearHandshakeTimeout();
   if (dataChannel) {
     try { dataChannel.close(); } catch (e) {}
     dataChannel = null;
@@ -1522,10 +1573,12 @@ async function handleRespondToRequest(accept) {
   if (accept) {
     activePeerIp.value = ip;
     syncStatus.value = 'handshaking';
+    startHandshakeTimeout();
     cleanupWebRtc();
 
     const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
     peerConnection = new RTCPeerConnection(configuration);
+    setupPeerConnectionListeners(peerConnection);
 
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
@@ -1575,6 +1628,7 @@ function setupDataChannel(channel) {
   channel.onopen = () => {
     logSyncEvent("🟢 WebRTC 数据通道 'photo_sync' 已开启!");
     syncStatus.value = 'connected';
+    clearHandshakeTimeout();
     
     // Start heartbeat timer
     lastHeartbeatTime = Date.now();
@@ -1805,6 +1859,7 @@ onMounted(() => {
     window.api.onOfferReceived(async (offerSdp) => {
       logSyncEvent("📡 蓝牙信令通道收到 WebRTC Offer SDP!");
       syncStatus.value = 'handshaking';
+      startHandshakeTimeout();
       
       cleanupWebRtc();
       
@@ -1815,6 +1870,7 @@ onMounted(() => {
       };
       
       peerConnection = new RTCPeerConnection(configuration);
+      setupPeerConnectionListeners(peerConnection);
       
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
@@ -2002,10 +2058,12 @@ onMounted(() => {
         logSyncEvent(`📡 [UDP] 来自 ${ip} 的连接已被接受! 正在等待 SDP Offer...`);
         activePeerIp.value = ip;
         syncStatus.value = 'handshaking';
+        startHandshakeTimeout();
         cleanupWebRtc();
         
         const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
         peerConnection = new RTCPeerConnection(configuration);
+        setupPeerConnectionListeners(peerConnection);
         
         peerConnection.onicecandidate = (event) => {
           if (event.candidate) {
@@ -2028,11 +2086,16 @@ onMounted(() => {
     window.api.onDirectSdpReceived(async ({ ip, sdp, sdpType }) => {
       logSyncEvent(`📡 [UDP] 收到 WebRTC SDP ${sdpType} 自 ${ip}`);
       activePeerIp.value = ip;
+      if (syncStatus.value !== 'connected') {
+        syncStatus.value = 'handshaking';
+        startHandshakeTimeout();
+      }
 
       if (sdpType === 'offer') {
         if (!peerConnection) {
           const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
           peerConnection = new RTCPeerConnection(configuration);
+          setupPeerConnectionListeners(peerConnection);
           peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
               window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
