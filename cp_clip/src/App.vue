@@ -1203,7 +1203,11 @@ const thumbnailImages = ref([]);
 const isThumbnailSyncing = ref(false);
 const thumbSyncDone = ref(0);
 const thumbSyncTotal = ref(0);
-const isDarkMode = ref(true);
+const isDarkMode = ref(localStorage.getItem('theme-dark') !== 'false');
+
+watch(isDarkMode, (newVal) => {
+  localStorage.setItem('theme-dark', newVal ? 'true' : 'false');
+});
 
 function toggleTheme() {
   isDarkMode.value = !isDarkMode.value;
