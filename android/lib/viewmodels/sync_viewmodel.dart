@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:file_picker/file_picker.dart';
@@ -60,6 +61,8 @@ class SyncViewModel extends ChangeNotifier {
 
   String? deviceUuid;
   String? deviceName;
+  static const _channel = MethodChannel('com.shareclip/system_info');
+  Map<String, dynamic>? systemInfo;
   final Set<String> pcSyncedIds = {};
 
   bool isThumbnailSyncing = false;
@@ -733,7 +736,20 @@ class SyncViewModel extends ChangeNotifier {
     deviceName = "Android Device";
     try {
       deviceName = Platform.isAndroid ? "Android Phone" : "iOS Phone";
-    } catch (_) {}
+      
+      final Map<dynamic, dynamic>? info = await _channel.invokeMethod('getSystemInfo');
+      if (info != null) {
+        systemInfo = Map<String, dynamic>.from(info);
+        final brand = systemInfo!['brand'] ?? '';
+        final model = systemInfo!['model'] ?? '';
+        deviceName = "$brand $model".trim();
+        if (deviceName!.isEmpty) {
+          deviceName = "Android Phone";
+        }
+      }
+    } catch (e) {
+      debugPrint("Failed to get system info: $e");
+    }
     logMessage("Device initialized. UUID: $deviceUuid, Name: $deviceName");
   }
 
@@ -754,10 +770,15 @@ class SyncViewModel extends ChangeNotifier {
       await initDeviceUuid();
     }
 
-    final payloadStr = jsonEncode({
+    final Map<String, dynamic> payloadMap = {
       "device_uuid": deviceUuid,
       "device_name": deviceName,
-    });
+    };
+    if (systemInfo != null) {
+      payloadMap["system_info"] = systemInfo!;
+    }
+
+    final payloadStr = jsonEncode(payloadMap);
     final payloadBytes = utf8.encode(payloadStr);
 
     final header = ByteData(16);

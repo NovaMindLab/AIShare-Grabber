@@ -187,13 +187,58 @@
         <div v-if="currentTab === 'link'" style="display: flex; flex-direction: column; width: 100%; gap: 24px;">
           
           <!-- Top Header Row -->
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-            <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <!-- Scenario 1: Not connected -->
+            <div v-if="syncStatus !== 'connected'">
               <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">连接您的<span style="color: #a855f7; -webkit-text-fill-color: initial;">手机</span></h2>
               <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">快速建立连接，开始高速文件传输</p>
             </div>
             
+            <!-- Scenario 2: Connected - Show Phone Info Dashboard -->
+            <div v-else style="display: flex; align-items: center; gap: 24px; text-align: left;">
+              <!-- Device Icon -->
+              <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(147, 51, 234, 0.1); border: 1px solid rgba(147, 51, 234, 0.2); display: flex; align-items: center; justify-content: center; font-size: 26px; color: #a855f7; box-shadow: 0 4px 12px rgba(147, 51, 234, 0.1);">
+                📱
+              </div>
+              
+              <!-- Device Details -->
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
+                  {{ activeDeviceName || '已连接的手机' }}
+                  <span style="font-size: 10px; font-weight: 600; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 2px 8px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.2); display: inline-flex; align-items: center; gap: 4px;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse-glow 1.5s infinite;"></span>
+                    已连接
+                  </span>
+                </h2>
+                <p style="color: var(--text-muted); font-size: 12px; margin: 0;">
+                  系统: {{ activeDeviceSystemInfo ? `${activeDeviceSystemInfo.os} ${activeDeviceSystemInfo.version} (${activeDeviceSystemInfo.brand} ${activeDeviceSystemInfo.model})` : 'Android Device' }}
+                </p>
+              </div>
+
+              <!-- Storage Details -->
+              <div v-if="activeDeviceSystemInfo && activeDeviceSystemInfo.total_storage" style="display: flex; flex-direction: column; gap: 6px; width: 240px; margin-left: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 8px 12px; border-radius: 10px; box-sizing: border-box;">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 500;">
+                  <span style="color: var(--text-muted);">💾 手机空间:</span>
+                  <span style="color: var(--text-secondary);">
+                    {{ formatBytes(activeDeviceSystemInfo.used_storage) }} / {{ formatBytes(activeDeviceSystemInfo.total_storage) }}
+                  </span>
+                </div>
+                <!-- Storage progress bar -->
+                <div style="width: 100%; height: 6px; background-color: var(--bg-tertiary); border-radius: 3px; overflow: hidden; border: 1px solid var(--glass-border);">
+                  <div 
+                    style="height: 100%; background: linear-gradient(90deg, #10b981, #3b82f6);" 
+                    :style="{ width: ((activeDeviceSystemInfo.used_storage / activeDeviceSystemInfo.total_storage) * 100) + '%' }"
+                  ></div>
+                </div>
+                <div style="font-size: 9px; color: var(--text-muted); text-align: right; margin-top: -2px;">
+                  剩余可用: {{ formatBytes(activeDeviceSystemInfo.free_storage) }}
+                </div>
+              </div>
+            </div>
+            
+            <!-- Right Actions Row -->
             <div style="display: flex; align-items: center; gap: 16px;">
+              <!-- Open Thumbnail Folder (always visible) -->
               <button 
                 @click="handleOpenThumbnailFolder" 
                 style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(168,85,247,0.3); background: rgba(168,85,247,0.1); color: #c084fc; cursor: pointer; transition: all 0.2s; font-weight: 600;"
@@ -203,19 +248,22 @@
                 📁 {{ t.link.openThumbnailFolder }}
               </button>
 
-              <button 
-                @click="showHowToConnectModal = true" 
-                style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"
-                onmouseover="this.style.background='rgba(255,255,255,0.1)'"
-                onmouseout="this.style.background='rgba(255,255,255,0.05)'"
-              >
-                ❓ 如何连接?
-              </button>
-              
-              <span style="font-size: 13px; color: var(--text-secondary);">
-                没有摄像头? 
-                <a href="#" @click.prevent="showEnterCodeModal = true" style="color: #a855f7; text-decoration: none; font-weight: 600; margin-left: 4px; transition: color 0.2s;" onmouseover="this.style.color='#c084fc'" onmouseout="this.style.color='#a855f7'">输入连接码</a>
-              </span>
+              <!-- Show these pairing buttons ONLY when NOT connected -->
+              <template v-if="syncStatus !== 'connected'">
+                <button 
+                  @click="showHowToConnectModal = true" 
+                  style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"
+                  onmouseover="this.style.background='rgba(255,255,255,0.1)'"
+                  onmouseout="this.style.background='rgba(255,255,255,0.05)'"
+                >
+                  ❓ 如何连接?
+                </button>
+                
+                <span style="font-size: 13px; color: var(--text-secondary);">
+                  没有摄像头? 
+                  <a href="#" @click.prevent="showEnterCodeModal = true" style="color: #a855f7; text-decoration: none; font-weight: 600; margin-left: 4px; transition: color 0.2s;" onmouseover="this.style.color='#c084fc'" onmouseout="this.style.color='#a855f7'">输入连接码</a>
+                </span>
+              </template>
             </div>
           </div>
 
@@ -1074,6 +1122,8 @@ const selectedCategory = ref(null);
 const selectedImage = ref(null);
 const currentTab = ref('images'); // 'link' | 'images' | 'videos' | 'audios' | 'files'
 const activeDeviceUuid = ref(null);
+const activeDeviceName = ref('');
+const activeDeviceSystemInfo = ref(null);
 const activeMetadata = {}; // fileId -> { assetId, name, size }
 
 const selectedItemType = computed(() => {
@@ -1253,6 +1303,9 @@ function cleanupWebRtc() {
   activePeerIp.value = null;
   isThumbnailSyncing.value = false;
   chatMessages.value = [];
+  activeDeviceUuid.value = null;
+  activeDeviceName.value = '';
+  activeDeviceSystemInfo.value = null;
 }
 
 function requestThumbnailSync() {
@@ -1550,6 +1603,11 @@ function setupDataChannel(channel) {
       
       const deviceUuid = handshake.device_uuid;
       const deviceName = handshake.device_name;
+      
+      activeDeviceName.value = deviceName;
+      if (handshake.system_info) {
+        activeDeviceSystemInfo.value = handshake.system_info;
+      }
       
       logSyncEvent(`📱 收到手机握手请求: [${deviceName}] (${deviceUuid})`);
       
