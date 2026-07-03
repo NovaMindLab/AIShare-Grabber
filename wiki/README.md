@@ -42,8 +42,8 @@ Guidelines for automated builds and releases:
 ---
 
 ## 🔭 Features & Roadmap
-Upcoming feature specifications and implementation plans:
-*   [📱→🖥️ AI Thumbnail Sync](file:///d:/AI_serach_image/image_clip_android/wiki/features/thumbnail_sync_ai.md): Batch-sync compressed 400×400 JPEG thumbnails from phone to PC via WebRTC DataChannel, auto-trigger MobileCLIP ONNX classification, save to dedicated `thumbnail_sync/` directory, and display results in Link Mobile panel. **Status: 🏗️ In Planning**
+Implemented and upcoming feature specifications:
+*   [📱→🖥️ AI Thumbnail Sync](file:///d:/AI_serach_image/image_clip_android/wiki/features/thumbnail_sync_ai.md): Batch-sync compressed 400×400 JPEG thumbnails from phone to PC via WebRTC DataChannel, auto-trigger MobileCLIP ONNX classification, save to dedicated `thumbnail_sync/` directory, and display results in Link Mobile panel. **Status: ✅ Implemented**
 
 ---
 
@@ -51,6 +51,6 @@ Upcoming feature specifications and implementation plans:
 
 | Version | Date       | Highlights |
 |---------|------------|------------|
-| v1.0.2  | 🔜 计划中   | AI Thumbnail Sync — Link Mobile 面板一键同步 400×400 缩略图并触发 MobileCLIP 分类 |
+| v1.0.2  | 2026-07-03 | AI Thumbnail Sync — Link Mobile 面板一键同步 400×400 缩略图并触发 MobileCLIP 分类，支持断点增量续传、一键打开同步目录与设备重连历史自动恢复。 |
 | v1.0.1  | 2026-06-29 | 20-language i18n support for PC EXE, Android APK, and web portal. Default language: English. |
 | v1.0.0  | 2026-06-29 | Initial public release — Android ↔ PC BLE/WebRTC sync, AI MobileCLIP image classification, official website. |
