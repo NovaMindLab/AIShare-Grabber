@@ -46,6 +46,36 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "Using Flutter path: $FlutterCmd" -ForegroundColor Gray
 Write-Host "Using GitHub CLI path: $GhCmd" -ForegroundColor Gray
 
+# 0. Sync version number across all platforms
+$VersionOnly = $Tag
+if ($VersionOnly.StartsWith("v")) {
+    $VersionOnly = $VersionOnly.Substring(1)
+}
+
+$PkgJsonPath = "cp_clip/package.json"
+if (Test-Path $PkgJsonPath) {
+    Write-Host "Updating version in $PkgJsonPath to $VersionOnly" -ForegroundColor Gray
+    $PkgJson = Get-Content $PkgJsonPath -Raw | ConvertFrom-Json
+    $PkgJson.version = $VersionOnly
+    $PkgJson | ConvertTo-Json -Depth 10 | Set-Content $PkgJsonPath
+}
+
+$WebPkgPath = "web/package.json"
+if (Test-Path $WebPkgPath) {
+    Write-Host "Updating version in $WebPkgPath to $VersionOnly" -ForegroundColor Gray
+    $WebPkg = Get-Content $WebPkgPath -Raw | ConvertFrom-Json
+    $WebPkg.version = $VersionOnly
+    $WebPkg | ConvertTo-Json -Depth 10 | Set-Content $WebPkgPath
+}
+
+$PubspecPath = "android/pubspec.yaml"
+if (Test-Path $PubspecPath) {
+    Write-Host "Updating version in $PubspecPath to $VersionOnly+1" -ForegroundColor Gray
+    $PubspecContent = Get-Content $PubspecPath
+    $PubspecContent = $PubspecContent -replace "^version:\s+.*", "version: $VersionOnly+1"
+    $PubspecContent | Set-Content $PubspecPath
+}
+
 # 1. Clean and build Web site (web/dist) with dynamic repository base path
 Write-Host "`n📁 Step 1: Building Static Web Page..." -ForegroundColor Green
 $ProjName = $Repo.Split('/')[1]
@@ -72,7 +102,7 @@ Set-Location ".."
 # 3. Build Android Mobile APK
 Write-Host "`n📁 Step 3: Compiling Android APK..." -ForegroundColor Green
 Set-Location "android"
-& $FlutterCmd build apk --release --no-tree-shake-icons
+& $FlutterCmd build apk --release --build-name $VersionOnly --build-number 1 --no-tree-shake-icons
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Android compilation failed!"
     exit 1
