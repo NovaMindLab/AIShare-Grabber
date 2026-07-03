@@ -236,8 +236,21 @@
               </div>
             </div>
             
-            <!-- Right Actions Row -->
+             <!-- Right Actions Row -->
             <div style="display: flex; align-items: center; gap: 16px;">
+              <!-- Re-run AI Analysis (Only visible when connected) -->
+              <button 
+                v-if="syncStatus === 'connected'"
+                @click="handleReclassifyAllPhotos" 
+                :disabled="isReclassifying"
+                style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.1); color: #10b981; cursor: pointer; transition: all 0.2s; font-weight: 600;"
+                :style="{ opacity: isReclassifying ? 0.6 : 1, cursor: isReclassifying ? 'not-allowed' : 'pointer' }"
+                onmouseover="if(!this.disabled) this.style.background='rgba(16,185,129,0.2)'"
+                onmouseout="if(!this.disabled) this.style.background='rgba(16,185,129,0.1)'"
+              >
+                <span>🔄 {{ isReclassifying ? `${t.link.reclassifyBtn}... (${reclassifyProgress.done}/${reclassifyProgress.total})` : t.link.reclassifyBtn }}</span>
+              </button>
+
               <!-- Open Thumbnail Folder (always visible) -->
               <button 
                 @click="handleOpenThumbnailFolder" 
@@ -1213,6 +1226,36 @@ function toggleTheme() {
   isDarkMode.value = !isDarkMode.value;
 }
 
+const isReclassifying = ref(false);
+const reclassifyProgress = ref({ done: 0, total: 0, currentName: '' });
+
+async function handleReclassifyAllPhotos() {
+  if (isReclassifying.value) return;
+  isReclassifying.value = true;
+  reclassifyProgress.value = { done: 0, total: 0, currentName: '' };
+  logSyncEvent("🔄 开始对当前手机的所有图片重新做 AI 分析...");
+  
+  try {
+    const updatedResources = await window.api.reclassifyAllPhonePhotos();
+    
+    // Fully refresh the local image predictions
+    images.value = updatedResources.map(res => ({
+      id: res.id,
+      path: res.path,
+      name: res.name,
+      src: `local:///${res.path.replace(/\\/g, '/')}`,
+      status: 'completed',
+      predictions: JSON.parse(res.predictions || '[]'),
+      type: res.type
+    }));
+    
+    logSyncEvent("🎉 数据库资源列表已完全同步更新。");
+  } catch (err) {
+    logSyncEvent(`❌ AI 重新分析失败: ${err.message}`);
+    isReclassifying.value = false;
+  }
+}
+
 // Chat Window state & helpers
 const chatMessages = ref([]);
 const chatMessagesRef = ref(null);
@@ -2022,6 +2065,28 @@ onMounted(() => {
           const candidateObj = JSON.parse(data.candidate);
           peerConnection.addIceCandidate(new RTCIceCandidate(candidateObj)).catch(e => {});
         } catch (_) {}
+      }
+    });
+
+    // 12. Reclassify AI progress & predictions updated events
+    window.api.onReclassifyProgress((data) => {
+      reclassifyProgress.value = data;
+      if (data.done === data.total) {
+        isReclassifying.value = false;
+        logSyncEvent(`🎉 手机图片 AI 重新分析完成！共处理 ${data.total} 张图片。`);
+      }
+    });
+
+    window.api.onSinglePhotoPredictionsUpdated((data) => {
+      // Find and update the single photo's predictions in images.value
+      const idx = images.value.findIndex(img => img.id === data.id || img.name === data.id);
+      if (idx !== -1) {
+        images.value[idx].predictions = data.predictions;
+      }
+      // Also update predictions in thumbnailImages if found
+      const thumbIdx = thumbnailImages.value.findIndex(t => t.path && t.path.includes(data.id));
+      if (thumbIdx !== -1) {
+        thumbnailImages.value[thumbIdx].predictions = data.predictions;
       }
     });
 

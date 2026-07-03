@@ -101,7 +101,8 @@ export const locales = {
       thumbnailSyncContinue: "Resume AI Sync",
       thumbnailSyncing: "AI Syncing {done}/{total}",
       thumbnailGridTitle: "AI Analysis Thumbnails",
-      openThumbnailFolder: "Open Thumbnail Folder"
+      openThumbnailFolder: "Open Thumbnail Folder",
+      reclassifyBtn: "Re-run AI Analysis"
     },
     images: {
       emptyImages: "No image resources",
@@ -221,9 +222,10 @@ export const locales = {
       hotspotInstructions: "1. 请先将手机的 Wi-Fi 连接至下方创建的直连热点。2. 连接成功后，使用手机端 App 扫描下方的配对二维码进行握手同步。",
       thumbnailSyncBtn: "同步手机图片到 AI 分析",
       thumbnailSyncContinue: "继续 AI 同步",
-      thumbnailSyncing: "AI 同步中 {done}/{total}",
+      thumbnailSyncing: "AI Syncing中 {done}/{total}",
       thumbnailGridTitle: "AI 分析缩略图",
-      openThumbnailFolder: "打开缩略图文件夹"
+      openThumbnailFolder: "打开缩略图文件夹",
+      reclassifyBtn: "重新算 AI"
     },
     images: {
       emptyImages: "暂无本地图片资源",
@@ -321,7 +323,13 @@ langList.forEach(lang => {
         hotspotRunning: "🟢 本地 Wi-Fi 熱點已開啟",
         hotspotStarting: "正在創建本地直連熱點...",
         hotspotFailed: "開啟本地熱點失敗，請確保電腦的無線網卡已開啟。",
-        hotspotInstructions: "1. 請先將手機的 Wi-Fi 連線至下方創建的直連熱點。2. 連線成功後，使用手機端 App 掃描下方的配對二維碼進行握手連線。"
+        hotspotInstructions: "1. 請先將手機的 Wi-Fi 連線至下方創建的直連熱點。2. 連線成功後，使用手機端 App 掃描下方的配對二維碼進行握手連線。",
+        thumbnailSyncBtn: "同步手機圖片到 AI 分析",
+        thumbnailSyncContinue: "繼續 AI 同步",
+        thumbnailSyncing: "AI 同步中 {done}/{total}",
+        thumbnailGridTitle: "AI 分析縮略圖",
+        openThumbnailFolder: "打開縮略圖資料夾",
+        reclassifyBtn: "重新算 AI"
       },
       images: {
         emptyImages: "暫無本地圖片資源",

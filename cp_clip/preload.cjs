@@ -75,6 +75,17 @@ contextBridge.exposeInMainWorld('api', {
   sendUdpSdp: (ip, sdp, sdpType) => ipcRenderer.invoke('send-udp-sdp', { ip, sdp, sdpType }),
   sendUdpIce: (ip, candidate) => ipcRenderer.invoke('send-udp-ice', { ip, candidate }),
 
+  // Reclassify AI analysis for photos
+  reclassifyAllPhonePhotos: () => ipcRenderer.invoke('reclassify-all-phone-photos'),
+  onReclassifyProgress: (callback) => {
+    ipcRenderer.removeAllListeners('reclassify-progress');
+    ipcRenderer.on('reclassify-progress', (event, data) => callback(data));
+  },
+  onSinglePhotoPredictionsUpdated: (callback) => {
+    ipcRenderer.removeAllListeners('single-photo-predictions-updated');
+    ipcRenderer.on('single-photo-predictions-updated', (event, data) => callback(data));
+  },
+
   // Window controls
   minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
   maximizeWindow: () => ipcRenderer.invoke('window-maximize'),

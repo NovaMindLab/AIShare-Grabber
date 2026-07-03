@@ -452,6 +452,85 @@ ipcMain.handle('classify-photo', async (event, imagePath) => {
   return await classifyPhotoInternal(imagePath);
 });
 
+ipcMain.handle('reclassify-all-phone-photos', async (event) => {
+  if (!activeDeviceUuid || !activeDeviceDb) {
+    throw new Error("No active device database connected");
+  }
+
+  // 1. Get all photos and thumbnails
+  const rows = await new Promise((resolve, reject) => {
+    activeDeviceDb.all(
+      `SELECT id, name, path, type, size FROM resources WHERE type = 'images' OR type = 'thumbnail'`,
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      }
+    );
+  });
+
+  const total = rows.length;
+  console.log(`[AI Reclassify] Found ${total} phone photos to reclassify.`);
+
+  // 2. Loop and reclassify
+  for (let i = 0; i < total; i++) {
+    const row = rows[i];
+    
+    // Notify renderer of progress
+    event.sender.send('reclassify-progress', {
+      done: i,
+      total,
+      currentName: row.name
+    });
+
+    try {
+      if (fs.existsSync(row.path)) {
+        const predictions = await classifyPhotoInternal(row.path);
+        const predictionsStr = JSON.stringify(predictions);
+
+        // Update database
+        await new Promise((resolve, reject) => {
+          activeDeviceDb.run(
+            `UPDATE resources SET predictions = ? WHERE id = ?`,
+            [predictionsStr, row.id],
+            (err) => {
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+
+        // Send a single image update event to the renderer immediately!
+        event.sender.send('single-photo-predictions-updated', {
+          id: row.id,
+          predictions
+        });
+      }
+    } catch (err) {
+      console.error(`[AI Reclassify] Failed for ${row.name}:`, err);
+    }
+  }
+
+  // Final progress notification
+  event.sender.send('reclassify-progress', {
+    done: total,
+    total,
+    currentName: 'Completed'
+  });
+
+  // 3. Query all updated resources to return
+  const updatedRows = await new Promise((resolve, reject) => {
+    activeDeviceDb.all(
+      `SELECT id, name, path, type, size, predictions FROM resources`,
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      }
+    );
+  });
+
+  return updatedRows;
+});
+
 // BLE Signaling and WebRTC synchronization handlers
 ipcMain.handle('start-ble-server', async (event) => {
   if (bleProcess) {
