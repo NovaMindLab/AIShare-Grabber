@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol, net } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
@@ -154,6 +154,7 @@ function createWindow() {
     height: 850,
     title: "ShareCLIP",
     backgroundColor: '#0f172a', // Dark theme background color
+    frame: false, // Make window frameless
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -255,6 +256,23 @@ app.on('will-quit', () => {
 });
 
 // IPC Communication
+ipcMain.handle('open-thumbnail-folder', async () => {
+  const rootThumbDir = path.join(__dirname, 'thumbnail_sync');
+  if (!fs.existsSync(rootThumbDir)) {
+    fs.mkdirSync(rootThumbDir, { recursive: true });
+  }
+  if (activeDeviceUuid) {
+    const thumbDir = path.join(rootThumbDir, activeDeviceUuid);
+    if (!fs.existsSync(thumbDir)) {
+      fs.mkdirSync(thumbDir, { recursive: true });
+    }
+    shell.openPath(thumbDir);
+  } else {
+    shell.openPath(rootThumbDir);
+  }
+  return true;
+});
+
 ipcMain.handle('select-folder', async () => {
   if (!mainWindow) return null;
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -776,8 +794,16 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
       type = 'audios';
     }
     
+    const isThumbnail = filename.startsWith('thumb_') && ext.toLowerCase() === '.jpg';
+    
     let targetPath = '';
-    if (activeDeviceUuid) {
+    if (isThumbnail) {
+      const targetDir = path.join(__dirname, 'thumbnail_sync', activeDeviceUuid || 'default');
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+      targetPath = path.join(targetDir, filename);
+    } else if (activeDeviceUuid) {
       const targetDir = path.join(__dirname, 'sync_storage', activeDeviceUuid, type);
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, { recursive: true });
@@ -794,9 +820,9 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
     fs.writeFileSync(targetPath, fullBuffer);
     console.log(`[Sync] Saved reassembled file to ${targetPath}`);
     
-    // Auto classify only if it is an image
+    // Auto classify only if it is an image or thumbnail
     let predictions = [];
-    if (type === 'images') {
+    if (type === 'images' || isThumbnail) {
       try {
         predictions = await classifyPhotoInternal(targetPath);
       } catch (err) {
@@ -813,7 +839,7 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
       activeDeviceDb.run(`
         INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [assetId, filename, targetPath, type, size, predictionsStr, syncTime], (err) => {
+      `, [assetId, filename, targetPath, isThumbnail ? 'thumbnail' : type, size, predictionsStr, syncTime], (err) => {
         if (err) {
           console.error(`[Database] Error registering synced asset ${assetId}:`, err);
         } else {
@@ -825,6 +851,7 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
     // Notify renderer that a new file is synced!
     if (mainWindow) {
       mainWindow.webContents.send('photo-synced', {
+        isThumbnail,
         path: targetPath,
         name: filename,
         src: `local:///${targetPath.replace(/\\/g, '/')}`,
@@ -1199,5 +1226,24 @@ ipcMain.handle('send-udp-ice', async (event, { ip, candidate }) => {
       resolve(!err);
     });
   });
+});
+
+// Window controls
+ipcMain.handle('window-minimize', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.handle('window-maximize', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  }
+});
+
+ipcMain.handle('window-close', () => {
+  if (mainWindow) mainWindow.close();
 });
 

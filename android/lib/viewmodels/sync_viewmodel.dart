@@ -60,6 +60,10 @@ class SyncViewModel extends ChangeNotifier {
   String? deviceName;
   final Set<String> pcSyncedIds = {};
 
+  bool isThumbnailSyncing = false;
+  int thumbnailSyncTotal = 0;
+  int thumbnailSyncDone = 0;
+
   int _fileIdCounter = 100;
   Timer? _heartbeatTimer;
   DateTime _lastHeartbeatReceived = DateTime.now();
@@ -227,6 +231,12 @@ class SyncViewModel extends ChangeNotifier {
             }
             logMessage("Handshake response received! PC has already synced ${pcSyncedIds.length} files.");
             notifyListeners();
+            return;
+          }
+
+          if (fileId == -6) {
+            logMessage("PC requested thumbnail sync to AI. Starting sync...");
+            syncThumbnailsToAI();
             return;
           }
 
@@ -562,6 +572,62 @@ class SyncViewModel extends ChangeNotifier {
     activeProgress = 0.0;
     activeSpeedKbps = 0.0;
     notifyListeners();
+  }
+
+  Future<void> syncThumbnailsToAI({List<AssetEntity>? targets}) async {
+    final list = targets ?? localImages.where((e) => e.type == AssetType.image).toList();
+    if (list.isEmpty || isThumbnailSyncing) return;
+
+    isThumbnailSyncing = true;
+    thumbnailSyncTotal = list.length;
+    thumbnailSyncDone = 0;
+    notifyListeners();
+
+    logMessage("Starting batch AI thumbnail sync. Total: ${list.length}");
+
+    // Send start notification packet to PC: file_id = -6, total_chunks = total count
+    final header = ByteData(16);
+    header.setInt32(0, -6, Endian.big); // file_id = -6
+    header.setInt32(4, 0, Endian.big);
+    header.setInt32(8, list.length, Endian.big);
+    header.setInt32(12, 0, Endian.big);
+    await _syncEngine?.sendBinary(header.buffer.asUint8List());
+
+    for (final entity in list) {
+      if (_syncEngine == null || appState != AppState.connected) {
+        logMessage("AI Sync interrupted: disconnected");
+        break;
+      }
+
+      final String thumbName = 'thumb_${entity.id}.jpg';
+      if (pcSyncedIds.contains(entity.id) || pcSyncedIds.contains(thumbName)) {
+        logMessage("Skip sending thumbnail for ${entity.title} (already synced)");
+        thumbnailSyncDone++;
+        notifyListeners();
+        continue;
+      }
+
+      final fileId = _fileIdCounter++;
+      final streamer = _photoStreamer;
+      if (streamer == null) continue;
+
+      final success = await streamer.streamThumbnail(
+        entity: entity,
+        fileId: fileId,
+        onProgress: (_, __, ___) {},
+      );
+
+      if (success) {
+        thumbnailSyncDone++;
+      } else {
+        logMessage("Failed to sync thumbnail for ${entity.title}");
+      }
+      notifyListeners();
+    }
+
+    isThumbnailSyncing = false;
+    notifyListeners();
+    logMessage("Batch AI thumbnail sync finished. Sync completed: $thumbnailSyncDone/$thumbnailSyncTotal");
   }
 
   Future<void> pickFiles(String type) async {

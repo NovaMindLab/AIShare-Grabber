@@ -241,6 +241,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
   }
 
   Widget _buildMediaGridContent(SyncViewModel viewModel) {
+    final t = Provider.of<LocalizationService>(context);
     if (viewModel.localImages.isEmpty) {
       return const Center(
         child: Text(
@@ -250,14 +251,65 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(8.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8.0,
-        mainAxisSpacing: 8.0,
-      ),
-      itemCount: viewModel.localImages.length,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.psychology, size: 18, color: Color(0xFF8B5CF6)),
+                  const SizedBox(width: 6),
+                  Text(
+                    t.currentLocale == 'zh' ? "AI 智能同步" : "AI Sync",
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              viewModel.isThumbnailSyncing
+                  ? Text(
+                      t.currentLocale == 'zh' 
+                          ? "🔄 同步中 ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}" 
+                          : "🔄 Syncing ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}",
+                      style: const TextStyle(color: Color(0xFF8B5CF6), fontSize: 13, fontWeight: FontWeight.bold),
+                    )
+                  : ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8B5CF6),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                      onPressed: () {
+                        viewModel.syncThumbnailsToAI(
+                          targets: viewModel.selectedImages.isNotEmpty
+                              ? viewModel.localImages.where((e) => viewModel.selectedImages.contains(e.id)).toList()
+                              : null,
+                        );
+                      },
+                      icon: const Icon(Icons.psychology, size: 16),
+                      label: Text(
+                        viewModel.selectedImages.isNotEmpty
+                            ? (t.currentLocale == 'zh' ? "同步选中图片到AI" : "Sync Selected to AI")
+                            : (t.currentLocale == 'zh' ? "同步全部图片到AI" : "Sync All to AI"),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+            ],
+          ),
+        ),
+        const Divider(color: Color(0xFF1E293B), height: 1),
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.all(8.0),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 8.0,
+              mainAxisSpacing: 8.0,
+            ),
+            itemCount: viewModel.localImages.length,
       itemBuilder: (context, idx) {
         final media = viewModel.localImages[idx];
         final isSelected = viewModel.selectedImages.contains(media.id);
@@ -371,8 +423,11 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
           ),
         );
       },
-    );
-  }
+    ),
+  ),
+],
+);
+}
 
   String _formatDuration(int seconds) {
     final int m = seconds ~/ 60;

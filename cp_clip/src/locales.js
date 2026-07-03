@@ -94,7 +94,12 @@ export const locales = {
       hotspotRunning: "🟢 Local Wi-Fi Hotspot Active",
       hotspotStarting: "Starting local Wi-Fi hotspot...",
       hotspotFailed: "Failed to start Wi-Fi hotspot. Please verify Wi-Fi is enabled.",
-      hotspotInstructions: "1. Connect your phone's Wi-Fi to the hotspot shown below. 2. Scan the pairing QR code to pair and sync."
+      hotspotInstructions: "1. Connect your phone's Wi-Fi to the hotspot shown below. 2. Scan the pairing QR code to pair and sync.",
+      thumbnailSyncBtn: "Sync Phone Images to AI",
+      thumbnailSyncContinue: "Resume AI Sync",
+      thumbnailSyncing: "AI Syncing {done}/{total}",
+      thumbnailGridTitle: "AI Analysis Thumbnails",
+      openThumbnailFolder: "Open Thumbnail Folder"
     },
     images: {
       emptyImages: "No image resources",
@@ -198,7 +203,12 @@ export const locales = {
       hotspotRunning: "🟢 本地 Wi-Fi 热点已开启",
       hotspotStarting: "正在创建本地直连热点...",
       hotspotFailed: "开启本地热点失败，请确保电脑的无线网卡已开启。",
-      hotspotInstructions: "1. 请先将手机的 Wi-Fi 连接至下方创建的直连热点。2. 连接成功后，使用手机端 App 扫描下方的配对二维码进行握手同步。"
+      hotspotInstructions: "1. 请先将手机的 Wi-Fi 连接至下方创建的直连热点。2. 连接成功后，使用手机端 App 扫描下方的配对二维码进行握手同步。",
+      thumbnailSyncBtn: "同步手机图片到 AI 分析",
+      thumbnailSyncContinue: "继续 AI 同步",
+      thumbnailSyncing: "AI 同步中 {done}/{total}",
+      thumbnailGridTitle: "AI 分析缩略图",
+      openThumbnailFolder: "打开缩略图文件夹"
     },
     images: {
       emptyImages: "暂无本地图片资源",

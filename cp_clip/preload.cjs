@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('api', {
   classifyPhoto: (imagePath) => ipcRenderer.invoke('classify-photo', imagePath),
   searchPhotos: (queryText, imagePaths) => ipcRenderer.invoke('search-photos', { queryText, imagePaths }),
   readImageBytes: (filePath) => ipcRenderer.invoke('read-image-bytes', filePath),
+  openThumbnailFolder: () => ipcRenderer.invoke('open-thumbnail-folder'),
   
   // BLE Signaling & Sync Connection APIs
   startBleServer: () => ipcRenderer.invoke('start-ble-server'),
@@ -72,5 +73,10 @@ contextBridge.exposeInMainWorld('api', {
   sendUdpConnectRequest: (ip) => ipcRenderer.invoke('send-udp-connect-request', { ip }),
   respondToConnectionRequest: (ip, accept) => ipcRenderer.invoke('respond-to-connection-request', { ip, accept }),
   sendUdpSdp: (ip, sdp, sdpType) => ipcRenderer.invoke('send-udp-sdp', { ip, sdp, sdpType }),
-  sendUdpIce: (ip, candidate) => ipcRenderer.invoke('send-udp-ice', { ip, candidate })
+  sendUdpIce: (ip, candidate) => ipcRenderer.invoke('send-udp-ice', { ip, candidate }),
+
+  // Window controls
+  minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
+  maximizeWindow: () => ipcRenderer.invoke('window-maximize'),
+  closeWindow: () => ipcRenderer.invoke('window-close')
 });

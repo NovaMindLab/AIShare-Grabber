@@ -222,4 +222,83 @@ class PhotoStreamer {
       }
     }
   }
+
+  Future<bool> _streamBytesInternal({
+    required Uint8List data,
+    required int fileId,
+    required void Function(int chunkIndex, int totalChunks, int bytesSent) onProgress,
+  }) async {
+    final engine = syncEngine;
+    if (engine == null) return false;
+    const int chunkSize = 32 * 1024; // 32KB chunks
+    final int totalChunks = (data.length / chunkSize).ceil();
+    int bytesSent = 0;
+
+    for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      while (engine.getBufferedAmount() > 1000000) {
+        await Future.delayed(const Duration(milliseconds: 30));
+      }
+
+      final int payloadSize = (bytesSent + chunkSize < data.length) ? chunkSize : (data.length - bytesSent);
+      final Uint8List chunkBytes = data.sublist(bytesSent, bytesSent + payloadSize);
+
+      final ByteData headerData = ByteData(16);
+      headerData.setInt32(0, fileId, Endian.big);
+      headerData.setInt32(4, chunkIndex, Endian.big);
+      headerData.setInt32(8, totalChunks, Endian.big);
+      headerData.setInt32(12, payloadSize, Endian.big);
+
+      final Uint8List packet = Uint8List(16 + payloadSize);
+      packet.setRange(0, 16, headerData.buffer.asUint8List());
+      packet.setRange(16, 16 + payloadSize, chunkBytes);
+
+      final bool success = await engine.sendBinary(packet);
+      if (!success) {
+        debugPrint("[Streamer] Failed to write chunk $chunkIndex over DataChannel");
+        return false;
+      }
+
+      bytesSent += payloadSize;
+      onProgress(chunkIndex, totalChunks, bytesSent);
+
+      await Future.delayed(Duration.zero);
+    }
+    return true;
+  }
+
+  Future<bool> streamThumbnail({
+    required AssetEntity entity,
+    required int fileId,
+    required void Function(int chunkIndex, int totalChunks, int bytesSent) onProgress,
+  }) async {
+    try {
+      debugPrint("[Streamer] Fetching thumbnail for asset ${entity.id}...");
+      final Uint8List? thumbData = await entity.thumbnailDataWithSize(
+        const ThumbnailSize.square(400),
+        format: ThumbnailFormat.jpeg,
+        quality: 85,
+      );
+      if (thumbData == null) {
+        debugPrint("[Streamer] Failed to get thumbnail for asset ${entity.id}");
+        return false;
+      }
+
+      final String name = 'thumb_${entity.id}.jpg';
+      await _sendMetadataPacket(
+        fileId: fileId,
+        assetId: entity.id,
+        name: name,
+        size: thumbData.length,
+      );
+
+      return await _streamBytesInternal(
+        data: thumbData,
+        fileId: fileId,
+        onProgress: onProgress,
+      );
+    } catch (e, stack) {
+      debugPrint("[Streamer] Exception during thumbnail streaming: $e\n$stack");
+      return false;
+    }
+  }
 }

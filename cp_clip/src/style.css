@@ -62,7 +62,85 @@ body {
 /* Layout */
 .app-container {
   display: flex;
+  flex-direction: column;
   height: 100vh;
+  overflow: hidden;
+}
+
+/* Custom Window Title Bar */
+.custom-title-bar {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  background: #0a0f1e;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+  user-select: none;
+  z-index: 9999;
+}
+
+.title-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+}
+
+.title-bar-icon {
+  font-size: 14px;
+}
+
+.title-bar-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 0.4px;
+}
+
+.title-bar-drag-area {
+  flex: 1;
+  height: 100%;
+  -webkit-app-region: drag;
+}
+
+.title-bar-actions {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.title-bar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  outline: none;
+}
+
+.title-bar-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.9);
+}
+
+.title-bar-btn.close:hover {
+  background: #e81123;
+  color: white;
+}
+
+/* Main app body below title bar */
+.app-body {
+  display: flex;
+  flex: 1;
   overflow: hidden;
 }
 

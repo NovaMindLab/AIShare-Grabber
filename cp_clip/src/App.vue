@@ -1,7 +1,29 @@
 <template>
   <div class="app-container" :class="{ 'light-mode': !isDarkMode }">
-    <!-- Sidebar -->
-    <aside class="sidebar">
+    <!-- Custom Windows Window Title Bar -->
+    <div class="custom-title-bar" v-if="hasApi">
+      <div class="title-bar-left">
+        <span class="title-bar-icon">📸</span>
+        <span class="title-bar-text">ShareCLIP</span>
+      </div>
+      <div class="title-bar-drag-area"></div>
+      <div class="title-bar-actions">
+        <button class="title-bar-btn minimize" @click="minimizeWindow" title="最小化">
+          <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10v1H0z" fill="currentColor"/></svg>
+        </button>
+        <button class="title-bar-btn maximize" @click="maximizeWindow" title="最大化/还原">
+          <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0v10h10V0H0zm9 9H1V1h8v8z" fill="currentColor"/></svg>
+        </button>
+        <button class="title-bar-btn close" @click="closeWindow" title="关闭">
+          <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main App Body -->
+    <div class="app-body">
+      <!-- Sidebar -->
+      <aside class="sidebar">
       <div class="brand">
         <span class="brand-icon">📸</span>
         <h1 class="brand-title">ShareCLIP</h1>
@@ -312,9 +334,76 @@
             <div style="font-size: 56px; color: var(--success); filter: drop-shadow(0 0 12px rgba(16,185,129,0.3));">🟢</div>
             <h3 style="color: var(--success); font-size: 18px; font-weight: 600; margin: 0;">{{ t.link.connectedTitle }}</h3>
             <p style="color: var(--text-secondary); font-size: 13px; margin: 0; max-width: 400px; line-height: 1.6;">{{ t.link.connectedDesc }}</p>
-            <button class="btn btn-danger" style="padding: 10px 24px; font-size: 13px; border-radius: 8px; font-weight: 600;" @click="cleanupWebRtc">
-              {{ isHotspotActive ? t.link.stopHotspot : t.link.disconnectBtn }}
-            </button>
+            
+            <div style="display: flex; gap: 16px; margin-top: 10px; align-items: center; flex-wrap: wrap; justify-content: center;">
+              <button 
+                class="btn" 
+                :class="isThumbnailSyncing ? 'btn-secondary' : 'btn-accent'" 
+                style="padding: 10px 24px; font-size: 13px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 8px;"
+                :disabled="isThumbnailSyncing"
+                @click="requestThumbnailSync"
+              >
+                <span>🧠</span>
+                {{ isThumbnailSyncing 
+                  ? t.link.thumbnailSyncing.replace('{done}', thumbSyncDone).replace('{total}', thumbSyncTotal) 
+                  : (thumbnailImages.length > 0 ? t.link.thumbnailSyncContinue : t.link.thumbnailSyncBtn) }}
+              </button>
+
+              <button 
+                class="btn btn-secondary" 
+                style="padding: 10px 24px; font-size: 13px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 6px;"
+                @click="handleOpenThumbnailFolder"
+              >
+                <span>📁</span>
+                {{ t.link.openThumbnailFolder }}
+              </button>
+
+              <button class="btn btn-danger" style="padding: 10px 24px; font-size: 13px; border-radius: 8px; font-weight: 600;" @click="cleanupWebRtc">
+                {{ isHotspotActive ? t.link.stopHotspot : t.link.disconnectBtn }}
+              </button>
+            </div>
+
+            <!-- Synced Thumbnails Grid Area -->
+            <div v-if="thumbnailImages.length > 0" style="width: 100%; max-width: 600px; margin-top: 24px; text-align: left;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+                <span style="font-size: 14px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                  🧠 {{ t.link.thumbnailGridTitle }}
+                </span>
+                <span style="font-size: 12px; background: rgba(168, 85, 247, 0.2); color: #c084fc; padding: 2px 8px; border-radius: 12px; font-weight: bold;">
+                  {{ thumbnailImages.length }} 张
+                </span>
+              </div>
+
+              <!-- Flex Wrap/Grid list of synced thumbnails -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 12px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
+                <div 
+                  v-for="img in thumbnailImages" 
+                  :key="img.name" 
+                  style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 23, 42, 0.6); aspect-ratio: 1; transition: transform 0.2s;"
+                  onmouseover="this.style.transform='scale(1.05)';"
+                  onmouseout="this.style.transform='scale(1)';"
+                >
+                  <img :src="img.src" style="width: 100%; height: 100%; object-fit: cover;" />
+                  
+                  <!-- Classification Score Badge -->
+                  <div 
+                    v-if="img.predictions && img.predictions[0]" 
+                    style="position: absolute; top: 4px; right: 4px; background: rgba(147, 51, 234, 0.85); color: white; font-size: 8px; padding: 2px 4px; border-radius: 4px; font-weight: bold; backdrop-filter: blur(2px);"
+                  >
+                    {{ (img.predictions[0].score * 100).toFixed(0) }}%
+                  </div>
+
+                  <!-- Classification Category Label -->
+                  <div 
+                    style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 42, 0.85); padding: 4px; text-align: center; backdrop-filter: blur(2px);"
+                  >
+                    <div style="font-size: 9px; color: #e2e8f0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                      {{ img.predictions && img.predictions[0] ? img.predictions[0].category : '分类中...' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Lower P2P Discovery Container -->
@@ -796,6 +885,7 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
@@ -810,6 +900,17 @@ const t = computed(() => locales[currentLocale.value] || locales.en);
 
 // Define double mode: Electron or Web Demo
 const hasApi = typeof window !== 'undefined' && window.api !== undefined;
+
+// Window control handlers for custom title bar
+function minimizeWindow() {
+  if (hasApi) window.api.minimizeWindow();
+}
+function maximizeWindow() {
+  if (hasApi) window.api.maximizeWindow();
+}
+function closeWindow() {
+  if (hasApi) window.api.closeWindow();
+}
 
 // State Variables
 const images = ref([]);
@@ -893,6 +994,10 @@ const hotspotError = ref('');
 const pcActiveTransferName = ref(null);
 const pcActiveProgress = ref(0.0);
 const incomingTransfer = ref(null);
+const thumbnailImages = ref([]);
+const isThumbnailSyncing = ref(false);
+const thumbSyncDone = ref(0);
+const thumbSyncTotal = ref(0);
 const isDarkMode = ref(true);
 
 function toggleTheme() {
@@ -933,6 +1038,34 @@ function cleanupWebRtc() {
     peerConnection = null;
   }
   activePeerIp.value = null;
+  isThumbnailSyncing.value = false;
+}
+
+function requestThumbnailSync() {
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    logSyncEvent("❌ WebRTC 直连通道未建立，无法发送同步请求");
+    return;
+  }
+  logSyncEvent("🧠 正在发送 AI 缩略图批量同步请求到手机...");
+  
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -6, false); // file_id = -6
+  view.setInt32(4, 0, false);
+  view.setInt32(8, 0, false);
+  view.setInt32(12, 0, false);
+  
+  dataChannel.send(buffer);
+  
+  isThumbnailSyncing.value = true;
+  thumbSyncDone.value = 0;
+  thumbSyncTotal.value = 0;
+}
+
+function handleOpenThumbnailFolder() {
+  if (hasApi) {
+    window.api.openThumbnailFolder();
+  }
 }
 
 function generateHotspotCredentials() {
@@ -1210,17 +1343,29 @@ function setupDataChannel(channel) {
         window.api.initDeviceSync(deviceUuid, deviceName).then((syncInfo) => {
           activeDeviceUuid.value = deviceUuid;
           
-          // Clear current media array and populate with the device's SQL catalog
-          images.value = syncInfo.resources.map(res => ({
-            id: res.id,
-            path: res.path,
-            name: res.name,
-            src: `local:///${res.path.replace(/\\/g, '/')}`,
-            status: 'completed',
-            predictions: JSON.parse(res.predictions || '[]')
-          }));
+          // Clear current media array and populate with the device's SQL catalog (excluding thumbnails)
+          images.value = syncInfo.resources
+            .filter(res => res.type !== 'thumbnail')
+            .map(res => ({
+              id: res.id,
+              path: res.path,
+              name: res.name,
+              src: `local:///${res.path.replace(/\\/g, '/')}`,
+              status: 'completed',
+              predictions: JSON.parse(res.predictions || '[]')
+            }));
+
+          // Load previously synced AI thumbnails
+          thumbnailImages.value = syncInfo.resources
+            .filter(res => res.type === 'thumbnail')
+            .map(res => ({
+              src: `local:///${res.path.replace(/\\/g, '/')}`,
+              name: res.name,
+              path: res.path,
+              predictions: JSON.parse(res.predictions || '[]')
+            }));
           
-          logSyncEvent(`📊 本地数据库同步成功，已恢复 ${syncInfo.syncedIds.length} 个历史传输资源，发送握手回应包...`);
+          logSyncEvent(`📊 本地数据库同步成功，已恢复 ${images.value.length} 个历史传输资源，${thumbnailImages.value.length} 个 AI 缩略图，发送握手回应包...`);
           
           const responseStr = JSON.stringify({ synced_ids: syncInfo.syncedIds });
           const encoder = new TextEncoder();
@@ -1243,6 +1388,15 @@ function setupDataChannel(channel) {
     }
 
     // Metadata packet containing filename and asset ID
+    if (fileId === -6) {
+      const totalCount = view.getInt32(8, false);
+      thumbSyncTotal.value = totalCount;
+      thumbSyncDone.value = 0;
+      isThumbnailSyncing.value = true;
+      logSyncEvent(`🧠 收到手机端 AI 缩略图同步开始通知，共 ${totalCount} 张图片`);
+      return;
+    }
+
     if (fileId === -5) {
       const payloadSize = view.getInt32(12, false);
       const payloadBytes = new Uint8Array(arrayBuffer, 16, payloadSize);
@@ -1265,10 +1419,13 @@ function setupDataChannel(channel) {
     const payloadSize = view.getInt32(12, false);
     
     // Update incoming progress state
-    incomingTransfer.value = {
-      progress: (chunkIndex + 1) / totalChunks,
-      name: activeMetadata[fileId] ? activeMetadata[fileId].name : `文件 ID ${fileId}`
-    };
+    const isThumb = activeMetadata[fileId] && activeMetadata[fileId].name.startsWith('thumb_');
+    if (!isThumb) {
+      incomingTransfer.value = {
+        progress: (chunkIndex + 1) / totalChunks,
+        name: activeMetadata[fileId] ? activeMetadata[fileId].name : `文件 ID ${fileId}`
+      };
+    }
 
     const payload = new Uint8Array(arrayBuffer, 16, payloadSize);
     logSyncEvent(`📥 接收分片: ${chunkIndex + 1}/${totalChunks} (文件ID: ${fileId})`);
@@ -1373,19 +1530,40 @@ onMounted(() => {
     // 4. File reassembly completed
     window.api.onPhotoSynced((imageInfo) => {
       logSyncEvent(`🎉 图片接收完成并自动分类: ${imageInfo.name}`);
-      incomingTransfer.value = null;
       
-      images.value.push({
-        path: imageInfo.path,
-        name: imageInfo.name,
-        src: imageInfo.src,
-        status: 'completed',
-        predictions: imageInfo.predictions
-      });
-      
-      totalCount.value = images.value.length;
-      if (!currentFolderPath.value || currentFolderPath.value === '自定义多图导入') {
-        currentFolderPath.value = '同步自移动端相册';
+      if (imageInfo.isThumbnail) {
+        const exists = thumbnailImages.value.some(img => img.name === imageInfo.name);
+        if (!exists) {
+          thumbnailImages.value.unshift({
+            src: imageInfo.src,
+            name: imageInfo.name,
+            path: imageInfo.path,
+            predictions: imageInfo.predictions
+          });
+        } else {
+          const idx = thumbnailImages.value.findIndex(img => img.name === imageInfo.name);
+          if (idx !== -1) {
+            thumbnailImages.value[idx].predictions = imageInfo.predictions;
+          }
+        }
+        thumbSyncDone.value++;
+        if (thumbSyncTotal.value > 0 && thumbSyncDone.value >= thumbSyncTotal.value) {
+          isThumbnailSyncing.value = false;
+        }
+      } else {
+        incomingTransfer.value = null;
+        images.value.push({
+          path: imageInfo.path,
+          name: imageInfo.name,
+          src: imageInfo.src,
+          status: 'completed',
+          predictions: imageInfo.predictions
+        });
+        
+        totalCount.value = images.value.length;
+        if (!currentFolderPath.value || currentFolderPath.value === '自定义多图导入') {
+          currentFolderPath.value = '同步自移动端相册';
+        }
       }
     });
 
