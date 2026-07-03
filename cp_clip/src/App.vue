@@ -112,6 +112,20 @@
         </div>
       </div>
 
+      <!-- System Settings Navigation -->
+      <div class="sidebar-section">
+        <h2 class="section-title">{{ t.sidebar.settingsHeader }}</h2>
+        <div class="category-list">
+          <div 
+            class="category-item" 
+            :class="{ active: currentTab === 'settings' }"
+            @click="currentTab = 'settings'"
+          >
+            <span>⚙️ {{ t.sidebar.settings }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- App Info / Status Warning -->
       <div class="sidebar-section glass-panel warning-block">
         <div class="warning-title">
@@ -163,18 +177,6 @@
               ✕
             </button>
           </div>
-
-          <!-- Language Dropdown -->
-          <select v-model="currentLocale" class="lang-select">
-            <option v-for="(name, code) in languages" :key="code" :value="code">
-              {{ name }}
-            </option>
-          </select>
-
-          <!-- Theme Toggle Button -->
-          <button class="btn btn-secondary theme-toggle-btn" @click="toggleTheme" style="padding: 0; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--glass-border); background: var(--bg-tertiary);" :title="t.header.themeBtn">
-            {{ isDarkMode ? '☀️' : '🌙' }}
-          </button>
         </div>
       </header>
 
@@ -711,10 +713,94 @@
             </div>
           </div>
         </div>
+
+        <!-- 6. SETTINGS TAB -->
+        <div v-else-if="currentTab === 'settings'" style="width: 100%;">
+          <div class="settings-container">
+            <h2 class="settings-title">{{ t.settings.title }}</h2>
+            <p class="settings-subtitle">{{ t.settings.subtitle }}</p>
+            
+            <div class="settings-grid">
+              <!-- Card: Language Settings -->
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <span class="settings-card-icon">🌐</span>
+                  <div>
+                    <h3 class="settings-card-title">{{ t.settings.languageTitle }}</h3>
+                    <p class="settings-card-desc">{{ t.settings.languageDesc }}</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <select v-model="currentLocale" class="settings-select">
+                    <option v-for="(name, code) in languages" :key="code" :value="code">
+                      {{ name }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Card: Theme Settings -->
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <span class="settings-card-icon">{{ isDarkMode ? '🌙' : '☀️' }}</span>
+                  <div>
+                    <h3 class="settings-card-title">{{ t.settings.themeTitle }}</h3>
+                    <p class="settings-card-desc">{{ t.settings.themeDesc }}</p>
+                  </div>
+                </div>
+                <div class="settings-card-body theme-options-grid">
+                  <div 
+                    class="theme-option-card" 
+                    :class="{ active: isDarkMode }"
+                    @click="isDarkMode = true"
+                  >
+                    <div class="theme-option-preview dark-preview">
+                      <div class="preview-bubble incoming"></div>
+                      <div class="preview-bubble outgoing"></div>
+                    </div>
+                    <span class="theme-option-label">{{ t.settings.themeDark }}</span>
+                  </div>
+                  
+                  <div 
+                    class="theme-option-card" 
+                    :class="{ active: !isDarkMode }"
+                    @click="isDarkMode = false"
+                  >
+                    <div class="theme-option-preview light-preview">
+                      <div class="preview-bubble incoming"></div>
+                      <div class="preview-bubble outgoing"></div>
+                    </div>
+                    <span class="theme-option-label">{{ t.settings.themeLight }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card: About / App Info -->
+              <div class="settings-card full-width">
+                <div class="settings-card-header">
+                  <span class="settings-card-icon">ℹ️</span>
+                  <div>
+                    <h3 class="settings-card-title">{{ t.settings.aboutTitle }}</h3>
+                    <p class="settings-card-desc">ShareCLIP v1.0.6</p>
+                  </div>
+                </div>
+                <div class="settings-card-body about-info">
+                  <p>{{ t.sidebar.archDesc }}</p>
+                  <div class="info-badges">
+                    <span class="info-badge">Electron 30</span>
+                    <span class="info-badge">Vue 3</span>
+                    <span class="info-badge">Vite 8</span>
+                    <span class="info-badge">ONNX Runtime Node</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- Sleek Unified Transfer Dashboard (Sticky bottom when connected) -->
-      <div class="transfer-dashboard" v-if="isSyncActive && syncStatus === 'connected'">
+      <div class="transfer-dashboard" v-if="isSyncActive && syncStatus === 'connected' && currentTab !== 'link'">
         <div class="dashboard-header">
           <div class="connection-status">
             <span class="status-indicator connected"></span>

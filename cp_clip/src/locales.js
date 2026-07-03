@@ -38,7 +38,9 @@ export const locales = {
       aiFilter: "AI Categorization",
       allImages: "All Pictures",
       archTitle: "💡 Architecture Note",
-      archDesc: "This app runs MobileCLIP zero-shot image classification fully locally on Node.js. 100% offline."
+      archDesc: "This app runs MobileCLIP zero-shot image classification fully locally on Node.js. 100% offline.",
+      settingsHeader: "System Settings",
+      settings: "Settings"
     },
     header: {
       currentPath: "Current Directory: ",
@@ -130,6 +132,17 @@ export const locales = {
       sendToPhone: "📤 Send to Phone",
       deleteBtn: "Delete",
       closeBtn: "Close"
+    },
+    settings: {
+      title: "System Settings",
+      subtitle: "Customize interface language, theme appearance and view system metadata.",
+      languageTitle: "Interface Language",
+      languageDesc: "Choose your preferred language for the interface.",
+      themeTitle: "Theme Appearance",
+      themeDesc: "Switch between dark (dark mode) and light (light mode) appearance.",
+      themeDark: "Dark Mode",
+      themeLight: "Light Mode",
+      aboutTitle: "About ShareCLIP"
     }
   },
   zh: {
@@ -146,7 +159,9 @@ export const locales = {
       aiFilter: "智能分类筛选",
       allImages: "全部图片",
       archTitle: "💡 架构说明",
-      archDesc: "本应用采用预计算 CLIP 架构，在本地纯 Node.js 主进程中运行 MobileCLIP 零样本图像分类，完全本地化，无需上传网络。"
+      archDesc: "本应用采用预计算 CLIP 架构，在本地纯 Node.js 主进程中运行 MobileCLIP 零样本图像分类，完全本地化，无需上传网络。",
+      settingsHeader: "系统设置",
+      settings: "设置"
     },
     header: {
       currentPath: "当前目录: ",
@@ -239,6 +254,17 @@ export const locales = {
       sendToPhone: "📤 传送给手机",
       deleteBtn: "删除",
       closeBtn: "关闭"
+    },
+    settings: {
+      title: "系统设置",
+      subtitle: "配置应用界面语言、外观主题以及查看系统核心元数据。",
+      languageTitle: "界面显示语言",
+      languageDesc: "选择您偏好且适应的语言。",
+      themeTitle: "应用外观主题",
+      themeDesc: "在深色（暗夜模式）与浅色（清爽模式）之间自由切换。",
+      themeDark: "暗夜模式",
+      themeLight: "清爽模式",
+      aboutTitle: "关于 ShareCLIP"
     }
   }
 };
@@ -262,7 +288,9 @@ langList.forEach(lang => {
         aiFilter: "智能分類篩選",
         allImages: "全部圖片",
         archTitle: "💡 架構說明",
-        archDesc: "本應用採用預計算 CLIP 架構，在本地純 Node.js 主進程中執行 MobileCLIP 零樣本圖像分類，完全本地化，無需上傳網路。"
+        archDesc: "本應用採用預計算 CLIP 架構，在本地純 Node.js 主進程中執行 MobileCLIP 零樣本圖像分類，完全本地化，無需上傳網路。",
+        settingsHeader: "系統設定",
+        settings: "設定"
       },
       header: {
         currentPath: "目前目錄: ",
@@ -324,6 +352,17 @@ langList.forEach(lang => {
         sendToPhone: "📤 傳送給手機",
         deleteBtn: "刪除",
         closeBtn: "關閉"
+      },
+      settings: {
+        title: "系統設定",
+        subtitle: "配置應用界面語言、外觀主題以及查看系統核心元數據。",
+        languageTitle: "界面顯示語言",
+        languageDesc: "選擇您偏好且適應的語言。",
+        themeTitle: "應用外觀主題",
+        themeDesc: "在深色（暗夜模式）與淺色（清爽模式）之間自由切換。",
+        themeDark: "暗夜模式",
+        themeLight: "清爽模式",
+        aboutTitle: "關於 ShareCLIP"
       }
     };
   } else if (!locales[lang]) {
