@@ -22,6 +22,7 @@ All permissions must be declared statically in [`AndroidManifest.xml`](file:///d
 | `READ_MEDIA_VIDEO` | 33 | — | Read videos from MediaStore (Android 13+) |
 | `READ_MEDIA_AUDIO` | 33 | — | Read audio files from MediaStore (Android 13+) |
 | `READ_EXTERNAL_STORAGE` | — | 32 | Legacy storage read (Android ≤12 fallback) |
+| `ACCESS_MEDIA_LOCATION` | 29 | — | Read GPS EXIF metadata from MediaStore photos (Android 10+). Without this, the OS strips location data silently. |
 
 ---
 
@@ -54,6 +55,7 @@ await [
   Permission.videos,   // → READ_MEDIA_VIDEO  (Android 13+)
   Permission.audio,    // → READ_MEDIA_AUDIO  (Android 13+)
   Permission.storage,  // → READ_EXTERNAL_STORAGE (Android ≤12)
+  Permission.accessMediaLocation, // → ACCESS_MEDIA_LOCATION (Android 10+, for GPS EXIF)
 ].request();
 ```
 
@@ -65,11 +67,11 @@ flowchart TD
     B --> C{All Granted?}
     C -- No --> D[Show Permissions Required Screen]
     C -- Yes --> E[Show QR Scanner]
-    B --> F[Request Photos + Videos + Audio + Storage]
+    B --> F[Request Photos + Videos + Audio + Storage + AccessMediaLocation]
     F --> G{photos OR storage granted?}
     G -- Yes --> H[loadGalleryEarly via PhotoStreamer.standalone]
     G -- No --> I[Gallery tab shows empty state]
-    H --> J[localImages populated, UI updates]
+    H --> J[localImages populated with GPS coords, UI updates]
 ```
 
 ---
@@ -90,6 +92,19 @@ flowchart TD
 1. Added `PhotoStreamer.standalone()` named constructor — no `syncEngine` dependency, usable for gallery scanning only.
 2. Added `loadGalleryEarly()` in `SyncViewModel` which uses `PhotoStreamer.standalone()`.
 3. Called `loadGalleryEarly()` immediately after media permissions are granted in `main.dart`.
+
+### GPS coordinates always `null` even after granting location permissions
+
+**Root Cause**: Android 10+ requires the explicit `ACCESS_MEDIA_LOCATION` permission in addition to `ACCESS_FINE_LOCATION`. Without it, the OS strips EXIF location data silently from MediaStore results before returning them to the app — `entity.latitude` and `entity.longitude` will always be `0.0` or `null`.
+
+**Fix applied**: Added `ACCESS_MEDIA_LOCATION` to `AndroidManifest.xml` and added `Permission.accessMediaLocation` to the Stage 2 runtime request list in `main.dart`.
+
+### Map shows no markers even though photos have GPS
+
+**Common causes**:
+1. All synced photos are screenshots — screenshots never embed GPS coordinates. Only camera-taken photos with the camera app's "save location" option enabled will have EXIF GPS data.
+2. The camera's location permission was not granted — even with `ACCESS_MEDIA_LOCATION`, if the camera app itself never recorded GPS at capture time, there's no location data to read.
+3. The database record was saved before this feature was added — use the **"重新下载并运算"** button to force a full re-sync from the phone.
 
 ---
 

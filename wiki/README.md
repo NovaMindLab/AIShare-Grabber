@@ -10,7 +10,7 @@ Choose a platform below to view its specific design, protocol, and deployment do
 Contains mobile architecture details, camera scanners, local media database querying, and the BLE/WebRTC native clients.
 *   [BLE Signaling Protocol](file:///d:/AI_serach_image/image_clip_android/wiki/android/BLE_Signaling.md): Scan, MTU negotiation, and chunked SDP notification transmission.
 *   [WebRTC Channel Protocol](file:///d:/AI_serach_image/image_clip_android/wiki/android/WebRTC_Protocol.md): Direct data links, 16-byte binary packet structures, and flow control.
-*   [Permissions Configuration](file:///d:/AI_serach_image/image_clip_android/wiki/android/Permissions.md): Two-stage runtime permission flow, AndroidManifest declarations, Android 13+ granular media permissions, and troubleshooting guide.
+*   [Permissions Configuration](file:///d:/AI_serach_image/image_clip_android/wiki/android/Permissions.md): Two-stage runtime permission flow, AndroidManifest declarations, Android 13+ granular media permissions, `ACCESS_MEDIA_LOCATION` for GPS EXIF reading, and troubleshooting guide.
 *   [Transfer Console Dashboard UI](file:///d:/AI_serach_image/image_clip_android/wiki/android/UI_Dashboard.md): 4-tab sliding dashboard design (Media, Music, Docs, Queue), widget map, design tokens, and interaction model.
 
 ---
@@ -45,6 +45,7 @@ Guidelines for automated builds and releases:
 Implemented and upcoming feature specifications:
 *   [📱→🖥️ AI Thumbnail Sync](file:///d:/AI_serach_image/image_clip_android/wiki/features/thumbnail_sync_ai.md): Batch-sync compressed 400×400 JPEG thumbnails from phone to PC via WebRTC DataChannel, auto-trigger MobileCLIP ONNX classification, save to dedicated `thumbnail_sync/` directory, and display results in Link Mobile panel. **Status: ✅ Implemented**
 *   [🧠 Core AI Algorithms & Preprocessing](file:///d:/AI_serach_image/image_clip_android/wiki/features/algorithms.md): Detailed explanation of MobileCLIP features extraction, zero-shot category matching, Leader clustering to prevent chaining effect, and the memory buffer allocation bug fix. **Status: ✅ Implemented**
+*   [🗺️ 足迹地图 (GPS Image Clustering)](file:///d:/AI_serach_image/image_clip_android/wiki/features/footprint_map.md): Extract GPS EXIF coordinates from phone photos via `ACCESS_MEDIA_LOCATION`, transmit with metadata packets over WebRTC, store in SQLite database, and render on an interactive Leaflet clustered map with thumbnail markers. Includes re-download & re-classify button to reset local cache and trigger full mobile re-sync. **Status: ✅ Implemented**
 
 ---
 
@@ -52,6 +53,8 @@ Implemented and upcoming feature specifications:
 
 | Version | Date       | Highlights |
 |---------|------------|------------|
+| v1.2.0  | 2026-07-08 | 足迹地图（GPS 聚类）：手机相册 GPS 坐标提取（`ACCESS_MEDIA_LOCATION`）→ WebRTC 传输 → SQLite 存储 → Leaflet 地图聚类缩略图气泡展示；新增"重新下载并运算"按钮一键清空本地缓存并触发手机全量重传；修复 delete/reclassify 后坐标字段丢失问题。 |
+| v1.1.0  | 2026-07-08 | 搜索功能修复（BPE tokenizer UTF-8 编码问题导致中文搜索崩溃）；搜索匹配度 0% 自动隐藏；部署脚本升级（进程锁定防护、signAndEditExecutable 绕过）。 |
 | v1.0.2  | 2026-07-03 | AI Thumbnail Sync — Link Mobile 面板一键同步 400×400 缩略图并触发 MobileCLIP 分类，支持断点增量续传、一键打开同步目录与设备重连历史自动恢复。 |
 | v1.0.1  | 2026-06-29 | 20-language i18n support for PC EXE, Android APK, and web portal. Default language: English. |
 | v1.0.0  | 2026-06-29 | Initial public release — Android ↔ PC BLE/WebRTC sync, AI MobileCLIP image classification, official website. |
