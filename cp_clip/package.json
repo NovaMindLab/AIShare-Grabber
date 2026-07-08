@@ -2,8 +2,8 @@
     "name":  "image-clip-classifier",
     "private":  true,
     "version":  "1.1.0",
-    "description": "ShareCLIP PC Client",
-    "author": "ShareCLIP Team",
+    "description":  "ShareCLIP PC Client",
+    "author":  "ShareCLIP Team",
     "type":  "module",
     "main":  "main.cjs",
     "scripts":  {
@@ -52,6 +52,7 @@
                             ],
                   "asar":  false,
                   "win":  {
+                              "signAndEditExecutable": false,
                               "target":  [
                                              "portable"
                                          ]
