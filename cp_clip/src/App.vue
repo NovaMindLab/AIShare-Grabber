@@ -1419,7 +1419,8 @@ async function analyzeSimilarImages() {
   selectedDuplicateIds.value.clear();
 
   try {
-    // Collect only image resources (excluding other files)
+    // Collect only image resources (excluding other files).
+    // ONLY copy serializable primitive values (id, name, path, size) to avoid Vue Proxy clone issues.
     const imageList = images.value
       .filter(img => {
         const ext = getExtensionName(img.name);
@@ -1429,9 +1430,7 @@ async function analyzeSimilarImages() {
         id: img.id || img.path,
         name: img.name,
         path: img.path,
-        size: img.size,
-        src: img.src,
-        predictions: img.predictions
+        size: img.size
       }));
 
     if (imageList.length === 0) {
@@ -1447,7 +1446,19 @@ async function analyzeSimilarImages() {
     }
 
     const groups = await window.api.getSimilarImagesGroups(imageList, thresholdVal);
-    similarGroups.value = groups;
+    
+    // Attach reactive src and predictions on the renderer side
+    similarGroups.value = groups.map(group => ({
+      images: group.images.map(img => {
+        const originalImg = images.value.find(item => item.id === img.id || item.path === img.path);
+        return {
+          ...img,
+          src: originalImg ? originalImg.src : `local:///${img.path.replace(/\\/g, '/')}`,
+          predictions: originalImg ? originalImg.predictions : []
+        };
+      })
+    }));
+
     logSyncEvent(`🎉 相似图片分析完成，检测到 ${groups.length} 组相似图片。`);
     if (groups.length === 0) {
       alert("💡 相似度比对完成！未在当前图片库中发现符合此阈值的相似图片。");
