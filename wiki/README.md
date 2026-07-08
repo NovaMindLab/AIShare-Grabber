@@ -44,6 +44,7 @@ Guidelines for automated builds and releases:
 ## 🔭 Features & Roadmap
 Implemented and upcoming feature specifications:
 *   [📱→🖥️ AI Thumbnail Sync](file:///d:/AI_serach_image/image_clip_android/wiki/features/thumbnail_sync_ai.md): Batch-sync compressed 400×400 JPEG thumbnails from phone to PC via WebRTC DataChannel, auto-trigger MobileCLIP ONNX classification, save to dedicated `thumbnail_sync/` directory, and display results in Link Mobile panel. **Status: ✅ Implemented**
+*   [🧠 Core AI Algorithms & Preprocessing](file:///d:/AI_serach_image/image_clip_android/wiki/features/algorithms.md): Detailed explanation of MobileCLIP features extraction, zero-shot category matching, Leader clustering to prevent chaining effect, and the memory buffer allocation bug fix. **Status: ✅ Implemented**
 
 ---
 
