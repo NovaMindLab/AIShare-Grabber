@@ -19,7 +19,8 @@ All source code files are structured in the `./cp_clip` directory:
 *   [extract_embeddings.py](file:///d:/AI_serach_image/image_clip_android/cp_clip/extract_embeddings.py): Standalone model exporter converting pre-trained weights to optimized single-file ONNX formats.
 
 ## 🧠 AI & Packaging Guides
-For technical details on the AI model and installer packaging:
+For technical details on the AI model, algorithms, and installer packaging:
+*   [🧠 Core AI Algorithms & Preprocessing](file:///d:/AI_serach_image/image_clip_android/wiki/features/algorithms.md): Detailed explanation of MobileCLIP feature extraction, zero-shot label categorization, Leader clustering to prevent chaining effect, and performance optimization (4x concurrency + SQLite BLOB persistence).
 *   [Preprocessing & Normalization](file:///d:/AI_serach_image/image_clip_android/wiki/pc/preprocessing_and_normalization.md)
 *   [Model Reparameterization](file:///d:/AI_serach_image/image_clip_android/wiki/pc/model_reparameterization.md)
 *   [Packaging & Deployment](file:///d:/AI_serach_image/image_clip_android/wiki/pc/packaging_and_deployment.md)
