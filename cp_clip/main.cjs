@@ -400,7 +400,8 @@ async function computeEmbeddingInternal(imagePath) {
   
   const outputs = await ortSession.run(feeds);
   const outputName = ortSession.outputNames[0];
-  const imageEmbedding = outputs[outputName].data; // Float32Array of output dimension (typically 512)
+  // Clone the Float32Array to prevent it from being overwritten by subsequent ONNX runs sharing the same memory allocator
+  const imageEmbedding = new Float32Array(outputs[outputName].data);
 
   // Cache the image embedding
   imageEmbeddingsCache[imagePath] = imageEmbedding;
