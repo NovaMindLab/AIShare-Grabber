@@ -118,6 +118,24 @@ $$\text{Similarity}(A, B) = \sum_{i=1}^{512} A_i B_i$$
 $$P(\text{Category}_k) = \frac{e^{\text{Similarity}_k \cdot T}}{\sum_j e^{\text{Similarity}_j \cdot T}}$$
 系统保存概率值最高的前 3 个类别，并持久化写入 SQLite 数据库的 `predictions` 字段中。
 
+### 2.3 零样本图像语义搜索 (Zero-Shot Semantic Search)
+系统支持使用自然语言（如中英文）对所有图片进行语义搜索。
+* **搜索比对流程**：
+  1. 用户输入查询关键词（如“狗”）。
+  2. 使用 BPE Tokenizer 将查询文本转化为 Token IDs。
+  3. 将 Token IDs 输入 **MobileCLIP Text Encoder ONNX 文本编码器**，输出该查询的 512 维文本向量并进行 L2 归一化。
+  4. 计算该文本向量与内存缓存中所有图片向量 `imageEmbeddingsCache` 的余弦相似度。
+  5. 将所有图片按照相似度得分（Score）进行降序重排，在 UI 上按匹配度高低呈现给用户。
+
+* **⚠️ 关键 Bug 修复：分词器多字节/中文支持 Bug**：
+  * **问题**：早期的 BPE 分词器 (`tokenizer.cjs`) 仅在 UTF-16 字符级别查找 ASCII 码映射，遇到多字节中文字符时由于码值 $>255$ 导致 `byteEncoder` 查找失败返回 `undefined`，引起 `BigInt64Array` 转化异常而导致搜索失效。
+  * **修复**：对文本分词算法进行重构，提取文本分词时先强制将字符串编码为 UTF-8 Byte 缓冲区，再将 Byte 映射到 BPE 字典中：
+    ```javascript
+    const tokenBytes = Buffer.from(token, 'utf-8');
+    const byteString = [...tokenBytes].map(b => this.byteEncoder[b]).join("");
+    ```
+    使分词器完全具备跨语种（含中英文、韩日文等）自然语言文本编码与语义搜索的能力。
+
 ---
 
 ## 3. 相似图片聚类算法 (Image Similarity Clustering)
