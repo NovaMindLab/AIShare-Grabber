@@ -46,6 +46,11 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "Using Flutter path: $FlutterCmd" -ForegroundColor Gray
 Write-Host "Using GitHub CLI path: $GhCmd" -ForegroundColor Gray
 
+Write-Host "Closing any running instances of ShareCLIP/Electron to avoid file locks..." -ForegroundColor Yellow
+Stop-Process -Name "ShareCLIP" -Force -ErrorAction SilentlyContinue
+Stop-Process -Name "electron" -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
+
 # 0. Sync version number across all platforms
 $VersionOnly = $Tag
 if ($VersionOnly.StartsWith("v")) {
