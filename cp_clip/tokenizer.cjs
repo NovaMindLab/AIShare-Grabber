@@ -138,8 +138,10 @@ class SimpleTokenizer {
     let bpeTokens = [];
     text = text.replace(/\s+/g, " ").trim().toLowerCase();
     for (let token of [...text.matchAll(this.pat)].map(m => m[0])) {
-      token = [...token].map(c => this.byteEncoder[c.charCodeAt(0)] || c).join("");
-      const bpeRes = this.bpe(token);
+      // Convert token string to UTF-8 bytes to properly support multi-byte characters like Chinese
+      const tokenBytes = Buffer.from(token, 'utf-8');
+      const byteString = [...tokenBytes].map(b => this.byteEncoder[b]).join("");
+      const bpeRes = this.bpe(byteString);
       bpeTokens.push(...bpeRes.split(' ').map(bpe_token => this.encoder[bpe_token]));
     }
     return bpeTokens;

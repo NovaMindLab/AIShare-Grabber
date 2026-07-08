@@ -718,7 +718,7 @@
                 <span class="card-title">{{ img.name }}</span>
                 
                 <!-- Badges -->
-                <span v-if="isSearchActive && img.searchScore !== undefined" class="badge badge-search-match">
+                <span v-if="isSearchActive && img.searchScore !== undefined && getMatchPercentage(img.searchScore) > 0" class="badge badge-search-match">
                   🎯 {{ t.images.matchScore }} {{ getMatchPercentage(img.searchScore) }}%
                 </span>
                 <span v-else-if="img.status === 'completed' && img.predictions.length > 0" class="badge badge-classified">
@@ -1136,7 +1136,7 @@
             <!-- Similarity Charts -->
             <div class="prediction-section" v-if="selectedImage.status === 'completed' && selectedImage.predictions.length > 0">
               <!-- Search Match Score inside Modal -->
-              <div v-if="isSearchActive && selectedImage.searchScore !== undefined" style="margin-bottom: 20px; padding: 12px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px;">
+              <div v-if="isSearchActive && selectedImage.searchScore !== undefined && getMatchPercentage(selectedImage.searchScore) > 0" style="margin-bottom: 20px; padding: 12px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px;">
                 <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; margin-bottom: 4px;">
                   <span style="color: var(--accent-primary);">🔍 {{ t.images.matchScore }}</span>
                   <span style="color: var(--accent-primary);">{{ getMatchPercentage(selectedImage.searchScore) }}%</span>
