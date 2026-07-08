@@ -1616,7 +1616,9 @@ async function handleReclassifyAllPhotos() {
       src: `local:///${res.path.replace(/\\/g, '/')}`,
       status: 'completed',
       predictions: JSON.parse(res.predictions || '[]'),
-      type: res.type
+      type: res.type,
+      latitude: res.latitude,
+      longitude: res.longitude
     }));
     
     logSyncEvent("🎉 数据库资源列表已完全同步更新。");
@@ -1816,7 +1818,9 @@ async function deleteSelectedDuplicates() {
       src: `local:///${res.path.replace(/\\/g, '/')}`,
       status: 'completed',
       predictions: JSON.parse(res.predictions || '[]'),
-      type: res.type
+      type: res.type,
+      latitude: res.latitude,
+      longitude: res.longitude
     }));
 
     // Refresh count

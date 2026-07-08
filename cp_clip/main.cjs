@@ -596,7 +596,7 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
   // 3. Query all updated resources to return
   const updatedRows = await new Promise((resolve, reject) => {
     activeDeviceDb.all(
-      `SELECT id, name, path, type, size, predictions FROM resources`,
+      `SELECT id, name, path, type, size, predictions, latitude, longitude FROM resources`,
       (err, rows) => {
         if (err) reject(err);
         else resolve(rows || []);
@@ -794,7 +794,7 @@ ipcMain.handle('delete-files', async (event, files) => {
   if (activeDeviceDb) {
     const updatedRows = await new Promise((resolve, reject) => {
       activeDeviceDb.all(
-        `SELECT id, name, path, type, size, predictions FROM resources`,
+        `SELECT id, name, path, type, size, predictions, latitude, longitude FROM resources`,
         (err, rows) => {
           if (err) reject(err);
           else resolve(rows || []);

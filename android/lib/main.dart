@@ -107,6 +107,7 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
       Permission.videos,
       Permission.audio,
       Permission.storage,
+      Permission.accessMediaLocation,
     ].request();
 
     final allBleGranted = bleStatuses.values.every((s) => s.isGranted);
