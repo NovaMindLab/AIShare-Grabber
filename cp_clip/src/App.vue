@@ -438,6 +438,18 @@
                   {{ isReclassifying ? `正在重算... (${reclassifyProgress.done}/${reclassifyProgress.total})` : '重新算 AI' }}
                 </button>
 
+                <!-- Reclassify progress details -->
+                <div v-if="isReclassifying" style="font-size: 11px; color: var(--text-muted); text-align: left; display: flex; flex-direction: column; gap: 4px; background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); margin-top: -4px; width: 100%; box-sizing: border-box;">
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>已用时间:</span>
+                    <span style="color: var(--text-primary); font-weight: 600;">{{ reclassifyElapsedTime }}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>预计剩余:</span>
+                    <span style="color: #10b981; font-weight: 600;">{{ reclassifyRemainingTime }}</span>
+                  </div>
+                </div>
+
                 <!-- Open Thumbnail Folder -->
                 <button 
                   class="btn btn-secondary" 
@@ -873,10 +885,28 @@
           </div>
 
           <!-- Loading State -->
-          <div v-if="isAnalyzingSimilar" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); border-radius: 20px; gap: 16px;">
-            <span class="spinner" style="width: 32px; height: 32px; border-width: 3px; border-top-color: #a855f7;"></span>
-            <span style="font-size: 14px; color: var(--text-primary); font-weight: 600;">正在提取图像 AI 特征并进行关联矩阵对比...</span>
-            <span style="font-size: 12px; color: var(--text-muted);">当前正在处理: {{ similarAnalysisProgress.currentName || '等待中' }}</span>
+          <div v-if="isAnalyzingSimilar" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--glass-border); border-radius: 20px; gap: 18px; box-sizing: border-box; width: 100%;">
+            <span class="spinner" style="width: 36px; height: 36px; border-width: 3px; border-top-color: #a855f7;"></span>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+              <span style="font-size: 15px; color: var(--text-primary); font-weight: 700;">正在进行图像 AI 特征比对与聚类...</span>
+              <span style="font-size: 12px; color: var(--text-muted); text-align: center; max-width: 400px;">当前正在处理: {{ similarAnalysisProgress.currentName || '等待中' }}</span>
+            </div>
+
+            <!-- Real-time Stats Grid -->
+            <div style="display: grid; grid-template-columns: repeat(3, 120px); gap: 16px; margin-top: 8px;">
+              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); padding: 10px; border-radius: 10px;">
+                <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">已处理</span>
+                <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-top: 4px;">{{ similarAnalysisProgress.done }} / {{ similarAnalysisProgress.total }}</span>
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); padding: 10px; border-radius: 10px;">
+                <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">已用时间</span>
+                <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-top: 4px;">{{ similarElapsedTime }}</span>
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); padding: 10px; border-radius: 10px;">
+                <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">剩余估算</span>
+                <span style="font-size: 14px; font-weight: 700; color: #a855f7; margin-top: 4px;">{{ similarRemainingTime }}</span>
+              </div>
+            </div>
           </div>
 
           <!-- Empty State / No Analysis Done -->
@@ -1376,11 +1406,28 @@ function toggleTheme() {
 
 const isReclassifying = ref(false);
 const reclassifyProgress = ref({ done: 0, total: 0, currentName: '' });
+let reclassifyStartTime = 0;
+const reclassifyElapsedTime = ref('0s');
+const reclassifyRemainingTime = ref('计算中...');
+
+function formatTimeDuration(ms) {
+  if (isNaN(ms) || ms < 0) return '计算中...';
+  const totalSeconds = Math.round(ms / 1000);
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}m ${seconds}s`;
+}
 
 async function handleReclassifyAllPhotos() {
   if (isReclassifying.value) return;
   isReclassifying.value = true;
   reclassifyProgress.value = { done: 0, total: 0, currentName: '' };
+  reclassifyStartTime = Date.now();
+  reclassifyElapsedTime.value = '0s';
+  reclassifyRemainingTime.value = '计算中...';
   logSyncEvent("🔄 开始对当前手机的所有图片重新做 AI 分析...");
   
   try {
@@ -1411,6 +1458,9 @@ const similarAnalysisProgress = ref({ done: 0, total: 0, currentName: '' });
 const similarGroups = ref([]);
 const selectedDuplicateIds = ref(new Set());
 const isDeletingDuplicates = ref(false);
+let similarStartTime = 0;
+const similarElapsedTime = ref('0s');
+const similarRemainingTime = ref('计算中...');
 
 async function analyzeSimilarImages() {
   if (isAnalyzingSimilar.value) return;
@@ -1418,6 +1468,9 @@ async function analyzeSimilarImages() {
   similarAnalysisProgress.value = { done: 0, total: 0, currentName: '' };
   similarGroups.value = [];
   selectedDuplicateIds.value.clear();
+  similarStartTime = Date.now();
+  similarElapsedTime.value = '0s';
+  similarRemainingTime.value = '计算中...';
 
   try {
     // Collect only image resources (excluding other files).
@@ -2429,6 +2482,16 @@ onMounted(() => {
     // 12. Reclassify AI progress & predictions updated events
     window.api.onReclassifyProgress((data) => {
       reclassifyProgress.value = data;
+      
+      if (reclassifyStartTime) {
+        const elapsedMs = Date.now() - reclassifyStartTime;
+        reclassifyElapsedTime.value = formatTimeDuration(elapsedMs);
+        if (data.done > 0) {
+          const remainingMs = (elapsedMs / data.done) * (data.total - data.done);
+          reclassifyRemainingTime.value = formatTimeDuration(remainingMs);
+        }
+      }
+
       if (data.done === data.total) {
         isReclassifying.value = false;
         logSyncEvent(`🎉 手机图片 AI 重新分析完成！共处理 ${data.total} 张图片。`);
@@ -2451,6 +2514,15 @@ onMounted(() => {
     // 13. Similar images progress event
     window.api.onSimilarProgress((data) => {
       similarAnalysisProgress.value = data;
+      
+      if (similarStartTime) {
+        const elapsedMs = Date.now() - similarStartTime;
+        similarElapsedTime.value = formatTimeDuration(elapsedMs);
+        if (data.done > 0) {
+          const remainingMs = (elapsedMs / data.done) * (data.total - data.done);
+          similarRemainingTime.value = formatTimeDuration(remainingMs);
+        }
+      }
     });
 
     // Auto-start sync service on mount so the QR Code is immediately shown!
