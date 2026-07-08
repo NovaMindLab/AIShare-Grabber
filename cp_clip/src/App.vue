@@ -446,6 +446,19 @@
                   {{ isReclassifying ? `正在重算... (${reclassifyProgress.done}/${reclassifyProgress.total})` : '重新算 AI' }}
                 </button>
 
+                <!-- Clear and Re-download Button -->
+                <button 
+                  class="btn btn-secondary" 
+                  @click="handleClearAndResync" 
+                  :disabled="isThumbnailSyncing || isReclassifying"
+                  style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; border: 1px solid rgba(239,68,68,0.2); background: rgba(239,68,68,0.05); color: #ef4444;"
+                  onmouseover="this.style.background='rgba(239,68,68,0.1)'"
+                  onmouseout="this.style.background='rgba(239,68,68,0.05)'"
+                >
+                  <span>🗑️</span>
+                  <span>重新下载并运算</span>
+                </button>
+
                 <!-- Reclassify progress details -->
                 <div v-if="isReclassifying" style="font-size: 11px; color: var(--text-muted); text-align: left; display: flex; flex-direction: column; gap: 4px; background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); margin-top: -4px; width: 100%; box-sizing: border-box;">
                   <div style="display: flex; justify-content: space-between;">
@@ -1610,6 +1623,65 @@ async function handleReclassifyAllPhotos() {
   } catch (err) {
     logSyncEvent(`❌ AI 重新分析失败: ${err.message}`);
     isReclassifying.value = false;
+  }
+}
+
+async function handleClearAndResync() {
+  const confirmMsg = syncStatus.value === 'connected' 
+    ? "确定要清空本地同步数据库及已下载的图片缓存，并请求手机重新传输全部图片重新计算吗？" 
+    : "手机当前未连接。确定要清空本地已同步缓存记录吗？清空后，下次手机连接时将重新传输全部图片进行运算。";
+
+  if (!confirm(confirmMsg)) return;
+
+  logSyncEvent("🗑️ 正在清空本地数据库及图片缓存...");
+  try {
+    const success = await window.api.clearDeviceDatabase();
+    if (success) {
+      // 1. Reset frontend states
+      images.value = [];
+      thumbnailImages.value = [];
+      chatMessages.value = [];
+      queue.value = [];
+      processedCount.value = 0;
+      totalCount.value = 0;
+      activeCount.value = 0;
+      
+      logSyncEvent("🗑️ 本地已清空。");
+
+      // 2. If connected, notify phone to re-sync
+      if (syncStatus.value === 'connected' && dataChannel) {
+        logSyncEvent("📤 正在向手机发送重置指令，请求重新同步图片...");
+        
+        // Send type = -4 (handshake response) with empty synced_ids to update phone's synced list
+        const responseStr = JSON.stringify({ synced_ids: [] });
+        const encoder = new TextEncoder();
+        const responseBytes = encoder.encode(responseStr);
+        const responseBuffer = new ArrayBuffer(16 + responseBytes.byteLength);
+        const responseView = new DataView(responseBuffer);
+        responseView.setInt32(0, -4, false); // Response type = -4
+        responseView.setInt32(4, 0, false);
+        responseView.setInt32(8, 0, false);
+        responseView.setInt32(12, responseBytes.byteLength, false);
+        const responseBytesArr = new Uint8Array(responseBuffer);
+        responseBytesArr.set(responseBytes, 16);
+        dataChannel.send(responseBuffer);
+
+        // Send type = -6 (request thumbnail sync to AI) to trigger phone auto sync
+        const syncRequestBuffer = new ArrayBuffer(16);
+        const syncRequestView = new DataView(syncRequestBuffer);
+        syncRequestView.setInt32(0, -6, false); // request type = -6
+        syncRequestView.setInt32(4, 0, false);
+        syncRequestView.setInt32(8, 0, false);
+        syncRequestView.setInt32(12, 0, false);
+        dataChannel.send(syncRequestBuffer);
+
+        logSyncEvent("🟢 已成功请求手机重新发送图片进行运算。");
+      }
+    } else {
+      logSyncEvent("❌ 清空本地数据库失败，请检查数据库连接。");
+    }
+  } catch (err) {
+    logSyncEvent(`❌ 清空并重置失败: ${err.message}`);
   }
 }
 

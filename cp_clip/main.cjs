@@ -1139,6 +1139,58 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
   return syncInfo;
 });
 
+ipcMain.handle('clear-device-database', async (event) => {
+  if (!activeDeviceDb) {
+    console.log('[Database] clear-device-database failed: no active device database.');
+    return false;
+  }
+  
+  try {
+    // 1. Delete all records from resources table
+    await new Promise((resolve, reject) => {
+      activeDeviceDb.run(`DELETE FROM resources`, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    
+    // 2. Clear cached embeddings that belong to active device path
+    if (activeDeviceUuid) {
+      Object.keys(imageEmbeddingsCache).forEach(key => {
+        if (key.includes(activeDeviceUuid)) {
+          delete imageEmbeddingsCache[key];
+        }
+      });
+      
+      // 3. Remove physical files under sync_storage and thumbnail_sync for this device
+      const thumbDir = path.join(__dirname, 'thumbnail_sync', activeDeviceUuid);
+      const syncDir = path.join(__dirname, 'sync_storage', activeDeviceUuid);
+      
+      const fs = require('fs');
+      if (fs.existsSync(thumbDir)) {
+        try {
+          fs.rmSync(thumbDir, { recursive: true, force: true });
+        } catch (err) {
+          console.error(`[Database] Failed to delete thumbnail directory ${thumbDir}:`, err);
+        }
+      }
+      if (fs.existsSync(syncDir)) {
+        try {
+          fs.rmSync(syncDir, { recursive: true, force: true });
+        } catch (err) {
+          console.error(`[Database] Failed to delete sync storage directory ${syncDir}:`, err);
+        }
+      }
+    }
+    
+    console.log('[Database] Cleared all resource records and cache files successfully.');
+    return true;
+  } catch (err) {
+    console.error('[Database] Failed to clear device database:', err);
+    return false;
+  }
+});
+
 ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChunks, payload, metadata }) => {
   const chunkBuffer = Buffer.from(payload);
   

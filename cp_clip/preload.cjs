@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('save-photo-chunk', { fileId, chunkIndex, totalChunks, payload, metadata }),
   initDeviceSync: (deviceUuid, deviceName) => 
     ipcRenderer.invoke('init-device-sync', { deviceUuid, deviceName }),
+  clearDeviceDatabase: () => ipcRenderer.invoke('clear-device-database'),
 
   // Event listeners (IPC Notifications)
   onOfferReceived: (callback) => {
