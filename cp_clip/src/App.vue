@@ -193,76 +193,22 @@
               <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">连接您的<span style="color: #a855f7; -webkit-text-fill-color: initial;">手机</span></h2>
               <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">快速建立连接，开始高速文件传输</p>
             </div>
+            <div v-else></div>
             
-            <!-- Scenario 2: Connected - Show Phone Info Dashboard -->
-            <div v-else style="display: flex; align-items: center; gap: 24px; text-align: left;">
-              <!-- Device Icon -->
-              <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(147, 51, 234, 0.1); border: 1px solid rgba(147, 51, 234, 0.2); display: flex; align-items: center; justify-content: center; font-size: 26px; color: #a855f7; box-shadow: 0 4px 12px rgba(147, 51, 234, 0.1);">
-                📱
-              </div>
-              
-              <!-- Device Details -->
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
-                  {{ activeDeviceName || '已连接的手机' }}
-                  <span style="font-size: 10px; font-weight: 600; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 2px 8px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.2); display: inline-flex; align-items: center; gap: 4px;">
-                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse-glow 1.5s infinite;"></span>
-                    已连接
-                  </span>
-                </h2>
-                <p style="color: var(--text-muted); font-size: 12px; margin: 0;">
-                  系统: {{ activeDeviceSystemInfo ? `${activeDeviceSystemInfo.os} ${activeDeviceSystemInfo.version} (${activeDeviceSystemInfo.brand} ${activeDeviceSystemInfo.model})` : 'Android Device' }}
-                </p>
-              </div>
-
-              <!-- Storage Details -->
-              <div v-if="activeDeviceSystemInfo && activeDeviceSystemInfo.total_storage" style="display: flex; flex-direction: column; gap: 6px; width: 240px; margin-left: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 8px 12px; border-radius: 10px; box-sizing: border-box;">
-                <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 500;">
-                  <span style="color: var(--text-muted);">💾 手机空间:</span>
-                  <span style="color: var(--text-secondary);">
-                    {{ formatBytes(activeDeviceSystemInfo.used_storage) }} / {{ formatBytes(activeDeviceSystemInfo.total_storage) }}
-                  </span>
-                </div>
-                <!-- Storage progress bar -->
-                <div style="width: 100%; height: 6px; background-color: var(--bg-tertiary); border-radius: 3px; overflow: hidden; border: 1px solid var(--glass-border);">
-                  <div 
-                    style="height: 100%; background: linear-gradient(90deg, #10b981, #3b82f6);" 
-                    :style="{ width: ((activeDeviceSystemInfo.used_storage / activeDeviceSystemInfo.total_storage) * 100) + '%' }"
-                  ></div>
-                </div>
-                <div style="font-size: 9px; color: var(--text-muted); text-align: right; margin-top: -2px;">
-                  剩余可用: {{ formatBytes(activeDeviceSystemInfo.free_storage) }}
-                </div>
-              </div>
-            </div>
-            
-             <!-- Right Actions Row -->
+            <!-- Right Actions Row -->
             <div style="display: flex; align-items: center; gap: 16px;">
-              <!-- Re-run AI Analysis (Only visible when connected) -->
-              <button 
-                v-if="syncStatus === 'connected'"
-                @click="handleReclassifyAllPhotos" 
-                :disabled="isReclassifying"
-                style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.1); color: #10b981; cursor: pointer; transition: all 0.2s; font-weight: 600;"
-                :style="{ opacity: isReclassifying ? 0.6 : 1, cursor: isReclassifying ? 'not-allowed' : 'pointer' }"
-                onmouseover="if(!this.disabled) this.style.background='rgba(16,185,129,0.2)'"
-                onmouseout="if(!this.disabled) this.style.background='rgba(16,185,129,0.1)'"
-              >
-                <span>🔄 {{ isReclassifying ? `${t.link.reclassifyBtn}... (${reclassifyProgress.done}/${reclassifyProgress.total})` : t.link.reclassifyBtn }}</span>
-              </button>
-
-              <!-- Open Thumbnail Folder (always visible) -->
-              <button 
-                @click="handleOpenThumbnailFolder" 
-                style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(168,85,247,0.3); background: rgba(168,85,247,0.1); color: #c084fc; cursor: pointer; transition: all 0.2s; font-weight: 600;"
-                onmouseover="this.style.background='rgba(168,85,247,0.2)'"
-                onmouseout="this.style.background='rgba(168,85,247,0.1)'"
-              >
-                📁 {{ t.link.openThumbnailFolder }}
-              </button>
-
               <!-- Show these pairing buttons ONLY when NOT connected -->
               <template v-if="syncStatus !== 'connected'">
+                <!-- Open Thumbnail Folder (always visible when not connected) -->
+                <button 
+                  @click="handleOpenThumbnailFolder" 
+                  style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(168,85,247,0.3); background: rgba(168,85,247,0.1); color: #c084fc; cursor: pointer; transition: all 0.2s; font-weight: 600;"
+                  onmouseover="this.style.background='rgba(168,85,247,0.2)'"
+                  onmouseout="this.style.background='rgba(168,85,247,0.1)'"
+                >
+                  📁 {{ t.link.openThumbnailFolder }}
+                </button>
+
                 <button 
                   @click="showHowToConnectModal = true" 
                   style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"
@@ -402,20 +348,68 @@
           </div>
 
           <!-- C. CONNECTED VIEW (Shared by both modes) -->
-          <div v-else class="chat-container">
-            <!-- Chat Header -->
-            <div class="chat-header">
-              <div class="chat-header-title">
-                <span class="online-indicator"></span>
-                <span style="font-weight: 600; color: var(--text-primary); font-size: 14px;">已连接到手机 (Companion Connected)</span>
+          <div v-else class="connected-dashboard-layout" style="display: flex; gap: 24px; width: 100%; align-items: stretch; height: 580px; box-sizing: border-box;">
+            
+            <!-- Left Column: Device Dashboard Panel -->
+            <div class="device-dashboard-panel" style="width: 320px; display: flex; flex-direction: column; gap: 20px; padding: 24px; border-radius: 20px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); box-sizing: border-box; backdrop-filter: blur(20px);">
+              <!-- Device Icon & Basic Info -->
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); display: flex; align-items: center; justify-content: center; font-size: 24px; color: #a855f7; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);">
+                  📱
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span style="font-size: 16px; font-weight: 700; color: var(--text-primary);">{{ activeDeviceName || '已连接的手机' }}</span>
+                  <span style="font-size: 11px; font-weight: 600; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 1px 6px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.2); width: fit-content; display: inline-flex; align-items: center; gap: 4px;">
+                    <span style="width: 5px; height: 5px; border-radius: 50%; background: #10b981; animation: pulse-glow 1.5s infinite;"></span>
+                    已连接
+                  </span>
+                </div>
               </div>
-              <div class="chat-header-actions">
-                <!-- AI Sync Button -->
+              
+              <hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.08); margin: 0;" />
+
+              <!-- System Details -->
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">系统信息</span>
+                <span style="font-size: 13px; color: var(--text-secondary); line-height: 1.4;">
+                  {{ activeDeviceSystemInfo ? `${activeDeviceSystemInfo.os} ${activeDeviceSystemInfo.version} (${activeDeviceSystemInfo.brand} ${activeDeviceSystemInfo.model})` : 'Android Device' }}
+                </span>
+              </div>
+
+              <!-- Storage Info Card -->
+              <div v-if="activeDeviceSystemInfo && activeDeviceSystemInfo.total_storage" style="display: flex; flex-direction: column; gap: 8px;">
+                <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">存储空间</span>
+                <div style="background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span style="color: var(--text-muted);">已使用</span>
+                    <span style="color: var(--text-secondary); font-weight: 600;">
+                      {{ formatBytes(activeDeviceSystemInfo.used_storage) }} / {{ formatBytes(activeDeviceSystemInfo.total_storage) }}
+                    </span>
+                  </div>
+                  <!-- Custom Progress Bar -->
+                  <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;">
+                    <div 
+                      style="height: 100%; background: linear-gradient(90deg, #a855f7, #3b82f6); border-radius: 3px;" 
+                      :style="{ width: ((activeDeviceSystemInfo.used_storage / activeDeviceSystemInfo.total_storage) * 100) + '%' }"
+                    ></div>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted);">
+                    <span>剩余可用:</span>
+                    <span style="font-weight: 600; color: #10b981;">{{ formatBytes(activeDeviceSystemInfo.free_storage) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sync & AI Management Actions -->
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
+                <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">管理与同步</span>
+                
+                <!-- Batch AI Sync Button -->
                 <button 
-                  class="btn btn-primary btn-sm" 
+                  class="btn btn-primary" 
                   :disabled="isThumbnailSyncing"
                   @click="requestThumbnailSync"
-                  style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 12px; border-radius: 16px; font-weight: 600;"
+                  style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer;"
                 >
                   <span>🧠</span>
                   {{ isThumbnailSyncing 
@@ -423,118 +417,160 @@
                     : (thumbnailImages.length > 0 ? '继续 AI 同步' : '同步手机图片到 AI') }}
                 </button>
 
-                <!-- Open folder -->
+                <!-- Re-run AI Button -->
                 <button 
-                  class="btn btn-secondary btn-sm" 
-                  @click="handleOpenThumbnailFolder"
-                  style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 12px; border-radius: 16px;"
+                  class="btn btn-secondary" 
+                  @click="handleReclassifyAllPhotos" 
+                  :disabled="isReclassifying"
+                  style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; border: 1px solid rgba(16,185,129,0.2); background: rgba(16,185,129,0.05); color: #10b981;"
+                  onmouseover="this.style.background='rgba(16,185,129,0.1)'"
+                  onmouseout="this.style.background='rgba(16,185,129,0.05)'"
                 >
-                  📁 缩略图
+                  <span>🔄</span>
+                  {{ isReclassifying ? `正在重算... (${reclassifyProgress.done}/${reclassifyProgress.total})` : '重新算 AI' }}
                 </button>
 
-                <!-- Disconnect button -->
+                <!-- Open Thumbnail Folder -->
                 <button 
-                  class="btn btn-danger btn-sm" 
-                  @click="cleanupWebRtc"
-                  style="padding: 6px 14px; font-size: 12px; border-radius: 16px;"
+                  class="btn btn-secondary" 
+                  @click="handleOpenThumbnailFolder"
+                  style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; border: 1px solid rgba(168,85,247,0.2); background: rgba(168,85,247,0.05); color: #c084fc;"
+                  onmouseover="this.style.background='rgba(168,85,247,0.1)'"
+                  onmouseout="this.style.background='rgba(168,85,247,0.05)'"
                 >
-                  断开
+                  <span>📁</span> 打开缩略图文件夹
                 </button>
               </div>
+
+              <!-- Disconnect button -->
+              <button 
+                class="btn btn-danger" 
+                @click="cleanupWebRtc"
+                style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; font-size: 13px; border-radius: 12px; font-weight: 700; width: 100%; cursor: pointer;"
+              >
+                🔴 断开连接 (Disconnect)
+              </button>
             </div>
 
-            <!-- Chat Messages Area -->
-            <div 
-              class="chat-messages" 
-              ref="chatMessagesRef" 
-              @dragenter.prevent="dragActive = true"
-              @dragover.prevent="onDragOver"
-              @dragleave.prevent="onDragLeave"
-              @drop.prevent="handleDragDrop"
-              :class="{ 'drag-active': dragActive }"
-            >
-              <!-- Empty State -->
-              <div v-if="chatMessages.length === 0" class="chat-empty-state">
-                <span style="font-size: 48px; margin-bottom: 12px; display: block; filter: drop-shadow(0 0 8px rgba(124,58,237,0.3));">💬</span>
-                <span style="color: var(--text-primary); font-size: 14px; font-weight: 600; margin-bottom: 4px;">P2P 直连通道建立成功</span>
-                <span style="color: var(--text-muted); font-size: 12px; max-width: 320px; line-height: 1.5;">点击下方按钮发送文件，或者直接拖放文件到此区域进行发送。</span>
+            <!-- Right Column: P2P Chat/Transfer Zone -->
+            <div class="chat-container" style="flex: 1; display: flex; flex-direction: column; height: 100%; border-radius: 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); box-sizing: border-box; overflow: hidden;">
+              <!-- Chat Header -->
+              <div class="chat-header" style="padding: 16px 24px; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.01);">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span style="font-weight: 700; color: var(--text-primary); font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+                    P2P 极速直连通道 (WebRTC Tunnel)
+                  </span>
+                  <span style="font-size: 11px; color: var(--text-muted);">GATT channel ready | P2P link active</span>
+                </div>
+                <!-- Mini status info -->
+                <div style="font-size: 11px; color: var(--text-muted); background: rgba(255,255,255,0.03); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05);">
+                  <span v-if="pcActiveTransferName" style="color: #3b82f6; display: flex; align-items: center; gap: 4px;">
+                    <span class="spinner" style="width: 10px; height: 10px; border-width: 1.5px; border-top-color: #3b82f6;"></span>
+                    📤 发送中: {{ pcActiveTransferName }}
+                  </span>
+                  <span v-else-if="incomingTransfer" style="color: #a855f7; display: flex; align-items: center; gap: 4px;">
+                    <span class="spinner" style="width: 10px; height: 10px; border-width: 1.5px; border-top-color: #a855f7;"></span>
+                    📥 接收中: {{ incomingTransfer.name }}
+                  </span>
+                  <span v-else>⚡ 通道空闲 (Idle)</span>
+                </div>
               </div>
 
-              <!-- Message Bubble List -->
+              <!-- Chat Messages Area -->
               <div 
-                v-for="msg in chatMessages" 
-                :key="msg.id" 
-                class="chat-message-row"
-                :class="msg.type"
+                class="chat-messages" 
+                ref="chatMessagesRef" 
+                @dragenter.prevent="dragActive = true"
+                @dragover.prevent="onDragOver"
+                @dragleave.prevent="onDragLeave"
+                @drop.prevent="handleDragDrop"
+                :class="{ 'drag-active': dragActive }"
+                style="flex: 1; overflow-y: auto; padding: 24px; box-sizing: border-box;"
               >
-                <!-- Left Avatar for mobile -->
-                <div v-if="msg.type === 'incoming'" class="chat-avatar mobile-avatar" title="手机端">📱</div>
-
-                <!-- Message bubble -->
-                <div class="chat-message-bubble">
-                  <!-- Meta row -->
-                  <div class="chat-message-meta">
-                    <span class="chat-sender-name">{{ msg.type === 'incoming' ? '手机端' : '我的电脑' }}</span>
-                    <span class="chat-time">{{ msg.time }}</span>
-                  </div>
-
-                  <!-- File card -->
-                  <div class="chat-file-card">
-                    <!-- Image preview -->
-                    <div v-if="msg.isImage && msg.src" class="chat-file-preview">
-                      <img :src="msg.src" class="chat-preview-img" @click="openDetails({ src: msg.src, name: msg.name, path: msg.src })" />
-                    </div>
-
-                    <!-- Icon & details -->
-                    <div class="chat-file-info">
-                      <span class="chat-file-icon">{{ getFileIcon(msg.name) }}</span>
-                      <div class="chat-file-text">
-                        <span class="chat-filename" :title="msg.name">{{ msg.name }}</span>
-                        <span class="chat-filesize">{{ formatBytes(msg.size) }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Status/Progress -->
-                  <div v-if="msg.status === 'transferring'" class="chat-progress-container">
-                    <div class="chat-progress-bar">
-                      <div class="chat-progress-fill" :style="{ width: (msg.progress * 100) + '%' }"></div>
-                    </div>
-                    <span class="chat-progress-text">正在传输: {{ Math.round(msg.progress * 100) }}%</span>
-                  </div>
-                  
-                  <div v-else-if="msg.status === 'processing'" class="chat-progress-container">
-                    <span class="chat-progress-text text-processing">🔄 AI 分析归类中...</span>
-                  </div>
-
-                  <div v-else-if="msg.status === 'completed'" class="chat-status-text success">
-                    <span style="display: flex; align-items: center; gap: 4px;">🟢 已完成</span>
-                    <!-- AI Prediction tag -->
-                    <span v-if="msg.predictions && msg.predictions[0]" class="chat-pred-badge">
-                      {{ getShortCategory(msg.predictions[0].category) }} ({{ Math.round(msg.predictions[0].score * 100) }}%)
-                    </span>
-                  </div>
-
-                  <div v-else-if="msg.status === 'failed'" class="chat-status-text error">
-                    <span>🔴 传输失败</span>
-                  </div>
+                <!-- Empty State -->
+                <div v-if="chatMessages.length === 0" class="chat-empty-state" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.85;">
+                  <span style="font-size: 48px; margin-bottom: 12px; display: block; filter: drop-shadow(0 0 12px rgba(168,85,247,0.3));">📦</span>
+                  <span style="color: var(--text-primary); font-size: 15px; font-weight: 700; margin-bottom: 6px;">数据双向传输就绪</span>
+                  <span style="color: var(--text-muted); font-size: 12px; max-width: 320px; line-height: 1.6; text-align: center;">点击下方按钮发送文件，或将任何格式的文件直接拖拽拖放到本区域内。</span>
                 </div>
 
-                <!-- Right Avatar for PC -->
-                <div v-if="msg.type === 'outgoing'" class="chat-avatar pc-avatar" title="我的电脑">💻</div>
-              </div>
-            </div>
+                <!-- Message Bubble List -->
+                <div 
+                  v-for="msg in chatMessages" 
+                  :key="msg.id" 
+                  class="chat-message-row"
+                  :class="msg.type"
+                >
+                  <!-- Left Avatar for mobile -->
+                  <div v-if="msg.type === 'incoming'" class="chat-avatar mobile-avatar" title="手机端">📱</div>
 
-            <!-- Chat Input Area -->
-            <div class="chat-input-area">
-              <button 
-                class="btn btn-accent btn-send-file" 
-                @click="handleSendImagesToMobile"
-                :disabled="pcActiveTransferName !== null"
-                style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; padding: 12px; border-radius: 12px; font-weight: 600;"
-              >
-                <span>📤</span> 选择本地文件发送到手机 (支持任意格式拖放)
-              </button>
+                  <!-- Message bubble -->
+                  <div class="chat-message-bubble">
+                    <!-- Meta row -->
+                    <div class="chat-message-meta">
+                      <span class="chat-sender-name">{{ msg.type === 'incoming' ? '手机端' : '我的电脑' }}</span>
+                      <span class="chat-time">{{ msg.time }}</span>
+                    </div>
+
+                    <!-- File card -->
+                    <div class="chat-file-card">
+                      <!-- Image preview -->
+                      <div v-if="msg.isImage && msg.src" class="chat-file-preview">
+                        <img :src="msg.src" class="chat-preview-img" @click="openDetails({ src: msg.src, name: msg.name, path: msg.src })" />
+                      </div>
+
+                      <!-- Icon & details -->
+                      <div class="chat-file-info">
+                        <span class="chat-file-icon">{{ getFileIcon(msg.name) }}</span>
+                        <div class="chat-file-text">
+                          <span class="chat-filename" :title="msg.name">{{ msg.name }}</span>
+                          <span class="chat-filesize">{{ formatBytes(msg.size) }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Status/Progress -->
+                    <div v-if="msg.status === 'transferring'" class="chat-progress-container">
+                      <div class="chat-progress-bar">
+                        <div class="chat-progress-fill" :style="{ width: (msg.progress * 100) + '%' }"></div>
+                      </div>
+                      <span class="chat-progress-text">正在传输: {{ Math.round(msg.progress * 100) }}%</span>
+                    </div>
+                    
+                    <div v-else-if="msg.status === 'processing'" class="chat-progress-container">
+                      <span class="chat-progress-text text-processing">🔄 AI 分析归类中...</span>
+                    </div>
+
+                    <div v-else-if="msg.status === 'completed'" class="chat-status-text success">
+                      <span style="display: flex; align-items: center; gap: 4px;">🟢 已完成</span>
+                      <!-- AI Prediction tag -->
+                      <span v-if="msg.predictions && msg.predictions[0]" class="chat-pred-badge">
+                        {{ getShortCategory(msg.predictions[0].category) }} ({{ Math.round(msg.predictions[0].score * 100) }}%)
+                      </span>
+                    </div>
+
+                    <div v-else-if="msg.status === 'failed'" class="chat-status-text error">
+                      <span>🔴 传输失败</span>
+                    </div>
+                  </div>
+
+                  <!-- Right Avatar for PC -->
+                  <div v-if="msg.type === 'outgoing'" class="chat-avatar pc-avatar" title="我的电脑">💻</div>
+                </div>
+              </div>
+
+              <!-- Chat Input Area -->
+              <div class="chat-input-area" style="padding: 16px 24px; border-top: 1px solid var(--glass-border); background: rgba(255,255,255,0.01);">
+                <button 
+                  class="btn btn-accent btn-send-file" 
+                  @click="handleSendImagesToMobile"
+                  :disabled="pcActiveTransferName !== null"
+                  style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer;"
+                >
+                  <span>📤</span> 选择本地文件发送到手机 (支持任意格式拖放)
+                </button>
+              </div>
             </div>
           </div>
 
@@ -859,61 +895,6 @@
           </div>
         </div>
       </section>
-
-      <!-- Sleek Unified Transfer Dashboard (Sticky bottom when connected) -->
-      <div class="transfer-dashboard" v-if="isSyncActive && syncStatus === 'connected' && currentTab === 'link'">
-        <div class="dashboard-header">
-          <div class="connection-status">
-            <span class="status-indicator connected"></span>
-            <div class="status-details">
-              <span class="status-title">{{ t.link.connectedTitle }} (Companion Connected)</span>
-              <span class="status-subtitle">GATT channel ready | P2P link active</span>
-            </div>
-          </div>
-          
-          <!-- Unified Dashboard Actions -->
-          <div class="dashboard-actions">
-            <button class="btn btn-primary btn-sm" @click="handleSendImagesToMobile" :disabled="pcActiveTransferName !== null">
-              <span>📤</span> {{ t.details.sendToPhone }}
-            </button>
-            <button class="btn btn-danger btn-sm" @click="toggleSyncService">
-              {{ t.link.disconnectBtn }}
-            </button>
-          </div>
-        </div>
-        
-        <!-- Progress Area -->
-        <div class="dashboard-progress-area">
-          <!-- Outgoing transfer (PC -> Mobile) -->
-          <div v-if="pcActiveTransferName" class="progress-card">
-            <div class="progress-info">
-              <span class="progress-filename" :title="pcActiveTransferName">📤 Sending: {{ pcActiveTransferName }}</span>
-              <span class="progress-pct">{{ Math.round(pcActiveProgress * 100) }}%</span>
-            </div>
-            <div class="progress-bar-bg">
-              <div class="progress-bar-fill" :style="{ width: (pcActiveProgress * 100) + '%' }"></div>
-            </div>
-          </div>
-          
-          <!-- Incoming transfer (Mobile -> PC) -->
-          <div v-else-if="incomingTransfer" class="progress-card">
-            <div class="progress-info">
-              <span class="progress-filename">📥 Receiving: {{ incomingTransfer.name }}</span>
-              <span class="progress-pct">{{ Math.round(incomingTransfer.progress * 100) }}%</span>
-            </div>
-            <div class="progress-bar-bg">
-              <div class="progress-bar-fill" :style="{ width: (incomingTransfer.progress * 100) + '%' }"></div>
-            </div>
-          </div>
-          
-          <!-- Idle status -->
-          <div v-else class="progress-card">
-            <div class="idle-text">
-              <span>⚡</span> Channel Idle
-            </div>
-          </div>
-        </div>
-      </div>
     </main>
 
     <!-- Detailed Modal -->
