@@ -591,41 +591,38 @@ ipcMain.handle('get-similar-images-groups', async (event, { imageList, threshold
   });
 
   const n = validImages.length;
-  const visited = new Array(n).fill(false);
-  const groups = [];
+  const clusterGroups = []; // Array of arrays: [ [idx0, idx1...], [idx2...] ]
 
-  // 2. Perform Single-Linkage Connected Components Clustering
+  // 2. Perform Leader (Centroid) Clustering to prevent the Chaining Effect
   for (let i = 0; i < n; i++) {
-    if (visited[i]) continue;
+    const embI = embeddings[i];
+    let bestGroupIdx = -1;
+    let bestSim = -1;
 
-    const group = [i];
-    const queue = [i];
-    visited[i] = true;
-
-    while (queue.length > 0) {
-      const u = queue.shift();
-      const embU = embeddings[u];
-
-      for (let v = 0; v < n; v++) {
-        if (visited[v]) continue;
-
-        const embV = embeddings[v];
-        const sim = cosineSimilarity(embU, embV);
-
-        if (sim >= threshold) {
-          visited[v] = true;
-          group.push(v);
-          queue.push(v);
-        }
+    for (let g = 0; g < clusterGroups.length; g++) {
+      const leaderIdx = clusterGroups[g][0];
+      const sim = cosineSimilarity(embI, embeddings[leaderIdx]);
+      if (sim > bestSim) {
+        bestSim = sim;
+        bestGroupIdx = g;
       }
     }
 
+    if (bestSim >= threshold) {
+      clusterGroups[bestGroupIdx].push(i);
+    } else {
+      clusterGroups.push([i]);
+    }
+  }
+
+  // Filter groups to only include those with at least 2 images
+  const groups = [];
+  for (const group of clusterGroups) {
     if (group.length >= 2) {
-      // Create the group result list
       const groupImages = group.map(idx => {
         const img = validImages[idx];
         
-        // Find maximum similarity with any other item in this group
+        // Find maximum similarity with any other item in this group (to display similarity value)
         let maxSim = 0;
         const embIdx = embeddings[idx];
         for (const otherIdx of group) {
@@ -641,7 +638,7 @@ ipcMain.handle('get-similar-images-groups', async (event, { imageList, threshold
         };
       });
 
-      // Sort images inside group by size descending (helps user identify larger files)
+      // Sort images inside group by size descending (helps user identify larger duplicate files to delete)
       groupImages.sort((a, b) => (b.size || 0) - (a.size || 0));
 
       groups.push({
