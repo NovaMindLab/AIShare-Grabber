@@ -64,13 +64,22 @@ class PhotoStreamer {
     required String assetId,
     required String name,
     required int size,
+    double? latitude,
+    double? longitude,
   }) async {
-    final payloadStr = jsonEncode({
+    final Map<String, dynamic> metadataMap = {
       "file_id": fileId,
       "asset_id": assetId,
       "name": name,
       "size": size,
-    });
+    };
+    if (latitude != null && latitude != 0.0) {
+      metadataMap["latitude"] = latitude;
+    }
+    if (longitude != null && longitude != 0.0) {
+      metadataMap["longitude"] = longitude;
+    }
+    final payloadStr = jsonEncode(metadataMap);
     final payloadBytes = utf8.encode(payloadStr);
 
     final header = ByteData(16);
@@ -110,6 +119,8 @@ class PhotoStreamer {
         assetId: entity.id,
         name: cleanName,
         size: size,
+        latitude: entity.latitude,
+        longitude: entity.longitude,
       );
 
       return await _streamFileInternal(file: file, fileId: fileId, onProgress: onProgress);
@@ -289,6 +300,8 @@ class PhotoStreamer {
         assetId: entity.id,
         name: name,
         size: thumbData.length,
+        latitude: entity.latitude,
+        longitude: entity.longitude,
       );
 
       return await _streamBytesInternal(

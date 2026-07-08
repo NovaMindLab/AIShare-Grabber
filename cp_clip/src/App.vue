@@ -70,6 +70,14 @@
           </div>
           <div 
             class="category-item" 
+            :class="{ active: currentTab === 'map' }"
+            @click="currentTab = 'map'"
+          >
+            <span>{{ t.sidebar.tabMap || '🗺️ 足迹地图' }}</span>
+            <span class="category-count">{{ imagesWithGps.length }}</span>
+          </div>
+          <div 
+            class="category-item" 
             :class="{ active: currentTab === 'videos' }"
             @click="currentTab = 'videos'"
           >
@@ -1008,6 +1016,38 @@
           </div>
         </div>
 
+        <!-- 5.6 FOOTPRINT MAP TAB -->
+        <div v-else-if="currentTab === 'map'" style="width: 100%; display: flex; flex-direction: column; height: calc(100vh - 120px); text-align: left;">
+          <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            {{ t.sidebar.tabMap || '🗺️ 足迹地图' }}
+          </h2>
+          <p style="color: var(--text-secondary); font-size: 13px; margin: 0 0 16px 0;">
+            根据照片拍摄地理位置（GPS EXIF 数据）在地图上聚类呈现您的足迹，点击图片可查看原图。
+          </p>
+
+          <div style="flex: 1; min-height: 400px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--glass-border); border-radius: 16px; overflow: hidden; position: relative;">
+            <div id="map-container" style="width: 100%; height: 100%; z-index: 1;"></div>
+            
+            <!-- Fallback banner if Leaflet is not loaded or offline -->
+            <div v-if="mapLoadError" style="position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 10; padding: 24px; text-align: center;">
+              <span style="font-size: 48px;">🌐</span>
+              <h3 style="color: var(--text-primary); margin: 0; font-size: 16px;">地图加载失败，请检查网络连接</h3>
+              <p style="color: var(--text-secondary); margin: 0; font-size: 12px; max-width: 320px; line-height: 1.6;">
+                足迹地图需要加载在线地图服务瓦片及脚本资源。请确保您的电脑处于联网状态。
+              </p>
+            </div>
+            
+            <!-- Empty state if no images have GPS -->
+            <div v-if="!mapLoadError && imagesWithGps.length === 0" style="position: absolute; inset: 0; background: rgba(15, 23, 42, 0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 5; padding: 24px; text-align: center;">
+              <span style="font-size: 48px;">🗺️</span>
+              <h3 style="color: var(--text-primary); margin: 0; font-size: 16px;">暂无地理位置数据</h3>
+              <p style="color: var(--text-secondary); margin: 0; font-size: 12px; max-width: 320px; line-height: 1.6;">
+                当前加载的照片中没有包含 GPS 地理坐标的图片。请尝试同步包含 GPS 信息的手机照片或导入包含相机地理信息的原图文件夹。
+              </p>
+            </div>
+          </div>
+        </div>
+
         <!-- 6. SETTINGS TAB -->
         <div v-else-if="currentTab === 'settings'" style="width: 100%;">
           <div class="settings-container">
@@ -1337,6 +1377,127 @@ const localImages = computed(() => {
     const ext = getExtensionName(file.name);
     return ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext);
   });
+});
+
+const mapLoadError = ref(false);
+let leafletMap = null;
+let markerClusterGroup = null;
+
+const imagesWithGps = computed(() => {
+  return localImages.value.filter(file => file.latitude !== undefined && file.latitude !== null && file.longitude !== undefined && file.longitude !== null);
+});
+
+function initMap() {
+  mapLoadError.value = typeof L === 'undefined';
+  if (mapLoadError.value) {
+    console.error("Leaflet mapping library not loaded.");
+    return;
+  }
+
+  nextTick(() => {
+    try {
+      const container = document.getElementById('map-container');
+      if (!container) return;
+
+      // Clean up previous map instance if it exists
+      if (leafletMap) {
+        leafletMap.remove();
+        leafletMap = null;
+      }
+
+      const gpsList = imagesWithGps.value;
+      if (gpsList.length === 0) return;
+
+      let initialCenter = [gpsList[0].latitude, gpsList[0].longitude];
+      let initialZoom = 13;
+
+      leafletMap = L.map('map-container').setView(initialCenter, initialZoom);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(leafletMap);
+
+      markerClusterGroup = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        maxClusterRadius: 50,
+        iconCreateFunction: function(cluster) {
+          const markers = cluster.getAllChildMarkers();
+          const count = markers.length;
+          const firstImgSrc = markers[0].options.imgSrc;
+          return L.divIcon({
+            html: `
+              <div class="map-cluster-marker">
+                <img src="${firstImgSrc}" class="map-cluster-img" />
+                <span class="map-cluster-count">${count}</span>
+              </div>
+            `,
+            className: 'custom-cluster-icon',
+            iconSize: [46, 46],
+            iconAnchor: [23, 23]
+          });
+        }
+      });
+
+      gpsList.forEach(img => {
+        const customIcon = L.divIcon({
+          html: `
+            <div class="map-thumbnail-marker">
+              <img src="${img.src}" />
+            </div>
+          `,
+          className: 'custom-marker-icon',
+          iconSize: [40, 40],
+          iconAnchor: [20, 20]
+        });
+
+        const marker = L.marker([img.latitude, img.longitude], { 
+          icon: customIcon,
+          imgSrc: img.src
+        });
+
+        const popupContent = document.createElement('div');
+        popupContent.className = 'map-popup-card';
+        popupContent.style.textAlign = 'center';
+        popupContent.style.padding = '4px';
+        popupContent.style.cursor = 'pointer';
+        popupContent.innerHTML = `
+          <img src="${img.src}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 6px; display: block;" />
+          <div style="font-size: 11px; font-weight: 600; color: #fff; max-width: 100px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${img.name}</div>
+        `;
+        
+        popupContent.addEventListener('click', () => {
+          openDetails(img);
+        });
+
+        marker.bindPopup(popupContent, {
+          closeButton: false,
+          offset: [0, -10]
+        });
+
+        markerClusterGroup.addLayer(marker);
+      });
+
+      leafletMap.addLayer(markerClusterGroup);
+
+      if (gpsList.length > 1) {
+        const bounds = L.latLngBounds(gpsList.map(img => [img.latitude, img.longitude]));
+        leafletMap.fitBounds(bounds, { padding: [40, 40] });
+      }
+
+    } catch (err) {
+      console.error("Failed to initialize Leaflet Map:", err);
+      mapLoadError.value = true;
+    }
+  });
+}
+
+watch(currentTab, (newTab) => {
+  if (newTab === 'map') {
+    initMap();
+  }
 });
 
 const localVideos = computed(() => {
@@ -2073,7 +2234,9 @@ function setupDataChannel(channel) {
               src: `local:///${res.path.replace(/\\/g, '/')}`,
               status: 'completed',
               predictions: JSON.parse(res.predictions || '[]'),
-              type: res.type
+              type: res.type,
+              latitude: res.latitude,
+              longitude: res.longitude
             }));
 
           // Load previously synced AI thumbnails
@@ -2317,17 +2480,23 @@ onMounted(() => {
             src: imageInfo.src,
             status: 'completed',
             predictions: imageInfo.predictions,
-            type: 'thumbnail'
+            type: 'thumbnail',
+            latitude: imageInfo.latitude,
+            longitude: imageInfo.longitude
           });
         } else {
           const idx = thumbnailImages.value.findIndex(img => img.name === imageInfo.name);
           if (idx !== -1) {
             thumbnailImages.value[idx].predictions = imageInfo.predictions;
+            thumbnailImages.value[idx].latitude = imageInfo.latitude;
+            thumbnailImages.value[idx].longitude = imageInfo.longitude;
           }
           // Also update predictions in images.value if found
           const imgIdx = images.value.findIndex(img => img.name === imageInfo.name);
           if (imgIdx !== -1) {
             images.value[imgIdx].predictions = imageInfo.predictions;
+            images.value[imgIdx].latitude = imageInfo.latitude;
+            images.value[imgIdx].longitude = imageInfo.longitude;
           }
         }
         if (thumbSyncTotal.value > 0 && thumbSyncDone.value >= thumbSyncTotal.value) {
@@ -2365,7 +2534,9 @@ onMounted(() => {
           name: imageInfo.name,
           src: imageInfo.src,
           status: 'completed',
-          predictions: imageInfo.predictions
+          predictions: imageInfo.predictions,
+          latitude: imageInfo.latitude,
+          longitude: imageInfo.longitude
         });
         
         totalCount.value = images.value.length;
@@ -2882,17 +3053,23 @@ async function processNextQueueItem() {
   activeCount.value++;
 
   try {
-    let results = [];
     if (hasApi) {
       // Call main process via preload bridge
-      results = await window.api.classifyPhoto(imgItem.path);
+      const data = await window.api.classifyPhoto(imgItem.path);
+      imgItem.predictions = data.predictions || [];
+      imgItem.latitude = data.latitude;
+      imgItem.longitude = data.longitude;
     } else {
       // Mock web demo classification delay
       await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 800));
-      results = getMockClassification(imgItem.src);
+      imgItem.predictions = getMockClassification(imgItem.src);
+      // Generate some mock GPS coordinates for demo purposes in browser sandbox
+      if (Math.random() > 0.4) {
+        imgItem.latitude = 39.9042 + (Math.random() - 0.5) * 0.3; // Beijing area
+        imgItem.longitude = 116.4074 + (Math.random() - 0.5) * 0.3;
+      }
     }
 
-    imgItem.predictions = results;
     imgItem.status = 'completed';
   } catch (error) {
     console.error("Failed to classify image:", error);

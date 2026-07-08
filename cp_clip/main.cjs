@@ -22,6 +22,13 @@ try {
   console.error("Critical: Failed to load sharp.", err);
 }
 
+let exifReader;
+try {
+  exifReader = require('exif-reader');
+} catch (err) {
+  console.error("Critical: Failed to load exif-reader.", err);
+}
+
 // Register the custom local protocol to bypass CSP and allow local file loading
 protocol.registerSchemesAsPrivileged([
   {
@@ -146,6 +153,40 @@ function cosineSimilarity(vecA, vecB) {
   }
   if (normA === 0 || normB === 0) return 0;
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+// Helper to convert GPS rational arrays (Degrees, Minutes, Seconds) to decimal degrees
+function convertDMSToDD(dmsArray, ref) {
+  if (!dmsArray || dmsArray.length < 3) return null;
+  const degrees = dmsArray[0];
+  const minutes = dmsArray[1];
+  const seconds = dmsArray[2];
+  let dd = degrees + (minutes / 60) + (seconds / 3600);
+  if (ref === 'S' || ref === 'W') {
+    dd = -dd;
+  }
+  return dd;
+}
+
+// Function to extract coordinates from local file
+async function extractImageGPS(imagePath) {
+  try {
+    if (!sharp || !exifReader) return null;
+    const metadata = await sharp(imagePath).metadata();
+    if (metadata && metadata.exif) {
+      const exifData = exifReader(metadata.exif);
+      if (exifData && exifData.gps) {
+        const lat = convertDMSToDD(exifData.gps.GPSLatitude, exifData.gps.GPSLatitudeRef);
+        const lon = convertDMSToDD(exifData.gps.GPSLongitude, exifData.gps.GPSLongitudeRef);
+        if (lat !== null && lon !== null && !isNaN(lat) && !isNaN(lon)) {
+          return { latitude: lat, longitude: lon };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`[EXIF] Failed to parse GPS for ${imagePath}:`, err.message);
+  }
+  return null;
 }
 
 function createWindow() {
@@ -471,7 +512,13 @@ async function classifyPhotoInternal(imagePath) {
 }
 
 ipcMain.handle('classify-photo', async (event, imagePath) => {
-  return await classifyPhotoInternal(imagePath);
+  const predictions = await classifyPhotoInternal(imagePath);
+  const gps = await extractImageGPS(imagePath);
+  return {
+    predictions,
+    latitude: gps ? gps.latitude : null,
+    longitude: gps ? gps.longitude : null
+  };
 });
 
 ipcMain.handle('reclassify-all-phone-photos', async (event) => {
@@ -1049,10 +1096,22 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
       resolve(); // ignore error if column already exists
     });
   });
+
+  // Safe schema upgrade: ALTER TABLE to add latitude and longitude if they are missing
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN latitude REAL`, () => {
+      resolve();
+    });
+  });
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN longitude REAL`, () => {
+      resolve();
+    });
+  });
   
   // Read and return already synced assets
   const syncInfo = await new Promise((resolve, reject) => {
-    activeDeviceDb.all(`SELECT id, name, path, type, size, predictions, embedding FROM resources`, (err, rows) => {
+    activeDeviceDb.all(`SELECT id, name, path, type, size, predictions, embedding, latitude, longitude FROM resources`, (err, rows) => {
       if (err) {
         reject(err);
       } else {
@@ -1174,9 +1233,20 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
       }
 
       activeDeviceDb.run(`
-        INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time, embedding)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [assetId, filename, targetPath, isThumbnail ? 'thumbnail' : type, size, predictionsStr, syncTime, embeddingBuffer], (err) => {
+        INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time, embedding, latitude, longitude)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        assetId, 
+        filename, 
+        targetPath, 
+        isThumbnail ? 'thumbnail' : type, 
+        size, 
+        predictionsStr, 
+        syncTime, 
+        embeddingBuffer,
+        metadata && metadata.latitude !== undefined ? metadata.latitude : null,
+        metadata && metadata.longitude !== undefined ? metadata.longitude : null
+      ], (err) => {
         if (err) {
           console.error(`[Database] Error registering synced asset ${assetId}:`, err);
         } else {
@@ -1192,7 +1262,9 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
         path: targetPath,
         name: filename,
         src: `local:///${targetPath.replace(/\\/g, '/')}`,
-        predictions
+        predictions,
+        latitude: metadata && metadata.latitude !== undefined ? metadata.latitude : null,
+        longitude: metadata && metadata.longitude !== undefined ? metadata.longitude : null
       });
     }
   }

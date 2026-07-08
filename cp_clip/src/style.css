@@ -1483,3 +1483,81 @@ body {
   color: var(--text-secondary);
 }
 
+/* ==========================================================================
+   🗺️ Footprint Map Styles
+   ========================================================================== */
+.custom-cluster-icon {
+  background: transparent;
+  border: none;
+}
+.map-cluster-marker {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 3px solid #8b5cf6;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  background-color: var(--bg-secondary);
+  overflow: visible;
+}
+.map-cluster-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.map-cluster-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #c084fc;
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 10px;
+  padding: 2px 6px;
+  border: 1.5px solid #0f172a;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.custom-marker-icon {
+  background: transparent;
+  border: none;
+}
+.map-thumbnail-marker {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2.5px solid var(--accent-primary);
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  background-color: var(--bg-secondary);
+  transition: transform 0.2s ease-in-out;
+}
+.map-thumbnail-marker img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Style Leaflet popups to match dark theme */
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(12px) !important;
+  border-radius: 12px !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  padding: 6px !important;
+}
+.leaflet-popup-content {
+  margin: 8px !important;
+}
+.leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--text-muted) !important;
+  padding: 8px 8px 0 0 !important;
+}
