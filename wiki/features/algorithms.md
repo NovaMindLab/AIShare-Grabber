@@ -13,21 +13,64 @@ ShareCLIP 的核心 AI 能力完全运行在 PC 客户端本地（100% 离线）
 
 ```mermaid
 graph TD
-    A[输入图像] --> B[图像预处理 256x256 Cover / Planar / ToTensor]
-    B --> C[ONNX MobileCLIP S0 Image Encoder]
-    C --> D[获取 512 维特征向量 Image Embedding]
-    D --> E[克隆 Float32Array 内存块]
-    E --> F[写入 imageEmbeddingsCache 缓存]
-    
-    F --> G[分类按钮 / Sync 逻辑]
-    F --> H[相似图片分析按钮]
-    
-    G --> G1[计算与预设文本向量的余弦相似度]
-    G1 --> G2[应用 Logits 温度 60.0 & Softmax 归一化]
-    G2 --> G3[保存前 3 预测结果至 SQLite 数据库]
-    
-    H --> H1[Leader 质心聚类算法]
-    H1 --> H2[过滤 singleton, 输出相似度 >= 阈值的组合]
+    %% Define Platform Nodes
+    subgraph Mobile_Companion [手机端 Companion]
+        M1[读取系统媒体库] --> M2[压缩为 400x400 JPEG 缩略图]
+        M2 --> M3[分片 Packetizing]
+        M3 --> M4[通过 WebRTC DataChannel 发送数据包]
+    end
+
+    subgraph PC_Client_Main [PC端主进程 Main Process]
+        P1[接收 DataChannel 数据包] --> P2[拼包 Reassemble Buffer]
+        P2 --> P3[写入磁盘文件<br>thumbnail_sync/..]
+        P3 --> P4[触发自动分类]
+        
+        %% Preprocessing & ONNX
+        P4 & S2 --> P5[图像预处理 256x256 Cover<br>重排为 Planar Float32Array 归一化]
+        P5 --> P6[运行 ONNX MobileCLIP 图像编码器]
+        P6 --> P7[提取 512维特征向量]
+        P7 --> P8[深度克隆 Float32Array 内存块<br>new Float32Array]
+        P8 --> P9[写入 imageEmbeddingsCache 内存缓存]
+        
+        %% Path A: Classification Run
+        P9 --> PC1[分类运行 Classification Run]
+        PC1 --> PC2[计算与预设文本向量的余弦距离]
+        PC2 --> PC3[置信度乘 logits 温度 60.0 并进行 Softmax 归一化]
+        PC3 --> PC4[保存 Top-3 分类预测到 SQLite]
+        PC4 --> PC5[通过 IPC 向渲染进程推送单图更新事件]
+        
+        %% Path B: Similar Images Run
+        S4 --> P9
+        P9 --> SI1[相似图聚类分析 Similar Images Run]
+        SI1 --> SI2[Leader 质心聚类算法<br>按相似度阈值分组]
+        SI2 --> SI3[过滤 size < 2 孤立组<br>按文件大小降序排序]
+        SI3 --> SI4[通过 IPC 返回分组数据列表给渲染端]
+        
+        %% Path C: Physical Delete
+        D1[接收 delete-files IPC 请求] --> D2[fs.unlinkSync 物理删除磁盘文件]
+        D2 --> D3[从 SQLite 删除记录资源]
+        D3 --> D4[返回最新数据库列表并重新触发相似比对]
+    end
+
+    subgraph PC_Client_Renderer [PC端渲染进程 Renderer Process]
+        R1[展示同步进度条 / 实时显示分类标签]
+        R2[用户切换至‘相似图片’选项卡] --> R3[展示相似度阈值滑块 70%-99%]
+        R3 --> R4[点击‘开始分析相似图片’]
+        R4 --> S1{检查图片列表}
+        S1 -- 有图片 --> S2[过滤纯图片后缀资源列表]
+        S2 --> S3[序列化 id/name/path/size 基本数据类型]
+        S3 --> S4[调用 getSimilarImagesGroups IPC 接口]
+        
+        SI4 --> R5[关联展示原始图片 src 预览与已分类的 predictions 标签]
+        R5 --> R6[用户勾选重复项]
+        R6 --> R7[一键删除选中的重复图]
+        R7 --> D1
+    end
+
+    %% Flow connections between subgraphs
+    M4 -->|WebRTC P2P Channel| P1
+    PC5 -->|predictions-updated 事件| R1
+    D4 -->|delete-files 响应| R1
 ```
 
 ---
