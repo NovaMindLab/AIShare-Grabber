@@ -531,6 +531,168 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
   return updatedRows;
 });
 
+ipcMain.handle('get-similar-images-groups', async (event, { imageList, threshold }) => {
+  const total = imageList.length;
+  console.log(`[AI Similar] Starting similarity analysis on ${total} images with threshold ${threshold}`);
+
+  // 1. Ensure all image embeddings are cached
+  const embeddings = [];
+  const validImages = [];
+
+  for (let i = 0; i < total; i++) {
+    const img = imageList[i];
+    
+    event.sender.send('similar-progress', {
+      done: i,
+      total,
+      currentName: img.name
+    });
+
+    try {
+      let emb = imageEmbeddingsCache[img.path];
+      if (!emb && fs.existsSync(img.path)) {
+        // Run classification to compute and cache embedding
+        await classifyPhotoInternal(img.path);
+        emb = imageEmbeddingsCache[img.path];
+      }
+
+      if (emb) {
+        embeddings.push(emb);
+        validImages.push(img);
+      }
+    } catch (err) {
+      console.error(`[AI Similar] Failed to process embedding for ${img.name}:`, err);
+    }
+  }
+
+  event.sender.send('similar-progress', {
+    done: total,
+    total,
+    currentName: 'Comparing similarities...'
+  });
+
+  const n = validImages.length;
+  const visited = new Array(n).fill(false);
+  const groups = [];
+
+  // 2. Perform Single-Linkage Connected Components Clustering
+  for (let i = 0; i < n; i++) {
+    if (visited[i]) continue;
+
+    const group = [i];
+    const queue = [i];
+    visited[i] = true;
+
+    while (queue.length > 0) {
+      const u = queue.shift();
+      const embU = embeddings[u];
+
+      for (let v = 0; v < n; v++) {
+        if (visited[v]) continue;
+
+        const embV = embeddings[v];
+        const sim = cosineSimilarity(embU, embV);
+
+        if (sim >= threshold) {
+          visited[v] = true;
+          group.push(v);
+          queue.push(v);
+        }
+      }
+    }
+
+    if (group.length >= 2) {
+      // Create the group result list
+      const groupImages = group.map(idx => {
+        const img = validImages[idx];
+        
+        // Find maximum similarity with any other item in this group
+        let maxSim = 0;
+        const embIdx = embeddings[idx];
+        for (const otherIdx of group) {
+          if (otherIdx !== idx) {
+            const sim = cosineSimilarity(embIdx, embeddings[otherIdx]);
+            if (sim > maxSim) maxSim = sim;
+          }
+        }
+
+        return {
+          ...img,
+          maxSimWithGroup: maxSim
+        };
+      });
+
+      // Sort images inside group by size descending (helps user identify larger files)
+      groupImages.sort((a, b) => (b.size || 0) - (a.size || 0));
+
+      groups.push({
+        images: groupImages
+      });
+    }
+  }
+
+  // Final progress notification
+  event.sender.send('similar-progress', {
+    done: total,
+    total,
+    currentName: 'Completed'
+  });
+
+  console.log(`[AI Similar] Found ${groups.length} groups of similar images.`);
+  return groups;
+});
+
+ipcMain.handle('delete-files', async (event, files) => {
+  console.log(`[Database/FS] Request to delete ${files.length} files.`);
+  
+  for (const file of files) {
+    // 1. Delete from filesystem
+    try {
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+        console.log(`[FS] Deleted file: ${file.path}`);
+      }
+    } catch (err) {
+      console.error(`[FS] Failed to delete file at ${file.path}:`, err);
+    }
+
+    // 2. Delete from database
+    if (activeDeviceDb) {
+      await new Promise((resolve, reject) => {
+        activeDeviceDb.run(
+          `DELETE FROM resources WHERE id = ? OR path = ?`,
+          [file.id, file.path],
+          (err) => {
+            if (err) {
+              console.error(`[Database] Failed to delete resource ${file.id}:`, err);
+              resolve(); // continue anyway
+            } else {
+              console.log(`[Database] Deleted resource record: ${file.id}`);
+              resolve();
+            }
+          }
+        );
+      });
+    }
+  }
+
+  // 3. Return updated list of resources
+  if (activeDeviceDb) {
+    const updatedRows = await new Promise((resolve, reject) => {
+      activeDeviceDb.all(
+        `SELECT id, name, path, type, size, predictions FROM resources`,
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+    return updatedRows;
+  }
+  
+  return [];
+});
+
 // BLE Signaling and WebRTC synchronization handlers
 ipcMain.handle('start-ble-server', async (event) => {
   if (bleProcess) {

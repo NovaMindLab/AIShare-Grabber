@@ -86,6 +86,14 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('single-photo-predictions-updated', (event, data) => callback(data));
   },
 
+  // Similar images analysis
+  getSimilarImagesGroups: (imageList, threshold) => ipcRenderer.invoke('get-similar-images-groups', { imageList, threshold }),
+  onSimilarProgress: (callback) => {
+    ipcRenderer.removeAllListeners('similar-progress');
+    ipcRenderer.on('similar-progress', (event, data) => callback(data));
+  },
+  deleteFiles: (files) => ipcRenderer.invoke('delete-files', files),
+
   // Window controls
   minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
   maximizeWindow: () => ipcRenderer.invoke('window-maximize'),

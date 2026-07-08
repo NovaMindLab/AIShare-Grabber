@@ -62,6 +62,14 @@
           </div>
           <div 
             class="category-item" 
+            :class="{ active: currentTab === 'similar' }"
+            @click="currentTab = 'similar'"
+          >
+            <span>{{ t.sidebar.tabSimilar }}</span>
+            <span class="category-count" v-if="similarGroups.length > 0">{{ similarGroups.length }}</span>
+          </div>
+          <div 
+            class="category-item" 
             :class="{ active: currentTab === 'videos' }"
             @click="currentTab = 'videos'"
           >
@@ -811,6 +819,165 @@
           </div>
         </div>
 
+        <!-- 5.5 SIMILAR IMAGES TAB -->
+        <div v-else-if="currentTab === 'similar'" style="width: 100%; box-sizing: border-box; text-align: left;">
+          <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            {{ t.sidebar.tabSimilar }}
+          </h2>
+          <p style="color: var(--text-secondary); font-size: 13px; margin: 0 0 24px 0;">
+            利用 MobileCLIP 本地 AI 提取的 512 维特征向量，计算图片之间的余弦相似度并自动归类。
+          </p>
+
+          <!-- Control Bar -->
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px; display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; flex-wrap: wrap;">
+            
+            <!-- Threshold Slider -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600; white-space: nowrap;">相似度阈值:</span>
+              <input 
+                type="range" 
+                min="70" 
+                max="99" 
+                v-model="similarityThreshold" 
+                style="width: 180px; accent-color: #a855f7; cursor: pointer;"
+              />
+              <span style="font-size: 14px; font-weight: 700; color: #a855f7; background: rgba(168, 85, 247, 0.1); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.2); min-width: 45px; text-align: center;">
+                {{ similarityThreshold }}%
+              </span>
+            </div>
+
+            <!-- Action buttons -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button 
+                class="btn btn-primary" 
+                @click="analyzeSimilarImages" 
+                :disabled="isAnalyzingSimilar"
+                style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 13px; border-radius: 12px; font-weight: 700; cursor: pointer;"
+              >
+                <span v-if="isAnalyzingSimilar" class="spinner" style="width: 12px; height: 12px;"></span>
+                <span v-else>🔍</span>
+                {{ isAnalyzingSimilar ? `分析中... (${similarAnalysisProgress.done}/${similarAnalysisProgress.total})` : '开始分析相似图片' }}
+              </button>
+
+              <button 
+                v-if="similarGroups.length > 0"
+                class="btn btn-danger" 
+                @click="deleteSelectedDuplicates"
+                :disabled="selectedDuplicateIds.size === 0 || isDeletingDuplicates"
+                style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 13px; border-radius: 12px; font-weight: 700; cursor: pointer;"
+              >
+                <span>🗑️</span>
+                {{ isDeletingDuplicates ? '删除中...' : `删除选中的重复图 (${selectedDuplicateIds.size})` }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading State -->
+          <div v-if="isAnalyzingSimilar" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); border-radius: 20px; gap: 16px;">
+            <span class="spinner" style="width: 32px; height: 32px; border-width: 3px; border-top-color: #a855f7;"></span>
+            <span style="font-size: 14px; color: var(--text-primary); font-weight: 600;">正在提取图像 AI 特征并进行关联矩阵对比...</span>
+            <span style="font-size: 12px; color: var(--text-muted);">当前正在处理: {{ similarAnalysisProgress.currentName || '等待中' }}</span>
+          </div>
+
+          <!-- Empty State / No Analysis Done -->
+          <div v-else-if="similarGroups.length === 0" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--glass-border); border-radius: 20px; gap: 16px;">
+            <span style="font-size: 64px; filter: drop-shadow(0 0 12px rgba(168,85,247,0.25));">🔍</span>
+            <span style="font-size: 15px; color: var(--text-primary); font-weight: 700;">未检测到相似图片分组</span>
+            <span style="font-size: 12px; color: var(--text-muted); max-width: 380px; text-align: center; line-height: 1.6;">
+              请确保已导入本地文件夹或已同步手机图片，点击上方按钮对所有图片进行一键多路关联比对。
+            </span>
+          </div>
+
+          <!-- Grouped Results -->
+          <div v-else style="display: flex; flex-direction: column; gap: 20px;">
+            <div 
+              v-for="(group, gIdx) in similarGroups" 
+              :key="gIdx" 
+              style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; box-sizing: border-box;"
+            >
+              <!-- Group Header -->
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); background: rgba(255,255,255,0.04); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 6px;">
+                  📁 相似分组 #{{ gIdx + 1 }}
+                  <span style="font-size: 11px; color: #a855f7; font-weight: 600;">(包含 {{ group.images.length }} 张图片)</span>
+                </span>
+                
+                <!-- Quick Selection Action -->
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <button 
+                    @click="selectGroupDuplicatesExceptOne(group)" 
+                    style="background: transparent; border: 1px solid rgba(168,85,247,0.3); color: #c084fc; border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; transition: all 0.2s; font-weight: 600;"
+                    onmouseover="this.style.background='rgba(168,85,247,0.1)'"
+                    onmouseout="this.style.background='transparent'"
+                  >
+                    保留一张（自动选中其余图）
+                  </button>
+                  <button 
+                    @click="deselectGroupAll(group)" 
+                    style="background: transparent; border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.05)'"
+                    onmouseout="this.style.background='transparent'"
+                  >
+                    取消选择
+                  </button>
+                </div>
+              </div>
+
+              <!-- Group Image Grid -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; width: 100%;">
+                <div 
+                  v-for="img in group.images" 
+                  :key="img.id || img.path" 
+                  style="border-radius: 12px; border: 1px solid var(--glass-border); padding: 12px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; transition: all 0.2s; position: relative;"
+                  :style="{ background: selectedDuplicateIds.has(img.id || img.path) ? 'rgba(239, 68, 68, 0.05)' : 'rgba(255,255,255,0.015)', borderColor: selectedDuplicateIds.has(img.id || img.path) ? 'rgba(239, 68, 68, 0.3)' : 'var(--glass-border)' }"
+                >
+                  <!-- Checkbox Selection Overlay -->
+                  <div style="position: absolute; top: 12px; left: 12px; z-index: 5;">
+                    <input 
+                      type="checkbox" 
+                      :checked="selectedDuplicateIds.has(img.id || img.path)"
+                      @change="toggleDuplicateSelection(img.id || img.path)"
+                      style="width: 18px; height: 18px; cursor: pointer; accent-color: #ef4444;"
+                    />
+                  </div>
+
+                  <!-- Image Preview -->
+                  <div style="width: 100%; height: 140px; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.2); position: relative; border: 1px solid rgba(255,255,255,0.03);">
+                    <img 
+                      :src="img.src" 
+                      style="width: 100%; height: 100%; object-fit: contain; cursor: pointer;"
+                      @click="openDetails(img)" 
+                    />
+                    <!-- Max similarity marker within group -->
+                    <span 
+                      v-if="img.maxSimWithGroup !== undefined" 
+                      style="position: absolute; bottom: 8px; right: 8px; font-size: 10px; font-weight: 700; color: white; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; backdrop-filter: blur(4px);"
+                    >
+                      相似度: {{ (img.maxSimWithGroup * 100).toFixed(1) }}%
+                    </span>
+                  </div>
+
+                  <!-- Image Details -->
+                  <div style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" :title="img.name">
+                      {{ img.name }}
+                    </span>
+                    <span style="font-size: 10px; color: var(--text-muted); display: flex; justify-content: space-between;">
+                      <span>大小: {{ formatBytes(img.size || 0) }}</span>
+                      <span v-if="img.predictions && img.predictions[0]" style="color: #a855f7;">
+                        {{ getShortCategory(img.predictions[0].category) }}
+                      </span>
+                    </span>
+                    <span style="font-size: 9px; color: var(--text-muted); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" :title="img.path">
+                      路径: {{ img.path }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 6. SETTINGS TAB -->
         <div v-else-if="currentTab === 'settings'" style="width: 100%;">
           <div class="settings-container">
@@ -1234,6 +1401,125 @@ async function handleReclassifyAllPhotos() {
   } catch (err) {
     logSyncEvent(`❌ AI 重新分析失败: ${err.message}`);
     isReclassifying.value = false;
+  }
+}
+
+const similarityThreshold = ref(85);
+const isAnalyzingSimilar = ref(false);
+const similarAnalysisProgress = ref({ done: 0, total: 0, currentName: '' });
+const similarGroups = ref([]);
+const selectedDuplicateIds = ref(new Set());
+const isDeletingDuplicates = ref(false);
+
+async function analyzeSimilarImages() {
+  if (isAnalyzingSimilar.value) return;
+  isAnalyzingSimilar.value = true;
+  similarAnalysisProgress.value = { done: 0, total: 0, currentName: '' };
+  similarGroups.value = [];
+  selectedDuplicateIds.value.clear();
+
+  try {
+    // Collect all valid local & mobile images
+    const imageList = images.value.map(img => ({
+      id: img.id || img.path,
+      name: img.name,
+      path: img.path,
+      size: img.size,
+      src: img.src,
+      predictions: img.predictions
+    }));
+
+    if (imageList.length === 0) {
+      logSyncEvent("⚠️ 无法计算相似图：未导入或同步任何图片");
+      isAnalyzingSimilar.value = false;
+      return;
+    }
+
+    const thresholdVal = similarityThreshold.value / 100.0;
+    const groups = await window.api.getSimilarImagesGroups(imageList, thresholdVal);
+    similarGroups.value = groups;
+    logSyncEvent(`🎉 相似图片分析完成，检测到 ${groups.length} 组相似图片。`);
+  } catch (err) {
+    logSyncEvent(`❌ 相似图片分析失败: ${err.message}`);
+  } finally {
+    isAnalyzingSimilar.value = false;
+  }
+}
+
+function toggleDuplicateSelection(id) {
+  if (selectedDuplicateIds.value.has(id)) {
+    selectedDuplicateIds.value.delete(id);
+  } else {
+    selectedDuplicateIds.value.add(id);
+  }
+  // Trigger reactivity by reassignment
+  selectedDuplicateIds.value = new Set(selectedDuplicateIds.value);
+}
+
+function selectGroupDuplicatesExceptOne(group) {
+  group.images.forEach((img, idx) => {
+    const id = img.id || img.path;
+    if (idx > 0) {
+      selectedDuplicateIds.value.add(id);
+    } else {
+      selectedDuplicateIds.value.delete(id);
+    }
+  });
+  selectedDuplicateIds.value = new Set(selectedDuplicateIds.value);
+}
+
+function deselectGroupAll(group) {
+  group.images.forEach(img => {
+    selectedDuplicateIds.value.delete(img.id || img.path);
+  });
+  selectedDuplicateIds.value = new Set(selectedDuplicateIds.value);
+}
+
+async function deleteSelectedDuplicates() {
+  if (selectedDuplicateIds.value.size === 0 || isDeletingDuplicates.value) return;
+  
+  if (!confirm(`确定要删除选中的 ${selectedDuplicateIds.value.size} 张重复图片吗？此操作将物理删除文件且不可撤销。`)) {
+    return;
+  }
+
+  isDeletingDuplicates.value = true;
+  
+  try {
+    const filesToDelete = [];
+    selectedDuplicateIds.value.forEach(id => {
+      const img = images.value.find(item => item.id === id || item.path === id);
+      if (img) {
+        filesToDelete.push({ id: img.id, path: img.path });
+      }
+    });
+
+    const updatedResources = await window.api.deleteFiles(filesToDelete);
+
+    // Refresh images list
+    images.value = updatedResources.map(res => ({
+      id: res.id,
+      path: res.path,
+      name: res.name,
+      src: `local:///${res.path.replace(/\\/g, '/')}`,
+      status: 'completed',
+      predictions: JSON.parse(res.predictions || '[]'),
+      type: res.type
+    }));
+
+    // Refresh count
+    totalCount.value = images.value.length;
+    
+    // Clear selection
+    selectedDuplicateIds.value.clear();
+    
+    // Re-run similarity analysis on the remaining images
+    await analyzeSimilarImages();
+    
+    logSyncEvent(`🎉 成功删除了 ${filesToDelete.length} 张重复图片。`);
+  } catch (err) {
+    logSyncEvent(`❌ 删除重复图片失败: ${err.message}`);
+  } finally {
+    isDeletingDuplicates.value = false;
   }
 }
 
@@ -2132,6 +2418,11 @@ onMounted(() => {
       if (thumbIdx !== -1) {
         thumbnailImages.value[thumbIdx].predictions = data.predictions;
       }
+    });
+
+    // 13. Similar images progress event
+    window.api.onSimilarProgress((data) => {
+      similarAnalysisProgress.value = data;
     });
 
     // Auto-start sync service on mount so the QR Code is immediately shown!
