@@ -1419,27 +1419,41 @@ async function analyzeSimilarImages() {
   selectedDuplicateIds.value.clear();
 
   try {
-    // Collect all valid local & mobile images
-    const imageList = images.value.map(img => ({
-      id: img.id || img.path,
-      name: img.name,
-      path: img.path,
-      size: img.size,
-      src: img.src,
-      predictions: img.predictions
-    }));
+    // Collect only image resources (excluding other files)
+    const imageList = images.value
+      .filter(img => {
+        const ext = getExtensionName(img.name);
+        return ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext);
+      })
+      .map(img => ({
+        id: img.id || img.path,
+        name: img.name,
+        path: img.path,
+        size: img.size,
+        src: img.src,
+        predictions: img.predictions
+      }));
 
     if (imageList.length === 0) {
-      logSyncEvent("⚠️ 无法计算相似图：未导入或同步任何图片");
+      alert("⚠️ 无法计算相似图：未导入或同步任何图片。请先在‘图片’主界面导入本地文件夹，或在‘连接手机’界面同步手机图片。");
       isAnalyzingSimilar.value = false;
       return;
     }
 
     const thresholdVal = similarityThreshold.value / 100.0;
+    
+    if (!window.api || !window.api.getSimilarImagesGroups) {
+      throw new Error("检测到新代码尚未加载生效。请完全退出桌面应用并重新运行 npm run dev 或重新启动以加载最新的底层 API 绑定。");
+    }
+
     const groups = await window.api.getSimilarImagesGroups(imageList, thresholdVal);
     similarGroups.value = groups;
     logSyncEvent(`🎉 相似图片分析完成，检测到 ${groups.length} 组相似图片。`);
+    if (groups.length === 0) {
+      alert("💡 相似度比对完成！未在当前图片库中发现符合此阈值的相似图片。");
+    }
   } catch (err) {
+    alert(`❌ 相似图分析发生错误:\n${err.message}`);
     logSyncEvent(`❌ 相似图片分析失败: ${err.message}`);
   } finally {
     isAnalyzingSimilar.value = false;

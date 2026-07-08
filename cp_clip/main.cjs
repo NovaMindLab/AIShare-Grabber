@@ -333,25 +333,90 @@ ipcMain.handle('read-image-bytes', async (event, filePath) => {
   }
 });
 
+async function computeEmbeddingInternal(imagePath) {
+  if (!fs.existsSync(imagePath)) {
+    throw new Error(`File not found: ${imagePath}`);
+  }
+
+  // If already cached, return it
+  if (imageEmbeddingsCache[imagePath]) {
+    return imageEmbeddingsCache[imagePath];
+  }
+
+  // Mock Mode fallback
+  if (isMockMode || !ortSession || !sharp) {
+    // Simulate network/disk delay
+    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 100));
+    
+    // Return a random 512-dim vector for mock mode
+    const mockEmbedding = new Float32Array(512);
+    for (let i = 0; i < 512; i++) {
+      mockEmbedding[i] = Math.random() - 0.5;
+    }
+    // Normalize mock embedding
+    let norm = 0;
+    for (let i = 0; i < 512; i++) norm += mockEmbedding[i] * mockEmbedding[i];
+    norm = Math.sqrt(norm);
+    if (norm > 0) {
+      for (let i = 0; i < 512; i++) mockEmbedding[i] /= norm;
+    }
+    imageEmbeddingsCache[imagePath] = mockEmbedding;
+    return mockEmbedding;
+  }
+
+  // Real inference path
+  // 1. Preprocess image with sharp
+  const { data, info } = await sharp(imagePath)
+    .resize(256, 256, {
+      fit: 'cover',
+      position: 'center'
+    })
+    .removeAlpha() // Ensure RGB only
+    .toColourspace('srgb')
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  if (info.width !== 256 || info.height !== 256 || info.channels !== 3) {
+    throw new Error(`Sharp resize output invalid: ${info.width}x${info.height}x${info.channels}`);
+  }
+
+  // 2. Reshape to Planar format and scale to [0, 1]
+  const float32Data = new Float32Array(3 * 256 * 256);
+  const imageSize = 256 * 256;
+
+  for (let i = 0; i < imageSize; i++) {
+    float32Data[i] = data[i * 3] / 255.0;                      // R channel
+    float32Data[imageSize + i] = data[i * 3 + 1] / 255.0;      // G channel
+    float32Data[2 * imageSize + i] = data[i * 3 + 2] / 255.0;  // B channel
+  }
+
+  // 3. Create Tensor [1, 3, 256, 256]
+  const tensor = new ort.Tensor('float32', float32Data, [1, 3, 256, 256]);
+
+  // 4. Run ONNX session
+  const inputName = ortSession.inputNames[0];
+  const feeds = {};
+  feeds[inputName] = tensor;
+  
+  const outputs = await ortSession.run(feeds);
+  const outputName = ortSession.outputNames[0];
+  const imageEmbedding = outputs[outputName].data; // Float32Array of output dimension (typically 512)
+
+  // Cache the image embedding
+  imageEmbeddingsCache[imagePath] = imageEmbedding;
+  return imageEmbedding;
+}
+
 async function classifyPhotoInternal(imagePath) {
   try {
-    if (!fs.existsSync(imagePath)) {
-      throw new Error(`File not found: ${imagePath}`);
-    }
+    const imageEmbedding = await computeEmbeddingInternal(imagePath);
 
     // Mock Mode fallback
     if (isMockMode || !ortSession || !sharp) {
-      // Simulate network/disk delay
-      await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 400));
-      
       const categories = Object.keys(textEmbeddings);
-      // Give random scores that sum to 1.0
-      let rawScores = categories.map(() => Math.random() * 0.5 + 0.1);
-      // If we want a specific image to always result in a consistent category mock-wise,
-      // we can seed it with the sum of char codes of imagePath.
       let seed = 0;
       for (let i = 0; i < imagePath.length; i++) seed += imagePath.charCodeAt(i);
-      rawScores = categories.map((cat, idx) => {
+      let rawScores = categories.map((cat, idx) => {
         const hash = Math.sin(seed + idx) * 10000;
         return (hash - Math.floor(hash)) * 0.8 + 0.1;
       });
@@ -365,50 +430,8 @@ async function classifyPhotoInternal(imagePath) {
       return scores.slice(0, 3);
     }
 
-    // Real inference path
-    // 1. Preprocess image with sharp
-    // MobileCLIP default input is 256x256
-    const { data, info } = await sharp(imagePath)
-      .resize(256, 256, {
-        fit: 'cover',
-        position: 'center'
-      })
-      .removeAlpha() // Ensure RGB only
-      .toColourspace('srgb')
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-
-    if (info.width !== 256 || info.height !== 256 || info.channels !== 3) {
-      throw new Error(`Sharp resize output invalid: ${info.width}x${info.height}x${info.channels}`);
-    }
-
-    // 2. Reshape to Planar format and scale to [0, 1] (MobileCLIP does not use mean/std standardization)
-    const float32Data = new Float32Array(3 * 256 * 256);
-    const imageSize = 256 * 256;
-
-    for (let i = 0; i < imageSize; i++) {
-      // data holds interleaved R,G,B values. We convert to Planar RRR... GGG... BBB...
-      float32Data[i] = data[i * 3] / 255.0;                      // R channel
-      float32Data[imageSize + i] = data[i * 3 + 1] / 255.0;      // G channel
-      float32Data[2 * imageSize + i] = data[i * 3 + 2] / 255.0;  // B channel
-    }
-
-    // 3. Create Tensor [1, 3, 256, 256]
-    const tensor = new ort.Tensor('float32', float32Data, [1, 3, 256, 256]);
-
-    // 4. Run ONNX session
-    const inputName = ortSession.inputNames[0];
-    const feeds = {};
-    feeds[inputName] = tensor;
-    
-    const outputs = await ortSession.run(feeds);
-    const outputName = ortSession.outputNames[0];
-    const imageEmbedding = outputs[outputName].data; // Float32Array of output dimension (typically 512)
-
-    // Cache the image embedding for search
-    imageEmbeddingsCache[imagePath] = imageEmbedding;
-
-    // 5. Calculate similarity with each text embedding
+    // Real inference path label mapping
+    // Calculate similarity with each text embedding
     const similarities = [];
     for (const [category, textEmbedding] of Object.entries(textEmbeddings)) {
       if (textEmbedding && textEmbedding.length > 0) {
@@ -421,8 +444,6 @@ async function classifyPhotoInternal(imagePath) {
       return [{ category: "⚠️ No categories defined", score: 1.0 }];
     }
 
-    // 6. Compute Softmax to represent similarity percentages.
-    // We multiply similarity scores by a logits temperature (use 60.0 to balance confidence & prevent over-confident low matches)
     const temperature = 60.0;
     const expScores = similarities.map(s => ({
       category: s.category,
@@ -551,9 +572,7 @@ ipcMain.handle('get-similar-images-groups', async (event, { imageList, threshold
     try {
       let emb = imageEmbeddingsCache[img.path];
       if (!emb && fs.existsSync(img.path)) {
-        // Run classification to compute and cache embedding
-        await classifyPhotoInternal(img.path);
-        emb = imageEmbeddingsCache[img.path];
+        emb = await computeEmbeddingInternal(img.path);
       }
 
       if (emb) {
