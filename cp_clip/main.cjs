@@ -509,11 +509,18 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
         const predictions = await classifyPhotoInternal(row.path);
         const predictionsStr = JSON.stringify(predictions);
 
-        // Update database
+        // Get the cached embedding Buffer
+        let embeddingBuffer = null;
+        const emb = imageEmbeddingsCache[row.path];
+        if (emb) {
+          embeddingBuffer = Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength);
+        }
+
+        // Update database with both predictions and embedding blob
         await new Promise((resolve, reject) => {
           activeDeviceDb.run(
-            `UPDATE resources SET predictions = ? WHERE id = ?`,
-            [predictionsStr, row.id],
+            `UPDATE resources SET predictions = ?, embedding = ? WHERE id = ?`,
+            [predictionsStr, embeddingBuffer, row.id],
             (err) => {
               if (err) reject(err);
               else resolve();
@@ -561,27 +568,70 @@ ipcMain.handle('get-similar-images-groups', async (event, { imageList, threshold
   const embeddings = [];
   const validImages = [];
 
-  for (let i = 0; i < total; i++) {
-    const img = imageList[i];
-    
-    event.sender.send('similar-progress', {
-      done: i,
-      total,
-      currentName: img.name
-    });
+  // 1. Ensure all image embeddings are cached (using bounded concurrency limit of 4)
+  const concurrencyLimit = 4;
+  let doneCount = 0;
 
+  async function processImage(img) {
     try {
       let emb = imageEmbeddingsCache[img.path];
       if (!emb && fs.existsSync(img.path)) {
         emb = await computeEmbeddingInternal(img.path);
+        
+        // Background persist to database if it's a mobile synced image
+        if (activeDeviceDb && img.id) {
+          const embBuf = Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength);
+          activeDeviceDb.run(
+            `UPDATE resources SET embedding = ? WHERE id = ? OR path = ?`,
+            [embBuf, img.id, img.path]
+          );
+        }
       }
 
-      if (emb) {
-        embeddings.push(emb);
-        validImages.push(img);
-      }
+      // Update progress
+      doneCount++;
+      event.sender.send('similar-progress', {
+        done: doneCount,
+        total,
+        currentName: img.name
+      });
+
+      return { img, emb };
     } catch (err) {
       console.error(`[AI Similar] Failed to process embedding for ${img.name}:`, err);
+      doneCount++;
+      event.sender.send('similar-progress', {
+        done: doneCount,
+        total,
+        currentName: img.name
+      });
+      return { img, emb: null };
+    }
+  }
+
+  // Run in a bounded concurrency execution pool
+  const results = [];
+  const executing = new Set();
+
+  for (const img of imageList) {
+    const p = processImage(img).then(res => {
+      executing.delete(p);
+      return res;
+    });
+    results.push(p);
+    executing.add(p);
+    
+    if (executing.size >= concurrencyLimit) {
+      await Promise.race(executing);
+    }
+  }
+
+  const processed = await Promise.all(results);
+
+  for (const item of processed) {
+    if (item.emb) {
+      embeddings.push(item.emb);
+      validImages.push(item.img);
     }
   }
 
@@ -974,7 +1024,7 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
   const dbPath = path.join(baseDir, 'database.sqlite');
   activeDeviceDb = new sqlite3.Database(dbPath);
   
-  // Initialize table
+  // Initialize table (including embedding BLOB column)
   await new Promise((resolve, reject) => {
     activeDeviceDb.run(`
       CREATE TABLE IF NOT EXISTS resources (
@@ -984,21 +1034,43 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
         type TEXT,
         size INTEGER,
         predictions TEXT,
-        sync_time INTEGER
+        sync_time INTEGER,
+        embedding BLOB
       )
     `, (err) => {
       if (err) reject(err);
       else resolve();
     });
   });
+
+  // Safe schema upgrade: ALTER TABLE to add embedding if it's missing from previous versions
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN embedding BLOB`, () => {
+      resolve(); // ignore error if column already exists
+    });
+  });
   
   // Read and return already synced assets
   const syncInfo = await new Promise((resolve, reject) => {
-    activeDeviceDb.all(`SELECT id, name, path, type, size, predictions FROM resources`, (err, rows) => {
+    activeDeviceDb.all(`SELECT id, name, path, type, size, predictions, embedding FROM resources`, (err, rows) => {
       if (err) {
         reject(err);
       } else {
         const syncedIds = rows.map(r => r.id);
+        
+        // Populated cached embeddings directly from SQLite into memory for instantaneous similarity calculations!
+        for (const row of rows) {
+          if (row.embedding && row.path) {
+            try {
+              const buffer = row.embedding; // Node.js Buffer from sqlite3 BLOB
+              const floatArray = new Float32Array(buffer.buffer, buffer.byteOffset, buffer.byteLength / 4);
+              imageEmbeddingsCache[row.path] = Float32Array.from(floatArray); // safe clone
+            } catch (loadErr) {
+              console.error(`[Database] Failed to load embedding from DB for ${row.path}:`, loadErr);
+            }
+          }
+        }
+        
         resolve({ syncedIds, resources: rows });
       }
     });
@@ -1094,14 +1166,21 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
       const predictionsStr = JSON.stringify(predictions);
       const syncTime = Date.now();
       
+      // Get the cached embedding Buffer
+      let embeddingBuffer = null;
+      const emb = imageEmbeddingsCache[targetPath];
+      if (emb) {
+        embeddingBuffer = Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength);
+      }
+
       activeDeviceDb.run(`
-        INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [assetId, filename, targetPath, isThumbnail ? 'thumbnail' : type, size, predictionsStr, syncTime], (err) => {
+        INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time, embedding)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [assetId, filename, targetPath, isThumbnail ? 'thumbnail' : type, size, predictionsStr, syncTime, embeddingBuffer], (err) => {
         if (err) {
           console.error(`[Database] Error registering synced asset ${assetId}:`, err);
         } else {
-          console.log(`[Database] Registered synced asset: ${filename} (ID: ${assetId})`);
+          console.log(`[Database] Registered synced asset with embedding: ${filename} (ID: ${assetId})`);
         }
       });
     }
