@@ -232,6 +232,7 @@ function createWindow() {
     width: 1200,
     height: 850,
     title: "ShareCLIP",
+    icon: path.join(__dirname, 'icon.png'),
     backgroundColor: '#0f172a', // Dark theme background color
     frame: false, // Make window frameless
     webPreferences: {
