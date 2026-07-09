@@ -48,7 +48,6 @@
                                 "mobileclip_text_encoder_quant.onnx",
                                 "package.json",
                                 "icon.png",
-                                "ble_signaling_server.py",
                                 "ble_signaling_server.exe",
                                 "wifi_ap.ps1",
                                 "node_modules/**",

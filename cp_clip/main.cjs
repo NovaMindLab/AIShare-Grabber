@@ -863,22 +863,16 @@ ipcMain.handle('start-ble-server', async (event) => {
   const { spawn } = require('child_process');
   const fs = require('fs');
   const exePath = path.join(__dirname, 'ble_signaling_server.exe');
-  const hasExe = fs.existsSync(exePath);
   
   return new Promise((resolve, reject) => {
-    if (hasExe) {
-      console.log("[Main] Spawning compiled BLE helper:", exePath);
-      bleProcess = spawn(exePath, [service_uuid, char_uuid, pcSessionId], {
-        cwd: __dirname
-      });
-    } else {
-      console.log("[Main] BLE executable not found, falling back to Python script");
-      const pythonExecutable = 'py';
-      const scriptPath = path.join(__dirname, 'ble_signaling_server.py');
-      bleProcess = spawn(pythonExecutable, [scriptPath, service_uuid, char_uuid, pcSessionId], {
-        cwd: __dirname
-      });
+    if (!fs.existsSync(exePath)) {
+      return reject(new Error("BLE Helper executable 'ble_signaling_server.exe' not found. Please compile it first."));
     }
+    
+    console.log("[Main] Spawning compiled BLE helper:", exePath);
+    bleProcess = spawn(exePath, [service_uuid, char_uuid, pcSessionId], {
+      cwd: __dirname
+    });
     
     let resolved = false;
     let macAddress = null;
