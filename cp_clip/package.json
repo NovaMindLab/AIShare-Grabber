@@ -67,11 +67,19 @@
                   "npmRebuild":  false,
                   "buildDependenciesFromSource":  false,
                   "win":  {
-                              "icon":  "build/icon.png",
+                              "icon":  "build/icon.ico",
                               "signAndEditExecutable":  false,
                               "target":  [
+                                             "nsis",
                                              "portable"
                                          ]
+                          },
+                  "nsis": {
+                              "oneClick": false,
+                              "allowToChangeInstallationDirectory": true,
+                              "createDesktopShortcut": "always",
+                              "createStartMenuShortcut": true,
+                              "shortcutName": "ShareCLIP"
                           }
               }
 }
