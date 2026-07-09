@@ -1149,13 +1149,52 @@
                 </div>
               </div>
 
+              <!-- Card: App Updates -->
+              <div class="settings-card full-width">
+                <div class="settings-card-header">
+                  <span class="settings-card-icon">🔄</span>
+                  <div>
+                    <h3 class="settings-card-title">{{ t.settings.updateCheckTitle }}</h3>
+                    <p class="settings-card-desc">{{ t.settings.updateCheckDesc }}</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="update-check-row">
+                    <div class="update-check-actions">
+                      <button class="dp-btn dp-browse" :disabled="updateStatus === 'checking'" @click="() => checkAppUpdates(true)">
+                        <span v-if="updateStatus === 'checking'">⏳ {{ t.settings.updateChecking }}</span>
+                        <span v-else>{{ t.settings.updateBtnCheck }}</span>
+                      </button>
+                    </div>
+                    
+                    <div class="update-result-msg" v-if="updateStatus !== 'idle' && updateStatus !== 'checking'">
+                      <div class="update-badge-container" :class="updateStatus">
+                        <span class="update-badge-icon" v-if="updateStatus === 'up-to-date'">✅</span>
+                        <span class="update-badge-icon" v-else-if="updateStatus === 'new-available'">🎉</span>
+                        <span class="update-badge-icon" v-else-if="updateStatus === 'failed'">⚠️</span>
+                        
+                        <span class="update-badge-text" v-if="updateStatus === 'up-to-date'">
+                          {{ t.settings.updateUpToDate.replace('{version}', currentVersion) }}
+                        </span>
+                        <span class="update-badge-text cursor-pointer hover-underline font-semibold" v-else-if="updateStatus === 'new-available'" @click="openUpdateRelease">
+                          {{ t.settings.updateNewAvailable.replace('{version}', latestVersion) }}
+                        </span>
+                        <span class="update-badge-text error" v-else-if="updateStatus === 'failed'">
+                          {{ t.settings.updateFailed.replace('{error}', updateError) }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Card: About / App Info -->
               <div class="settings-card full-width">
                 <div class="settings-card-header">
                   <span class="settings-card-icon">ℹ️</span>
                   <div>
                     <h3 class="settings-card-title">{{ t.settings.aboutTitle }}</h3>
-                    <p class="settings-card-desc">ShareCLIP v1.0.6</p>
+                    <p class="settings-card-desc">ShareCLIP v{{ currentVersion || '1.2.0' }}</p>
                   </div>
                 </div>
                 <div class="settings-card-body about-info">
@@ -1635,6 +1674,47 @@ function showDownloadPathSaved() {
 async function openDownloadFolder() {
   await window.api.openDownloadFolder();
 }
+
+// App Update checks
+const updateStatus = ref('idle'); // 'idle' | 'checking' | 'up-to-date' | 'new-available' | 'failed'
+const currentVersion = ref('');
+const latestVersion = ref('');
+const updateUrl = ref('');
+const updateError = ref('');
+
+async function checkAppUpdates(showToast = false) {
+  if (updateStatus.value === 'checking') return;
+  updateStatus.value = 'checking';
+  updateError.value = '';
+  
+  try {
+    const result = await window.api.checkForUpdates();
+    currentVersion.value = result.currentVersion || '1.2.0';
+    latestVersion.value = result.latestVersion || '';
+    updateUrl.value = result.url || '';
+    
+    if (result.error) {
+      updateStatus.value = 'failed';
+      updateError.value = result.error;
+    } else if (result.available) {
+      updateStatus.value = 'new-available';
+    } else {
+      updateStatus.value = 'up-to-date';
+    }
+  } catch (err) {
+    updateStatus.value = 'failed';
+    updateError.value = err.message || err;
+  }
+}
+
+function openUpdateRelease() {
+  if (updateUrl.value) {
+    window.open(updateUrl.value, '_blank');
+  } else {
+    window.open('https://github.com/NovaMindLab/AIShare-Grabber/releases/latest', '_blank');
+  }
+}
+
 
 
 const isReclassifying = ref(false);
@@ -2505,6 +2585,9 @@ onMounted(() => {
     window.api.getDownloadPath().then(savedPath => {
       if (savedPath) downloadPath.value = savedPath;
     });
+
+    // Check for updates in the background on startup
+    checkAppUpdates();
 
     // 1. Offer SDP received from mobile client
     window.api.onOfferReceived(async (offerSdp) => {

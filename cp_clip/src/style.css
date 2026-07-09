@@ -1590,6 +1590,61 @@ body {
 }
 
 /* ==========================================================================
+   🔄 App Update Styles
+   ========================================================================== */
+.update-check-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.update-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--glass-border);
+  font-size: 13px;
+  animation: fadeInSlide 0.25s ease;
+}
+
+.update-badge-container.up-to-date {
+  background: rgba(52, 211, 153, 0.08);
+  border-color: rgba(52, 211, 153, 0.35);
+  color: #34d399;
+}
+
+.update-badge-container.new-available {
+  background: rgba(124, 58, 237, 0.08);
+  border-color: rgba(124, 58, 237, 0.35);
+  color: #c084fc;
+}
+
+.update-badge-container.failed {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+.update-badge-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.update-badge-text {
+  line-height: 1.4;
+}
+
+.hover-underline:hover {
+  text-decoration: underline;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+/* ==========================================================================
    🗺️ Footprint Map Styles
    ========================================================================== */
 .custom-cluster-icon {

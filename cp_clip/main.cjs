@@ -1275,6 +1275,55 @@ ipcMain.handle('open-download-folder', async (event) => {
   return true;
 });
 
+// ---- Check for Updates --------------------------------------------------------
+
+function isNewVersionAvailable(current, latest) {
+  const cleanCurrent = current.replace(/^v/, '').split('+')[0];
+  const cleanLatest = latest.replace(/^v/, '').split('+')[0];
+  
+  const currentParts = cleanCurrent.split('.').map(x => parseInt(x, 10));
+  const latestParts = cleanLatest.split('.').map(x => parseInt(x, 10));
+  
+  for (let i = 0; i < 3; i++) {
+    const currentVal = currentParts[i] || 0;
+    const latestVal = latestParts[i] || 0;
+    if (latestVal > currentVal) return true;
+    if (currentVal > latestVal) return false;
+  }
+  return false;
+}
+
+ipcMain.handle('check-for-updates', async () => {
+  try {
+    const response = await fetch('https://api.github.com/repos/NovaMindLab/AIShare-Grabber/releases/latest', {
+      headers: {
+        'User-Agent': 'ShareCLIP-PC-App'
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`GitHub API returned status ${response.status}`);
+    }
+    const release = await response.json();
+    const latestVersion = release.tag_name;
+    const currentVersion = app.getVersion();
+    
+    const available = isNewVersionAvailable(currentVersion, latestVersion);
+    return {
+      available,
+      currentVersion,
+      latestVersion,
+      url: release.html_url,
+      body: release.body
+    };
+  } catch (err) {
+    console.error('[Update Check] Failed to check for updates:', err.message);
+    return {
+      available: false,
+      error: err.message
+    };
+  }
+});
+
 // -------------------------------------------------------------------------------
 
 ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChunks, payload, metadata }) => {

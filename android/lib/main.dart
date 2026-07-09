@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +11,8 @@ import 'views/qr_scanner_view.dart';
 import 'views/transfer_console_view.dart';
 import 'services/localization_service.dart';
 import 'services/theme_service.dart';
+
+const String appVersion = '1.2.0';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -120,6 +124,82 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
     if (mediaGranted) {
       viewModel.loadGalleryEarly();
     }
+
+    // Check for app updates in the background
+    _checkUpdate();
+  }
+
+  Future<void> _checkUpdate() async {
+    try {
+      final client = HttpClient();
+      client.userAgent = 'ShareCLIP-Android-App';
+      final request = await client.getUrl(Uri.parse('https://api.github.com/repos/NovaMindLab/AIShare-Grabber/releases/latest'));
+      final response = await request.close();
+      if (response.statusCode == 200) {
+        final jsonString = await response.transform(utf8.decoder).join();
+        final Map<String, dynamic> release = json.decode(jsonString) as Map<String, dynamic>;
+        final String latestTag = release['tag_name'] as String;
+        
+        if (_isNewVersionAvailable(appVersion, latestTag)) {
+          final String htmlUrl = release['html_url'] as String;
+          _showUpdateDialog(latestTag, htmlUrl);
+        }
+      }
+    } catch (e) {
+      debugPrint('[Update] Error checking updates: $e');
+    }
+  }
+
+  bool _isNewVersionAvailable(String current, String latest) {
+    final cleanCurrent = current.replaceAll('v', '').split('+')[0];
+    final cleanLatest = latest.replaceAll('v', '').split('+')[0];
+    
+    final currentParts = cleanCurrent.split('.').map(int.tryParse).toList();
+    final latestParts = cleanLatest.split('.').map(int.tryParse).toList();
+    
+    for (var i = 0; i < 3; i++) {
+      final currentVal = (i < currentParts.length) ? (currentParts[i] ?? 0) : 0;
+      final latestVal = (i < latestParts.length) ? (latestParts[i] ?? 0) : 0;
+      if (latestVal > currentVal) return true;
+      if (currentVal > latestVal) return false;
+    }
+    return false;
+  }
+
+  void _showUpdateDialog(String latestVersion, String releaseUrl) {
+    final lang = Provider.of<LocalizationService>(context, listen: false);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(lang.get('updateTitle')),
+          content: Text(lang.get('updateMessage').replaceAll('{version}', latestVersion)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(lang.get('laterBtn')),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                const platform = MethodChannel('com.shareclip/system_info');
+                try {
+                  await platform.invokeMethod('openUrl', {'url': releaseUrl});
+                } catch (e) {
+                  debugPrint('[Update] Error opening release URL: $e');
+                }
+              },
+              child: Text(lang.get('updateBtn')),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

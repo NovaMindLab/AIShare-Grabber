@@ -34,6 +34,20 @@ class MainActivity : FlutterActivity() {
                     "used_storage" to usedBytes
                 )
                 result.success(info)
+            } else if (call.method == "openUrl") {
+                val url = call.argument<String>("url")
+                if (url != null) {
+                    try {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("ERROR", e.message, null)
+                    }
+                } else {
+                    result.error("BAD_ARGS", "Missing url parameter", null)
+                }
             } else {
                 result.notImplemented()
             }

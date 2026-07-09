@@ -66,6 +66,10 @@ class LocalizationService extends ChangeNotifier {
       'pickDocs': 'Pick Document Files',
       'scannerBanner': 'Align the PC QR code inside the frame',
       'selectLanguage': 'Select Language',
+      'updateTitle': 'Update Available',
+      'updateMessage': 'A new version of ShareCLIP (v{version}) is available. Would you like to download it now?',
+      'updateBtn': 'Download Now',
+      'laterBtn': 'Later',
     },
     'zh': {
       'homeTitle': 'ShareCLIP 手机伴侣',
@@ -98,6 +102,10 @@ class LocalizationService extends ChangeNotifier {
       'pickDocs': '选择本地文档',
       'scannerBanner': '请将电脑端的二维码对准框内',
       'selectLanguage': '选择语言',
+      'updateTitle': '发现新版本',
+      'updateMessage': '检测到 ShareCLIP 新版本 (v{version})，是否立即下载并更新？',
+      'updateBtn': '立即更新',
+      'laterBtn': '以后再说',
     },
     'zh-TW': {
       'homeTitle': 'ShareCLIP 手機伴侶',
@@ -109,7 +117,7 @@ class LocalizationService extends ChangeNotifier {
       'items': '項',
       'permissionTitle': '授權管理',
       'permissionDesc': '本應用需要攝像頭權限掃碼建立配對，並需要藍牙與定位權限以通過藍牙廣播發現並與桌面管理端握手連線。',
-      'grantBtn': '授予權限',
+      'grantBtn': '授權權限',
       'connecting': '正在連線電腦...',
       'connectingDesc': '正在通過藍牙低功耗信令通道協商 WebRTC 握手參數。',
       'connFailed': '連線失敗',
@@ -130,6 +138,10 @@ class LocalizationService extends ChangeNotifier {
       'pickDocs': '選擇本地文檔',
       'scannerBanner': '請將電腦端的二維碼對準框內',
       'selectLanguage': '選擇語言',
+      'updateTitle': '發現新版本',
+      'updateMessage': '檢測到 ShareCLIP 新版本 (v{version})，是否立即下載並更新？',
+      'updateBtn': '立即更新',
+      'laterBtn': '以後再說',
     }
   };
 

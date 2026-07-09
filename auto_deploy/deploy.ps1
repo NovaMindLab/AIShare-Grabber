@@ -101,12 +101,20 @@ if (Test-Path $PubspecPath) {
     $PubspecContent | Set-Content $PubspecPath
 }
 
+$AndroidMainDart = "android/lib/main.dart"
+if (Test-Path $AndroidMainDart) {
+    Write-Host "Updating version in $AndroidMainDart to $VersionOnly" -ForegroundColor Gray
+    $DartContent = Get-Content $AndroidMainDart
+    $DartContent = $DartContent -replace "const String appVersion = '.*';", "const String appVersion = '$VersionOnly';"
+    $DartContent | Set-Content $AndroidMainDart
+}
+
 # Commit and push version bump to git repositories
 if (Get-Command "git" -ErrorAction SilentlyContinue) {
     $Diff = git status --porcelain
     if ($Diff) {
         Write-Host "Committing version bump to Git..." -ForegroundColor Yellow
-        git add $PkgJsonPath $WebPkgPath $PubspecPath
+        git add $PkgJsonPath $WebPkgPath $PubspecPath $AndroidMainDart
         git commit -m "chore: bump version to $VersionOnly for deployment"
         Write-Host "Pushing version bump to Gitee (origin) and GitHub (github)..." -ForegroundColor Yellow
         git push origin master --quiet

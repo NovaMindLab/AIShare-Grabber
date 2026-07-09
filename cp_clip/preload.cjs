@@ -100,6 +100,7 @@ contextBridge.exposeInMainWorld('api', {
   setDownloadPath: (newPath) => ipcRenderer.invoke('set-download-path', newPath),
   selectDownloadFolder: () => ipcRenderer.invoke('select-download-folder'),
   openDownloadFolder: () => ipcRenderer.invoke('open-download-folder'),
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
 
   // Window controls
   minimizeWindow: () => ipcRenderer.invoke('window-minimize'),

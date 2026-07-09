@@ -152,6 +152,13 @@ export const locales = {
       downloadPathReset: "Reset to Default",
       downloadPathDefault: "(App Default: sync_storage/)",
       downloadPathSaved: "✅ Path saved",
+      updateCheckTitle: "Application Updates",
+      updateCheckDesc: "Check if a newer version of ShareCLIP is available on GitHub.",
+      updateBtnCheck: "🔍 Check for Updates",
+      updateChecking: "Checking for updates...",
+      updateUpToDate: "ShareCLIP is up to date (v{version})!",
+      updateNewAvailable: "New version v{version} is available! Click to download.",
+      updateFailed: "Failed to check for updates: {error}",
       aboutTitle: "About ShareCLIP"
     }
   },
@@ -284,6 +291,13 @@ export const locales = {
       downloadPathReset: "恢复默认",
       downloadPathDefault: "（应用默认：sync_storage/）",
       downloadPathSaved: "✅ 已保存",
+      updateCheckTitle: "应用更新",
+      updateCheckDesc: "检查 GitHub 上是否有最新的 ShareCLIP 版本。",
+      updateBtnCheck: "🔍 检查更新",
+      updateChecking: "正在检查更新...",
+      updateUpToDate: "当前已是最新版本 (v{version})！",
+      updateNewAvailable: "检测到新版本 v{version}！点击前往下载。",
+      updateFailed: "检查更新失败: {error}",
       aboutTitle: "关于 ShareCLIP"
     }
   }
@@ -396,6 +410,13 @@ langList.forEach(lang => {
         downloadPathReset: "恢復預設",
         downloadPathDefault: "（應用預設：sync_storage/）",
         downloadPathSaved: "✅ 已儲存",
+        updateCheckTitle: "應用更新",
+        updateCheckDesc: "檢查 GitHub 上是否有最新的 ShareCLIP 版本。",
+        updateBtnCheck: "🔍 檢查更新",
+        updateChecking: "正在檢查更新...",
+        updateUpToDate: "目前已是最新版本 (v{version})！",
+        updateNewAvailable: "檢測到新版本 v{version}！點擊前往下載。",
+        updateFailed: "檢查更新失敗: {error}",
         aboutTitle: "關於 ShareCLIP"
       }
     };
