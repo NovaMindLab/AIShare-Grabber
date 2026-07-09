@@ -8,12 +8,35 @@
 
 param (
     [string]$Tag = "",
-    [string]$Repo = "NovaMindLab/AIShare-Grabber"
+    [string]$Repo = "NovaMindLab/AIShare-Grabber",
+    [switch]$AutoIncrement = $true
 )
 
+$PkgJsonPath = "cp_clip/package.json"
+$WebPkgPath = "web/package.json"
+$PubspecPath = "android/pubspec.yaml"
+
 if ([string]::IsNullOrEmpty($Tag)) {
-    $Tag = "v" + (Get-Date -Format "yyyy.MM.dd-HHmm")
-    Write-Host "No tag specified. Generating automatic tag: $Tag" -ForegroundColor Yellow
+    if ($AutoIncrement -and (Test-Path $PkgJsonPath)) {
+        # Read current version from package.json
+        $CurrentVersion = (Get-Content $PkgJsonPath -Raw | ConvertFrom-Json).version
+        # Parse major.minor.patch
+        if ($CurrentVersion -match "^(\d+)\.(\d+)\.(\d+)$") {
+            $Major = [int]$Matches[1]
+            $Minor = [int]$Matches[2]
+            $Patch = [int]$Matches[3]
+            $NewPatch = $Patch + 1
+            $NewVersion = "$Major.$Minor.$NewPatch"
+            $Tag = "v$NewVersion"
+            Write-Host "Auto-incrementing version: $CurrentVersion -> $NewVersion" -ForegroundColor Green
+        } else {
+            $Tag = "v" + (Get-Date -Format "yyyy.MM.dd-HHmm")
+            Write-Host "Current version format not matched. Generating date-based tag: $Tag" -ForegroundColor Yellow
+        }
+    } else {
+        $Tag = "v" + (Get-Date -Format "yyyy.MM.dd-HHmm")
+        Write-Host "No tag specified. Generating automatic tag: $Tag" -ForegroundColor Yellow
+    }
 }
 
 # 🔍 Locate Flutter and GitHub CLI executables
@@ -57,7 +80,6 @@ if ($VersionOnly.StartsWith("v")) {
     $VersionOnly = $VersionOnly.Substring(1)
 }
 
-$PkgJsonPath = "cp_clip/package.json"
 if (Test-Path $PkgJsonPath) {
     Write-Host "Updating version in $PkgJsonPath to $VersionOnly" -ForegroundColor Gray
     $PkgJson = Get-Content $PkgJsonPath -Raw | ConvertFrom-Json
@@ -65,7 +87,6 @@ if (Test-Path $PkgJsonPath) {
     $PkgJson | ConvertTo-Json -Depth 10 | Set-Content $PkgJsonPath
 }
 
-$WebPkgPath = "web/package.json"
 if (Test-Path $WebPkgPath) {
     Write-Host "Updating version in $WebPkgPath to $VersionOnly" -ForegroundColor Gray
     $WebPkg = Get-Content $WebPkgPath -Raw | ConvertFrom-Json
@@ -73,12 +94,24 @@ if (Test-Path $WebPkgPath) {
     $WebPkg | ConvertTo-Json -Depth 10 | Set-Content $WebPkgPath
 }
 
-$PubspecPath = "android/pubspec.yaml"
 if (Test-Path $PubspecPath) {
     Write-Host "Updating version in $PubspecPath to $VersionOnly+1" -ForegroundColor Gray
     $PubspecContent = Get-Content $PubspecPath
     $PubspecContent = $PubspecContent -replace "^version:\s+.*", "version: $VersionOnly+1"
     $PubspecContent | Set-Content $PubspecPath
+}
+
+# Commit and push version bump to git repositories
+if (Get-Command "git" -ErrorAction SilentlyContinue) {
+    $Diff = git status --porcelain
+    if ($Diff) {
+        Write-Host "Committing version bump to Git..." -ForegroundColor Yellow
+        git add $PkgJsonPath $WebPkgPath $PubspecPath
+        git commit -m "chore: bump version to $VersionOnly for deployment"
+        Write-Host "Pushing version bump to Gitee (origin) and GitHub (github)..." -ForegroundColor Yellow
+        git push origin master --quiet
+        git push github master:main --quiet
+    }
 }
 
 # 1. Clean and build Web site (web/dist) with dynamic repository base path
