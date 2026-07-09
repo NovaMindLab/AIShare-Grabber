@@ -47,11 +47,24 @@
                                 "mobileclip_image_encoder.onnx",
                                 "mobileclip_text_encoder_quant.onnx",
                                 "package.json",
-                                "!node_modules/onnxruntime-node/bin/napi-v6/darwin/**/*",
-                                "!node_modules/onnxruntime-node/bin/napi-v6/linux/**/*",
-                                "!node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/**/*"
+                                "node_modules/**",
+                                "!node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
+                                "!node_modules/onnxruntime-node/bin/napi-v6/linux/**",
+                                "!node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/**",
+                                "!node_modules/onnxruntime-node/bin/napi-v6/win32/x64/DirectML.dll",
+                                "!node_modules/onnxruntime-node/bin/napi-v6/win32/x64/dxcompiler.dll",
+                                "!node_modules/onnxruntime-node/bin/napi-v6/win32/x64/dxil.dll",
+                                "!node_modules/sqlite3/deps/**",
+                                "!node_modules/sqlite3/src/**",
+                                "!node_modules/@img/sharp-linux-x64/**",
+                                "!node_modules/@img/sharp-linux-arm64/**",
+                                "!node_modules/@img/sharp-darwin-x64/**",
+                                "!node_modules/@img/sharp-darwin-arm64/**",
+                                "!node_modules/@img/sharp-win32-arm64/**"
                             ],
                   "asar":  false,
+                  "npmRebuild":  false,
+                  "buildDependenciesFromSource":  false,
                   "win":  {
                               "signAndEditExecutable":  false,
                               "target":  [
