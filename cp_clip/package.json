@@ -67,6 +67,7 @@
                   "npmRebuild":  false,
                   "buildDependenciesFromSource":  false,
                   "win":  {
+                              "icon": "build/icon.png",
                               "signAndEditExecutable":  false,
                               "target":  [
                                              "portable"
