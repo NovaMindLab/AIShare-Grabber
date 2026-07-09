@@ -1,7 +1,7 @@
 {
     "name":  "image-clip-classifier",
     "private":  true,
-    "version":  "1.2.1",
+    "version":  "1.2.2",
     "description":  "ShareCLIP PC Client",
     "author":  "ShareCLIP Team",
     "type":  "module",
@@ -70,8 +70,16 @@
                               "icon":  "build/icon.ico",
                               "signAndEditExecutable":  false,
                               "target":  [
+                                             "nsis",
                                              "portable"
                                          ]
-                          }
+                          },
+                  "nsis":  {
+                               "oneClick":  false,
+                               "allowToChangeInstallationDirectory":  true,
+                               "createDesktopShortcut":  "always",
+                               "createStartMenuShortcut":  true,
+                               "shortcutName":  "ShareCLIP"
+                           }
               }
 }
