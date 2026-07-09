@@ -84,29 +84,29 @@ if (Test-Path $PkgJsonPath) {
     Write-Host "Updating version in $PkgJsonPath to $VersionOnly" -ForegroundColor Gray
     $PkgJson = Get-Content $PkgJsonPath -Raw -Encoding utf8 | ConvertFrom-Json
     $PkgJson.version = $VersionOnly
-    $PkgJson | ConvertTo-Json -Depth 10 | Set-Content $PkgJsonPath -Encoding utf8
+    [System.IO.File]::WriteAllText((Resolve-Path $PkgJsonPath), ($PkgJson | ConvertTo-Json -Depth 10))
 }
 
 if (Test-Path $WebPkgPath) {
     Write-Host "Updating version in $WebPkgPath to $VersionOnly" -ForegroundColor Gray
     $WebPkg = Get-Content $WebPkgPath -Raw -Encoding utf8 | ConvertFrom-Json
     $WebPkg.version = $VersionOnly
-    $WebPkg | ConvertTo-Json -Depth 10 | Set-Content $WebPkgPath -Encoding utf8
+    [System.IO.File]::WriteAllText((Resolve-Path $WebPkgPath), ($WebPkg | ConvertTo-Json -Depth 10))
 }
 
 if (Test-Path $PubspecPath) {
     Write-Host "Updating version in $PubspecPath to $VersionOnly+1" -ForegroundColor Gray
-    $PubspecContent = Get-Content $PubspecPath -Encoding utf8
+    $PubspecContent = Get-Content $PubspecPath -Raw -Encoding utf8
     $PubspecContent = $PubspecContent -replace "^version:\s+.*", "version: $VersionOnly+1"
-    $PubspecContent | Set-Content $PubspecPath -Encoding utf8
+    [System.IO.File]::WriteAllText((Resolve-Path $PubspecPath), $PubspecContent)
 }
 
 $AndroidMainDart = "android/lib/main.dart"
 if (Test-Path $AndroidMainDart) {
     Write-Host "Updating version in $AndroidMainDart to $VersionOnly" -ForegroundColor Gray
-    $DartContent = Get-Content $AndroidMainDart -Encoding utf8
+    $DartContent = Get-Content $AndroidMainDart -Raw -Encoding utf8
     $DartContent = $DartContent -replace "const String appVersion = '.*';", "const String appVersion = '$VersionOnly';"
-    $DartContent | Set-Content $AndroidMainDart -Encoding utf8
+    [System.IO.File]::WriteAllText((Resolve-Path $AndroidMainDart), $DartContent)
 }
 
 # Commit and push version bump to git repositories

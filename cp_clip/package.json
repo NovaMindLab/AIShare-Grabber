@@ -1,7 +1,7 @@
-﻿{
+{
     "name":  "image-clip-classifier",
     "private":  true,
-    "version":  "1.2.3",
+    "version":  "1.2.0",
     "description":  "ShareCLIP PC Client",
     "author":  "ShareCLIP Team",
     "type":  "module",
@@ -67,19 +67,11 @@
                   "npmRebuild":  false,
                   "buildDependenciesFromSource":  false,
                   "win":  {
-                              "icon":  "build/icon.ico",
+                              "icon": "build/icon.png",
                               "signAndEditExecutable":  false,
                               "target":  [
-                                             "nsis",
                                              "portable"
                                          ]
-                          },
-                  "nsis":  {
-                               "oneClick":  false,
-                               "allowToChangeInstallationDirectory":  true,
-                               "createDesktopShortcut":  "always",
-                               "createStartMenuShortcut":  true,
-                               "shortcutName":  "ShareCLIP"
-                           }
+                          }
               }
 }
