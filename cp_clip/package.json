@@ -48,6 +48,8 @@
                                 "mobileclip_text_encoder_quant.onnx",
                                 "package.json",
                                 "icon.png",
+                                "ble_signaling_server.py",
+                                "wifi_ap.ps1",
                                 "node_modules/**",
                                 "!node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
                                 "!node_modules/onnxruntime-node/bin/napi-v6/linux/**",
