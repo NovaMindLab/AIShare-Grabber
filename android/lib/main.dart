@@ -12,7 +12,7 @@ import 'views/transfer_console_view.dart';
 import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 
-const String appVersion = '1.2.2';
+const String appVersion = '1.2.0';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -249,7 +249,7 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
     }
   }
 
-  // 🏠 HOME SCREEN �?Gallery preview + connect button
+  // 🏠 HOME SCREEN — Gallery preview + connect button
   // ─────────────────────────────────────────────────────────────────
   Widget _buildHomeScreen(SyncViewModel viewModel) {
     final t = Provider.of<LocalizationService>(context);
@@ -471,7 +471,7 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                                   color: Theme.of(context).dividerColor,
                                   alignment: Alignment.center,
                                   child: Text(
-                                    isVideo ? '🎥' : '🖼�?,
+                                    isVideo ? '🎥' : '🖼️',
                                     style:
                                         const TextStyle(fontSize: 22),
                                   ),
@@ -561,15 +561,15 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
     );
   }
 
-  // �?CONNECTING PROGRESS
+  // ⏳ CONNECTING PROGRESS
   // ─────────────────────────────────────────────────────────────────
   Widget _buildConnectingProgressScreen(
       AppState appState, SyncViewModel viewModel) {
     final t = Provider.of<LocalizationService>(context);
     final isZh = t.currentLocale.startsWith('zh');
     final labels = {
-      AppState.connectingBle: isZh ? "正在通过蓝牙搜索并连接电�?.." : "Scanning & Connecting to PC via BLE...",
-      AppState.negotiatingMtu: isZh ? "正在协商蓝牙传输属�?.." : "Negotiating BLE transfer properties...",
+      AppState.connectingBle: isZh ? "正在通过蓝牙搜索并连接电脑..." : "Scanning & Connecting to PC via BLE...",
+      AppState.negotiatingMtu: isZh ? "正在协商蓝牙传输属性..." : "Negotiating BLE transfer properties...",
       AppState.discoveringGatt: isZh ? "正在发现GATT特征服务..." : "Discovering GATT service characteristics...",
       AppState.generatingOffer: isZh ? "正在生成WebRTC Offer参数..." : "Generating WebRTC Offer parameters...",
       AppState.sendingOffer: isZh ? "正在通过蓝牙上传Offer SDP..." : "Uploading Offer SDP over BLE...",
