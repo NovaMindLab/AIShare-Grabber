@@ -145,6 +145,13 @@ export const locales = {
       themeDesc: "Switch between dark (dark mode) and light (light mode) appearance.",
       themeDark: "Dark Mode",
       themeLight: "Light Mode",
+      downloadPathTitle: "Download Save Path",
+      downloadPathDesc: "Set the target folder where synced original photos and videos are saved. Thumbnails remain internal.",
+      downloadPathBrowse: "📁 Browse...",
+      downloadPathOpen: "📂 Open Folder",
+      downloadPathReset: "Reset to Default",
+      downloadPathDefault: "(App Default: sync_storage/)",
+      downloadPathSaved: "✅ Path saved",
       aboutTitle: "About ShareCLIP"
     }
   },
@@ -270,6 +277,13 @@ export const locales = {
       themeDesc: "在深色（暗夜模式）与浅色（清爽模式）之间自由切换。",
       themeDark: "暗夜模式",
       themeLight: "清爽模式",
+      downloadPathTitle: "下载保存路径",
+      downloadPathDesc: "设置同步的原图和视频等文件的保存目录。AI 分析缩略图始终保存在应用内部目录。",
+      downloadPathBrowse: "📁 浏览...",
+      downloadPathOpen: "📂 打开目录",
+      downloadPathReset: "恢复默认",
+      downloadPathDefault: "（应用默认：sync_storage/）",
+      downloadPathSaved: "✅ 已保存",
       aboutTitle: "关于 ShareCLIP"
     }
   }
@@ -375,6 +389,13 @@ langList.forEach(lang => {
         themeDesc: "在深色（暗夜模式）與淺色（清爽模式）之間自由切換。",
         themeDark: "暗夜模式",
         themeLight: "清爽模式",
+        downloadPathTitle: "下載保存路徑",
+        downloadPathDesc: "設定同步的原圖和影片等檔案的儲存目錄。AI 分析縮略圖始終儲存在應用內部目錄。",
+        downloadPathBrowse: "📁 瀏覽...",
+        downloadPathOpen: "📂 開啟目錄",
+        downloadPathReset: "恢復預設",
+        downloadPathDefault: "（應用預設：sync_storage/）",
+        downloadPathSaved: "✅ 已儲存",
         aboutTitle: "關於 ShareCLIP"
       }
     };

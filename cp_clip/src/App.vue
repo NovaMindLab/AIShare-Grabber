@@ -1122,6 +1122,33 @@
                 </div>
               </div>
 
+              <!-- Card: Download Save Path -->
+              <div class="settings-card full-width">
+                <div class="settings-card-header">
+                  <span class="settings-card-icon">📁</span>
+                  <div>
+                    <h3 class="settings-card-title">{{ t.settings.downloadPathTitle }}</h3>
+                    <p class="settings-card-desc">{{ t.settings.downloadPathDesc }}</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="download-path-row">
+                    <div class="download-path-display" :title="downloadPath || t.settings.downloadPathDefault">
+                      <span class="download-path-icon">📂</span>
+                      <span class="download-path-text">{{ downloadPath || t.settings.downloadPathDefault }}</span>
+                    </div>
+                    <div class="download-path-actions">
+                      <button class="dp-btn dp-browse" @click="browseDownloadFolder">{{ t.settings.downloadPathBrowse }}</button>
+                      <button class="dp-btn dp-open" @click="openDownloadFolder" :disabled="!downloadPath">{{ t.settings.downloadPathOpen }}</button>
+                      <button class="dp-btn dp-reset" @click="resetDownloadPath" :disabled="!downloadPath">{{ t.settings.downloadPathReset }}</button>
+                    </div>
+                  </div>
+                  <div class="download-path-saved" v-if="downloadPathSaved">
+                    <span>{{ t.settings.downloadPathSaved }}</span>
+                  </div>
+                </div>
+              </div>
+
               <!-- Card: About / App Info -->
               <div class="settings-card full-width">
                 <div class="settings-card-header">
@@ -1577,6 +1604,38 @@ watch(isDarkMode, (newVal) => {
 function toggleTheme() {
   isDarkMode.value = !isDarkMode.value;
 }
+
+// Download path settings
+const downloadPath = ref('');
+const downloadPathSaved = ref(false);
+let downloadPathSavedTimer = null;
+
+async function browseDownloadFolder() {
+  const selected = await window.api.selectDownloadFolder();
+  if (selected) {
+    downloadPath.value = selected;
+    showDownloadPathSaved();
+  }
+}
+
+async function resetDownloadPath() {
+  await window.api.setDownloadPath(null);
+  downloadPath.value = '';
+  showDownloadPathSaved();
+}
+
+function showDownloadPathSaved() {
+  downloadPathSaved.value = true;
+  clearTimeout(downloadPathSavedTimer);
+  downloadPathSavedTimer = setTimeout(() => {
+    downloadPathSaved.value = false;
+  }, 2500);
+}
+
+async function openDownloadFolder() {
+  await window.api.openDownloadFolder();
+}
+
 
 const isReclassifying = ref(false);
 const reclassifyProgress = ref({ done: 0, total: 0, currentName: '' });
@@ -2442,6 +2501,11 @@ function setupDataChannel(channel) {
 // Register listeners on mount
 onMounted(() => {
   if (hasApi) {
+    // Load saved download path from main process settings
+    window.api.getDownloadPath().then(savedPath => {
+      if (savedPath) downloadPath.value = savedPath;
+    });
+
     // 1. Offer SDP received from mobile client
     window.api.onOfferReceived(async (offerSdp) => {
       logSyncEvent("📡 蓝牙信令通道收到 WebRTC Offer SDP!");

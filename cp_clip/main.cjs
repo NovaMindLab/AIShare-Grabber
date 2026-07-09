@@ -53,6 +53,44 @@ let textEmbeddings = {};
 let isMockMode = false;
 const imageEmbeddingsCache = {}; // imagePath -> Float32Array (512-dim)
 
+// Download path configuration (persisted in a JSON settings file)
+const settingsFilePath = path.join(__dirname, 'app_settings.json');
+let customDownloadPath = null;
+
+function loadSettings() {
+  try {
+    if (fs.existsSync(settingsFilePath)) {
+      const raw = fs.readFileSync(settingsFilePath, 'utf-8');
+      const settings = JSON.parse(raw);
+      if (settings.downloadPath && typeof settings.downloadPath === 'string') {
+        customDownloadPath = settings.downloadPath;
+        console.log('[Settings] Loaded download path:', customDownloadPath);
+      }
+    }
+  } catch (err) {
+    console.error('[Settings] Failed to load settings file:', err);
+  }
+}
+
+function saveSettings() {
+  try {
+    const settings = { downloadPath: customDownloadPath };
+    fs.writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[Settings] Failed to save settings file:', err);
+  }
+}
+
+// Returns the effective base directory for saving synced full files
+// (thumbnails always go to thumbnail_sync under __dirname)
+function getEffectiveDownloadBase(deviceUuid, type) {
+  if (customDownloadPath) {
+    // e.g. D:\MyPhotos\<deviceUuid>\images
+    return path.join(customDownloadPath, deviceUuid || 'default', type);
+  }
+  return path.join(__dirname, 'sync_storage', deviceUuid || 'default', type);
+}
+
 // BLE Signaling and chunk transfer state
 let bleProcess = null;
 let hotspotProcess = null;
@@ -220,6 +258,9 @@ function createWindow() {
 
 // App Lifecycles
 app.whenReady().then(async () => {
+  // Load persisted settings (download path etc.) from disk
+  loadSettings();
+
   // Protocol handler for loading local files
   protocol.handle('local', (request) => {
     try {
@@ -1191,6 +1232,50 @@ ipcMain.handle('clear-device-database', async (event) => {
   }
 });
 
+// ---- Download path settings ---------------------------------------------------
+
+ipcMain.handle('get-download-path', () => {
+  return customDownloadPath || null;
+});
+
+ipcMain.handle('set-download-path', (event, newPath) => {
+  if (newPath && typeof newPath === 'string') {
+    customDownloadPath = newPath;
+  } else {
+    customDownloadPath = null;
+  }
+  saveSettings();
+  console.log('[Settings] Download path updated to:', customDownloadPath);
+  return customDownloadPath;
+});
+
+ipcMain.handle('select-download-folder', async (event) => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: '选择下载保存目录',
+    properties: ['openDirectory', 'createDirectory'],
+    buttonLabel: '选择此目录'
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+  const selectedPath = result.filePaths[0];
+  customDownloadPath = selectedPath;
+  saveSettings();
+  console.log('[Settings] Download path selected:', customDownloadPath);
+  return customDownloadPath;
+});
+
+ipcMain.handle('open-download-folder', async (event) => {
+  const folderToOpen = customDownloadPath || path.join(__dirname, 'sync_storage');
+  if (!fs.existsSync(folderToOpen)) {
+    fs.mkdirSync(folderToOpen, { recursive: true });
+  }
+  shell.openPath(folderToOpen);
+  return true;
+});
+
+// -------------------------------------------------------------------------------
+
 ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChunks, payload, metadata }) => {
   const chunkBuffer = Buffer.from(payload);
   
@@ -1239,13 +1324,15 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
     
     let targetPath = '';
     if (isThumbnail) {
+      // Thumbnails always stored in __dirname/thumbnail_sync/<uuid>/
       const targetDir = path.join(__dirname, 'thumbnail_sync', activeDeviceUuid || 'default');
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, { recursive: true });
       }
       targetPath = path.join(targetDir, filename);
     } else if (activeDeviceUuid) {
-      const targetDir = path.join(__dirname, 'sync_storage', activeDeviceUuid, type);
+      // Full files go to user-configured download path (or default sync_storage)
+      const targetDir = getEffectiveDownloadBase(activeDeviceUuid, type);
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, { recursive: true });
       }
