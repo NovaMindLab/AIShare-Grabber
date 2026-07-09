@@ -1,7 +1,7 @@
 {
     "name":  "image-clip-classifier",
     "private":  true,
-    "version":  "1.2.0",
+    "version":  "1.2.1",
     "description":  "ShareCLIP PC Client",
     "author":  "ShareCLIP Team",
     "type":  "module",
@@ -67,7 +67,7 @@
                   "npmRebuild":  false,
                   "buildDependenciesFromSource":  false,
                   "win":  {
-                              "icon": "build/icon.png",
+                              "icon":  "build/icon.ico",
                               "signAndEditExecutable":  false,
                               "target":  [
                                              "portable"
