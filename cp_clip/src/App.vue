@@ -1161,13 +1161,45 @@
                 <div class="settings-card-body">
                   <div class="update-check-row">
                     <div class="update-check-actions">
-                      <button class="dp-btn dp-browse" :disabled="updateStatus === 'checking'" @click="() => checkAppUpdates(true)">
+                      <button class="dp-btn dp-browse" :disabled="updateStatus === 'checking' || updateDownloading" @click="() => checkAppUpdates(true)">
                         <span v-if="updateStatus === 'checking'">⏳ {{ t.settings.updateChecking }}</span>
                         <span v-else>{{ t.settings.updateBtnCheck }}</span>
                       </button>
+                      <button
+                        v-if="updateStatus === 'new-available' && updateDownloadUrl && !updateDownloading && !updateReadyToInstall"
+                        class="dp-btn dp-browse"
+                        style="background: linear-gradient(135deg, #10b981, #059669); margin-left: 10px;"
+                        @click="startDownloadUpdate"
+                      >
+                        ⬇️ 立即下载更新
+                      </button>
+                      <button
+                        v-if="updateReadyToInstall"
+                        class="dp-btn dp-browse"
+                        style="background: linear-gradient(135deg, #f59e0b, #d97706); margin-left: 10px;"
+                        @click="installUpdate"
+                      >
+                        🚀 立即安装并重启
+                      </button>
                     </div>
-                    
-                    <div class="update-result-msg" v-if="updateStatus !== 'idle' && updateStatus !== 'checking'">
+
+                    <!-- Download progress bar -->
+                    <div class="update-download-progress" v-if="updateDownloading">
+                      <div class="progress-label">正在下载更新 {{ updateDownloadProgress }}%...</div>
+                      <div class="progress-track">
+                        <div class="progress-fill" :style="{ width: updateDownloadProgress + '%' }"></div>
+                      </div>
+                    </div>
+
+                    <!-- Ready to install badge -->
+                    <div class="update-result-msg" v-if="updateReadyToInstall">
+                      <div class="update-badge-container new-available">
+                        <span class="update-badge-icon">✅</span>
+                        <span class="update-badge-text">新版本已下载完成，点击右侧按钮安装。</span>
+                      </div>
+                    </div>
+
+                    <div class="update-result-msg" v-else-if="updateStatus !== 'idle' && updateStatus !== 'checking' && !updateDownloading">
                       <div class="update-badge-container" :class="updateStatus">
                         <span class="update-badge-icon" v-if="updateStatus === 'up-to-date'">✅</span>
                         <span class="update-badge-icon" v-else-if="updateStatus === 'new-available'">🎉</span>
@@ -1176,7 +1208,7 @@
                         <span class="update-badge-text" v-if="updateStatus === 'up-to-date'">
                           {{ t.settings.updateUpToDate.replace('{version}', currentVersion) }}
                         </span>
-                        <span class="update-badge-text cursor-pointer hover-underline font-semibold" v-else-if="updateStatus === 'new-available'" @click="openUpdateRelease">
+                        <span class="update-badge-text cursor-pointer hover-underline font-semibold" v-else-if="updateStatus === 'new-available'">
                           {{ t.settings.updateNewAvailable.replace('{version}', latestVersion) }}
                         </span>
                         <span class="update-badge-text error" v-else-if="updateStatus === 'failed'">
@@ -1680,18 +1712,27 @@ const updateStatus = ref('idle'); // 'idle' | 'checking' | 'up-to-date' | 'new-a
 const currentVersion = ref('');
 const latestVersion = ref('');
 const updateUrl = ref('');
+const updateDownloadUrl = ref('');
 const updateError = ref('');
+const updateDownloading = ref(false);
+const updateDownloadProgress = ref(0);
+const updateReadyToInstall = ref(false);
+const updateInstallerPath = ref('');
 
 async function checkAppUpdates(showToast = false) {
   if (updateStatus.value === 'checking') return;
   updateStatus.value = 'checking';
   updateError.value = '';
+  updateDownloading.value = false;
+  updateDownloadProgress.value = 0;
+  updateReadyToInstall.value = false;
   
   try {
     const result = await window.api.checkForUpdates();
     currentVersion.value = result.currentVersion || '1.2.0';
     latestVersion.value = result.latestVersion || '';
     updateUrl.value = result.url || '';
+    updateDownloadUrl.value = result.downloadUrl || '';
     
     if (result.error) {
       updateStatus.value = 'failed';
@@ -1704,6 +1745,40 @@ async function checkAppUpdates(showToast = false) {
   } catch (err) {
     updateStatus.value = 'failed';
     updateError.value = err.message || err;
+  }
+}
+
+async function startDownloadUpdate() {
+  if (!updateDownloadUrl.value || updateDownloading.value) return;
+  updateDownloading.value = true;
+  updateDownloadProgress.value = 0;
+  
+  // Register progress listener
+  window.api.onUpdateDownloadProgress((progress) => {
+    updateDownloadProgress.value = progress;
+  });
+  
+  try {
+    const result = await window.api.startUpdateDownload(updateDownloadUrl.value);
+    if (result.success) {
+      updateInstallerPath.value = result.filePath;
+      updateReadyToInstall.value = true;
+    } else {
+      alert('下载失败: ' + result.error);
+    }
+  } catch (err) {
+    alert('下载出错: ' + (err.message || err));
+  } finally {
+    updateDownloading.value = false;
+  }
+}
+
+async function installUpdate() {
+  if (!updateInstallerPath.value) return;
+  try {
+    await window.api.installUpdate(updateInstallerPath.value);
+  } catch (err) {
+    alert('安装失败: ' + (err.message || err));
   }
 }
 

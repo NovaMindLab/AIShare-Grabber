@@ -1298,6 +1298,56 @@ function isNewVersionAvailable(current, latest) {
   return false;
 }
 
+const https = require('https');
+
+function downloadFile(url, destPath, progressCallback) {
+  return new Promise((resolve, reject) => {
+    const request = (targetUrl) => {
+      https.get(targetUrl, {
+        headers: { 'User-Agent': 'ShareCLIP-PC-App' }
+      }, (res) => {
+        if (res.statusCode === 302 || res.statusCode === 301) {
+          request(res.headers.location);
+          return;
+        }
+        
+        if (res.statusCode !== 200) {
+          reject(new Error(`Failed to download: status code ${res.statusCode}`));
+          return;
+        }
+        
+        const totalBytes = parseInt(res.headers['content-length'], 10);
+        let downloadedBytes = 0;
+        const fileStream = fs.createWriteStream(destPath);
+        
+        res.on('data', (chunk) => {
+          downloadedBytes += chunk.length;
+          fileStream.write(chunk);
+          if (totalBytes > 0) {
+            const progress = Math.round((downloadedBytes / totalBytes) * 100);
+            progressCallback(progress);
+          }
+        });
+        
+        res.on('end', () => {
+          fileStream.end();
+          resolve();
+        });
+        
+        res.on('error', (err) => {
+          fileStream.end();
+          fs.unlink(destPath, () => {});
+          reject(err);
+        });
+      }).on('error', (err) => {
+        reject(err);
+      });
+    };
+    
+    request(url);
+  });
+}
+
 ipcMain.handle('check-for-updates', async () => {
   try {
     const response = await fetch('https://api.github.com/repos/NovaMindLab/AIShare-Grabber/releases/latest', {
@@ -1313,11 +1363,24 @@ ipcMain.handle('check-for-updates', async () => {
     const currentVersion = app.getVersion();
     
     const available = isNewVersionAvailable(currentVersion, latestVersion);
+    
+    let downloadUrl = null;
+    if (release.assets && Array.isArray(release.assets)) {
+      let asset = release.assets.find(a => a.name && a.name.includes('Setup') && a.name.endsWith('.exe'));
+      if (!asset) {
+        asset = release.assets.find(a => a.name && a.name.endsWith('.exe'));
+      }
+      if (asset) {
+        downloadUrl = asset.browser_download_url;
+      }
+    }
+    
     return {
       available,
       currentVersion,
       latestVersion,
       url: release.html_url,
+      downloadUrl,
       body: release.body
     };
   } catch (err) {
@@ -1326,6 +1389,45 @@ ipcMain.handle('check-for-updates', async () => {
       available: false,
       error: err.message
     };
+  }
+});
+
+ipcMain.handle('start-update-download', async (event, downloadUrl) => {
+  try {
+    const tempDir = app.getPath('temp');
+    const tempFilePath = path.join(tempDir, 'ShareCLIP_Setup_Update.exe');
+    
+    console.log(`[Update Download] Starting download from ${downloadUrl} to ${tempFilePath}`);
+    
+    await downloadFile(downloadUrl, tempFilePath, (progress) => {
+      event.sender.send('update-download-progress', progress);
+    });
+    
+    console.log('[Update Download] Download completed successfully.');
+    return { success: true, filePath: tempFilePath };
+  } catch (err) {
+    console.error('[Update Download] Error downloading update:', err.message);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('install-update', async (event, filePath) => {
+  try {
+    console.log(`[Update Install] Spawning installer: ${filePath}`);
+    const { spawn } = require('child_process');
+    
+    const child = spawn(filePath, [], {
+      detached: true,
+      stdio: 'ignore'
+    });
+    child.unref();
+    
+    console.log('[Update Install] Quitting parent Electron app...');
+    app.quit();
+    return { success: true };
+  } catch (err) {
+    console.error('[Update Install] Error installing update:', err.message);
+    return { success: false, error: err.message };
   }
 });
 
