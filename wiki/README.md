@@ -20,6 +20,7 @@ Details the Electron main lifecycle process, ONNX AI classification model integr
 *   [Preprocessing & Normalization](file:///d:/AI_serach_image/image_clip_android/wiki/pc/preprocessing_and_normalization.md): MobileCLIP normalization guidelines and pixel scaling.
 *   [Model Reparameterization](file:///d:/AI_serach_image/image_clip_android/wiki/pc/model_reparameterization.md): Reparameterizing and exporting MobileCLIP to a single ONNX file.
 *   [Packaging & Deployment](file:///d:/AI_serach_image/image_clip_android/wiki/pc/packaging_and_deployment.md): Building the Electron installer with self-contained assets.
+*   [Bundle Size Optimization](file:///d:/AI_serach_image/image_clip_android/wiki/pc/bundle_size_optimization.md): Structure breakdown of the Electron package, DirectML GPU binary exclusions, SQLite source/build dependencies removal, and size reduction history.
 
 ---
 
