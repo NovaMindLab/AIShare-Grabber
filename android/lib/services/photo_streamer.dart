@@ -104,9 +104,9 @@ class PhotoStreamer {
   }) async {
     debugPrint("[Streamer] Starting transmission of gallery asset: ${entity.title}, ID: $fileId");
     try {
-      final File? file = await entity.file;
+      final File? file = await entity.originFile;
       if (file == null) {
-        debugPrint("[Streamer] Error: could not obtain file for asset: ${entity.title}");
+        debugPrint("[Streamer] Error: could not obtain originFile for asset: ${entity.title}");
         return false;
       }
       final int size = await file.length();
@@ -325,9 +325,9 @@ class PhotoStreamer {
   }) async {
     debugPrint("[Streamer] Starting album original photo stream: ${entity.title}, ID: $fileId");
     try {
-      final File? file = await entity.file;
+      final File? file = await entity.originFile;
       if (file == null) {
-        debugPrint("[Streamer] Error: could not obtain file for album asset: ${entity.title}");
+        debugPrint("[Streamer] Error: could not obtain originFile for album asset: ${entity.title}");
         return false;
       }
       final int size = await file.length();
@@ -360,7 +360,7 @@ class PhotoStreamer {
       header.setInt32(8, 0, Endian.big);
       header.setInt32(12, payloadBytes.length, Endian.big);
       final packet = Uint8List(16 + payloadBytes.length);
-      packet.setRange(0, 16, header.buffer.asUint8List());
+      packet.setRange(0, 16, header.buffer.asUint8List(header.offsetInBytes, 16));
       packet.setRange(16, packet.length, payloadBytes);
       await syncEngine?.sendBinary(packet);
 
