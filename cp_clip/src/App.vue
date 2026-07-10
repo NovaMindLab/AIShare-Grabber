@@ -3097,8 +3097,13 @@ onMounted(() => {
       }
     });
     
-    // 4. File reassembly completed
     window.api.onPhotoSynced((imageInfo) => {
+      const isAlbum = imageInfo.name.startsWith('album_');
+      if (isAlbum) {
+        logSyncEvent(`🎉 相册照片已同步: ${imageInfo.name}`);
+        return;
+      }
+      
       logSyncEvent(`🎉 图片接收完成并自动分类: ${imageInfo.name}`);
       
       if (imageInfo.isThumbnail) {
