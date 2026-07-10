@@ -481,6 +481,44 @@
                 >
                   <span>📁</span> 打开缩略图文件夹
                 </button>
+
+                <!-- Album Sync to PC Divider -->
+                <div style="border-top: 1px solid rgba(255,255,255,0.06); margin: 4px 0;"></div>
+                <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📸 相册备份到PC</span>
+
+                <!-- Sync Album to PC Button -->
+                <button
+                  class="btn btn-primary"
+                  :disabled="isAlbumSyncing"
+                  @click="requestAlbumSync"
+                  style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; background: linear-gradient(135deg, #10b981, #059669);"
+                >
+                  <span>📸</span>
+                  <span v-if="isAlbumSyncing">同步中 {{ albumSyncDone }}/{{ albumSyncTotal }}</span>
+                  <span v-else>{{ albumSyncDone > 0 ? '继续同步相册到PC' : '同步相册到PC' }}</span>
+                </button>
+
+                <!-- Album sync progress bar -->
+                <div v-if="isAlbumSyncing" style="width: 100%;">
+                  <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">
+                    <span>正在同步原图...</span>
+                    <span>{{ albumSyncTotal > 0 ? Math.round(albumSyncDone/albumSyncTotal*100) : 0 }}%</span>
+                  </div>
+                  <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden;">
+                    <div :style="{ width: (albumSyncTotal > 0 ? albumSyncDone/albumSyncTotal*100 : 0) + '%', height: '100%', background: 'linear-gradient(90deg,#10b981,#06b6d4)', borderRadius: '999px', transition: 'width 0.3s ease' }"></div>
+                  </div>
+                </div>
+
+                <!-- Open Album Sync Folder -->
+                <button
+                  class="btn btn-secondary"
+                  @click="handleOpenAlbumSyncFolder"
+                  style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; border: 1px solid rgba(16,185,129,0.2); background: rgba(16,185,129,0.05); color: #10b981;"
+                  onmouseover="this.style.background='rgba(16,185,129,0.1)'"
+                  onmouseout="this.style.background='rgba(16,185,129,0.05)'"
+                >
+                  <span>📂</span> 打开相册备份文件夹
+                </button>
               </div>
 
               <!-- Disconnect button -->
@@ -2231,6 +2269,38 @@ function handleOpenThumbnailFolder() {
   }
 }
 
+// ── Album Sync State & Functions ──────────────────────────────────────────
+const isAlbumSyncing = ref(false);
+const albumSyncDone = ref(0);
+const albumSyncTotal = ref(0);
+
+function requestAlbumSync() {
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    logSyncEvent('❌ WebRTC 直连通道未建立，无法发送相册同步请求');
+    return;
+  }
+  logSyncEvent('📸 正在发送相册同步请求到手机...');
+
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -7, false); // file_id = -7: request album sync
+  view.setInt32(4, 0, false);
+  view.setInt32(8, 0, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+
+  isAlbumSyncing.value = true;
+  albumSyncDone.value = 0;
+  albumSyncTotal.value = 0;
+}
+
+function handleOpenAlbumSyncFolder() {
+  if (hasApi) {
+    window.api.openAlbumSyncFolder();
+  }
+}
+
+
 function generateHotspotCredentials() {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   const randomSuffix = Math.floor(1000 + Math.random() * 9000).toString();
@@ -2558,7 +2628,7 @@ function setupDataChannel(channel) {
           
           logSyncEvent(`📊 本地数据库同步成功，已恢复 ${images.value.length} 个历史传输资源，${thumbnailImages.value.length} 个 AI 缩略图，发送握手回应包...`);
           
-          const responseStr = JSON.stringify({ synced_ids: syncInfo.syncedIds });
+          const responseStr = JSON.stringify({ synced_ids: syncInfo.syncedIds, last_album_sync_date: syncInfo.lastAlbumSyncDate || '' });
           const encoder = new TextEncoder();
           const responseBytes = encoder.encode(responseStr);
           
@@ -2575,6 +2645,27 @@ function setupDataChannel(channel) {
           }
         });
       }
+      return;
+    }
+
+    // fileId = -7: Phone started album sync, tells PC the total count
+    if (fileId === -7) {
+      const totalCount = view.getInt32(8, false);
+      albumSyncTotal.value = totalCount;
+      albumSyncDone.value = 0;
+      isAlbumSyncing.value = true;
+      logSyncEvent(`📸 手机开始相册同步，共 ${totalCount} 张原图将传输到PC`);
+      return;
+    }
+
+    // fileId = -8: Phone finished album sync
+    if (fileId === -8) {
+      const done = view.getInt32(4, false);
+      const total = view.getInt32(8, false);
+      isAlbumSyncing.value = false;
+      albumSyncDone.value = done;
+      albumSyncTotal.value = total;
+      logSyncEvent(`✅ 相册同步完成！共同步 ${done}/${total} 张原图到PC`);
       return;
     }
 
@@ -2598,12 +2689,16 @@ function setupDataChannel(channel) {
       activeMetadata[metadata.file_id] = {
         assetId: metadata.asset_id,
         name: metadata.name,
-        size: metadata.size
+        size: metadata.size,
+        latitude: metadata.latitude,
+        longitude: metadata.longitude,
+        create_date: metadata.create_date || null
       };
 
-      // Add to chatMessages if not a thumbnail
+      // Add to chatMessages only for regular files (not thumbnails or album originals)
       const isThumb = metadata.name.startsWith('thumb_');
-      if (!isThumb && !chatMessages.value.some(m => m.id === metadata.file_id)) {
+      const isAlbum = metadata.name.startsWith('album_');
+      if (!isThumb && !isAlbum && !chatMessages.value.some(m => m.id === metadata.file_id)) {
         chatMessages.value.push({
           id: metadata.file_id,
           type: 'incoming',
@@ -2616,6 +2711,11 @@ function setupDataChannel(channel) {
           src: ''
         });
         scrollToBottom();
+      }
+
+      // Update album sync counter when album metadata arrives
+      if (isAlbum) {
+        albumSyncDone.value++;
       }
       
       logSyncEvent(`📝 收到文件元数据: [ID: ${metadata.file_id}] ${metadata.name} (${(metadata.size / 1024 / 1024).toFixed(2)} MB)`);

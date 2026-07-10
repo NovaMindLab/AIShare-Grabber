@@ -314,4 +314,60 @@ class PhotoStreamer {
       return false;
     }
   }
+
+  /// Stream an original full-resolution photo to the PC for album sync.
+  /// Name is prefixed with 'album_' so PC side can distinguish from regular transfers.
+  /// createDate is sent in metadata for breakpoint resume tracking.
+  Future<bool> streamOriginalPhoto({
+    required AssetEntity entity,
+    required int fileId,
+    required void Function(int chunkIndex, int totalChunks, int bytesSent) onProgress,
+  }) async {
+    debugPrint("[Streamer] Starting album original photo stream: ${entity.title}, ID: $fileId");
+    try {
+      final File? file = await entity.file;
+      if (file == null) {
+        debugPrint("[Streamer] Error: could not obtain file for album asset: ${entity.title}");
+        return false;
+      }
+      final int size = await file.length();
+      final String extension = entity.mimeType?.split('/').last ?? 'jpg';
+      // Use album_ prefix so PC can identify this as an album sync file
+      final String albumName = 'album_${entity.id}.$extension';
+
+      // Build metadata with createDate for breakpoint tracking
+      final Map<String, dynamic> metadataMap = {
+        "file_id": fileId,
+        "asset_id": entity.id,
+        "name": albumName,
+        "size": size,
+        "create_date": entity.createDateSecond != null
+            ? DateTime.fromMillisecondsSinceEpoch(entity.createDateSecond! * 1000).toUtc().toIso8601String()
+            : DateTime.now().toUtc().toIso8601String(),
+      };
+      if (entity.latitude != null && entity.latitude != 0.0) {
+        metadataMap["latitude"] = entity.latitude;
+      }
+      if (entity.longitude != null && entity.longitude != 0.0) {
+        metadataMap["longitude"] = entity.longitude;
+      }
+
+      final payloadStr = jsonEncode(metadataMap);
+      final payloadBytes = utf8.encode(payloadStr);
+      final header = ByteData(16);
+      header.setInt32(0, -5, Endian.big);
+      header.setInt32(4, 0, Endian.big);
+      header.setInt32(8, 0, Endian.big);
+      header.setInt32(12, payloadBytes.length, Endian.big);
+      final packet = Uint8List(16 + payloadBytes.length);
+      packet.setRange(0, 16, header.buffer.asUint8List());
+      packet.setRange(16, packet.length, payloadBytes);
+      await syncEngine?.sendBinary(packet);
+
+      return await _streamFileInternal(file: file, fileId: fileId, onProgress: onProgress);
+    } catch (e, stack) {
+      debugPrint("[Streamer] Exception during album photo streaming: $e\n$stack");
+      return false;
+    }
+  }
 }

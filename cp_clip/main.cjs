@@ -356,6 +356,29 @@ ipcMain.handle('open-thumbnail-folder', async () => {
   return true;
 });
 
+ipcMain.handle('request-album-sync', async () => {
+  // Send fileId = -7 signal to Android to trigger album sync
+  if (!mainWindow) return false;
+  mainWindow.webContents.send('send-control-packet', { fileId: -7 });
+  return true;
+});
+
+ipcMain.handle('open-album-sync-folder', async () => {
+  const uuid = activeDeviceUuid || 'default';
+  let albumDir;
+  if (downloadPath) {
+    albumDir = path.join(downloadPath, 'album_sync', uuid);
+  } else {
+    albumDir = path.join(__dirname, 'album_sync', uuid);
+  }
+  if (!fs.existsSync(albumDir)) {
+    fs.mkdirSync(albumDir, { recursive: true });
+  }
+  shell.openPath(albumDir);
+  return true;
+});
+
+
 ipcMain.handle('select-folder', async () => {
   if (!mainWindow) return null;
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -1155,10 +1178,16 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
       resolve();
     });
   });
+  // Safe schema upgrade: add create_date column for album sync breakpoint tracking
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN create_date TEXT`, () => {
+      resolve(); // ignore error if already exists
+    });
+  });
   
   // Read and return already synced assets
   const syncInfo = await new Promise((resolve, reject) => {
-    activeDeviceDb.all(`SELECT id, name, path, type, size, predictions, embedding, latitude, longitude FROM resources`, (err, rows) => {
+    activeDeviceDb.all(`SELECT id, name, path, type, size, predictions, embedding, latitude, longitude, create_date FROM resources`, (err, rows) => {
       if (err) {
         reject(err);
       } else {
@@ -1176,13 +1205,21 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
             }
           }
         }
+
+        // Find the most recent create_date among album_photo records for breakpoint resume
+        let lastAlbumSyncDate = '';
+        const albumRows = rows.filter(r => r.type === 'album_photo' && r.create_date);
+        if (albumRows.length > 0) {
+          const sorted = albumRows.sort((a, b) => (a.create_date > b.create_date ? 1 : -1));
+          lastAlbumSyncDate = sorted[sorted.length - 1].create_date;
+        }
         
-        resolve({ syncedIds, resources: rows });
+        resolve({ syncedIds, resources: rows, lastAlbumSyncDate });
       }
     });
   });
   
-  console.log(`[Database] Initialized for device: ${deviceName} (${deviceUuid}). Loaded ${syncInfo.syncedIds.length} synced assets.`);
+  console.log(`[Database] Initialized for device: ${deviceName} (${deviceUuid}). Loaded ${syncInfo.syncedIds.length} synced assets. Last album sync: ${syncInfo.lastAlbumSyncDate || 'none'}`);
   return syncInfo;
 });
 
@@ -1478,6 +1515,7 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
     }
     
     const isThumbnail = filename.startsWith('thumb_') && ext.toLowerCase() === '.jpg';
+    const isAlbumPhoto = filename.startsWith('album_');
     
     let targetPath = '';
     if (isThumbnail) {
@@ -1487,6 +1525,17 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
         fs.mkdirSync(targetDir, { recursive: true });
       }
       targetPath = path.join(targetDir, filename);
+    } else if (isAlbumPhoto) {
+      // Album photos stored under album_sync/<uuid>/<YYYY-MM-DD>/ for date-based organization
+      const createDateStr = metadata && metadata.create_date ? metadata.create_date : new Date().toISOString();
+      const dateFolderName = createDateStr.substring(0, 10); // 'YYYY-MM-DD'
+      const baseDir = downloadPath
+        ? path.join(downloadPath, 'album_sync', activeDeviceUuid || 'default', dateFolderName)
+        : path.join(__dirname, 'album_sync', activeDeviceUuid || 'default', dateFolderName);
+      if (!fs.existsSync(baseDir)) {
+        fs.mkdirSync(baseDir, { recursive: true });
+      }
+      targetPath = path.join(baseDir, filename);
     } else if (activeDeviceUuid) {
       // Full files go to user-configured download path (or default sync_storage)
       const targetDir = getEffectiveDownloadBase(activeDeviceUuid, type);
@@ -1505,9 +1554,9 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
     fs.writeFileSync(targetPath, fullBuffer);
     console.log(`[Sync] Saved reassembled file to ${targetPath}`);
     
-    // Auto classify only if it is an image or thumbnail
+    // Auto classify only if it is an image or thumbnail (not album originals to keep it fast)
     let predictions = [];
-    if (type === 'images' || isThumbnail) {
+    if ((type === 'images' || isThumbnail) && !isAlbumPhoto) {
       try {
         predictions = await classifyPhotoInternal(targetPath);
       } catch (err) {
@@ -1520,6 +1569,7 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
       const size = fullBuffer.length;
       const predictionsStr = JSON.stringify(predictions);
       const syncTime = Date.now();
+      const createDate = metadata && metadata.create_date ? metadata.create_date : null;
       
       // Get the cached embedding Buffer
       let embeddingBuffer = null;
@@ -1529,24 +1579,25 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
       }
 
       activeDeviceDb.run(`
-        INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time, embedding, latitude, longitude)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time, embedding, latitude, longitude, create_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         assetId, 
         filename, 
         targetPath, 
-        isThumbnail ? 'thumbnail' : type, 
+        isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type), 
         size, 
         predictionsStr, 
         syncTime, 
         embeddingBuffer,
         metadata && metadata.latitude !== undefined ? metadata.latitude : null,
-        metadata && metadata.longitude !== undefined ? metadata.longitude : null
+        metadata && metadata.longitude !== undefined ? metadata.longitude : null,
+        createDate
       ], (err) => {
         if (err) {
           console.error(`[Database] Error registering synced asset ${assetId}:`, err);
         } else {
-          console.log(`[Database] Registered synced asset with embedding: ${filename} (ID: ${assetId})`);
+          console.log(`[Database] Registered synced asset: ${filename} (ID: ${assetId}, type: ${isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type)})`);
         }
       });
     }

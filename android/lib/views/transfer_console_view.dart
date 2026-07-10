@@ -255,48 +255,100 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(Icons.psychology, size: 18, color: Color(0xFF8B5CF6)),
-                  const SizedBox(width: 6),
-                  Text(
-                    t.currentLocale == 'zh' ? "AI 智能同步" : "AI Sync",
-                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      const Icon(Icons.psychology, size: 18, color: Color(0xFF8B5CF6)),
+                      const SizedBox(width: 6),
+                      Text(
+                        t.currentLocale == 'zh' ? "AI 智能同步" : "AI Sync",
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
+                  viewModel.isThumbnailSyncing
+                      ? Text(
+                          t.currentLocale == 'zh' 
+                              ? "🔄 同步中 ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}" 
+                              : "🔄 Syncing ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}",
+                          style: const TextStyle(color: Color(0xFF8B5CF6), fontSize: 13, fontWeight: FontWeight.bold),
+                        )
+                      : ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF8B5CF6),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          onPressed: () {
+                            viewModel.syncThumbnailsToAI(
+                              targets: viewModel.selectedImages.isNotEmpty
+                                  ? viewModel.localImages.where((e) => viewModel.selectedImages.contains(e.id)).toList()
+                                  : null,
+                            );
+                          },
+                          icon: const Icon(Icons.psychology, size: 16),
+                          label: Text(
+                            viewModel.selectedImages.isNotEmpty
+                                ? (t.currentLocale == 'zh' ? "同步选中图片到AI" : "Sync Selected to AI")
+                                : (t.currentLocale == 'zh' ? "同步全部图片到AI" : "Sync All to AI"),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
                 ],
               ),
-              viewModel.isThumbnailSyncing
-                  ? Text(
-                      t.currentLocale == 'zh' 
-                          ? "🔄 同步中 ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}" 
-                          : "🔄 Syncing ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}",
-                      style: const TextStyle(color: Color(0xFF8B5CF6), fontSize: 13, fontWeight: FontWeight.bold),
-                    )
-                  : ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B5CF6),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.cloud_upload, size: 18, color: Color(0xFF10B981)),
+                      const SizedBox(width: 6),
+                      Text(
+                        t.currentLocale == 'zh' ? "同步相册到PC" : "Sync Album to PC",
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                       ),
-                      onPressed: () {
-                        viewModel.syncThumbnailsToAI(
-                          targets: viewModel.selectedImages.isNotEmpty
-                              ? viewModel.localImages.where((e) => viewModel.selectedImages.contains(e.id)).toList()
-                              : null,
-                        );
-                      },
-                      icon: const Icon(Icons.psychology, size: 16),
-                      label: Text(
-                        viewModel.selectedImages.isNotEmpty
-                            ? (t.currentLocale == 'zh' ? "同步选中图片到AI" : "Sync Selected to AI")
-                            : (t.currentLocale == 'zh' ? "同步全部图片到AI" : "Sync All to AI"),
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
+                    ],
+                  ),
+                  viewModel.isAlbumSyncing
+                      ? Row(
+                          children: [
+                            const SizedBox(
+                              width: 14, height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              "${viewModel.albumSyncDone}/${viewModel.albumSyncTotal}",
+                              style: const TextStyle(color: Color(0xFF10B981), fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        )
+                      : ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          onPressed: viewModel.isThumbnailSyncing
+                              ? null
+                              : () => viewModel.syncAlbumToPC(),
+                          icon: const Icon(Icons.cloud_upload, size: 16),
+                          label: Text(
+                            viewModel.lastAlbumSyncDate.isNotEmpty
+                                ? (t.currentLocale == 'zh' ? "继续同步相册" : "Resume Album Sync")
+                                : (t.currentLocale == 'zh' ? "同步全部相册到PC" : "Sync Album to PC"),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                ],
+              ),
             ],
           ),
         ),

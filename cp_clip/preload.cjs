@@ -7,7 +7,9 @@ contextBridge.exposeInMainWorld('api', {
   searchPhotos: (queryText, imagePaths) => ipcRenderer.invoke('search-photos', { queryText, imagePaths }),
   readImageBytes: (filePath) => ipcRenderer.invoke('read-image-bytes', filePath),
   openThumbnailFolder: () => ipcRenderer.invoke('open-thumbnail-folder'),
-  
+  requestAlbumSync: () => ipcRenderer.invoke('request-album-sync'),
+  openAlbumSyncFolder: () => ipcRenderer.invoke('open-album-sync-folder'),
+
   // BLE Signaling & Sync Connection APIs
   startBleServer: () => ipcRenderer.invoke('start-ble-server'),
   stopBleServer: () => ipcRenderer.invoke('stop-ble-server'),

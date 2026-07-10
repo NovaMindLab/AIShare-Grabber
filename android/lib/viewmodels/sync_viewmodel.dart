@@ -69,6 +69,11 @@ class SyncViewModel extends ChangeNotifier {
   int thumbnailSyncTotal = 0;
   int thumbnailSyncDone = 0;
 
+  bool isAlbumSyncing = false;
+  int albumSyncTotal = 0;
+  int albumSyncDone = 0;
+  String lastAlbumSyncDate = '';
+
   int _fileIdCounter = 100;
   Timer? _heartbeatTimer;
   DateTime _lastHeartbeatReceived = DateTime.now();
@@ -231,12 +236,14 @@ class SyncViewModel extends ChangeNotifier {
             final payloadStr = utf8.decode(binaryData.sublist(16, 16 + payloadSize));
             final Map<String, dynamic> data = jsonDecode(payloadStr);
             final List<dynamic> syncedList = data['synced_ids'] ?? [];
-            
+
             pcSyncedIds.clear();
             for (var id in syncedList) {
               pcSyncedIds.add(id.toString());
             }
-            logMessage("Handshake response received! PC has already synced ${pcSyncedIds.length} files.");
+            // Store the last album sync date for breakpoint resume
+            lastAlbumSyncDate = data['last_album_sync_date'] ?? '';
+            logMessage("Handshake response received! PC has ${pcSyncedIds.length} files. Last album sync: ${lastAlbumSyncDate.isEmpty ? 'none' : lastAlbumSyncDate}");
             notifyListeners();
             return;
           }
@@ -244,6 +251,12 @@ class SyncViewModel extends ChangeNotifier {
           if (fileId == -6) {
             logMessage("PC requested thumbnail sync to AI. Starting sync...");
             syncThumbnailsToAI();
+            return;
+          }
+
+          if (fileId == -7) {
+            logMessage("PC requested full album sync. Starting...");
+            syncAlbumToPC();
             return;
           }
 
@@ -691,6 +704,152 @@ class SyncViewModel extends ChangeNotifier {
     isThumbnailSyncing = false;
     notifyListeners();
     logMessage("Batch AI thumbnail sync finished. Sync completed: $thumbnailSyncDone/$thumbnailSyncTotal");
+  }
+
+  /// Sync all original photos from the phone album to PC.
+  /// Uses lastAlbumSyncDate as a breakpoint: only photos newer than that date are transmitted.
+  /// Photos are sent in ascending createDate order to ensure correct incremental progress.
+  Future<void> syncAlbumToPC() async {
+    if (isAlbumSyncing) return;
+    isAlbumSyncing = true;
+    albumSyncDone = 0;
+    albumSyncTotal = 0;
+    notifyListeners();
+
+    logMessage("📸 Starting album sync. Breakpoint date: ${lastAlbumSyncDate.isEmpty ? 'beginning' : lastAlbumSyncDate}");
+
+    try {
+      final PermissionState ps = await PhotoManager.requestPermissionExtend();
+      if (!ps.isAuth) {
+        logMessage("❌ Album sync failed: no media permission");
+        isAlbumSyncing = false;
+        notifyListeners();
+        return;
+      }
+
+      // Get all image paths from device
+      final FilterOptionGroup filter = FilterOptionGroup(
+        imageOption: const FilterOption(
+          sizeConstraint: SizeConstraint(ignoreSize: true),
+          // Sort by create date ascending (old → new) for correct breakpoint logic
+          needTitle: true,
+        ),
+        orders: [const OrderOption(type: OrderOptionType.createDate, asc: true)],
+      );
+      final List<AssetPathEntity> paths = await PhotoManager.getAssetPathList(
+        type: RequestType.image,
+        filterOption: filter,
+      );
+      if (paths.isEmpty) {
+        logMessage("📸 Album sync: no photo albums found.");
+        isAlbumSyncing = false;
+        notifyListeners();
+        return;
+      }
+
+      // Load all images from the first ("All Photos") album
+      final int count = await paths[0].assetCountAsync;
+      final List<AssetEntity> allImages = await paths[0].getAssetListRange(start: 0, end: count);
+
+      // Filter to only images newer than the breakpoint date
+      DateTime? breakpoint;
+      if (lastAlbumSyncDate.isNotEmpty) {
+        try {
+          breakpoint = DateTime.parse(lastAlbumSyncDate).toUtc();
+        } catch (_) {}
+      }
+
+      final List<AssetEntity> toSync = allImages.where((entity) {
+        if (breakpoint == null) return true;
+        final createMs = entity.createDateSecond;
+        if (createMs == null) return false;
+        final createDt = DateTime.fromMillisecondsSinceEpoch(createMs * 1000, isUtc: true);
+        return createDt.isAfter(breakpoint!);
+      }).toList();
+
+      albumSyncTotal = toSync.length;
+      notifyListeners();
+
+      if (toSync.isEmpty) {
+        logMessage("✅ Album sync complete: all photos already synced.");
+        // Notify PC that sync is done
+        final doneHeader = ByteData(16);
+        doneHeader.setInt32(0, -8, Endian.big);
+        doneHeader.setInt32(4, 0, Endian.big);
+        doneHeader.setInt32(8, 0, Endian.big);
+        doneHeader.setInt32(12, 0, Endian.big);
+        await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
+        isAlbumSyncing = false;
+        notifyListeners();
+        return;
+      }
+
+      logMessage("📸 Album sync: ${toSync.length} new photos to send (out of $count total).");
+
+      // Send start notification to PC: fileId=-7, total in total_chunks field
+      final startHeader = ByteData(16);
+      startHeader.setInt32(0, -7, Endian.big);
+      startHeader.setInt32(4, 0, Endian.big);
+      startHeader.setInt32(8, toSync.length, Endian.big);
+      startHeader.setInt32(12, 0, Endian.big);
+      await _syncEngine?.sendBinary(startHeader.buffer.asUint8List());
+
+      final streamer = _photoStreamer;
+      if (streamer == null) return;
+
+      for (final entity in toSync) {
+        if (_syncEngine == null || appState != AppState.connected) {
+          logMessage("📸 Album sync interrupted: disconnected");
+          break;
+        }
+
+        // Skip if PC already has this asset (safety check using assetId)
+        if (pcSyncedIds.contains('album_${entity.id}') || pcSyncedIds.contains(entity.id)) {
+          albumSyncDone++;
+          notifyListeners();
+          continue;
+        }
+
+        final fileId = _fileIdCounter++;
+        final success = await streamer.streamOriginalPhoto(
+          entity: entity,
+          fileId: fileId,
+          onProgress: (chunkIndex, totalChunks, bytesSent) {
+            activeProgress = totalChunks > 0 ? chunkIndex / totalChunks : 0;
+            activeTransferName = '📸 ${entity.title}';
+            notifyListeners();
+          },
+        );
+
+        if (success) {
+          albumSyncDone++;
+          pcSyncedIds.add('album_${entity.id}');
+        } else {
+          logMessage("⚠️ Failed to sync: ${entity.title}");
+        }
+        notifyListeners();
+      }
+
+      activeTransferName = null;
+      activeProgress = 0;
+      notifyListeners();
+
+      logMessage("✅ Album sync finished: $albumSyncDone/${albumSyncTotal} photos sent.");
+
+      // Notify PC that sync is done
+      final doneHeader = ByteData(16);
+      doneHeader.setInt32(0, -8, Endian.big);
+      doneHeader.setInt32(4, albumSyncDone, Endian.big);
+      doneHeader.setInt32(8, albumSyncTotal, Endian.big);
+      doneHeader.setInt32(12, 0, Endian.big);
+      await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
+    } catch (e, stack) {
+      logMessage("❌ Album sync error: $e");
+      debugPrint("[AlbumSync] Error: $e\n$stack");
+    } finally {
+      isAlbumSyncing = false;
+      notifyListeners();
+    }
   }
 
   Future<void> pickFiles(String type) async {
