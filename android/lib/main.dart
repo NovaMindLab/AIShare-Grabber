@@ -12,7 +12,7 @@ import 'views/transfer_console_view.dart';
 import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 
-const String appVersion = '1.2.8';
+const String appVersion = '1.2.9';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
