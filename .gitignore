@@ -1,0 +1,19 @@
+# Folders excluded from version control
+wiki/
+auto_deploy/
+
+# Node modules
+node_modules/
+
+# Build outputs
+cp_clip/dist/
+cp_clip/dist_electron/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db
