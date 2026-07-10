@@ -757,27 +757,14 @@ class SyncViewModel extends ChangeNotifier {
         return;
       }
 
-      // Robust filter group - exactly matches the working layout in photo_streamer.dart
-      final FilterOptionGroup filter = FilterOptionGroup(
-        imageOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
-        videoOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
-        audioOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
-      );
 
-      final List<AssetPathEntity> paths = await PhotoManager.getAssetPathList(
-        type: RequestType.image,
-        filterOption: filter,
-      );
-      if (paths.isEmpty) {
-        logMessage("📸 Album sync: no photo albums found.");
-        isAlbumSyncing = false;
-        notifyListeners();
-        return;
+
+      if (localImages.isEmpty) {
+        logMessage("📸 Album sync: localImages is empty, loading...");
+        final streamer = PhotoStreamer.standalone();
+        localImages = await streamer.loadLocalImages();
       }
-
-      // Load all images from the first ("All Photos") album
-      final int count = await paths[0].assetCountAsync;
-      final List<AssetEntity> allImages = await paths[0].getAssetListRange(start: 0, end: count);
+      final List<AssetEntity> allImages = List<AssetEntity>.from(localImages);
 
       // Chronological sort in-memory (oldest first)
       allImages.sort((a, b) {
@@ -819,7 +806,7 @@ class SyncViewModel extends ChangeNotifier {
         return;
       }
 
-      logMessage("📸 Album sync: ${toSync.length} new photos to send (out of $count total).");
+      logMessage("📸 Album sync: ${toSync.length} new photos to send (out of ${allImages.length} total).");
 
       // Send start notification to PC: fileId=-7, total in total_chunks field
       final startHeader = ByteData(16);

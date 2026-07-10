@@ -367,7 +367,7 @@
           <div v-else class="connected-dashboard-layout" style="display: flex; gap: 24px; width: 100%; align-items: stretch; height: 580px; box-sizing: border-box;">
             
             <!-- Left Column: Device Dashboard Panel -->
-            <div class="device-dashboard-panel" style="width: 320px; display: flex; flex-direction: column; gap: 20px; padding: 24px; border-radius: 20px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); box-sizing: border-box; backdrop-filter: blur(20px);">
+            <div class="device-dashboard-panel" style="width: 320px; display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 20px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); box-sizing: border-box; backdrop-filter: blur(20px); overflow-y: auto; max-height: 100%; scrollbar-width: none;">
               <!-- Device Icon & Basic Info -->
               <div style="display: flex; align-items: center; gap: 16px;">
                 <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); display: flex; align-items: center; justify-content: center; font-size: 24px; color: #a855f7; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);">
@@ -417,7 +417,7 @@
               </div>
 
               <!-- Sync & AI Management Actions -->
-              <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
                 <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">管理与同步</span>
                 
                 <!-- Batch AI Sync Button -->
