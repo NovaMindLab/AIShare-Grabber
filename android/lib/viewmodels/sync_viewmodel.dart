@@ -282,6 +282,12 @@ class SyncViewModel extends ChangeNotifier {
             return;
           }
 
+          if (fileId == -11) {
+            logMessage("PC requested full album re-sync (scanning for missing files).");
+            syncAlbumToPC(forceFullScan: true);
+            return;
+          }
+
           if (fileId == -10) {
             logMessage("PC requested to stop album sync.");
             isAlbumSyncing = false;
@@ -739,7 +745,7 @@ class SyncViewModel extends ChangeNotifier {
   /// Sync all original photos from the phone album to PC.
   /// Uses lastAlbumSyncDate as a breakpoint: only photos newer than that date are transmitted.
   /// Photos are sent in ascending createDate order to ensure correct incremental progress.
-  Future<void> syncAlbumToPC() async {
+  Future<void> syncAlbumToPC({bool forceFullScan = false}) async {
     if (isAlbumSyncing && !isAlbumSyncPaused) return;
     
     if (isAlbumSyncing && isAlbumSyncPaused) {
@@ -754,7 +760,7 @@ class SyncViewModel extends ChangeNotifier {
     albumSyncTotal = 0;
     notifyListeners();
 
-    logMessage("📸 Starting album sync. Breakpoint date: ${lastAlbumSyncDate.isEmpty ? 'beginning' : lastAlbumSyncDate}");
+    logMessage("📸 Starting album sync. Breakpoint date: ${(lastAlbumSyncDate.isEmpty || forceFullScan) ? 'none (full scan)' : lastAlbumSyncDate}");
 
     try {
       final PermissionState ps = await PhotoManager.requestPermissionExtend();
@@ -783,7 +789,7 @@ class SyncViewModel extends ChangeNotifier {
 
       // Filter to only images newer than the breakpoint date
       DateTime? breakpoint;
-      if (lastAlbumSyncDate.isNotEmpty) {
+      if (lastAlbumSyncDate.isNotEmpty && !forceFullScan) {
         try {
           breakpoint = DateTime.parse(lastAlbumSyncDate).toUtc();
         } catch (_) {}

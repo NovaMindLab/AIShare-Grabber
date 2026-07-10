@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   openThumbnailFolder: () => ipcRenderer.invoke('open-thumbnail-folder'),
   requestAlbumSync: () => ipcRenderer.invoke('request-album-sync'),
   openAlbumSyncFolder: () => ipcRenderer.invoke('open-album-sync-folder'),
+  cleanMissingResources: () => ipcRenderer.invoke('clean-missing-resources'),
 
   // BLE Signaling & Sync Connection APIs
   startBleServer: () => ipcRenderer.invoke('start-ble-server'),

@@ -378,6 +378,44 @@ ipcMain.handle('open-album-sync-folder', async () => {
   return true;
 });
 
+ipcMain.handle('clean-missing-resources', async () => {
+  if (!activeDeviceUuid || !activeDeviceDb) return { count: 0 };
+  
+  return new Promise((resolve) => {
+    activeDeviceDb.all(`SELECT id, path FROM resources WHERE type = 'album_photo'`, (err, rows) => {
+      if (err || !rows) {
+        resolve({ count: 0 });
+        return;
+      }
+      
+      const missingIds = [];
+      for (const row of rows) {
+        if (row.path && !fs.existsSync(row.path)) {
+          missingIds.push(row.id);
+        }
+      }
+      
+      if (missingIds.length === 0) {
+        resolve({ count: 0 });
+        return;
+      }
+      
+      // Delete missing records
+      const placeholders = missingIds.map(() => '?').join(',');
+      activeDeviceDb.run(`DELETE FROM resources WHERE id IN (${placeholders})`, missingIds, (delErr) => {
+        if (delErr) {
+          console.error('[Database] Failed to delete missing resources:', delErr);
+          resolve({ count: 0 });
+        } else {
+          console.log(`[Database] Cleaned up ${missingIds.length} missing resources from DB`);
+          resolve({ count: missingIds.length });
+        }
+      });
+    });
+  });
+});
+
+
 
 ipcMain.handle('select-folder', async () => {
   if (!mainWindow) return null;

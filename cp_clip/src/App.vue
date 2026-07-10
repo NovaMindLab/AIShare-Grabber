@@ -533,15 +533,29 @@
                   </div>
                 </div>
 
-                <button
-                  v-else
-                  class="btn btn-primary"
-                  @click="requestAlbumSync"
-                  style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; background: linear-gradient(135deg, #10b981, #059669);"
-                >
-                  <span>📸</span>
-                  <span>{{ albumSyncDone > 0 ? '继续同步相册到PC' : '同步相册到PC' }}</span>
-                </button>
+                <div v-else style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                  <!-- Normal Sync Button -->
+                  <button
+                    class="btn btn-primary"
+                    @click="requestAlbumSync"
+                    style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; background: linear-gradient(135deg, #10b981, #059669);"
+                  >
+                    <span>📸</span>
+                    <span>{{ albumSyncDone > 0 ? '继续同步相册到PC' : '同步相册到PC' }}</span>
+                  </button>
+
+                  <!-- Re-sync / Integrity check Button -->
+                  <button
+                    class="btn btn-secondary"
+                    @click="reSyncAlbum"
+                    style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; border: 1px solid rgba(245,158,11,0.2); background: rgba(245,158,11,0.05); color: #f59e0b;"
+                    onmouseover="this.style.background='rgba(245,158,11,0.1)'"
+                    onmouseout="this.style.background='rgba(245,158,11,0.05)'"
+                  >
+                    <span>🔄</span>
+                    <span>检查并重新同步 (补漏)</span>
+                  </button>
+                </div>
 
                 <!-- Open Album Sync Folder -->
                 <button
@@ -2308,6 +2322,81 @@ const isAlbumSyncing = ref(false);
 const isAlbumSyncPaused = ref(false);
 const albumSyncDone = ref(0);
 const albumSyncTotal = ref(0);
+
+async function reSyncAlbum() {
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    logSyncEvent('❌ WebRTC 直连通道未建立，无法发送相册重新同步请求');
+    return;
+  }
+  
+  logSyncEvent('🔄 正在检查本地文件完整性，清理丢失文件记录...');
+  if (hasApi) {
+    try {
+      const res = await window.api.cleanMissingResources();
+      if (res && res.count > 0) {
+        logSyncEvent(`🧹 已清理 ${res.count} 个失效的本地照片数据库记录`);
+      } else {
+        logSyncEvent('✨ 本地物理文件完整，未发现丢失的照片');
+      }
+      
+      // Reload database sync info to get updated synced_ids
+      const uuid = activeDeviceUuid.value;
+      const name = activeDeviceName.value;
+      const syncInfo = await window.api.initDeviceSync(uuid, name);
+      
+      // Update local images list in memory
+      images.value = syncInfo.resources.map(res => ({
+        id: res.id,
+        path: res.path,
+        name: res.name,
+        size: res.size,
+        src: `local:///${res.path.replace(/\\/g, '/')}`,
+        status: 'completed',
+        predictions: JSON.parse(res.predictions || '[]'),
+        type: res.type,
+        latitude: res.latitude,
+        longitude: res.longitude
+      }));
+
+      // Send updated synced IDs to phone via a handshake response update (-4)
+      const nonThumbSyncedIds = syncInfo.resources.filter(r => r.type !== 'thumbnail').map(r => r.id);
+      const thumbSyncedIds = syncInfo.resources.filter(r => r.type === 'thumbnail').map(r => r.id);
+      const responseStr = JSON.stringify({ 
+        synced_ids: nonThumbSyncedIds, 
+        synced_thumbnail_ids: thumbSyncedIds,
+        last_album_sync_date: syncInfo.lastAlbumSyncDate || '' 
+      });
+      
+      const encoder = new TextEncoder();
+      const responseBytes = encoder.encode(responseStr);
+      const responseBuffer = new ArrayBuffer(16 + responseBytes.byteLength);
+      const responseView = new DataView(responseBuffer);
+      responseView.setInt32(0, -4, false); // Update type = -4
+      responseView.setInt32(4, 0, false);
+      responseView.setInt32(8, 0, false);
+      responseView.setInt32(12, responseBytes.byteLength, false);
+      new Uint8Array(responseBuffer, 16).set(responseBytes);
+      dataChannel.send(responseBuffer);
+      
+    } catch (e) {
+      logSyncEvent(`⚠️ 检查文件完整性失败: ${e.message}`);
+    }
+  }
+
+  logSyncEvent('📸 正在向手机发送全量重新同步命令(补漏模式)...');
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -11, false); // file_id = -11: request full scan re-sync (fill gaps)
+  view.setInt32(4, 0, false);
+  view.setInt32(8, 0, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+
+  isAlbumSyncing.value = true;
+  isAlbumSyncPaused.value = false;
+  albumSyncDone.value = 0;
+  albumSyncTotal.value = 0;
+}
 
 function requestAlbumSync() {
   if (!dataChannel || dataChannel.readyState !== 'open') {
