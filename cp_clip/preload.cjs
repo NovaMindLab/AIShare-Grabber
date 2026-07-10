@@ -17,8 +17,8 @@ contextBridge.exposeInMainWorld('api', {
   sendAnswerSdp: (sdp) => ipcRenderer.invoke('send-answer-sdp', sdp),
   sendIceCandidate: (sdpMid, sdpMLineIndex, candidate) => 
     ipcRenderer.invoke('send-ice-candidate', { sdpMid, sdpMLineIndex, candidate }),
-  savePhotoChunk: (fileId, chunkIndex, totalChunks, payload, metadata) => 
-    ipcRenderer.invoke('save-photo-chunk', { fileId, chunkIndex, totalChunks, payload, metadata }),
+  saveFullPhoto: (fileId, payload, metadata) => 
+    ipcRenderer.invoke('save-full-photo', { fileId, payload, metadata }),
   initDeviceSync: (deviceUuid, deviceName) => 
     ipcRenderer.invoke('init-device-sync', { deviceUuid, deviceName }),
   clearDeviceDatabase: () => ipcRenderer.invoke('clear-device-database'),

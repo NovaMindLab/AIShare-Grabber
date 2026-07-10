@@ -1508,151 +1508,133 @@ ipcMain.handle('install-update', async (event, filePath) => {
 
 // -------------------------------------------------------------------------------
 
-ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChunks, payload, metadata }) => {
-  const chunkBuffer = Buffer.from(payload);
+ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) => {
+  const fullBuffer = Buffer.from(payload);
   
-  if (!pendingTransfers[fileId]) {
-    pendingTransfers[fileId] = {
-      chunks: new Array(totalChunks),
-      received: 0,
-      total: totalChunks
-    };
+  // Resolve filename, type, and target path
+  const ext = getExtension(fullBuffer);
+  
+  let filename = '';
+  let assetId = '';
+  
+  if (metadata && metadata.name) {
+    filename = metadata.name;
+    assetId = metadata.assetId || filename;
+  } else {
+    filename = `synced_${Date.now()}_${fileId}${ext}`;
+    assetId = filename;
   }
   
-  const transfer = pendingTransfers[fileId];
-  if (!transfer.chunks[chunkIndex]) {
-    transfer.chunks[chunkIndex] = chunkBuffer;
-    transfer.received++;
+  let type = 'files';
+  if (['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext.toLowerCase())) {
+    type = 'images';
+  } else if (['.mp4', '.mkv', '.mov', '.avi', '.webm'].includes(ext.toLowerCase())) {
+    type = 'videos';
+  } else if (['.mp3', '.wav', '.m4a', '.ogg', '.flac'].includes(ext.toLowerCase())) {
+    type = 'audios';
   }
   
-  if (transfer.received === transfer.total) {
-    const fullBuffer = Buffer.concat(transfer.chunks);
-    delete pendingTransfers[fileId];
-    
-    // Resolve filename, type, and target path
-    const ext = getExtension(fullBuffer);
-    
-    let filename = '';
-    let assetId = '';
-    
-    if (metadata && metadata.name) {
-      filename = metadata.name;
-      assetId = metadata.assetId || filename;
-    } else {
-      filename = `synced_${Date.now()}_${fileId}${ext}`;
-      assetId = filename;
+  const isThumbnail = filename.startsWith('thumb_') && ext.toLowerCase() === '.jpg';
+  const isAlbumPhoto = filename.startsWith('album_');
+  
+  let targetPath = '';
+  if (isThumbnail) {
+    // Thumbnails always stored in __dirname/thumbnail_sync/<uuid>/
+    const targetDir = path.join(__dirname, 'thumbnail_sync', activeDeviceUuid || 'default');
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
     }
-    
-    let type = 'files';
-    if (['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext.toLowerCase())) {
-      type = 'images';
-    } else if (['.mp4', '.mkv', '.mov', '.avi', '.webm'].includes(ext.toLowerCase())) {
-      type = 'videos';
-    } else if (['.mp3', '.wav', '.m4a', '.ogg', '.flac'].includes(ext.toLowerCase())) {
-      type = 'audios';
+    targetPath = path.join(targetDir, filename);
+  } else if (isAlbumPhoto) {
+    // Album photos stored under album_sync/<uuid>/<YYYY-MM-DD>/ for date-based organization
+    const createDateStr = metadata && metadata.create_date ? metadata.create_date : new Date().toISOString();
+    const dateFolderName = createDateStr.substring(0, 10); // 'YYYY-MM-DD'
+    const baseDir = customDownloadPath
+      ? path.join(customDownloadPath, 'album_sync', activeDeviceUuid || 'default', dateFolderName)
+      : path.join(__dirname, 'album_sync', activeDeviceUuid || 'default', dateFolderName);
+    if (!fs.existsSync(baseDir)) {
+      fs.mkdirSync(baseDir, { recursive: true });
     }
-    
-    const isThumbnail = filename.startsWith('thumb_') && ext.toLowerCase() === '.jpg';
-    const isAlbumPhoto = filename.startsWith('album_');
-    
-    let targetPath = '';
-    if (isThumbnail) {
-      // Thumbnails always stored in __dirname/thumbnail_sync/<uuid>/
-      const targetDir = path.join(__dirname, 'thumbnail_sync', activeDeviceUuid || 'default');
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
-      }
-      targetPath = path.join(targetDir, filename);
-    } else if (isAlbumPhoto) {
-      // Album photos stored under album_sync/<uuid>/<YYYY-MM-DD>/ for date-based organization
-      const createDateStr = metadata && metadata.create_date ? metadata.create_date : new Date().toISOString();
-      const dateFolderName = createDateStr.substring(0, 10); // 'YYYY-MM-DD'
-      const baseDir = customDownloadPath
-        ? path.join(customDownloadPath, 'album_sync', activeDeviceUuid || 'default', dateFolderName)
-        : path.join(__dirname, 'album_sync', activeDeviceUuid || 'default', dateFolderName);
-      if (!fs.existsSync(baseDir)) {
-        fs.mkdirSync(baseDir, { recursive: true });
-      }
-      targetPath = path.join(baseDir, filename);
-    } else if (activeDeviceUuid) {
-      // Full files go to user-configured download path (or default sync_storage)
-      const targetDir = getEffectiveDownloadBase(activeDeviceUuid, type);
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
-      }
-      targetPath = path.join(targetDir, filename);
-    } else {
-      const aiimageDir = path.join(__dirname, 'aiimage');
-      if (!fs.existsSync(aiimageDir)) {
-        fs.mkdirSync(aiimageDir, { recursive: true });
-      }
-      targetPath = path.join(aiimageDir, filename);
+    targetPath = path.join(baseDir, filename);
+  } else if (activeDeviceUuid) {
+    // Full files go to user-configured download path (or default sync_storage)
+    const targetDir = getEffectiveDownloadBase(activeDeviceUuid, type);
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
     }
-    
-    fs.writeFileSync(targetPath, fullBuffer);
-    console.log(`[Sync] Saved reassembled file to ${targetPath}`);
-    
-    // Auto classify only if it is an image or thumbnail (not album originals to keep it fast)
-    let predictions = [];
-    if ((type === 'images' || isThumbnail) && !isAlbumPhoto) {
-      try {
-        predictions = await classifyPhotoInternal(targetPath);
-      } catch (err) {
-        console.error(`Auto classification failed for ${targetPath}:`, err);
-      }
+    targetPath = path.join(targetDir, filename);
+  } else {
+    const aiimageDir = path.join(__dirname, 'aiimage');
+    if (!fs.existsSync(aiimageDir)) {
+      fs.mkdirSync(aiimageDir, { recursive: true });
     }
+    targetPath = path.join(aiimageDir, filename);
+  }
+  
+  fs.writeFileSync(targetPath, fullBuffer);
+  console.log(`[Sync] Saved reassembled file to ${targetPath}`);
+  
+  // Auto classify only if it is an image or thumbnail (not album originals to keep it fast)
+  let predictions = [];
+  if ((type === 'images' || isThumbnail) && !isAlbumPhoto) {
+    try {
+      predictions = await classifyPhotoInternal(targetPath);
+    } catch (err) {
+      console.error(`Auto classification failed for ${targetPath}:`, err);
+    }
+  }
+  
+  // Register record in SQLite database if device is connected
+  if (activeDeviceUuid && activeDeviceDb) {
+    const size = fullBuffer.length;
+    const predictionsStr = JSON.stringify(predictions);
+    const syncTime = Date.now();
+    const createDate = metadata && metadata.create_date ? metadata.create_date : null;
     
-    // Register record in SQLite database if device is connected
-    if (activeDeviceUuid && activeDeviceDb) {
-      const size = fullBuffer.length;
-      const predictionsStr = JSON.stringify(predictions);
-      const syncTime = Date.now();
-      const createDate = metadata && metadata.create_date ? metadata.create_date : null;
-      
-      // Get the cached embedding Buffer
-      let embeddingBuffer = null;
-      const emb = imageEmbeddingsCache[targetPath];
-      if (emb) {
-        embeddingBuffer = Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength);
-      }
+    // Get the cached embedding Buffer
+    let embeddingBuffer = null;
+    const emb = imageEmbeddingsCache[targetPath];
+    if (emb) {
+      embeddingBuffer = Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength);
+    }
 
-      activeDeviceDb.run(`
-        INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time, embedding, latitude, longitude, create_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        assetId, 
-        filename, 
-        targetPath, 
-        isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type), 
-        size, 
-        predictionsStr, 
-        syncTime, 
-        embeddingBuffer,
-        metadata && metadata.latitude !== undefined ? metadata.latitude : null,
-        metadata && metadata.longitude !== undefined ? metadata.longitude : null,
-        createDate
-      ], (err) => {
-        if (err) {
-          console.error(`[Database] Error registering synced asset ${assetId}:`, err);
-        } else {
-          console.log(`[Database] Registered synced asset: ${filename} (ID: ${assetId}, type: ${isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type)})`);
-        }
-      });
-    }
-    
-    // Notify renderer that a new file is synced!
-    if (mainWindow) {
-      mainWindow.webContents.send('photo-synced', {
-        isThumbnail,
-        path: targetPath,
-        name: filename,
-        src: `local:///${targetPath.replace(/\\/g, '/')}`,
-        predictions,
-        latitude: metadata && metadata.latitude !== undefined ? metadata.latitude : null,
-        longitude: metadata && metadata.longitude !== undefined ? metadata.longitude : null
-      });
-    }
+    activeDeviceDb.run(`
+      INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time, embedding, latitude, longitude, create_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      assetId, 
+      filename, 
+      targetPath, 
+      isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type), 
+      size, 
+      predictionsStr, 
+      syncTime, 
+      embeddingBuffer,
+      metadata && metadata.latitude !== undefined ? metadata.latitude : null,
+      metadata && metadata.longitude !== undefined ? metadata.longitude : null,
+      createDate
+    ], (err) => {
+      if (err) {
+        console.error(`[Database] Error registering synced asset ${assetId}:`, err);
+      } else {
+        console.log(`[Database] Registered synced asset: ${filename} (ID: ${assetId}, type: ${isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type)})`);
+      }
+    });
   }
+  
+  // Notify renderer that a new file is synced!
+  if (mainWindow) {
+    mainWindow.webContents.send('photo-synced', {
+      isThumbnail,
+      path: targetPath,
+      name: filename,
+      src: `local:///${targetPath.replace(/\\/g, '/')}`,
+      predictions,
+      latitude: metadata && metadata.latitude !== undefined ? metadata.latitude : null,
+      longitude: metadata && metadata.longitude !== undefined ? metadata.longitude : null
+    });
+  }
+  
   return true;
 });
 

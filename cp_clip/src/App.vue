@@ -2943,11 +2943,55 @@ function setupDataChannel(channel) {
       }
     }
 
-    const payload = new Uint8Array(arrayBuffer, 16, payloadSize);
+    // Accumulate chunks in the renderer process to avoid flooding Electron IPC queue and causing OOM crashes
+    if (!window.activeIncomingTransfers) {
+      window.activeIncomingTransfers = {};
+    }
+    
+    if (!window.activeIncomingTransfers[fileId]) {
+      window.activeIncomingTransfers[fileId] = {
+        chunks: new Array(totalChunks),
+        received: 0,
+        total: totalChunks
+      };
+    }
+    
+    const transfer = window.activeIncomingTransfers[fileId];
+    // Copy the payload bytes so the original arrayBuffer can be garbage collected safely
+    const chunkData = new Uint8Array(payloadSize);
+    chunkData.set(new Uint8Array(arrayBuffer, 16, payloadSize));
+    
+    if (!transfer.chunks[chunkIndex]) {
+      transfer.chunks[chunkIndex] = chunkData;
+      transfer.received++;
+    }
+    
     logSyncEvent(`📥 接收分片: ${chunkIndex + 1}/${totalChunks} (文件ID: ${fileId})`);
     
-    if (hasApi) {
-      window.api.savePhotoChunk(fileId, chunkIndex, totalChunks, payload, activeMetadata[fileId]);
+    if (transfer.received === transfer.total) {
+      // Reassemble the full file in renderer process
+      let totalBytes = 0;
+      for (let i = 0; i < transfer.total; i++) {
+        if (transfer.chunks[i]) {
+          totalBytes += transfer.chunks[i].length;
+        }
+      }
+      
+      const fullBuffer = new Uint8Array(totalBytes);
+      let offset = 0;
+      for (let i = 0; i < transfer.total; i++) {
+        if (transfer.chunks[i]) {
+          fullBuffer.set(transfer.chunks[i], offset);
+          offset += transfer.chunks[i].length;
+        }
+      }
+      
+      delete window.activeIncomingTransfers[fileId];
+      
+      // Send the completed file to the main process in one single IPC call!
+      if (hasApi) {
+        window.api.saveFullPhoto(fileId, fullBuffer, activeMetadata[fileId]);
+      }
     }
   };
 }
