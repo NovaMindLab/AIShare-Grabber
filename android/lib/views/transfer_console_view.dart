@@ -317,15 +317,43 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                   ),
                   viewModel.isAlbumSyncing
                       ? Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const SizedBox(
-                              width: 14, height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
-                            ),
-                            const SizedBox(width: 6),
                             Text(
-                              "${viewModel.albumSyncDone}/${viewModel.albumSyncTotal}",
-                              style: const TextStyle(color: Color(0xFF10B981), fontSize: 13, fontWeight: FontWeight.bold),
+                              t.currentLocale == 'zh'
+                                  ? "同步中: ${viewModel.albumSyncDone}/${viewModel.albumSyncTotal} (余${viewModel.albumSyncTotal - viewModel.albumSyncDone}张)"
+                                  : "Syncing: ${viewModel.albumSyncDone}/${viewModel.albumSyncTotal} (${viewModel.albumSyncTotal - viewModel.albumSyncDone} left)",
+                              style: const TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(width: 8),
+                            // Pause / Resume Button
+                            IconButton(
+                              constraints: const BoxConstraints(),
+                              padding: EdgeInsets.zero,
+                              icon: Icon(
+                                viewModel.isAlbumSyncPaused ? Icons.play_arrow : Icons.pause,
+                                color: const Color(0xFF10B981),
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                if (viewModel.isAlbumSyncPaused) {
+                                  viewModel.resumeAlbumSync();
+                                } else {
+                                  viewModel.pauseAlbumSync();
+                                }
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            // Stop Button
+                            IconButton(
+                              constraints: const BoxConstraints(),
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(
+                                Icons.stop,
+                                color: Color(0xFFEF4444),
+                                size: 18,
+                              ),
+                              onPressed: () => viewModel.stopAlbumSync(),
                             ),
                           ],
                         )

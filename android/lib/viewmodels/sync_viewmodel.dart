@@ -73,6 +73,7 @@ class SyncViewModel extends ChangeNotifier {
   int albumSyncTotal = 0;
   int albumSyncDone = 0;
   String lastAlbumSyncDate = '';
+  bool isAlbumSyncPaused = false;
 
   int _fileIdCounter = 100;
   Timer? _heartbeatTimer;
@@ -255,8 +256,29 @@ class SyncViewModel extends ChangeNotifier {
           }
 
           if (fileId == -7) {
-            logMessage("PC requested full album sync. Starting...");
-            syncAlbumToPC();
+            if (isAlbumSyncing) {
+              logMessage("PC requested to resume album sync.");
+              isAlbumSyncPaused = false;
+              notifyListeners();
+            } else {
+              logMessage("PC requested full album sync. Starting...");
+              syncAlbumToPC();
+            }
+            return;
+          }
+
+          if (fileId == -9) {
+            logMessage("PC requested to pause album sync.");
+            isAlbumSyncPaused = true;
+            notifyListeners();
+            return;
+          }
+
+          if (fileId == -10) {
+            logMessage("PC requested to stop album sync.");
+            isAlbumSyncing = false;
+            isAlbumSyncPaused = false;
+            notifyListeners();
             return;
           }
 
@@ -710,8 +732,16 @@ class SyncViewModel extends ChangeNotifier {
   /// Uses lastAlbumSyncDate as a breakpoint: only photos newer than that date are transmitted.
   /// Photos are sent in ascending createDate order to ensure correct incremental progress.
   Future<void> syncAlbumToPC() async {
-    if (isAlbumSyncing) return;
+    if (isAlbumSyncing && !isAlbumSyncPaused) return;
+    
+    if (isAlbumSyncing && isAlbumSyncPaused) {
+      // If we are already running but paused, resume instead
+      resumeAlbumSync();
+      return;
+    }
+
     isAlbumSyncing = true;
+    isAlbumSyncPaused = false;
     albumSyncDone = 0;
     albumSyncTotal = 0;
     notifyListeners();
@@ -727,15 +757,13 @@ class SyncViewModel extends ChangeNotifier {
         return;
       }
 
-      // Get all image paths from device
+      // Robust filter group - exactly matches the working layout in photo_streamer.dart
       final FilterOptionGroup filter = FilterOptionGroup(
-        imageOption: const FilterOption(
-          sizeConstraint: SizeConstraint(ignoreSize: true),
-          // Sort by create date ascending (old → new) for correct breakpoint logic
-          needTitle: true,
-        ),
-        orders: [const OrderOption(type: OrderOptionType.createDate, asc: true)],
+        imageOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
+        videoOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
+        audioOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
       );
+
       final List<AssetPathEntity> paths = await PhotoManager.getAssetPathList(
         type: RequestType.image,
         filterOption: filter,
@@ -750,6 +778,13 @@ class SyncViewModel extends ChangeNotifier {
       // Load all images from the first ("All Photos") album
       final int count = await paths[0].assetCountAsync;
       final List<AssetEntity> allImages = await paths[0].getAssetListRange(start: 0, end: count);
+
+      // Chronological sort in-memory (oldest first)
+      allImages.sort((a, b) {
+        final aTime = a.createDateSecond ?? 0;
+        final bTime = b.createDateSecond ?? 0;
+        return aTime.compareTo(bTime);
+      });
 
       // Filter to only images newer than the breakpoint date
       DateTime? breakpoint;
@@ -798,8 +833,17 @@ class SyncViewModel extends ChangeNotifier {
       if (streamer == null) return;
 
       for (final entity in toSync) {
-        if (_syncEngine == null || appState != AppState.connected) {
-          logMessage("📸 Album sync interrupted: disconnected");
+        // Dynamic wait check for pause state
+        while (isAlbumSyncPaused) {
+          if (_syncEngine == null || appState != AppState.connected || !isAlbumSyncing) {
+            break;
+          }
+          await Future.delayed(const Duration(milliseconds: 100));
+        }
+
+        // Check if sync was stopped while paused or transferring
+        if (_syncEngine == null || appState != AppState.connected || !isAlbumSyncing) {
+          logMessage("📸 Album sync stopped or disconnected");
           break;
         }
 
@@ -834,21 +878,69 @@ class SyncViewModel extends ChangeNotifier {
       activeProgress = 0;
       notifyListeners();
 
-      logMessage("✅ Album sync finished: $albumSyncDone/${albumSyncTotal} photos sent.");
-
-      // Notify PC that sync is done
-      final doneHeader = ByteData(16);
-      doneHeader.setInt32(0, -8, Endian.big);
-      doneHeader.setInt32(4, albumSyncDone, Endian.big);
-      doneHeader.setInt32(8, albumSyncTotal, Endian.big);
-      doneHeader.setInt32(12, 0, Endian.big);
-      await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
+      if (isAlbumSyncing) {
+        logMessage("✅ Album sync finished: $albumSyncDone/${albumSyncTotal} photos sent.");
+        // Notify PC that sync is done
+        final doneHeader = ByteData(16);
+        doneHeader.setInt32(0, -8, Endian.big);
+        doneHeader.setInt32(4, albumSyncDone, Endian.big);
+        doneHeader.setInt32(8, albumSyncTotal, Endian.big);
+        doneHeader.setInt32(12, 0, Endian.big);
+        await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
+      }
     } catch (e, stack) {
       logMessage("❌ Album sync error: $e");
       debugPrint("[AlbumSync] Error: $e\n$stack");
     } finally {
       isAlbumSyncing = false;
+      isAlbumSyncPaused = false;
       notifyListeners();
+    }
+  }
+
+  void pauseAlbumSync() {
+    if (isAlbumSyncing && !isAlbumSyncPaused) {
+      isAlbumSyncPaused = true;
+      logMessage("📸 Album sync paused.");
+      notifyListeners();
+      // Send -9 (pause command) to PC
+      final header = ByteData(16);
+      header.setInt32(0, -9, Endian.big);
+      header.setInt32(4, 0, Endian.big);
+      header.setInt32(8, 0, Endian.big);
+      header.setInt32(12, 0, Endian.big);
+      _syncEngine?.sendBinary(header.buffer.asUint8List());
+    }
+  }
+
+  void resumeAlbumSync() {
+    if (isAlbumSyncing && isAlbumSyncPaused) {
+      isAlbumSyncPaused = false;
+      logMessage("📸 Album sync resumed.");
+      notifyListeners();
+      // Send -7 (resume/start command) to PC
+      final header = ByteData(16);
+      header.setInt32(0, -7, Endian.big);
+      header.setInt32(4, 0, Endian.big);
+      header.setInt32(8, albumSyncTotal, Endian.big);
+      header.setInt32(12, 0, Endian.big);
+      _syncEngine?.sendBinary(header.buffer.asUint8List());
+    }
+  }
+
+  void stopAlbumSync() {
+    if (isAlbumSyncing) {
+      isAlbumSyncing = false;
+      isAlbumSyncPaused = false;
+      logMessage("📸 Album sync stopped.");
+      notifyListeners();
+      // Send -10 (stop command) to PC
+      final header = ByteData(16);
+      header.setInt32(0, -10, Endian.big);
+      header.setInt32(4, 0, Endian.big);
+      header.setInt32(8, 0, Endian.big);
+      header.setInt32(12, 0, Endian.big);
+      _syncEngine?.sendBinary(header.buffer.asUint8List());
     }
   }
 

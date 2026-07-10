@@ -486,34 +486,68 @@
                 <div style="border-top: 1px solid rgba(255,255,255,0.06); margin: 4px 0;"></div>
                 <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📸 相册备份到PC</span>
 
-                <!-- Sync Album to PC Button -->
+                <!-- Sync Album to PC Controls -->
+                <div v-if="isAlbumSyncing" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                  <!-- Status & Remaining count -->
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-primary); font-weight: 600;">
+                    <span>已同步: {{ albumSyncDone }} / {{ albumSyncTotal }}</span>
+                    <span style="color: #10b981;">剩余: {{ albumSyncTotal - albumSyncDone }} 张</span>
+                  </div>
+
+                  <!-- Progress Bar -->
+                  <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden;">
+                    <div :style="{ width: (albumSyncTotal > 0 ? (albumSyncDone / albumSyncTotal) * 100 : 0) + '%', height: '100%', background: 'linear-gradient(90deg, #10b981, #06b6d4)', borderRadius: '999px', transition: 'width 0.3s ease' }"></div>
+                  </div>
+
+                  <!-- Control Buttons Row -->
+                  <div style="display: flex; gap: 8px; width: 100%;">
+                    <button
+                      v-if="!isAlbumSyncPaused"
+                      class="btn"
+                      @click="pauseAlbumSync"
+                      style="flex: 2; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; font-size: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid rgba(250,204,21,0.2); background: rgba(250,204,21,0.05); color: #facc15;"
+                      onmouseover="this.style.background='rgba(250,204,21,0.1)'"
+                      onmouseout="this.style.background='rgba(250,204,21,0.05)'"
+                    >
+                      <span>⏸️</span> 暂停同步
+                    </button>
+                    <button
+                      v-else
+                      class="btn"
+                      @click="resumeAlbumSync"
+                      style="flex: 2; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; font-size: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid rgba(16,185,129,0.2); background: rgba(16,185,129,0.05); color: #10b981;"
+                      onmouseover="this.style.background='rgba(16,185,129,0.1)'"
+                      onmouseout="this.style.background='rgba(16,185,129,0.05)'"
+                    >
+                      <span>▶️</span> 继续同步
+                    </button>
+                    <button
+                      class="btn"
+                      @click="stopAlbumSync"
+                      style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; font-size: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid rgba(239,68,68,0.2); background: rgba(239,68,68,0.05); color: #ef4444;"
+                      onmouseover="this.style.background='rgba(239,68,68,0.1)'"
+                      onmouseout="this.style.background='rgba(239,68,68,0.05)'"
+                    >
+                      <span>⏹️</span> 停止
+                    </button>
+                  </div>
+                </div>
+
                 <button
+                  v-else
                   class="btn btn-primary"
-                  :disabled="isAlbumSyncing"
                   @click="requestAlbumSync"
                   style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; background: linear-gradient(135deg, #10b981, #059669);"
                 >
                   <span>📸</span>
-                  <span v-if="isAlbumSyncing">同步中 {{ albumSyncDone }}/{{ albumSyncTotal }}</span>
-                  <span v-else>{{ albumSyncDone > 0 ? '继续同步相册到PC' : '同步相册到PC' }}</span>
+                  <span>{{ albumSyncDone > 0 ? '继续同步相册到PC' : '同步相册到PC' }}</span>
                 </button>
-
-                <!-- Album sync progress bar -->
-                <div v-if="isAlbumSyncing" style="width: 100%;">
-                  <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">
-                    <span>正在同步原图...</span>
-                    <span>{{ albumSyncTotal > 0 ? Math.round(albumSyncDone/albumSyncTotal*100) : 0 }}%</span>
-                  </div>
-                  <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden;">
-                    <div :style="{ width: (albumSyncTotal > 0 ? albumSyncDone/albumSyncTotal*100 : 0) + '%', height: '100%', background: 'linear-gradient(90deg,#10b981,#06b6d4)', borderRadius: '999px', transition: 'width 0.3s ease' }"></div>
-                  </div>
-                </div>
 
                 <!-- Open Album Sync Folder -->
                 <button
                   class="btn btn-secondary"
                   @click="handleOpenAlbumSyncFolder"
-                  style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; border: 1px solid rgba(16,185,129,0.2); background: rgba(16,185,129,0.05); color: #10b981;"
+                  style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; border: 1px solid rgba(16,185,129,0.2); background: rgba(16,185,129,0.05); color: #10b981; margin-top: 4px;"
                   onmouseover="this.style.background='rgba(16,185,129,0.1)'"
                   onmouseout="this.style.background='rgba(16,185,129,0.05)'"
                 >
@@ -2271,6 +2305,7 @@ function handleOpenThumbnailFolder() {
 
 // ── Album Sync State & Functions ──────────────────────────────────────────
 const isAlbumSyncing = ref(false);
+const isAlbumSyncPaused = ref(false);
 const albumSyncDone = ref(0);
 const albumSyncTotal = ref(0);
 
@@ -2279,19 +2314,72 @@ function requestAlbumSync() {
     logSyncEvent('❌ WebRTC 直连通道未建立，无法发送相册同步请求');
     return;
   }
+  
+  if (isAlbumSyncing.value && isAlbumSyncPaused.value) {
+    resumeAlbumSync();
+    return;
+  }
+
   logSyncEvent('📸 正在发送相册同步请求到手机...');
 
   const buffer = new ArrayBuffer(16);
   const view = new DataView(buffer);
-  view.setInt32(0, -7, false); // file_id = -7: request album sync
+  view.setInt32(0, -7, false); // file_id = -7: request/resume album sync
   view.setInt32(4, 0, false);
   view.setInt32(8, 0, false);
   view.setInt32(12, 0, false);
   dataChannel.send(buffer);
 
   isAlbumSyncing.value = true;
+  isAlbumSyncPaused.value = false;
   albumSyncDone.value = 0;
   albumSyncTotal.value = 0;
+}
+
+function pauseAlbumSync() {
+  if (!dataChannel || dataChannel.readyState !== 'open') return;
+  logSyncEvent('⏸️ 正在请求暂停相册同步...');
+  
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -9, false); // file_id = -9: pause album sync
+  view.setInt32(4, 0, false);
+  view.setInt32(8, 0, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+  
+  isAlbumSyncPaused.value = true;
+}
+
+function resumeAlbumSync() {
+  if (!dataChannel || dataChannel.readyState !== 'open') return;
+  logSyncEvent('▶️ 正在请求恢复相册同步...');
+  
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -7, false); // file_id = -7: resume/start album sync
+  view.setInt32(4, 0, false);
+  view.setInt32(8, 0, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+  
+  isAlbumSyncPaused.value = false;
+}
+
+function stopAlbumSync() {
+  if (!dataChannel || dataChannel.readyState !== 'open') return;
+  logSyncEvent('⏹️ 正在请求停止并取消相册同步...');
+  
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -10, false); // file_id = -10: stop album sync
+  view.setInt32(4, 0, false);
+  view.setInt32(8, 0, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+  
+  isAlbumSyncing.value = false;
+  isAlbumSyncPaused.value = false;
 }
 
 function handleOpenAlbumSyncFolder() {
@@ -2648,13 +2736,13 @@ function setupDataChannel(channel) {
       return;
     }
 
-    // fileId = -7: Phone started album sync, tells PC the total count
+    // fileId = -7: Phone started or resumed album sync, tells PC the total count
     if (fileId === -7) {
       const totalCount = view.getInt32(8, false);
       albumSyncTotal.value = totalCount;
-      albumSyncDone.value = 0;
       isAlbumSyncing.value = true;
-      logSyncEvent(`📸 手机开始相册同步，共 ${totalCount} 张原图将传输到PC`);
+      isAlbumSyncPaused.value = false;
+      logSyncEvent(`📸 手机开始/恢复相册同步，共 ${totalCount} 张原图将传输到PC`);
       return;
     }
 
@@ -2663,9 +2751,25 @@ function setupDataChannel(channel) {
       const done = view.getInt32(4, false);
       const total = view.getInt32(8, false);
       isAlbumSyncing.value = false;
+      isAlbumSyncPaused.value = false;
       albumSyncDone.value = done;
       albumSyncTotal.value = total;
       logSyncEvent(`✅ 相册同步完成！共同步 ${done}/${total} 张原图到PC`);
+      return;
+    }
+
+    // fileId = -9: Phone paused album sync
+    if (fileId === -9) {
+      isAlbumSyncPaused.value = true;
+      logSyncEvent(`⏸️ 手机端已暂停相册同步`);
+      return;
+    }
+
+    // fileId = -10: Phone stopped album sync
+    if (fileId === -10) {
+      isAlbumSyncing.value = false;
+      isAlbumSyncPaused.value = false;
+      logSyncEvent(`⏹️ 手机端已停止并取消相册同步`);
       return;
     }
 
