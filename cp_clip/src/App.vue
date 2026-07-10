@@ -624,7 +624,7 @@
 
                 <!-- Message Bubble List -->
                 <div 
-                  v-for="msg in chatMessages" 
+                  v-for="msg in visibleChatMessages" 
                   :key="msg.id" 
                   class="chat-message-row"
                   :class="msg.type"
@@ -2142,6 +2142,10 @@ async function deleteSelectedDuplicates() {
 
 // Chat Window state & helpers
 const chatMessages = ref([]);
+const visibleChatMessages = computed(() => {
+  // Virtual slice: keep only the last 100 transfer history rows in DOM to avoid browser lag and WebRTC dropouts
+  return chatMessages.value.slice(-100);
+});
 const chatMessagesRef = ref(null);
 const dragActive = ref(false);
 
@@ -2786,9 +2790,9 @@ function setupDataChannel(channel) {
               predictions: JSON.parse(res.predictions || '[]')
             }));
 
-          // Map historical assets into chat messages
+          // Map historical assets into chat messages (exclude AI thumbnails and album sync photos)
           chatMessages.value = syncInfo.resources
-            .filter(res => res.type !== 'thumbnail')
+            .filter(res => res.type !== 'thumbnail' && res.type !== 'album_photo')
             .map(res => ({
               id: res.id,
               type: 'incoming',
