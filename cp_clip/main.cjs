@@ -366,8 +366,8 @@ ipcMain.handle('request-album-sync', async () => {
 ipcMain.handle('open-album-sync-folder', async () => {
   const uuid = activeDeviceUuid || 'default';
   let albumDir;
-  if (downloadPath) {
-    albumDir = path.join(downloadPath, 'album_sync', uuid);
+  if (customDownloadPath) {
+    albumDir = path.join(customDownloadPath, 'album_sync', uuid);
   } else {
     albumDir = path.join(__dirname, 'album_sync', uuid);
   }
@@ -1529,8 +1529,8 @@ ipcMain.handle('save-photo-chunk', async (event, { fileId, chunkIndex, totalChun
       // Album photos stored under album_sync/<uuid>/<YYYY-MM-DD>/ for date-based organization
       const createDateStr = metadata && metadata.create_date ? metadata.create_date : new Date().toISOString();
       const dateFolderName = createDateStr.substring(0, 10); // 'YYYY-MM-DD'
-      const baseDir = downloadPath
-        ? path.join(downloadPath, 'album_sync', activeDeviceUuid || 'default', dateFolderName)
+      const baseDir = customDownloadPath
+        ? path.join(customDownloadPath, 'album_sync', activeDeviceUuid || 'default', dateFolderName)
         : path.join(__dirname, 'album_sync', activeDeviceUuid || 'default', dateFolderName);
       if (!fs.existsSync(baseDir)) {
         fs.mkdirSync(baseDir, { recursive: true });

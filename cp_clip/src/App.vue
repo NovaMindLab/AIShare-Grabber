@@ -2716,7 +2716,13 @@ function setupDataChannel(channel) {
           
           logSyncEvent(`📊 本地数据库同步成功，已恢复 ${images.value.length} 个历史传输资源，${thumbnailImages.value.length} 个 AI 缩略图，发送握手回应包...`);
           
-          const responseStr = JSON.stringify({ synced_ids: syncInfo.syncedIds, last_album_sync_date: syncInfo.lastAlbumSyncDate || '' });
+          const nonThumbSyncedIds = syncInfo.resources.filter(r => r.type !== 'thumbnail').map(r => r.id);
+          const thumbSyncedIds = syncInfo.resources.filter(r => r.type === 'thumbnail').map(r => r.id);
+          const responseStr = JSON.stringify({ 
+            synced_ids: nonThumbSyncedIds, 
+            synced_thumbnail_ids: thumbSyncedIds,
+            last_album_sync_date: syncInfo.lastAlbumSyncDate || '' 
+          });
           const encoder = new TextEncoder();
           const responseBytes = encoder.encode(responseStr);
           

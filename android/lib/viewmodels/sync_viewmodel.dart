@@ -64,6 +64,7 @@ class SyncViewModel extends ChangeNotifier {
   static const _channel = MethodChannel('com.shareclip/system_info');
   Map<String, dynamic>? systemInfo;
   final Set<String> pcSyncedIds = {};
+  final Set<String> pcSyncedThumbnailIds = {};
 
   bool isThumbnailSyncing = false;
   int thumbnailSyncTotal = 0;
@@ -242,9 +243,16 @@ class SyncViewModel extends ChangeNotifier {
             for (var id in syncedList) {
               pcSyncedIds.add(id.toString());
             }
+
+            final List<dynamic> syncedThumbsList = data['synced_thumbnail_ids'] ?? [];
+            pcSyncedThumbnailIds.clear();
+            for (var id in syncedThumbsList) {
+              pcSyncedThumbnailIds.add(id.toString());
+            }
+
             // Store the last album sync date for breakpoint resume
             lastAlbumSyncDate = data['last_album_sync_date'] ?? '';
-            logMessage("Handshake response received! PC has ${pcSyncedIds.length} files. Last album sync: ${lastAlbumSyncDate.isEmpty ? 'none' : lastAlbumSyncDate}");
+            logMessage("Handshake response received! PC has ${pcSyncedIds.length} files, ${pcSyncedThumbnailIds.length} thumbnails. Last album sync: ${lastAlbumSyncDate.isEmpty ? 'none' : lastAlbumSyncDate}");
             notifyListeners();
             return;
           }
@@ -698,7 +706,7 @@ class SyncViewModel extends ChangeNotifier {
       }
 
       final String thumbName = 'thumb_${entity.id}.jpg';
-      if (pcSyncedIds.contains(entity.id) || pcSyncedIds.contains(thumbName)) {
+       if (pcSyncedThumbnailIds.contains(entity.id) || pcSyncedThumbnailIds.contains(thumbName)) {
         debugPrint("Skip sending thumbnail for ${entity.title} (already synced)");
         thumbnailSyncDone++;
         notifyListeners();
