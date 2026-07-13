@@ -34,6 +34,7 @@
     "build":  {
                   "appId":  "com.shareclip.album.sync",
                   "productName":  "ShareCLIP",
+                  "electronLanguages": ["zh-CN", "en-US"],
                   "directories":  {
                                       "output":  "dist_electron"
                                   },
