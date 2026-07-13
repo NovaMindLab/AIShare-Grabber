@@ -1,7 +1,7 @@
 {
     "name":  "image-clip-classifier",
     "private":  true,
-    "version":  "1.2.12",
+    "version":  "1.2.13",
     "description":  "ShareCLIP PC Client",
     "author":  "ShareCLIP Team",
     "type":  "module",
@@ -34,7 +34,10 @@
     "build":  {
                   "appId":  "com.shareclip.album.sync",
                   "productName":  "ShareCLIP",
-                  "electronLanguages": ["zh-CN", "en-US"],
+                  "electronLanguages":  [
+                                            "zh-CN",
+                                            "en-US"
+                                        ],
                   "directories":  {
                                       "output":  "dist_electron"
                                   },
