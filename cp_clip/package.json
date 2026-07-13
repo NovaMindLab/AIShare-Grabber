@@ -75,10 +75,21 @@
                                 "!node_modules/@img/sharp-darwin-arm64/**",
                                 "!node_modules/@img/sharp-win32-arm64/**"
                             ],
-                  "asar":  false,
-                  "npmRebuild":  false,
-                  "buildDependenciesFromSource":  false,
-                  "win":  {
+                  "asar": true,
+                  "asarUnpack": [
+                      "node_modules/onnxruntime-node/bin/**/*.dll",
+                      "node_modules/onnxruntime-node/bin/**/*.node",
+                      "node_modules/sqlite3/build/Release/*.node",
+                      "node_modules/sharp/build/Release/*.node",
+                      "node_modules/@img/sharp-win32-x64/lib/*.dll",
+                      "node_modules/@img/sharp-win32-x64/build/Release/*.node",
+                      "*.onnx",
+                      "ble_signaling_server.exe",
+                      "wifi_ap.ps1"
+                  ],
+                  "npmRebuild": false,
+                  "buildDependenciesFromSource": false,
+                  "win": {
                               "icon":  "build/icon.ico",
                               "signAndEditExecutable":  false,
                               "target":  [

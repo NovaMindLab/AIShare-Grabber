@@ -3,6 +3,10 @@ const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 
+function getPhysicalPath(filePath) {
+  return filePath.replace(/\bapp\.asar\b/, 'app.asar.unpacked');
+}
+
 let activeDeviceUuid = null;
 let activeDeviceDb = null;
 const { pathToFileURL } = require('url');
@@ -151,10 +155,11 @@ async function initializeAI() {
   }
 
   // 3. Load Image Encoder ONNX Model
-  if (ort && fs.existsSync(modelPath)) {
+  const physicalModelPath = getPhysicalPath(modelPath);
+  if (ort && fs.existsSync(physicalModelPath)) {
     try {
-      console.log("[AI Init] Loading MobileCLIP Image Encoder ONNX model...");
-      ortSession = await ort.InferenceSession.create(modelPath);
+      console.log("[AI Init] Loading MobileCLIP Image Encoder ONNX model from:", physicalModelPath);
+      ortSession = await ort.InferenceSession.create(physicalModelPath);
       console.log("[AI Init] MobileCLIP Image Encoder ONNX model loaded successfully.");
     } catch (err) {
       console.error("[AI Init] Failed to initialize Image Encoder ONNX model session:", err);
@@ -166,10 +171,11 @@ async function initializeAI() {
   }
 
   // 4. Load Text Encoder ONNX Model
-  if (ort && fs.existsSync(textModelPath)) {
+  const physicalTextModelPath = getPhysicalPath(textModelPath);
+  if (ort && fs.existsSync(physicalTextModelPath)) {
     try {
-      console.log("[AI Init] Loading MobileCLIP Text Encoder ONNX model...");
-      textEncoderSession = await ort.InferenceSession.create(textModelPath);
+      console.log("[AI Init] Loading MobileCLIP Text Encoder ONNX model from:", physicalTextModelPath);
+      textEncoderSession = await ort.InferenceSession.create(physicalTextModelPath);
       console.log("[AI Init] MobileCLIP Text Encoder ONNX model loaded successfully.");
     } catch (err) {
       console.error("[AI Init] Failed to initialize Text Encoder ONNX model session:", err);
@@ -924,15 +930,17 @@ ipcMain.handle('start-ble-server', async (event) => {
   const { spawn } = require('child_process');
   const fs = require('fs');
   const exePath = path.join(__dirname, 'ble_signaling_server.exe');
+  const physicalExePath = getPhysicalPath(exePath);
+  const physicalCwd = getPhysicalPath(__dirname);
   
   return new Promise((resolve, reject) => {
-    if (!fs.existsSync(exePath)) {
+    if (!fs.existsSync(physicalExePath)) {
       return reject(new Error("BLE Helper executable 'ble_signaling_server.exe' not found. Please compile it first."));
     }
     
-    console.log("[Main] Spawning compiled BLE helper:", exePath);
-    bleProcess = spawn(exePath, [service_uuid, char_uuid, pcSessionId], {
-      cwd: __dirname
+    console.log("[Main] Spawning compiled BLE helper from unpacked path:", physicalExePath);
+    bleProcess = spawn(physicalExePath, [service_uuid, char_uuid, pcSessionId], {
+      cwd: physicalCwd
     });
     
     let resolved = false;
@@ -1054,16 +1062,18 @@ ipcMain.handle('start-hotspot', async (event, { ssid, password }) => {
 
   const { spawn } = require('child_process');
   const scriptPath = path.join(__dirname, 'wifi_ap.ps1');
+  const physicalScriptPath = getPhysicalPath(scriptPath);
+  const physicalCwd = getPhysicalPath(__dirname);
 
   return new Promise((resolve, reject) => {
-    // Spawn PowerShell executing our multi-fallback script
+    // Spawn PowerShell executing our multi-fallback script from unpacked path
     hotspotProcess = spawn('powershell.exe', [
       '-ExecutionPolicy', 'Bypass',
-      '-File', scriptPath,
+      '-File', physicalScriptPath,
       '-SSID', ssid,
       '-Password', password
     ], {
-      cwd: __dirname
+      cwd: physicalCwd
     });
 
     let resolved = false;
