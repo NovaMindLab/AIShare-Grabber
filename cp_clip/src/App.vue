@@ -3179,7 +3179,6 @@ onMounted(() => {
             predictions: imageInfo.predictions
           };
           thumbnailImages.value.unshift(newThumb);
-          thumbSyncDone.value++;
           
           // Also push to images.value for main gallery browsing
           images.value.push({
@@ -3208,6 +3207,8 @@ onMounted(() => {
             images.value[imgIdx].longitude = imageInfo.longitude;
           }
         }
+        // Always increment counter regardless of whether thumbnail was new or already existed
+        thumbSyncDone.value++;
         if (thumbSyncTotal.value > 0 && thumbSyncDone.value >= thumbSyncTotal.value) {
           isThumbnailSyncing.value = false;
         }
