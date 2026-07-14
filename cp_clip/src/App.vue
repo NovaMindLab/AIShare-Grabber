@@ -423,7 +423,7 @@
                 <!-- Batch AI Sync Button -->
                 <button 
                   class="btn btn-primary" 
-                  :disabled="isThumbnailSyncing"
+                  :disabled="isThumbnailSyncing || isAlbumSyncing"
                   @click="requestThumbnailSync"
                   style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer;"
                 >
@@ -437,7 +437,7 @@
                 <button 
                   class="btn btn-secondary" 
                   @click="handleReclassifyAllPhotos" 
-                  :disabled="isReclassifying"
+                  :disabled="isReclassifying || isThumbnailSyncing || isAlbumSyncing"
                   style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; border: 1px solid rgba(16,185,129,0.2); background: rgba(16,185,129,0.05); color: #10b981;"
                   onmouseover="this.style.background='rgba(16,185,129,0.1)'"
                   onmouseout="this.style.background='rgba(16,185,129,0.05)'"
@@ -450,7 +450,7 @@
                 <button 
                   class="btn btn-secondary" 
                   @click="handleClearAndResync" 
-                  :disabled="isThumbnailSyncing || isReclassifying"
+                  :disabled="isThumbnailSyncing || isReclassifying || isAlbumSyncing"
                   style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; border: 1px solid rgba(239,68,68,0.2); background: rgba(239,68,68,0.05); color: #ef4444;"
                   onmouseover="this.style.background='rgba(239,68,68,0.1)'"
                   onmouseout="this.style.background='rgba(239,68,68,0.05)'"
@@ -538,6 +538,7 @@
                   <button
                     class="btn btn-primary"
                     @click="requestAlbumSync"
+                    :disabled="isAlbumSyncing || isThumbnailSyncing || isReclassifying"
                     style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; background: linear-gradient(135deg, #10b981, #059669);"
                   >
                     <span>📸</span>
@@ -548,6 +549,7 @@
                   <button
                     class="btn btn-secondary"
                     @click="reSyncAlbum"
+                    :disabled="isAlbumSyncing || isThumbnailSyncing || isReclassifying"
                     style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 12px; border-radius: 12px; font-weight: 600; width: 100%; cursor: pointer; border: 1px solid rgba(245,158,11,0.2); background: rgba(245,158,11,0.05); color: #f59e0b;"
                     onmouseover="this.style.background='rgba(245,158,11,0.1)'"
                     onmouseout="this.style.background='rgba(245,158,11,0.05)'"

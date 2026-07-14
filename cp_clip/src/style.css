@@ -265,6 +265,14 @@ body {
   border-color: var(--text-secondary);
 }
 
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* Category Filter Menu */
 .category-list {
   display: flex;
