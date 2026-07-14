@@ -3568,7 +3568,7 @@ const progressPercentage = computed(() => {
 const categoryCounts = computed(() => {
   const counts = {};
   localImages.value.forEach(img => {
-    if (img.status === 'completed' && img.predictions.length > 0 && img.predictions[0].probability >= 0.40) {
+    if (img.status === 'completed' && img.predictions.length > 0 && img.predictions[0].score >= 0.40) {
       const topCat = img.predictions[0].category;
       counts[topCat] = (counts[topCat] || 0) + 1;
     }
@@ -3586,7 +3586,7 @@ const filteredImages = computed(() => {
       img.status === 'completed' && 
       img.predictions.length > 0 && 
       img.predictions[0].category === selectedCategory.value &&
-      img.predictions[0].probability >= 0.40
+      img.predictions[0].score >= 0.40
     );
   }
 
