@@ -62,6 +62,14 @@
           </div>
           <div 
             class="category-item" 
+            :class="{ active: currentTab === 'album' }"
+            @click="currentTab = 'album'"
+          >
+            <span>{{ t.sidebar.tabAlbum }}</span>
+            <span class="category-count">{{ albumBackupImages.length }}</span>
+          </div>
+          <div 
+            class="category-item" 
             :class="{ active: currentTab === 'similar' }"
             @click="currentTab = 'similar'"
           >
@@ -844,6 +852,39 @@
           </div>
         </div>
 
+        <!-- 2.5 ALBUM BACKUP TAB -->
+        <div v-else-if="currentTab === 'album'" style="width: 100%;">
+          <!-- Empty State -->
+          <div class="empty-state" v-if="albumBackupImages.length === 0">
+            <div class="empty-state-icon">📸</div>
+            <h2 class="empty-state-title">暂无备份相册资源</h2>
+            <p class="empty-state-desc">
+              请在左下角连接手机，并启动“同步相册到PC”开始物理备份并离线浏览相册图片。
+            </p>
+          </div>
+
+          <!-- Grid display -->
+          <div class="image-grid" v-else>
+            <div 
+              v-for="img in albumBackupImages" 
+              :key="img.path" 
+              class="image-card" 
+              @click="openDetails(img)"
+            >
+              <div class="card-img-wrapper">
+                <img :src="img.src" class="card-img" loading="lazy" />
+              </div>
+              
+              <div class="card-overlay">
+                <span class="card-title">{{ img.name }}</span>
+                <span class="badge badge-classified" style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3);">
+                  📸 相册备份
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 3. VIDEOS TAB -->
         <div v-else-if="currentTab === 'videos'" style="width: 100%;">
           <!-- Empty State -->
@@ -1574,7 +1615,14 @@ function getExtensionName(filename) {
 const localImages = computed(() => {
   return images.value.filter(file => {
     const ext = getExtensionName(file.name);
-    return ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext);
+    return ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext) && file.type !== 'album_photo';
+  });
+});
+
+const albumBackupImages = computed(() => {
+  return images.value.filter(file => {
+    const ext = getExtensionName(file.name);
+    return ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext) && file.type === 'album_photo';
   });
 });
 
