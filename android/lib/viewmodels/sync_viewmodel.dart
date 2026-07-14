@@ -737,6 +737,14 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
     }
 
+    // Send completion signal to PC: fileId=-6, totalCount=-1 means "sync all done"
+    final doneHeader = ByteData(16);
+    doneHeader.setInt32(0, -6, Endian.big);
+    doneHeader.setInt32(4, 0, Endian.big);
+    doneHeader.setInt32(8, -1, Endian.big); // -1 = completion sentinel
+    doneHeader.setInt32(12, 0, Endian.big);
+    await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
+
     isThumbnailSyncing = false;
     notifyListeners();
     logMessage("Batch AI thumbnail sync finished. Sync completed: $thumbnailSyncDone/$thumbnailSyncTotal");

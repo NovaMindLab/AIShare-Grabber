@@ -2934,6 +2934,12 @@ function setupDataChannel(channel) {
     // Metadata packet containing filename and asset ID
     if (fileId === -6) {
       const totalCount = view.getInt32(8, false);
+      // totalCount === -1 is a completion sentinel sent by Android after the sync loop ends
+      if (totalCount === -1) {
+        isThumbnailSyncing.value = false;
+        logSyncEvent(`✅ 收到手机端 AI 同步完成信号，互斥锁已释放`);
+        return;
+      }
       thumbSyncTotal.value = totalCount;
       thumbSyncDone.value = Math.min(thumbnailImages.value.length, totalCount);
       isThumbnailSyncing.value = thumbSyncDone.value < totalCount;
