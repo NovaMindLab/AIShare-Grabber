@@ -1603,6 +1603,7 @@ const galleryContainerRef = ref(null);
 
 function selectCategory(cat) {
   selectedCategory.value = cat;
+  handleClearSearch();
   nextTick(() => {
     if (galleryContainerRef.value) {
       galleryContainerRef.value.scrollTop = 0;
@@ -3564,15 +3565,28 @@ const progressPercentage = computed(() => {
   return Math.round((processedCount.value / totalCount.value) * 100);
 });
 
-// Category counts based on Top-1 predictions
+// Category counts based on Top-1 predictions, with min 10 fallback logic
 const categoryCounts = computed(() => {
   const counts = {};
+  const groups = {};
   localImages.value.forEach(img => {
-    if (img.status === 'completed' && img.predictions.length > 0 && img.predictions[0].score >= 0.40) {
+    if (img.status === 'completed' && img.predictions.length > 0) {
       const topCat = img.predictions[0].category;
-      counts[topCat] = (counts[topCat] || 0) + 1;
+      if (!groups[topCat]) groups[topCat] = [];
+      groups[topCat].push(img);
     }
   });
+
+  for (const cat in groups) {
+    const group = groups[cat];
+    let count = group.filter(img => img.predictions[0].score >= 0.40).length;
+    if (count < 10) {
+      count = Math.min(10, group.length);
+    }
+    if (count > 0) {
+      counts[cat] = count;
+    }
+  }
   return counts;
 });
 
@@ -3582,22 +3596,38 @@ const filteredImages = computed(() => {
   if (selectedCategory.value === null) {
     list = [...localImages.value];
   } else {
-    list = localImages.value.filter(img => 
+    const categoryGroup = localImages.value.filter(img => 
       img.status === 'completed' && 
       img.predictions.length > 0 && 
-      img.predictions[0].category === selectedCategory.value &&
-      img.predictions[0].score >= 0.40
+      img.predictions[0].category === selectedCategory.value
     );
+    categoryGroup.sort((a, b) => b.predictions[0].score - a.predictions[0].score);
+    
+    const filteredGroup = categoryGroup.filter(img => img.predictions[0].score >= 0.40);
+    if (filteredGroup.length < 10) {
+      list = categoryGroup.slice(0, 10);
+    } else {
+      list = filteredGroup;
+    }
   }
 
-  // If search is active, sort by searchScore descending
+  // If search is active, apply search filtering and sorting
   if (isSearchActive.value) {
-    list = list.filter(img => img.searchScore !== undefined && getMatchPercentage(img.searchScore) >= 40);
     list.sort((a, b) => {
       const scoreA = a.searchScore !== undefined ? a.searchScore : -1;
       const scoreB = b.searchScore !== undefined ? b.searchScore : -1;
       return scoreB - scoreA;
     });
+    
+    const searchFiltered = list.filter(img => img.searchScore !== undefined && getMatchPercentage(img.searchScore) >= 40);
+    if (searchFiltered.length < 10) {
+      // If we don't have enough high confidence results, take up to 10 best results
+      // filter out items with no searchScore (undefined or <=0)
+      const validSearch = list.filter(img => img.searchScore !== undefined && img.searchScore > 0);
+      list = validSearch.slice(0, 10);
+    } else {
+      list = searchFiltered;
+    }
   }
 
   return list;
