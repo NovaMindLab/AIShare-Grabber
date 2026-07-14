@@ -2,17 +2,16 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:photo_manager/photo_manager.dart';
-import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'viewmodels/sync_viewmodel.dart';
 import 'views/qr_scanner_view.dart';
 import 'views/transfer_console_view.dart';
+import 'views/home_view.dart';
 import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 
-const String appVersion = '1.2.13';
+const String appVersion = '1.2.14';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,41 +35,7 @@ class ImageClipApp extends StatelessWidget {
     final themeService = Provider.of<ThemeService>(context);
     return MaterialApp(
       title: 'ShareCLIP Sync',
-      themeMode: themeService.themeMode,
-      // Clear Mode (Light)
-      theme: ThemeData(
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF7C3AED), // Violet 600
-          background: Color(0xFFF8FAFC),
-          surface: Colors.white,
-          onBackground: Color(0xFF0F172A),
-          onSurface: Color(0xFF1E293B),
-        ),
-        useMaterial3: true,
-        dividerColor: const Color(0xFFE2E8F0),
-        cardTheme: const CardThemeData(
-          color: Colors.white,
-        ),
-      ),
-      // Dark Mode
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF090D16),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF8B5CF6), // Violet 500
-          background: Color(0xFF090D16),
-          surface: Color(0xFF0F172A),
-          onBackground: Color(0xFFF8FAFC),
-          onSurface: Color(0xFFF1F5F9),
-        ),
-        useMaterial3: true,
-        dividerColor: const Color(0xFF1E293B),
-        cardTheme: const CardThemeData(
-          color: Color(0xFF0F172A),
-        ),
-      ),
+      theme: themeService.themeData,
       home: const MainRouterScreen(),
       debugShowCheckedModeBanner: false,
     );
@@ -225,11 +190,14 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
   Widget _routeState(AppState appState, SyncViewModel viewModel) {
     switch (appState) {
       case AppState.idle:
-        return const Scaffold(
-          body: Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6))),
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: Center(
+            child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+          ),
         );
       case AppState.home:
-        return _buildHomeScreen(viewModel);
+        return const HomeView();
       case AppState.scanning:
         return QrScannerView(
           onQrScanned: (payload) => viewModel.connectToTarget(payload),
@@ -247,273 +215,6 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
       case AppState.failed:
         return _buildConnectionFailedScreen(viewModel);
     }
-  }
-
-  // 🏠 HOME SCREEN — Gallery preview + connect button
-  // ─────────────────────────────────────────────────────────────────
-  Widget _buildHomeScreen(SyncViewModel viewModel) {
-    final t = Provider.of<LocalizationService>(context);
-    final themeService = Provider.of<ThemeService>(context);
-    final isDark = themeService.isDarkMode;
-
-    final totalCount = viewModel.localImages.length + viewModel.localVideos.length;
-
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Top Header ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'S',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'ShareCLIP',
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.onBackground,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold),
-                      ),
-                      const Text(
-                        'Multi-device File Sync',
-                        style:
-                            TextStyle(color: Color(0xFF64748B), fontSize: 11),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  // Theme Toggle Button
-                  IconButton(
-                    icon: Icon(
-                      isDark ? Icons.wb_sunny_outlined : Icons.nightlight_round_outlined,
-                      color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
-                    ),
-                    onPressed: () => themeService.toggleTheme(),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.language, color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7)),
-                    onPressed: () => _showLanguageSelector(context),
-                  ),
-                  const SizedBox(width: 4),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardTheme.color,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Theme.of(context).dividerColor),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.wifi_off,
-                            color: Color(0xFF64748B), size: 12),
-                        const SizedBox(width: 5),
-                        Text(
-                          t.get('disconnected'),
-                          style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // ── Connect to PC Button ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GestureDetector(
-                onTap: () => viewModel.startScanning(),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF8B5CF6).withOpacity(0.35),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        alignment: Alignment.center,
-                        child: const Icon(Icons.qr_code_scanner,
-                            color: Colors.white, size: 24),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              t.get('linkPc'),
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              t.get('linkPcDesc'),
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.arrow_forward_ios,
-                          color: Colors.white54, size: 16),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            // ── Gallery Section Header ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    t.get('localMedia'),
-                    style: TextStyle(
-                        color: Theme.of(context).colorScheme.onBackground,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    totalCount > 0
-                        ? '$totalCount ${t.get('items')}'
-                        : '',
-                    style: const TextStyle(
-                        color: Color(0xFF64748B), fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            // ── Gallery Grid (Images first, then Videos) ──
-            Expanded(
-              child: totalCount == 0
-                  ? _buildEmptyGallery()
-                  : GridView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 4,
-                        mainAxisSpacing: 4,
-                      ),
-                      itemCount: totalCount,
-                      itemBuilder: (context, idx) {
-                        final bool isImg = idx < viewModel.localImages.length;
-                        final media = isImg 
-                            ? viewModel.localImages[idx] 
-                            : viewModel.localVideos[idx - viewModel.localImages.length];
-                        final isVideo = media.type == AssetType.video;
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              AssetEntityImage(
-                                media,
-                                isOriginal: false,
-                                thumbnailSize:
-                                    const ThumbnailSize.square(180),
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  color: Theme.of(context).dividerColor,
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    isVideo ? '🎥' : '🖼️',
-                                    style:
-                                        const TextStyle(fontSize: 22),
-                                  ),
-                                ),
-                              ),
-                              if (isVideo)
-                                const Positioned(
-                                  bottom: 4,
-                                  left: 4,
-                                  child: Icon(
-                                    Icons.play_circle_filled,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyGallery() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.photo_library_outlined,
-              color: Theme.of(context).colorScheme.onBackground.withOpacity(0.3), size: 52),
-          const SizedBox(height: 12),
-          Text(
-            'Loading gallery...',
-            style: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5), fontSize: 14),
-          ),
-        ],
-      ),
-    );
   }
 
   // 🔒 PERMISSIONS REQUIRED
@@ -679,40 +380,6 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  void _showLanguageSelector(BuildContext context) {
-    final localizationService = Provider.of<LocalizationService>(context, listen: false);
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Theme.of(context).cardTheme.color,
-          title: Text(
-            localizationService.get('selectLanguage'),
-            style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView(
-              shrinkWrap: true,
-              children: LocalizationService.languages.entries.map((entry) {
-                return ListTile(
-                  title: Text(entry.value, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-                  trailing: localizationService.currentLocale == entry.key
-                      ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
-                      : null,
-                  onTap: () {
-                    localizationService.setLanguage(entry.key);
-                    Navigator.of(context).pop();
-                  },
-                );
-              }).toList(),
-            ),
-          ),
-        );
-      },
     );
   }
 }
