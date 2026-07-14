@@ -118,7 +118,7 @@
           <div 
             class="category-item" 
             :class="{ active: selectedCategory === null }" 
-            @click="selectedCategory = null"
+            @click="selectCategory(null)"
           >
             <span>{{ t.sidebar.allImages }}</span>
             <span class="category-count">{{ localImages.length }}</span>
@@ -128,7 +128,7 @@
             :key="cat" 
             class="category-item" 
             :class="{ active: selectedCategory === cat }"
-            @click="selectedCategory = cat"
+            @click="selectCategory(cat)"
           >
             <span>{{ getShortCategory(cat) }}</span>
             <span class="category-count">{{ count }}</span>
@@ -227,7 +227,7 @@
       </header>
 
       <!-- Grid Gallery -->
-      <section class="gallery-container">
+      <section class="gallery-container" ref="galleryContainerRef">
         <!-- ==================== TABS SWITCH ==================== -->
         
         <div v-if="currentTab === 'link'" style="display: flex; flex-direction: column; width: 100%; gap: 24px;">
@@ -1599,6 +1599,16 @@ function closeWindow() {
 const images = ref([]);
 const currentFolderPath = ref('');
 const selectedCategory = ref(null);
+const galleryContainerRef = ref(null);
+
+function selectCategory(cat) {
+  selectedCategory.value = cat;
+  nextTick(() => {
+    if (galleryContainerRef.value) {
+      galleryContainerRef.value.scrollTop = 0;
+    }
+  });
+}
 const selectedImage = ref(null);
 const currentTab = ref('images'); // 'link' | 'images' | 'videos' | 'audios' | 'files'
 const activeDeviceUuid = ref(null);
@@ -3558,7 +3568,7 @@ const progressPercentage = computed(() => {
 const categoryCounts = computed(() => {
   const counts = {};
   localImages.value.forEach(img => {
-    if (img.status === 'completed' && img.predictions.length > 0) {
+    if (img.status === 'completed' && img.predictions.length > 0 && img.predictions[0].probability >= 0.40) {
       const topCat = img.predictions[0].category;
       counts[topCat] = (counts[topCat] || 0) + 1;
     }
@@ -3575,12 +3585,14 @@ const filteredImages = computed(() => {
     list = localImages.value.filter(img => 
       img.status === 'completed' && 
       img.predictions.length > 0 && 
-      img.predictions[0].category === selectedCategory.value
+      img.predictions[0].category === selectedCategory.value &&
+      img.predictions[0].probability >= 0.40
     );
   }
 
   // If search is active, sort by searchScore descending
   if (isSearchActive.value) {
+    list = list.filter(img => img.searchScore !== undefined && getMatchPercentage(img.searchScore) >= 40);
     list.sort((a, b) => {
       const scoreA = a.searchScore !== undefined ? a.searchScore : -1;
       const scoreB = b.searchScore !== undefined ? b.searchScore : -1;
@@ -3649,6 +3661,11 @@ async function handleSearch() {
     console.error("Search failed:", err);
   } finally {
     isSearching.value = false;
+    nextTick(() => {
+      if (galleryContainerRef.value) {
+        galleryContainerRef.value.scrollTop = 0;
+      }
+    });
   }
 }
 
