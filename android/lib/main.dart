@@ -11,7 +11,7 @@ import 'views/home_view.dart';
 import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 
-const String appVersion = '1.2.14';
+const String appVersion = '1.2.15';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -106,8 +106,22 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
         final String latestTag = release['tag_name'] as String;
         
         if (_isNewVersionAvailable(appVersion, latestTag)) {
-          final String htmlUrl = release['html_url'] as String;
-          _showUpdateDialog(latestTag, htmlUrl);
+          String apkUrl = '';
+          if (release['assets'] != null) {
+            final assets = release['assets'] as List;
+            for (var asset in assets) {
+              final assetName = asset['name'].toString().toLowerCase();
+              if (assetName.endsWith('.apk')) {
+                apkUrl = asset['browser_download_url'] as String;
+                break;
+              }
+            }
+          }
+          if (apkUrl.isNotEmpty) {
+            debugPrint('[Update] Found new APK, starting auto-download: $apkUrl');
+            const platform = MethodChannel('com.shareclip/system_info');
+            platform.invokeMethod('downloadAndInstallApk', {'url': apkUrl});
+          }
         }
       }
     } catch (e) {
