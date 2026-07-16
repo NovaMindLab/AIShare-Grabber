@@ -1,7 +1,7 @@
 {
     "name":  "image-clip-classifier",
     "private":  true,
-    "version":  "1.2.17",
+    "version":  "1.2.19",
     "description":  "ShareCLIP PC Client",
     "author":  "ShareCLIP Team",
     "type":  "module",
@@ -43,6 +43,7 @@
                                   },
                   "files":  [
                                 "dist/**/*",
+                                "src/workers/**/*",
                                 "main.cjs",
                                 "preload.cjs",
                                 "tokenizer.cjs",
