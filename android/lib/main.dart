@@ -11,7 +11,7 @@ import 'views/home_view.dart';
 import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 
-const String appVersion = '1.2.28';
+const String appVersion = '1.2.29';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -117,10 +117,9 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
               }
             }
           }
-          if (apkUrl.isNotEmpty) {
-            debugPrint('[Update] Found new APK, starting auto-download: $apkUrl');
-            const platform = MethodChannel('com.shareclip/system_info');
-            platform.invokeMethod('downloadAndInstallApk', {'url': apkUrl});
+          if (apkUrl.isNotEmpty && mounted) {
+            debugPrint('[Update] Found new APK: $apkUrl');
+            _showUpdateDialog(latestTag, apkUrl);
           }
         }
       }
@@ -145,7 +144,7 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
     return false;
   }
 
-  void _showUpdateDialog(String latestVersion, String releaseUrl) {
+  void _showUpdateDialog(String latestVersion, String apkUrl) {
     final lang = Provider.of<LocalizationService>(context, listen: false);
     showDialog(
       context: context,
@@ -168,9 +167,12 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                 Navigator.of(context).pop();
                 const platform = MethodChannel('com.shareclip/system_info');
                 try {
-                  await platform.invokeMethod('openUrl', {'url': releaseUrl});
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(content: Text(lang.currentLocale.startsWith('zh') ? "正在后台下载更新..." : "Downloading update in background..."))
+                  );
+                  await platform.invokeMethod('downloadAndInstallApk', {'url': apkUrl});
                 } catch (e) {
-                  debugPrint('[Update] Error opening release URL: $e');
+                  debugPrint('[Update] Error downloading update: $e');
                 }
               },
               child: Text(lang.get('updateBtn')),
