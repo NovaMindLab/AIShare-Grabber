@@ -107,6 +107,40 @@ class MainActivity : FlutterActivity() {
                 } else {
                     result.error("BAD_ARGS", "Missing url parameter", null)
                 }
+            } else if (call.method == "getDownloadProgress") {
+                if (downloadId != -1L) {
+                    val downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                    val query = DownloadManager.Query().setFilterById(downloadId)
+                    val cursor = downloadManager.query(query)
+                    if (cursor != null && cursor.moveToFirst()) {
+                        val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                        val status = cursor.getInt(statusIndex)
+                        if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                            result.success(1.0)
+                        } else if (status == DownloadManager.STATUS_FAILED) {
+                            result.success(-1.0)
+                        } else {
+                            val bytesDownloadedIndex = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                            val bytesTotalIndex = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                            if (bytesDownloadedIndex != -1 && bytesTotalIndex != -1) {
+                                val bytesDownloaded = cursor.getInt(bytesDownloadedIndex)
+                                val bytesTotal = cursor.getInt(bytesTotalIndex)
+                                if (bytesTotal > 0) {
+                                    result.success(bytesDownloaded.toDouble() / bytesTotal.toDouble())
+                                } else {
+                                    result.success(0.0)
+                                }
+                            } else {
+                                result.success(0.0)
+                            }
+                        }
+                        cursor.close()
+                    } else {
+                        result.success(-1.0)
+                    }
+                } else {
+                    result.success(-1.0)
+                }
             } else {
                 result.notImplemented()
             }

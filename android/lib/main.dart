@@ -146,38 +146,83 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
 
   void _showUpdateDialog(String latestVersion, String apkUrl) {
     final lang = Provider.of<LocalizationService>(context, listen: false);
+    bool isDownloading = false;
+    double progress = 0.0;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          title: Text(lang.get('updateTitle')),
-          content: Text(lang.get('updateMessage').replaceAll('{version}', latestVersion)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(lang.get('laterBtn')),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C3AED),
-                foregroundColor: Colors.white,
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(lang.get('updateTitle')),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(lang.get('updateMessage').replaceAll('{version}', latestVersion)),
+                  if (isDownloading) ...[
+                    const SizedBox(height: 24),
+                    LinearProgressIndicator(
+                      value: progress > 0 ? progress : null,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF7C3AED)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('${(progress * 100).toStringAsFixed(1)}%', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ]
+                ],
               ),
-              onPressed: () async {
-                Navigator.of(context).pop();
-                const platform = MethodChannel('com.shareclip/system_info');
-                try {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(content: Text(lang.currentLocale.startsWith('zh') ? "正在后台下载更新..." : "Downloading update in background..."))
-                  );
-                  await platform.invokeMethod('downloadAndInstallApk', {'url': apkUrl});
-                } catch (e) {
-                  debugPrint('[Update] Error downloading update: $e');
-                }
-              },
-              child: Text(lang.get('updateBtn')),
-            ),
-          ],
+              actions: isDownloading ? [] : [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(lang.get('laterBtn')),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7C3AED),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    setState(() {
+                      isDownloading = true;
+                      progress = 0.0;
+                    });
+                    const platform = MethodChannel('com.shareclip/system_info');
+                    try {
+                      await platform.invokeMethod('downloadAndInstallApk', {'url': apkUrl});
+                      
+                      bool done = false;
+                      while (!done && mounted) {
+                        await Future.delayed(const Duration(milliseconds: 500));
+                        try {
+                          final double p = await platform.invokeMethod('getDownloadProgress');
+                          if (p >= 1.0 || p < 0) {
+                            done = true;
+                            if (mounted && Navigator.canPop(context)) {
+                              Navigator.of(context).pop();
+                            }
+                          } else {
+                            setState(() {
+                              progress = p;
+                            });
+                          }
+                        } catch (e) {
+                          done = true;
+                        }
+                      }
+                    } catch (e) {
+                      debugPrint('[Update] Error downloading update: $e');
+                      setState(() {
+                        isDownloading = false;
+                      });
+                    }
+                  },
+                  child: Text(lang.get('updateBtn')),
+                ),
+              ],
+            );
+          },
         );
       },
     );
