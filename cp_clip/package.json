@@ -1,7 +1,7 @@
 {
     "name":  "image-clip-classifier",
     "private":  true,
-    "version":  "1.2.27",
+    "version":  "1.2.28",
     "description":  "ShareCLIP PC Client",
     "author":  "ShareCLIP Team",
     "type":  "module",
