@@ -54,7 +54,6 @@ let mainWindow = null;
 let textEncoderSession = null;
 let tokenizer = null;
 let textEmbeddings = {};
-let isMockMode = false;
 const imageEmbeddingsCache = {}; // imagePath -> Float32Array (512-dim)
 
 // Download path configuration (persisted in a JSON settings file)
@@ -160,7 +159,6 @@ async function initializeAI() {
     taskManager.init(physicalModelPath);
   } catch (err) {
     console.error("[AI Init] TaskManager failed to initialize models:", err);
-    isMockMode = true;
   }
 
   // 4. Load Text Encoder ONNX Model
@@ -496,23 +494,8 @@ async function classifyPhotoInternal(imagePath) {
   try {
     const imageEmbedding = await computeEmbeddingInternal(imagePath);
 
-    // Mock Mode fallback
-    if (isMockMode || !textEmbeddings || Object.keys(textEmbeddings).length === 0) {
-      const categories = Object.keys(textEmbeddings);
-      let seed = 0;
-      for (let i = 0; i < imagePath.length; i++) seed += imagePath.charCodeAt(i);
-      let rawScores = categories.map((cat, idx) => {
-        const hash = Math.sin(seed + idx) * 10000;
-        return (hash - Math.floor(hash)) * 0.8 + 0.1;
-      });
-
-      const sum = rawScores.reduce((a, b) => a + b, 0);
-      const scores = categories.map((cat, i) => ({
-        category: cat,
-        score: rawScores[i] / sum
-      }));
-      scores.sort((a, b) => b.score - a.score);
-      return scores.slice(0, 3);
+    if (!textEmbeddings || Object.keys(textEmbeddings).length === 0) {
+      throw new Error("Text embeddings not loaded. Cannot perform classification.");
     }
 
     // Real inference path label mapping
@@ -1876,31 +1859,8 @@ ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
       return [];
     }
 
-    // Mock search logic if running in mock mode or models not loaded
-    if (isMockMode || !textEncoderSession || !tokenizer) {
-      console.log(`[AI Search] Running search in Mock Mode for query: "${queryText}"`);
-      // Simulate small delay
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      const queryLower = queryText.toLowerCase();
-      
-      const results = imagePaths.map(filePath => {
-        const fileName = path.basename(filePath).toLowerCase();
-        let score = 0.10 + Math.random() * 0.05; // baseline random low score
-        
-        // simple keyword matching to simulate semantic match in Mock mode
-        if (fileName.includes(queryLower)) {
-          score = 0.28 + Math.random() * 0.05;
-        } else if (queryLower.split(/\s+/).some(word => word.length > 1 && fileName.includes(word))) {
-          score = 0.22 + Math.random() * 0.05;
-        }
-        
-        return { path: filePath, score };
-      });
-      
-      // Sort descending by score
-      results.sort((a, b) => b.score - a.score);
-      return results;
+    if (!textEncoderSession || !tokenizer) {
+      throw new Error("AI models are not fully initialized. Cannot perform search.");
     }
 
     // Real search logic using ONNX Text Encoder
