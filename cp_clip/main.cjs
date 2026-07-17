@@ -1378,41 +1378,37 @@ function downloadFile(url, destPath, progressCallback) {
   });
 }
 
+const { autoUpdater } = require('electron-updater');
+
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
+
+let updateDownloadEventSender = null;
+
+autoUpdater.on('download-progress', (progressObj) => {
+  if (updateDownloadEventSender) {
+    updateDownloadEventSender.send('update-download-progress', Math.round(progressObj.percent));
+  }
+});
+
 ipcMain.handle('check-for-updates', async () => {
   try {
-    const response = await fetch('https://api.github.com/repos/NovaMindLab/AIShare-Grabber/releases/latest', {
-      headers: {
-        'User-Agent': 'ShareCLIP-PC-App'
-      }
-    });
-    if (!response.ok) {
-      throw new Error(`GitHub API returned status ${response.status}`);
+    const result = await autoUpdater.checkForUpdates();
+    if (result && result.updateInfo) {
+      const currentVersion = app.getVersion();
+      const latestVersion = result.updateInfo.version;
+      const available = currentVersion !== latestVersion;
+      
+      return {
+        available,
+        currentVersion,
+        latestVersion,
+        url: `https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v${latestVersion}`,
+        downloadUrl: 'managed',
+        body: result.updateInfo.releaseNotes || 'A new update is available.'
+      };
     }
-    const release = await response.json();
-    const latestVersion = release.tag_name;
-    const currentVersion = app.getVersion();
-    
-    const available = isNewVersionAvailable(currentVersion, latestVersion);
-    
-    let downloadUrl = null;
-    if (release.assets && Array.isArray(release.assets)) {
-      let asset = release.assets.find(a => a.name && a.name.includes('Setup') && a.name.endsWith('.exe'));
-      if (!asset) {
-        asset = release.assets.find(a => a.name && a.name.endsWith('.exe'));
-      }
-      if (asset) {
-        downloadUrl = asset.browser_download_url;
-      }
-    }
-    
-    return {
-      available,
-      currentVersion,
-      latestVersion,
-      url: release.html_url,
-      downloadUrl,
-      body: release.body
-    };
+    return { available: false };
   } catch (err) {
     console.error('[Update Check] Failed to check for updates:', err.message);
     return {
@@ -1422,38 +1418,33 @@ ipcMain.handle('check-for-updates', async () => {
   }
 });
 
-ipcMain.handle('start-update-download', async (event, downloadUrl) => {
+ipcMain.handle('start-update-download', async (event) => {
   try {
-    const tempDir = app.getPath('temp');
-    const tempFilePath = path.join(tempDir, 'ShareCLIP_Setup_Update.exe');
+    console.log('[Update Download] Starting download via autoUpdater...');
+    updateDownloadEventSender = event.sender;
     
-    console.log(`[Update Download] Starting download from ${downloadUrl} to ${tempFilePath}`);
-    
-    await downloadFile(downloadUrl, tempFilePath, (progress) => {
-      event.sender.send('update-download-progress', progress);
+    await new Promise((resolve, reject) => {
+      autoUpdater.once('update-downloaded', resolve);
+      autoUpdater.once('error', reject);
+      autoUpdater.downloadUpdate();
     });
     
     console.log('[Update Download] Download completed successfully.');
-    return { success: true, filePath: tempFilePath };
+    return { success: true, filePath: 'managed' };
   } catch (err) {
     console.error('[Update Download] Error downloading update:', err.message);
     return { success: false, error: err.message };
+  } finally {
+    updateDownloadEventSender = null;
   }
 });
 
-ipcMain.handle('install-update', async (event, filePath) => {
+ipcMain.handle('install-update', async () => {
   try {
-    console.log(`[Update Install] Spawning installer: ${filePath}`);
-    const { spawn } = require('child_process');
-    
-    const child = spawn(filePath, [], {
-      detached: true,
-      stdio: 'ignore'
+    console.log('[Update Install] Quitting and installing update...');
+    setImmediate(() => {
+      autoUpdater.quitAndInstall(false, true);
     });
-    child.unref();
-    
-    console.log('[Update Install] Quitting parent Electron app...');
-    app.quit();
     return { success: true };
   } catch (err) {
     console.error('[Update Install] Error installing update:', err.message);
