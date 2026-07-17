@@ -141,6 +141,27 @@ class MainActivity : FlutterActivity() {
                 } else {
                     result.success(-1.0)
                 }
+            } else if (call.method == "installDownloadedApk") {
+                if (downloadId != -1L) {
+                    val downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                    val uri = downloadManager.getUriForDownloadedFile(downloadId)
+                    if (uri != null) {
+                        val installIntent = Intent(Intent.ACTION_VIEW)
+                        installIntent.setDataAndType(uri, "application/vnd.android.package-archive")
+                        installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        try {
+                            context.startActivity(installIntent)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("ERROR", "Failed to start install activity: ${e.message}", null)
+                        }
+                    } else {
+                        result.error("ERROR", "Downloaded file URI is null", null)
+                    }
+                } else {
+                    result.error("ERROR", "No active download", null)
+                }
             } else {
                 result.notImplemented()
             }

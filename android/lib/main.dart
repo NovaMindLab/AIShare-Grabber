@@ -199,6 +199,13 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                           final double p = await platform.invokeMethod('getDownloadProgress');
                           if (p >= 1.0 || p < 0) {
                             done = true;
+                            if (p >= 1.0) {
+                                try {
+                                    await platform.invokeMethod('installDownloadedApk');
+                                } catch (e) {
+                                    debugPrint('[Update] Error invoking install: $e');
+                                }
+                            }
                             if (mounted && Navigator.canPop(context)) {
                               Navigator.of(context).pop();
                             }
