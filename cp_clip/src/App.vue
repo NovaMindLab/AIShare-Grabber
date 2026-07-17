@@ -108,6 +108,13 @@
             <span>{{ t.sidebar.tabFiles }}</span>
             <span class="category-count">{{ localDocs.length }}</span>
           </div>
+          <div 
+            class="category-item" 
+            :class="{ active: currentTab === 'yt-dlp' }"
+            @click="currentTab = 'yt-dlp'"
+          >
+            <span>📺 视频下载</span>
+          </div>
         </div>
       </div>
 
@@ -431,7 +438,7 @@
               </div>
 
               <!-- Card 2: AI Sync Center -->
-              <div style="padding: 14px 16px; border-radius: 16px; background: rgba(168, 85, 247, 0.02); border: 1px solid rgba(168, 85, 247, 0.15); box-shadow: 0 4px 20px rgba(168, 85, 247, 0.02); display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; backdrop-filter: blur(20px);">
+              <div v-if="activePeerType !== 'PC'" style="padding: 14px 16px; border-radius: 16px; background: rgba(168, 85, 247, 0.02); border: 1px solid rgba(168, 85, 247, 0.15); box-shadow: 0 4px 20px rgba(168, 85, 247, 0.02); display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; backdrop-filter: blur(20px);">
                 <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
                   <span style="font-size: 12px;">🧠</span>
                   <span style="font-size: 11px; color: #c084fc; font-weight: 700; letter-spacing: 0.5px;">管理与同步 (AI 智能处理)</span>
@@ -504,7 +511,7 @@
               </div>
 
               <!-- Card 3: Album Backup Center -->
-              <div style="padding: 14px 16px; border-radius: 16px; background: rgba(16, 185, 129, 0.02); border: 1px solid rgba(16, 185, 129, 0.15); box-shadow: 0 4px 20px rgba(16, 185, 129, 0.02); display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; backdrop-filter: blur(20px);">
+              <div v-if="activePeerType !== 'PC'" style="padding: 14px 16px; border-radius: 16px; background: rgba(16, 185, 129, 0.02); border: 1px solid rgba(16, 185, 129, 0.15); box-shadow: 0 4px 20px rgba(16, 185, 129, 0.02); display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; backdrop-filter: blur(20px);">
                 <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
                   <span style="font-size: 12px;">📸</span>
                   <span style="font-size: 11px; color: #34d399; font-weight: 700; letter-spacing: 0.5px;">相册备份到PC (物理备份)</span>
@@ -772,11 +779,12 @@
                   
                   <button 
                     @click="device.isMock ? logSyncEvent(`🔌 [Mock] 连接至虚拟测试设备 ${device.name}...`) : connectToDevice(device.ip)"
+                    :disabled="connectingIp === device.ip"
                     style="background: #7c3aed; border: none; border-radius: 8px; color: white; padding: 8px 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(124,58,237,0.2);"
                     onmouseover="this.style.background='#8b5cf6'; this.style.boxShadow='0 4px 14px rgba(124,58,237,0.3)';"
                     onmouseout="this.style.background='#7c3aed'; this.style.boxShadow='0 4px 10px rgba(124,58,237,0.2)';"
                   >
-                    连接
+                    {{ connectingIp === device.ip ? '等待同意...' : '连接' }}
                   </button>
                 </div>
               </div>
@@ -987,6 +995,131 @@
               </div>
               <span class="badge badge-pending">{{ t.media.fileDoc }}</span>
             </div>
+          </div>
+        </div>
+
+        <!-- 5.1 YT-DLP DOWNLODER TAB -->
+        <div v-else-if="currentTab === 'yt-dlp'" style="width: 100%; box-sizing: border-box; text-align: left; display: flex; flex-direction: column; height: 100%;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+            <div>
+              <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                📺 视频解析与下载 (YT-DLP)
+              </h2>
+              <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">
+                基于强大的跨平台解析引擎。支持全球数百个主流视频网站的无损解析和一键下载。
+              </p>
+            </div>
+            
+            <div style="display: flex; background: rgba(255,255,255,0.05); padding: 4px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
+              <div 
+                @click="ytMode = 'link'" 
+                style="padding: 6px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s;"
+                :style="{ background: ytMode === 'link' ? 'var(--primary)' : 'transparent', color: ytMode === 'link' ? '#fff' : 'var(--text-secondary)' }"
+              >
+                🔗 复制链接
+              </div>
+              <div 
+                @click="ytMode = 'browser'" 
+                style="padding: 6px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s;"
+                :style="{ background: ytMode === 'browser' ? 'var(--primary)' : 'transparent', color: ytMode === 'browser' ? '#fff' : 'var(--text-secondary)' }"
+              >
+                🌐 浏览主站
+              </div>
+            </div>
+          </div>
+
+          <!-- Link Download Mode -->
+          <div v-if="ytMode === 'link'" class="glass-panel" style="padding: 24px; margin-bottom: 24px;">
+            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+              <input 
+                v-model="ytUrl" 
+                type="text" 
+                placeholder="在此粘贴视频链接 (例如: https://www.youtube.com/watch?v=...)" 
+                style="flex: 1; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px 16px; border-radius: var(--border-radius-sm); outline: none; font-size: 14px; transition: all 0.3s;"
+                :disabled="ytDownloading"
+                @keyup.enter="parseYtVideo"
+              />
+              <button 
+                class="btn btn-primary" 
+                style="padding: 12px 24px; font-size: 14px; white-space: nowrap; font-weight: 600;"
+                @click="parseYtVideo"
+                :disabled="ytDownloading || !ytUrl"
+              >
+                解析视频信息
+              </button>
+            </div>
+
+            <!-- Video Info & Download Options -->
+            <div v-if="ytVideoInfo" style="display: flex; gap: 16px; background: rgba(0,0,0,0.2); padding: 16px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); margin-bottom: 16px;">
+              <img v-if="ytVideoInfo.thumbnail" :src="ytVideoInfo.thumbnail" style="width: 160px; height: 90px; object-fit: cover; border-radius: 4px;" />
+              <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    {{ ytVideoInfo.title }}
+                  </div>
+                  <div style="font-size: 12px; color: var(--text-muted);">时长: {{ Math.floor(ytVideoInfo.duration / 60) }}:{{ String(ytVideoInfo.duration % 60).padStart(2, '0') }}</div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; align-items: center; margin-top: 12px;">
+                  <select v-model="ytSelectedFormat" style="background: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px; outline: none; font-size: 13px; max-width: 250px;">
+                    <option v-for="fmt in ytVideoInfo.formats" :key="fmt.format_id" :value="fmt.format_id">
+                      {{ fmt.resolution }} ({{ fmt.ext }}) - {{ fmt.note || '有声' }} - {{ fmt.filesize ? (fmt.filesize / 1024 / 1024).toFixed(1) + 'MB' : '未知大小' }}
+                    </option>
+                  </select>
+                  <button class="btn btn-primary" style="padding: 6px 16px; font-size: 13px;" @click="startYtDownload" :disabled="ytDownloading">
+                    {{ ytDownloading ? '下载中...' : '确认下载' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="ytProgress" style="background: rgba(0,0,0,0.3); border-radius: var(--border-radius-sm); padding: 16px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+                <span style="color: var(--text-primary); font-weight: 500;">{{ ytProgress.status }}</span>
+                <span style="color: var(--primary);" v-if="ytProgress.progress > 0">{{ ytProgress.progress.toFixed(1) }}%</span>
+              </div>
+              
+              <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 8px;">
+                <div 
+                  :style="{ width: (ytProgress.progress || 0) + '%', height: '100%', background: 'var(--primary)', transition: 'width 0.3s ease' }"
+                ></div>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+                <span>{{ ytProgress.size ? 'Size: ' + ytProgress.size : '' }}</span>
+                <div style="display: flex; gap: 16px;">
+                  <span>{{ ytProgress.speed ? 'Speed: ' + ytProgress.speed : '' }}</span>
+                  <span>{{ ytProgress.eta ? 'ETA: ' + ytProgress.eta : '' }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+              <button class="btn btn-secondary" @click="window.api.openDownloadFolder()">
+                📁 打开系统下载目录
+              </button>
+            </div>
+          </div>
+
+          <!-- Browser Download Mode -->
+          <div v-if="ytMode === 'browser'" class="glass-panel" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 0; min-height: 400px;">
+            <div style="display: flex; gap: 12px; padding: 12px 16px; background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--border-color); align-items: center;">
+              <button class="btn btn-secondary" style="padding: 6px 12px;" @click="goBackWebview">←</button>
+              <button class="btn btn-secondary" style="padding: 6px 12px;" @click="goForwardWebview">→</button>
+              <button class="btn btn-secondary" style="padding: 6px 12px;" @click="reloadWebview">↻</button>
+              <div style="flex: 1; padding: 6px 12px; background: rgba(255,255,255,0.05); border-radius: 4px; font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                YouTube Mobile (内嵌)
+              </div>
+              <button class="btn btn-primary" style="padding: 6px 16px; font-weight: 600;" @click="parseCurrentWebview">
+                ✨ 解析当前页视频
+              </button>
+            </div>
+            <webview 
+              ref="ytWebviewRef" 
+              src="https://m.youtube.com" 
+              style="flex: 1; width: 100%; height: 100%; border: none;"
+              useragent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+            ></webview>
           </div>
         </div>
 
@@ -1573,7 +1706,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted, watch, reactive } from 'vue';
 import QRCode from 'qrcode';
 import { locales, languages } from './locales.js';
 
@@ -1611,10 +1744,21 @@ function selectCategory(cat) {
   });
 }
 const selectedImage = ref(null);
-const currentTab = ref('images'); // 'link' | 'images' | 'videos' | 'audios' | 'files'
+const currentTab = ref('images'); // 'link' | 'images' | 'videos' | 'audios' | 'files' | 'yt-dlp'
+
+// YT-DLP State
+const ytUrl = ref('');
+const ytMode = ref('link'); // 'link' | 'browser'
+const ytVideoInfo = ref(null);
+const ytSelectedFormat = ref('best');
+const ytProgress = ref(null);
+const ytDownloading = ref(false);
+const ytWebviewRef = ref(null);
 const activeDeviceUuid = ref(null);
 const activeDeviceName = ref('');
 const activeDeviceSystemInfo = ref(null);
+const connectingIp = ref(null);
+const activePeerType = ref('Mobile');
 const activeMetadata = {}; // fileId -> { assetId, name, size }
 
 const selectedItemType = computed(() => {
@@ -1895,6 +2039,17 @@ async function checkAppUpdates(showToast = false) {
       updateError.value = result.error;
     } else if (result.available) {
       updateStatus.value = 'new-available';
+      
+      // Auto download and install in-app
+      if (updateDownloadUrl.value) {
+        startDownloadUpdate().then(() => {
+          if (updateReadyToInstall.value) {
+            installUpdate();
+          }
+        }).catch(err => {
+          console.error('[Auto Update] Failed:', err);
+        });
+      }
     } else {
       updateStatus.value = 'up-to-date';
     }
@@ -2677,8 +2832,10 @@ const displayDevices = computed(() => {
 });
 
 async function connectToDevice(ip) {
+  connectingIp.value = ip;
   logSyncEvent(`📡 [UDP] 发送连接请求到 ${ip}...`);
   await window.api.sendUdpConnectRequest(ip);
+  setTimeout(() => { if (connectingIp.value === ip) connectingIp.value = null; }, 15000);
 }
 
 async function handleRespondToRequest(accept) {
@@ -2753,7 +2910,8 @@ function setupDataChannel(channel) {
     lastHeartbeatTime = Date.now();
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     heartbeatTimer = setInterval(() => {
-      if (Date.now() - lastHeartbeatTime > 15000) {
+      // Increase timeout limit to 30 seconds to prevent aggressive disconnects during heavy I/O
+      if (Date.now() - lastHeartbeatTime > 30000) {
         logSyncEvent("⚠️ 心跳超时：手机端已离线");
         cleanupWebRtc();
         if (isSyncActive.value) {
@@ -2782,6 +2940,9 @@ function setupDataChannel(channel) {
   };
   
   channel.onmessage = (event) => {
+    // 任何数据包（无论是心跳还是真实文件）都意味着连接存活
+    lastHeartbeatTime = Date.now();
+    
     const arrayBuffer = event.data;
     if (arrayBuffer.byteLength < 16) {
       logSyncEvent("⚠️ 收到异常数据包: 头部小于16字节");
@@ -2793,7 +2954,6 @@ function setupDataChannel(channel) {
     
     // Heartbeat check: fileId === -1 is Ping from Android
     if (fileId === -1) {
-      lastHeartbeatTime = Date.now();
       // Send Pong back (fileId = -2)
       const pongBuffer = new ArrayBuffer(16);
       const pongView = new DataView(pongBuffer);
@@ -3076,6 +3236,52 @@ function setupDataChannel(channel) {
   };
 }
 
+// YT-DLP Download Handler
+const parseYtVideo = async () => {
+  if (!ytUrl.value) return;
+  ytDownloading.value = true;
+  ytProgress.value = { status: 'Parsing video information...', progress: 0 };
+  ytVideoInfo.value = null;
+  const res = await window.api.getYtVideoInfo(ytUrl.value);
+  ytDownloading.value = false;
+  if (res.success) {
+    ytVideoInfo.value = res;
+    ytSelectedFormat.value = res.formats[0]?.format_id || 'best';
+    ytProgress.value = null;
+  } else {
+    ytProgress.value = { status: 'Parsing Failed: ' + res.error, progress: 0 };
+  }
+};
+
+const parseCurrentWebview = () => {
+  if (ytWebviewRef.value) {
+    const url = ytWebviewRef.value.getURL();
+    if (url) {
+      ytUrl.value = url;
+      ytMode.value = 'link'; // Switch back to link mode to show parse UI
+      parseYtVideo();
+    }
+  }
+};
+
+const goBackWebview = () => { if (ytWebviewRef.value && ytWebviewRef.value.canGoBack()) ytWebviewRef.value.goBack(); };
+const goForwardWebview = () => { if (ytWebviewRef.value && ytWebviewRef.value.canGoForward()) ytWebviewRef.value.goForward(); };
+const reloadWebview = () => { if (ytWebviewRef.value) ytWebviewRef.value.reload(); };
+
+const startYtDownload = async () => {
+  if (!ytUrl.value || !ytVideoInfo.value) return;
+  ytDownloading.value = true;
+  ytProgress.value = { status: 'Initializing...', progress: 0 };
+  const res = await window.api.downloadYtVideo(ytUrl.value, '', ytSelectedFormat.value);
+  ytDownloading.value = false;
+  if (res.success) {
+    ytProgress.value = { status: 'Download Complete! Saved to: ' + res.destDir, progress: 100 };
+    setTimeout(() => { ytProgress.value = null; ytVideoInfo.value = null; ytUrl.value = ''; }, 5000);
+  } else {
+    ytProgress.value = { status: 'Failed: ' + res.error, progress: 0 };
+  }
+};
+
 // Register listeners on mount
 onMounted(() => {
   if (hasApi) {
@@ -3086,6 +3292,11 @@ onMounted(() => {
 
     // Check for updates in the background on startup
     checkAppUpdates();
+
+    // YT-DLP progress listener
+    window.api.onYtProgress((data) => {
+      ytProgress.value = data;
+    });
 
     // 1. Offer SDP received from mobile client
     window.api.onOfferReceived(async (offerSdp) => {
@@ -3157,6 +3368,7 @@ onMounted(() => {
     window.api.onBleStatusChanged((status) => {
       logSyncEvent(`[BLE STATUS] 状态变更: ${status}`);
       if (status === 'connected') {
+        activePeerType.value = 'Mobile';
         if (syncStatus.value !== 'connected') {
           syncStatus.value = 'handshaking';
         }
@@ -3300,8 +3512,11 @@ onMounted(() => {
 
     // 9. Connection response received (accept/reject)
     window.api.onConnectionResponseReceived(async ({ ip, accept }) => {
+      connectingIp.value = null;
       if (accept) {
         logSyncEvent(`📡 [UDP] 来自 ${ip} 的连接已被接受! 正在等待 SDP Offer...`);
+        const found = discoveredDevicesList.value.find(d => d.ip === ip);
+        activePeerType.value = found ? found.type : 'PC';
         activePeerIp.value = ip;
         syncStatus.value = 'handshaking';
         startHandshakeTimeout();
@@ -3565,7 +3780,7 @@ const progressPercentage = computed(() => {
   return Math.round((processedCount.value / totalCount.value) * 100);
 });
 
-// Category counts based on Top-1 predictions, with min 10 fallback logic
+// Category counts based on Top-1 predictions
 const categoryCounts = computed(() => {
   const counts = {};
   const groups = {};
@@ -3580,9 +3795,6 @@ const categoryCounts = computed(() => {
   for (const cat in groups) {
     const group = groups[cat];
     let count = group.filter(img => img.predictions[0].score >= 0.40).length;
-    if (count < 10) {
-      count = Math.min(10, group.length);
-    }
     if (count > 0) {
       counts[cat] = count;
     }
@@ -3603,12 +3815,7 @@ const filteredImages = computed(() => {
     );
     categoryGroup.sort((a, b) => b.predictions[0].score - a.predictions[0].score);
     
-    const filteredGroup = categoryGroup.filter(img => img.predictions[0].score >= 0.40);
-    if (filteredGroup.length < 10) {
-      list = categoryGroup.slice(0, 10);
-    } else {
-      list = filteredGroup;
-    }
+    list = categoryGroup.filter(img => img.predictions[0].score >= 0.40);
   }
 
   // If search is active, apply search filtering and sorting

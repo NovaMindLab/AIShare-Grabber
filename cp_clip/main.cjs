@@ -47,10 +47,10 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 const { SimpleTokenizer } = require('./tokenizer.cjs');
+const taskManager = require('./src/workers/task-manager.cjs');
 
 const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
 let mainWindow = null;
-let ortSession = null;
 let textEncoderSession = null;
 let tokenizer = null;
 let textEmbeddings = {};
@@ -58,7 +58,7 @@ let isMockMode = false;
 const imageEmbeddingsCache = {}; // imagePath -> Float32Array (512-dim)
 
 // Download path configuration (persisted in a JSON settings file)
-const settingsFilePath = path.join(__dirname, 'app_settings.json');
+const settingsFilePath = path.join(app.getPath('userData'), 'app_settings.json');
 let customDownloadPath = null;
 
 function loadSettings() {
@@ -92,7 +92,7 @@ function getEffectiveDownloadBase(deviceUuid, type) {
     // e.g. D:\MyPhotos\<deviceUuid>\images
     return path.join(customDownloadPath, deviceUuid || 'default', type);
   }
-  return path.join(__dirname, 'sync_storage', deviceUuid || 'default', type);
+  return path.join(app.getPath('downloads'), 'ShareCLIP_Data', 'sync_storage', deviceUuid || 'default', type);
 }
 
 // BLE Signaling and chunk transfer state
@@ -104,8 +104,8 @@ const pendingTransfers = {}; // fileId -> { chunks: [], received: 0, total: 0 }
 
 // Load ONNX model and embeddings
 async function initializeAI() {
-  const modelPath = path.join(__dirname, 'mobileclip_image_encoder.onnx');
-  const textModelPath = path.join(__dirname, 'mobileclip_text_encoder_quant.onnx');
+  const modelPath = path.join(__dirname, 'mobileclip2_s0_image_encoder.onnx');
+  const textModelPath = path.join(__dirname, 'mobileclip2_s0_text_encoder_quant.onnx');
   const mergesPath = path.join(__dirname, 'merges.txt');
   const embeddingsPath = path.join(__dirname, 'text_embeddings.json');
 
@@ -154,19 +154,12 @@ async function initializeAI() {
     };
   }
 
-  // 3. Load Image Encoder ONNX Model
+  // 3. Initialize Task Manager & Worker Threads
   const physicalModelPath = getPhysicalPath(modelPath);
-  if (ort && fs.existsSync(physicalModelPath)) {
-    try {
-      console.log("[AI Init] Loading MobileCLIP Image Encoder ONNX model from:", physicalModelPath);
-      ortSession = await ort.InferenceSession.create(physicalModelPath);
-      console.log("[AI Init] MobileCLIP Image Encoder ONNX model loaded successfully.");
-    } catch (err) {
-      console.error("[AI Init] Failed to initialize Image Encoder ONNX model session:", err);
-      isMockMode = true;
-    }
-  } else {
-    console.warn("[AI Init] Image Encoder ONNX model not found or onnxruntime-node missing. Running in Mock mode.");
+  try {
+    taskManager.init(physicalModelPath);
+  } catch (err) {
+    console.error("[AI Init] TaskManager failed to initialize models:", err);
     isMockMode = true;
   }
 
@@ -244,7 +237,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      webviewTag: true
     }
   });
 
@@ -346,7 +340,7 @@ app.on('will-quit', () => {
 
 // IPC Communication
 ipcMain.handle('open-thumbnail-folder', async () => {
-  const rootThumbDir = path.join(__dirname, 'thumbnail_sync');
+  const rootThumbDir = path.join(app.getPath('userData'), 'thumbnail_sync');
   if (!fs.existsSync(rootThumbDir)) {
     fs.mkdirSync(rootThumbDir, { recursive: true });
   }
@@ -375,7 +369,7 @@ ipcMain.handle('open-album-sync-folder', async () => {
   if (customDownloadPath) {
     albumDir = path.join(customDownloadPath, 'album_sync', uuid);
   } else {
-    albumDir = path.join(__dirname, 'album_sync', uuid);
+    albumDir = path.join(app.getPath('downloads'), 'ShareCLIP_Data', 'album_sync', uuid);
   }
   if (!fs.existsSync(albumDir)) {
     fs.mkdirSync(albumDir, { recursive: true });
@@ -483,79 +477,19 @@ ipcMain.handle('read-image-bytes', async (event, filePath) => {
   }
 });
 
-async function computeEmbeddingInternal(imagePath) {
-  if (!fs.existsSync(imagePath)) {
-    throw new Error(`File not found: ${imagePath}`);
-  }
-
-  // If already cached, return it
+  async function computeEmbeddingInternal(imagePath) {
   if (imageEmbeddingsCache[imagePath]) {
     return imageEmbeddingsCache[imagePath];
   }
 
-  // Mock Mode fallback
-  if (isMockMode || !ortSession || !sharp) {
-    // Simulate network/disk delay
-    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 100));
-    
-    // Return a random 512-dim vector for mock mode
-    const mockEmbedding = new Float32Array(512);
-    for (let i = 0; i < 512; i++) {
-      mockEmbedding[i] = Math.random() - 0.5;
-    }
-    // Normalize mock embedding
-    let norm = 0;
-    for (let i = 0; i < 512; i++) norm += mockEmbedding[i] * mockEmbedding[i];
-    norm = Math.sqrt(norm);
-    if (norm > 0) {
-      for (let i = 0; i < 512; i++) mockEmbedding[i] /= norm;
-    }
-    imageEmbeddingsCache[imagePath] = mockEmbedding;
-    return mockEmbedding;
+  // Offload computation to TaskManager pool
+  try {
+    const embedding = await taskManager.computeEmbedding(imagePath);
+    imageEmbeddingsCache[imagePath] = embedding;
+    return embedding;
+  } catch (error) {
+    throw new Error(`Embedding compute failed: ${error.message}`);
   }
-
-  // Real inference path
-  // 1. Preprocess image with sharp
-  const { data, info } = await sharp(imagePath)
-    .resize(256, 256, {
-      fit: 'cover',
-      position: 'center'
-    })
-    .removeAlpha() // Ensure RGB only
-    .toColourspace('srgb')
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  if (info.width !== 256 || info.height !== 256 || info.channels !== 3) {
-    throw new Error(`Sharp resize output invalid: ${info.width}x${info.height}x${info.channels}`);
-  }
-
-  // 2. Reshape to Planar format and scale to [0, 1]
-  const float32Data = new Float32Array(3 * 256 * 256);
-  const imageSize = 256 * 256;
-
-  for (let i = 0; i < imageSize; i++) {
-    float32Data[i] = data[i * 3] / 255.0;                      // R channel
-    float32Data[imageSize + i] = data[i * 3 + 1] / 255.0;      // G channel
-    float32Data[2 * imageSize + i] = data[i * 3 + 2] / 255.0;  // B channel
-  }
-
-  // 3. Create Tensor [1, 3, 256, 256]
-  const tensor = new ort.Tensor('float32', float32Data, [1, 3, 256, 256]);
-
-  // 4. Run ONNX session
-  const inputName = ortSession.inputNames[0];
-  const feeds = {};
-  feeds[inputName] = tensor;
-  
-  const outputs = await ortSession.run(feeds);
-  const outputName = ortSession.outputNames[0];
-  // Clone the Float32Array to prevent it from being overwritten by subsequent ONNX runs sharing the same memory allocator
-  const imageEmbedding = new Float32Array(outputs[outputName].data);
-
-  // Cache the image embedding
-  imageEmbeddingsCache[imagePath] = imageEmbedding;
-  return imageEmbedding;
 }
 
 async function classifyPhotoInternal(imagePath) {
@@ -563,7 +497,7 @@ async function classifyPhotoInternal(imagePath) {
     const imageEmbedding = await computeEmbeddingInternal(imagePath);
 
     // Mock Mode fallback
-    if (isMockMode || !ortSession || !sharp) {
+    if (isMockMode || !textEmbeddings || Object.keys(textEmbeddings).length === 0) {
       const categories = Object.keys(textEmbeddings);
       let seed = 0;
       for (let i = 0; i < imagePath.length; i++) seed += imagePath.charCodeAt(i);
@@ -634,6 +568,9 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
   if (!activeDeviceUuid || !activeDeviceDb) {
     throw new Error("No active device database connected");
   }
+
+  // 0. MUST clear RAM cache to force new model to extract features!
+  Object.keys(imageEmbeddingsCache).forEach(key => delete imageEmbeddingsCache[key]);
 
   // 1. Get all photos and thumbnails
   const rows = await new Promise((resolve, reject) => {
@@ -716,153 +653,147 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
   return updatedRows;
 });
 
+function cosineSimilarity(vecA, vecB) {
+  let dotProduct = 0.0;
+  let normA = 0.0;
+  let normB = 0.0;
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
 ipcMain.handle('get-similar-images-groups', async (event, { imageList, threshold }) => {
-  const total = imageList.length;
-  console.log(`[AI Similar] Starting similarity analysis on ${total} images with threshold ${threshold}`);
+  if (!activeDeviceDb) return [];
+  
+  console.log(`[AI Similar] Fetching pre-clustered similarity groups from database...`);
 
-  // 1. Ensure all image embeddings are cached
-  const embeddings = [];
-  const validImages = [];
-
-  // 1. Ensure all image embeddings are cached (using bounded concurrency limit of 4)
-  const concurrencyLimit = 4;
-  let doneCount = 0;
-
-  async function processImage(img) {
-    try {
-      let emb = imageEmbeddingsCache[img.path];
-      if (!emb && fs.existsSync(img.path)) {
-        emb = await computeEmbeddingInternal(img.path);
-        
-        // Background persist to database if it's a mobile synced image
-        if (activeDeviceDb && img.id) {
-          const embBuf = Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength);
-          activeDeviceDb.run(
-            `UPDATE resources SET embedding = ? WHERE id = ? OR path = ?`,
-            [embBuf, img.id, img.path]
-          );
-        }
+  // 1. Fetch pre-clustered rows (O(1) retrieval)
+  const dbRows = await new Promise((resolve, reject) => {
+    activeDeviceDb.all(
+      `SELECT cluster_id, id, name, path, type, size FROM resources WHERE cluster_id IS NOT NULL`,
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
       }
-
-      // Update progress
-      doneCount++;
-      event.sender.send('similar-progress', {
-        done: doneCount,
-        total,
-        currentName: img.name
-      });
-
-      return { img, emb };
-    } catch (err) {
-      console.error(`[AI Similar] Failed to process embedding for ${img.name}:`, err);
-      doneCount++;
-      event.sender.send('similar-progress', {
-        done: doneCount,
-        total,
-        currentName: img.name
-      });
-      return { img, emb: null };
-    }
-  }
-
-  // Run in a bounded concurrency execution pool
-  const results = [];
-  const executing = new Set();
-
-  for (const img of imageList) {
-    const p = processImage(img).then(res => {
-      executing.delete(p);
-      return res;
-    });
-    results.push(p);
-    executing.add(p);
-    
-    if (executing.size >= concurrencyLimit) {
-      await Promise.race(executing);
-    }
-  }
-
-  const processed = await Promise.all(results);
-
-  for (const item of processed) {
-    if (item.emb) {
-      embeddings.push(item.emb);
-      validImages.push(item.img);
-    }
-  }
-
-  event.sender.send('similar-progress', {
-    done: total,
-    total,
-    currentName: 'Comparing similarities...'
+    );
   });
 
-  const n = validImages.length;
-  const clusterGroups = []; // Array of arrays: [ [idx0, idx1...], [idx2...] ]
+  // 2. Filter by the imageList currently visible in the UI
+  const validIds = new Set(imageList.map(img => img.id));
+  const validRows = dbRows.filter(r => validIds.has(r.id));
+  
+  // 3. Find unclustered images in imageList
+  const clusteredIds = new Set(validRows.map(r => r.id));
+  const unclusteredImages = imageList.filter(img => !clusteredIds.has(img.id));
+  
+  // 4. Group validRows by cluster_id
+  const clusterMap = new Map();
+  for (const row of validRows) {
+    if (!clusterMap.has(row.cluster_id)) {
+      clusterMap.set(row.cluster_id, []);
+    }
+    clusterMap.get(row.cluster_id).push(row);
+  }
 
-  // 2. Perform Leader (Centroid) Clustering to prevent the Chaining Effect
-  for (let i = 0; i < n; i++) {
-    const embI = embeddings[i];
-    let bestGroupIdx = -1;
-    let bestSim = -1;
+  const finalGroups = [];
 
-    for (let g = 0; g < clusterGroups.length; g++) {
-      const leaderIdx = clusterGroups[g][0];
-      const sim = cosineSimilarity(embI, embeddings[leaderIdx]);
-      if (sim > bestSim) {
-        bestSim = sim;
-        bestGroupIdx = g;
+  // 5. Refine DB clusters based on user's dynamic threshold in memory
+  for (const [clusterId, groupMembers] of clusterMap.entries()) {
+    if (groupMembers.length < 2) continue;
+    
+    // Sub-cluster them in memory to honor the UI's dynamic threshold
+    const subClusters = []; // [ [img1, img2], [img3] ]
+    for (let i = 0; i < groupMembers.length; i++) {
+      const imgI = groupMembers[i];
+      const embI = imageEmbeddingsCache[imgI.path];
+      if (!embI) continue;
+      
+      let bestGroupIdx = -1;
+      let bestSim = -1;
+      
+      for (let g = 0; g < subClusters.length; g++) {
+        const leader = subClusters[g][0];
+        const embLeader = imageEmbeddingsCache[leader.path];
+        if (!embLeader) continue;
+        
+        const sim = cosineSimilarity(embI, embLeader);
+        if (sim > bestSim) {
+          bestSim = sim;
+          bestGroupIdx = g;
+        }
+      }
+      
+      if (bestSim >= threshold) {
+        subClusters[bestGroupIdx].push(imgI);
+      } else {
+        subClusters.push([imgI]);
       }
     }
-
-    if (bestSim >= threshold) {
-      clusterGroups[bestGroupIdx].push(i);
-    } else {
-      clusterGroups.push([i]);
+    
+    // Calculate maxSimWithGroup for UI and push sub-clusters >= 2
+    for (const sub of subClusters) {
+      if (sub.length >= 2) {
+        const processedGroup = sub.map(img => {
+           let maxSim = 0;
+           const embI = imageEmbeddingsCache[img.path];
+           if (embI) {
+             for (const other of sub) {
+               if (other.id !== img.id) {
+                 const embOther = imageEmbeddingsCache[other.path];
+                 if (embOther) {
+                   const sim = cosineSimilarity(embI, embOther);
+                   if (sim > maxSim) maxSim = sim;
+                 }
+               }
+             }
+           }
+           return { ...img, maxSimWithGroup: maxSim };
+        });
+        processedGroup.sort((a, b) => (b.size || 0) - (a.size || 0));
+        finalGroups.push({ images: processedGroup });
+      }
     }
   }
 
-  // Filter groups to only include those with at least 2 images
-  const groups = [];
-  for (const group of clusterGroups) {
-    if (group.length >= 2) {
-      const groupImages = group.map(idx => {
-        const img = validImages[idx];
-        
-        // Find maximum similarity with any other item in this group (to display similarity value)
-        let maxSim = 0;
-        const embIdx = embeddings[idx];
-        for (const otherIdx of group) {
-          if (otherIdx !== idx) {
-            const sim = cosineSimilarity(embIdx, embeddings[otherIdx]);
-            if (sim > maxSim) maxSim = sim;
-          }
+  // 6. Handle Unclustered Images dynamically via Worker Pool (Fallback)
+  if (unclusteredImages.length > 0) {
+    console.log(`[AI Similar] Dynamically clustering ${unclusteredImages.length} unclustered images...`);
+    const sabIndices = [];
+    const validUnclustered = [];
+    
+    for (const img of unclusteredImages) {
+      const idx = taskManager.getSabIndex(img.path);
+      if (idx !== -1) {
+        sabIndices.push(idx);
+        validUnclustered.push(img);
+      }
+    }
+    
+    if (sabIndices.length > 0) {
+      try {
+        const dynamicGroups = await taskManager.clusterImages(sabIndices, validUnclustered, threshold);
+        for (const dg of dynamicGroups) {
+          finalGroups.push(dg);
         }
-
-        return {
-          ...img,
-          maxSimWithGroup: maxSim
-        };
-      });
-
-      // Sort images inside group by size descending (helps user identify larger duplicate files to delete)
-      groupImages.sort((a, b) => (b.size || 0) - (a.size || 0));
-
-      groups.push({
-        images: groupImages
-      });
+      } catch (err) {
+        console.error("[AI Similar] Dynamic fallback clustering failed:", err);
+      }
     }
   }
 
-  // Final progress notification
+  // Notify UI
   event.sender.send('similar-progress', {
-    done: total,
-    total,
+    done: 100,
+    total: 100,
     currentName: 'Completed'
   });
 
-  console.log(`[AI Similar] Found ${groups.length} groups of similar images.`);
-  return groups;
+  console.log(`[AI Similar] Retrieved ${finalGroups.length} groups of similar images.`);
+  return finalGroups;
 });
 
 ipcMain.handle('delete-files', async (event, files) => {
@@ -1164,7 +1095,7 @@ ipcMain.handle('send-ice-candidate', async (event, { sdpMid, sdpMLineIndex, cand
 ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => {
   activeDeviceUuid = deviceUuid;
   
-  const baseDir = path.join(__dirname, 'sync_storage', deviceUuid);
+  const baseDir = path.join(app.getPath('userData'), 'sync_storage', deviceUuid);
   if (!fs.existsSync(baseDir)) {
     fs.mkdirSync(baseDir, { recursive: true });
   }
@@ -1200,7 +1131,8 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
         size INTEGER,
         predictions TEXT,
         sync_time INTEGER,
-        embedding BLOB
+        embedding BLOB,
+        cluster_id TEXT
       )
     `, (err) => {
       if (err) reject(err);
@@ -1211,7 +1143,14 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
   // Safe schema upgrade: ALTER TABLE to add embedding if it's missing from previous versions
   await new Promise((resolve) => {
     activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN embedding BLOB`, () => {
-      resolve(); // ignore error if column already exists
+      resolve(); // ignore error if already exists
+    });
+  });
+
+  // Safe schema upgrade: ALTER TABLE to add cluster_id if missing
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN cluster_id TEXT`, () => {
+      resolve(); // ignore error if already exists
     });
   });
 
@@ -1247,7 +1186,9 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
             try {
               const buffer = row.embedding; // Node.js Buffer from sqlite3 BLOB
               const floatArray = new Float32Array(buffer.buffer, buffer.byteOffset, buffer.byteLength / 4);
-              imageEmbeddingsCache[row.path] = Float32Array.from(floatArray); // safe clone
+              const floatArrayClone = Float32Array.from(floatArray); // safe clone
+              imageEmbeddingsCache[row.path] = floatArrayClone; 
+              taskManager.addEmbeddingToSAB(row.path, floatArrayClone);
             } catch (loadErr) {
               console.error(`[Database] Failed to load embedding from DB for ${row.path}:`, loadErr);
             }
@@ -1268,6 +1209,10 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
   });
   
   console.log(`[Database] Initialized for device: ${deviceName} (${deviceUuid}). Loaded ${syncInfo.syncedIds.length} synced assets. Last album sync: ${syncInfo.lastAlbumSyncDate || 'none'}`);
+  
+  // Kick off background clustering in case there are unclustered images
+  scheduleBackgroundClustering();
+  
   return syncInfo;
 });
 
@@ -1295,8 +1240,8 @@ ipcMain.handle('clear-device-database', async (event) => {
       });
       
       // 3. Remove physical files under sync_storage and thumbnail_sync for this device
-      const thumbDir = path.join(__dirname, 'thumbnail_sync', activeDeviceUuid);
-      const syncDir = path.join(__dirname, 'sync_storage', activeDeviceUuid);
+      const thumbDir = path.join(app.getPath('userData'), 'thumbnail_sync', activeDeviceUuid);
+      const syncDir = path.join(app.getPath('userData'), 'sync_storage', activeDeviceUuid);
       
       const fs = require('fs');
       if (fs.existsSync(thumbDir)) {
@@ -1357,7 +1302,7 @@ ipcMain.handle('select-download-folder', async (event) => {
 });
 
 ipcMain.handle('open-download-folder', async (event) => {
-  const folderToOpen = customDownloadPath || path.join(__dirname, 'sync_storage');
+  const folderToOpen = customDownloadPath || path.join(app.getPath('downloads'), 'ShareCLIP_Data', 'sync_storage');
   if (!fs.existsSync(folderToOpen)) {
     fs.mkdirSync(folderToOpen, { recursive: true });
   }
@@ -1517,6 +1462,164 @@ ipcMain.handle('install-update', async (event, filePath) => {
 });
 
 // -------------------------------------------------------------------------------
+// YT-DLP Integration
+const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
+
+async function ensureYtDlp(event) {
+  const binDir = path.join(app.getPath('userData'), 'bin');
+  if (!fs.existsSync(binDir)) {
+    fs.mkdirSync(binDir, { recursive: true });
+  }
+  const ytDlpPath = path.join(binDir, 'yt-dlp.exe');
+  
+  if (!fs.existsSync(ytDlpPath)) {
+    console.log(`[YT-DLP] Downloading yt-dlp.exe to ${ytDlpPath}`);
+    if (event) event.sender.send('yt-progress', { status: 'Downloading yt-dlp.exe core...', progress: 0 });
+    await downloadFile(YTDLP_URL, ytDlpPath, (progress) => {
+      if (event) event.sender.send('yt-progress', { status: `Downloading core: ${progress}%`, progress });
+    });
+    console.log(`[YT-DLP] Download complete.`);
+  }
+  return ytDlpPath;
+}
+
+ipcMain.handle('yt-get-info', async (event, url) => {
+  try {
+    const ytPath = await ensureYtDlp(event);
+    if (event) event.sender.send('yt-progress', { status: 'Parsing video information...', progress: 0 });
+    
+    return new Promise((resolve, reject) => {
+      const args = ['-J', '--no-playlist', url];
+      const child = require('child_process').spawn(ytPath, args);
+      const outputChunks = [];
+      let errOutput = '';
+      
+      child.stdout.on('data', data => { outputChunks.push(data); });
+      child.stderr.on('data', data => { errOutput += data.toString(); });
+      
+      child.on('close', code => {
+        if (code === 0) {
+          try {
+            const output = Buffer.concat(outputChunks).toString('utf8');
+            // Find the start of the JSON object, in case of warnings
+            const jsonStart = output.indexOf('{');
+            if (jsonStart === -1) throw new Error('No JSON object found in output');
+            const cleanOutput = output.substring(jsonStart);
+            
+            const info = JSON.parse(cleanOutput);
+            
+            const validFormats = (info.formats || []).filter(f => {
+              const hasVideo = f.vcodec && f.vcodec !== 'none';
+              const hasAudio = f.acodec && f.acodec !== 'none';
+              if (hasVideo && hasAudio) return true;
+              if (!hasVideo && hasAudio) return true;
+              return false;
+            }).map(f => ({
+              format_id: f.format_id,
+              ext: f.ext,
+              resolution: f.resolution || 'Audio',
+              note: f.format_note || '',
+              vcodec: f.vcodec,
+              acodec: f.acodec,
+              filesize: f.filesize || f.filesize_approx || 0
+            })).sort((a, b) => b.filesize - a.filesize);
+            
+            const uniqueFormats = [];
+            const seenRes = new Set();
+            for (const f of validFormats) {
+              const key = f.resolution === 'Audio' ? 'Audio-' + f.ext : f.resolution;
+              if (!seenRes.has(key)) {
+                seenRes.add(key);
+                uniqueFormats.push(f);
+              }
+            }
+
+            resolve({
+              success: true,
+              title: info.title,
+              thumbnail: info.thumbnail,
+              duration: info.duration,
+              formats: uniqueFormats.length > 0 ? uniqueFormats : [{ format_id: 'best', resolution: 'Auto (Best)', note: 'default', ext: 'mp4' }]
+            });
+          } catch (e) {
+            console.error('[YT-DLP PARSE ERR]', e.message);
+            resolve({ success: false, error: 'Failed to parse output: ' + e.message });
+          }
+        } else {
+          console.error('[YT-DLP ERR]', errOutput);
+          resolve({ success: false, error: errOutput.trim() || `Failed with code ${code}` });
+        }
+      });
+      child.on('error', err => resolve({ success: false, error: err.message }));
+    });
+  } catch(err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('yt-download', async (event, { url, outputDir, formatId }) => {
+  try {
+    const ytPath = await ensureYtDlp(event);
+    const destDir = outputDir || path.join(app.getPath('downloads'), 'ShareCLIP_Video');
+    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+
+    return new Promise((resolve, reject) => {
+      const fmt = formatId || 'best';
+      const args = [
+        '-f', fmt,
+        '-o', path.join(destDir, '%(title)s.%(ext)s'),
+        '--no-playlist',
+        url
+      ];
+      
+      console.log(`[YT-DLP] Spawning: ${ytPath} ${args.join(' ')}`);
+      event.sender.send('yt-progress', { status: 'Extracting video info...', progress: 0 });
+
+      const child = require('child_process').spawn(ytPath, args);
+
+      child.stdout.on('data', (data) => {
+        const text = data.toString();
+        const match = text.match(/\[download\]\s+([\d\.]+)%\s+of\s+~?([\d\.]+[A-Za-z]+)(?:\s+at\s+([^ ]+))?(?:\s+ETA\s+([^ ]+))?/);
+        if (match) {
+          event.sender.send('yt-progress', {
+            status: 'Downloading',
+            progress: parseFloat(match[1]),
+            size: match[2],
+            speed: match[3] || 'N/A',
+            eta: match[4] || 'N/A'
+          });
+        } else if (text.includes('[ExtractAudio]') || text.includes('[Merger]')) {
+          event.sender.send('yt-progress', { status: 'Merging/Processing...', progress: 100 });
+        } else if (text.includes('[info]') || text.includes('[youtube]')) {
+          const cleanText = text.trim();
+          if (cleanText.length > 5 && cleanText.length < 100) {
+             event.sender.send('yt-progress', { status: cleanText, progress: 0 });
+          }
+        }
+      });
+
+      child.stderr.on('data', (data) => {
+        console.error(`[YT-DLP ERR] ${data}`);
+      });
+
+      child.on('close', (code) => {
+        if (code === 0) {
+          resolve({ success: true, destDir });
+        } else {
+          resolve({ success: false, error: `yt-dlp exited with code ${code}` });
+        }
+      });
+      
+      child.on('error', (err) => {
+        resolve({ success: false, error: err.message });
+      });
+    });
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// -------------------------------------------------------------------------------
 
 ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) => {
   const fullBuffer = Buffer.from(payload);
@@ -1550,7 +1653,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
   let targetPath = '';
   if (isThumbnail) {
     // Thumbnails always stored in __dirname/thumbnail_sync/<uuid>/
-    const targetDir = path.join(__dirname, 'thumbnail_sync', activeDeviceUuid || 'default');
+    const targetDir = path.join(app.getPath('userData'), 'thumbnail_sync', activeDeviceUuid || 'default');
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
@@ -1561,7 +1664,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     const dateFolderName = createDateStr.substring(0, 10); // 'YYYY-MM-DD'
     const baseDir = customDownloadPath
       ? path.join(customDownloadPath, 'album_sync', activeDeviceUuid || 'default', dateFolderName)
-      : path.join(__dirname, 'album_sync', activeDeviceUuid || 'default', dateFolderName);
+      : path.join(app.getPath('downloads'), 'ShareCLIP_Data', 'album_sync', activeDeviceUuid || 'default', dateFolderName);
     if (!fs.existsSync(baseDir)) {
       fs.mkdirSync(baseDir, { recursive: true });
     }
@@ -1574,7 +1677,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     }
     targetPath = path.join(targetDir, filename);
   } else {
-    const aiimageDir = path.join(__dirname, 'aiimage');
+    const aiimageDir = path.join(app.getPath('downloads'), 'ShareCLIP_Data', 'aiimage');
     if (!fs.existsSync(aiimageDir)) {
       fs.mkdirSync(aiimageDir, { recursive: true });
     }
@@ -1645,8 +1748,78 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     });
   }
   
+  scheduleBackgroundClustering();
+  
   return true;
 });
+
+let backgroundClusteringTimer = null;
+
+function scheduleBackgroundClustering() {
+  if (backgroundClusteringTimer) {
+    clearTimeout(backgroundClusteringTimer);
+  }
+  backgroundClusteringTimer = setTimeout(() => {
+    runBackgroundClustering();
+  }, 10000); // Wait 10 seconds after the last photo is synced
+}
+
+async function runBackgroundClustering() {
+  if (!activeDeviceDb) return;
+  console.log("[Background] Starting silent clustering for all cached embeddings...");
+  
+  const sabIndices = [];
+  const validImages = [];
+  
+  await new Promise((resolve) => {
+    activeDeviceDb.all(
+      `SELECT id, name, path, type, size, predictions, latitude, longitude FROM resources WHERE type = 'images' OR type = 'thumbnail' OR type = 'album_photo'`,
+      (err, rows) => {
+        if (!err && rows) {
+          for (const row of rows) {
+             const idx = taskManager.getSabIndex(row.path);
+             if (idx !== -1) {
+               sabIndices.push(idx);
+               validImages.push(row);
+             }
+          }
+        }
+        resolve();
+      }
+    );
+  });
+  
+  if (sabIndices.length === 0) return;
+
+  try {
+    const groups = await taskManager.clusterImages(sabIndices, validImages, 0.90);
+    console.log(`[Background] Computed ${groups.length} clusters. Updating database...`);
+    
+    activeDeviceDb.serialize(() => {
+      activeDeviceDb.run("BEGIN TRANSACTION");
+      const stmt = activeDeviceDb.prepare(`UPDATE resources SET cluster_id = ? WHERE id = ?`);
+      
+      const crypto = require('crypto');
+      for (const group of groups) {
+        const clusterId = crypto.randomUUID();
+        for (const img of group.images) {
+          stmt.run([clusterId, img.id]);
+        }
+      }
+      
+      stmt.finalize();
+      activeDeviceDb.run("COMMIT", (err) => {
+        if (!err) {
+          console.log("[Background] Silent clustering completed and saved to database.");
+        } else {
+          console.error("[Background] Failed to save clusters to database:", err);
+        }
+      });
+    });
+  } catch (err) {
+    console.error("[Background] Silent clustering failed:", err);
+  }
+}
 
 function getExtension(buffer) {
   if (buffer.length >= 4) {
@@ -1753,9 +1926,12 @@ ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
     const tensor = new ort.Tensor('int64', bigintData, [1, 77]);
     
     // 4. Run ONNX session
-    const feeds = { 'text_tokens': tensor };
+    const inputName = textEncoderSession.inputNames[0];
+    const feeds = {};
+    feeds[inputName] = tensor;
     const outputs = await textEncoderSession.run(feeds);
-    const textFeatures = outputs['text_features'].data; // Float32Array (512-dim)
+    const outputName = textEncoderSession.outputNames[0];
+    const textFeatures = outputs[outputName].data; // Float32Array (512-dim)
     
     // 5. L2 Normalize query embedding
     let norm = 0;
@@ -1909,6 +2085,30 @@ function startUdpDiscoveryService() {
   setInterval(pruneDiscoveryList, 5000);
 }
 
+function getBroadcastAddresses() {
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  const addresses = [];
+  
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        const ipSplit = net.address.split('.');
+        const maskSplit = net.netmask.split('.');
+        
+        const broadcastSplit = ipSplit.map((octet, index) => {
+          return (parseInt(octet, 10) | (~parseInt(maskSplit[index], 10) & 255)).toString();
+        });
+        
+        addresses.push(broadcastSplit.join('.'));
+      }
+    }
+  }
+  
+  addresses.push('255.255.255.255');
+  return [...new Set(addresses)];
+}
+
 function broadcastDiscovery() {
   if (!udpSocket) return;
 
@@ -1922,14 +2122,17 @@ function broadcastDiscovery() {
   });
 
   const message = Buffer.from(payload);
-  try {
-    udpSocket.send(message, 0, message.length, 15185, '255.255.255.255', (err) => {
-      if (err) {
-        // Suppress broadcast network-unreachable warnings
-      }
-    });
-  } catch (e) {
-    // Suppress network errors
+  const targets = getBroadcastAddresses();
+  for (const ip of targets) {
+    try {
+      udpSocket.send(message, 0, message.length, 15185, ip, (err) => {
+        if (err) {
+          // Suppress broadcast network-unreachable warnings
+        }
+      });
+    } catch (e) {
+      // Suppress network errors
+    }
   }
 }
 

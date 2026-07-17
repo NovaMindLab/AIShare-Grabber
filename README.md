@@ -149,6 +149,7 @@ This animated diagram shows how ShareCLIP initiates connections offline using BL
 - **🧠 Zero-Trust Local AI (MobileCLIP)**: Runs zero-shot classification on-device using quantized MobileCLIP models inside the Electron host via `onnxruntime-node`. No server APIs, no internet, total privacy.
 - **🗺️ Interactive Footprint Map**: Reads EXIF GPS tags from camera-taken photos (`ACCESS_MEDIA_LOCATION`), stores coordinates in SQLite, and displays your travel footprints on an interactive Leaflet map featuring fluid marker clustering.
 - **🔍 Semantic Similarity Clustering**: Detects duplicate or near-duplicate images locally using cosine distance threshold comparisons, enabling easy photo cleanup with one-click deletion.
+- **🔄 Seamless Auto-Updates**: PC and Android clients feature a fully native, background-downloading update mechanism. Discover new versions and upgrade instantly without ever leaving the application.
 - **🌐 20-Language i18n**: Fully localized across Android, PC, and Web portal to support global users seamlessly.
 
 ---

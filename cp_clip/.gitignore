@@ -27,8 +27,8 @@ dist-ssr
 dist_electron/
 
 # PyTorch checkpoints and exported ONNX models
-mobileclip_s0.pt
-mobileclip_image_encoder.onnx
+mobileclip2_s0_image_encoder.onnx
+mobileclip2_s0_text_encoder.onnx
 *.onnx.data
 *.flat
 

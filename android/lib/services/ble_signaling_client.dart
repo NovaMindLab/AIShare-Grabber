@@ -375,14 +375,12 @@ class BleSignalingClient {
     _expectedChunks = -1;
   }
 
-  void disconnect() async {
+  void disconnect() {
     stopScan();
-    try {
-      if (_connectedDevice != null) {
-        await _connectedDevice!.disconnect();
-      }
-    } catch (e) {
-      debugPrint("[BLE] Error disconnecting BLE device: $e");
+    if (_connectedDevice != null) {
+      _connectedDevice!.disconnect().catchError((e) {
+        debugPrint("[BLE] Error disconnecting BLE device: $e");
+      });
     }
     _cleanupState();
     connectionState.value = BleState.idle;

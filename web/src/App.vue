@@ -127,6 +127,20 @@
             <h3>{{ t.features.f4.title }}</h3>
             <p>{{ t.features.f4.desc }}</p>
           </div>
+
+          <!-- Feature 5 -->
+          <div class="glass-panel glass-panel-hover feature-card">
+            <span class="feature-emoji">🗺️</span>
+            <h3>{{ t.features.f5.title }}</h3>
+            <p>{{ t.features.f5.desc }}</p>
+          </div>
+
+          <!-- Feature 6 -->
+          <div class="glass-panel glass-panel-hover feature-card">
+            <span class="feature-emoji">🔄</span>
+            <h3>{{ t.features.f6.title }}</h3>
+            <p>{{ t.features.f6.desc }}</p>
+          </div>
         </div>
       </div>
     </section>

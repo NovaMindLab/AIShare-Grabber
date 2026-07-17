@@ -1,7 +1,7 @@
 {
     "name":  "image-clip-classifier",
     "private":  true,
-    "version":  "1.2.19",
+    "version":  "1.2.27",
     "description":  "ShareCLIP PC Client",
     "author":  "ShareCLIP Team",
     "type":  "module",
@@ -49,8 +49,9 @@
                                 "tokenizer.cjs",
                                 "merges.txt",
                                 "text_embeddings.json",
-                                "mobileclip_image_encoder.onnx",
-                                "mobileclip_text_encoder_quant.onnx",
+                                "mobileclip2_s0_image_encoder.onnx",
+                                "mobileclip2_s0_image_encoder.onnx.data",
+                                "mobileclip2_s0_text_encoder_quant.onnx",
                                 "package.json",
                                 "icon.png",
                                 "ble_signaling_server.exe",
@@ -89,6 +90,7 @@
                                      "node_modules/@img/sharp-win32-x64/lib/*.dll",
                                      "node_modules/@img/sharp-win32-x64/build/Release/*.node",
                                      "*.onnx",
+                                     "*.onnx.data",
                                      "ble_signaling_server.exe",
                                      "wifi_ap.ps1"
                                  ],

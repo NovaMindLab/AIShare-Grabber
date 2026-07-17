@@ -111,6 +111,14 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('update-download-progress', (event, progress) => callback(progress));
   },
 
+  // YT-DLP Downloader
+  getYtVideoInfo: (url) => ipcRenderer.invoke('yt-get-info', url),
+  downloadYtVideo: (url, outputDir, formatId) => ipcRenderer.invoke('yt-download', { url, outputDir, formatId }),
+  onYtProgress: (callback) => {
+    ipcRenderer.removeAllListeners('yt-progress');
+    ipcRenderer.on('yt-progress', (event, data) => callback(data));
+  },
+
   // Window controls
   minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
   maximizeWindow: () => ipcRenderer.invoke('window-maximize'),

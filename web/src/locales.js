@@ -39,7 +39,9 @@ export const messages = {
       f1: { title: "BLE Seamless Pairing", desc: "No manual IP inputs. Scan the QR code to establish a BLE GATT command channel, discover peers, and exchange handshake parameters." },
       f2: { title: "WebRTC LAN Direct Transfer", desc: "Pairing triggers WebRTC SCTP DataChannel. Gigabits/s local Wi-Fi transfer directly between phone and PC, bypassing cloud limits." },
       f3: { title: "Local MobileCLIP AI", desc: "PC runs local MobileCLIP ONNX engine. Incoming images classified in 0.2s into Portraits, Animals, Landscapes, etc. 100% offline." },
-      f4: { title: "Chat-style P2P & Drag-and-Drop", desc: "PC displays a premium Chat Window on connection. Drag and drop any files to send instantly! Features mobile media separation and Clear/Dark themes." }
+      f4: { title: "Chat-style P2P & Drag-and-Drop", desc: "PC displays a premium Chat Window on connection. Drag and drop any files to send instantly! Features mobile media separation and Clear/Dark themes." },
+      f5: { title: "GPS Footprint Map", desc: "Extracts local EXIF GPS coordinates and renders an interactive travel map showing exactly where your photos were taken." },
+      f6: { title: "In-App Auto Updates", desc: "Seamless background downloads and native installation. Never leave the app to stay up-to-date across PC and Android." }
     },
     simulator: {
       title: "Interactive Handshake Simulator",
@@ -87,7 +89,9 @@ export const messages = {
       f1: { title: "BLE 蓝牙无缝配对", desc: "摒弃繁琐的传统蓝牙配对或局域网 IP 手动输入。手机端只需扫描 PC 二维码，即可通过 BLE 低功耗蓝牙特性建立端到端的握手信令通道，自动发现彼此并交换连接描述。" },
       f2: { title: "WebRTC 局域网直连", desc: "握手成功后，自动建立 WebRTC 点对点直连（SCTP DataChannel）。在手机和电脑间开启千兆级 Wi-Fi 本地 Socket 传输，秒传高清原图，免去云端服务器流量限制。" },
       f3: { title: "本地 MobileCLIP 智能分类", desc: "电脑端内置 MobileCLIP 零样本图像分类器。传输照片后，直接调用本地 ONNX 引擎在 0.2 秒内计算分类特征，自动将照片归档至“人像、动物、风景”等类别，全程纯本地执行。" },
-      f4: { title: "极速双向互传 & 聊天视窗", desc: "PC端连接成功后自动呈现聊天窗口，支持拖拽文件直接发送！配合手机端图片和视频分栏、深浅双主题切换，给您带来最清爽、最 premium 的互传体验！" }
+      f4: { title: "极速双向互传 & 聊天视窗", desc: "PC端连接成功后自动呈现聊天窗口，支持拖拽文件直接发送！配合手机端图片和视频分栏、深浅双主题切换，给您带来最清爽、最 premium 的互传体验！" },
+      f5: { title: "足迹地图 (Footprint Map)", desc: "自动提取照片 EXIF 中的 GPS 坐标信息，并在交互式地图上生成你的专属旅行足迹图。" },
+      f6: { title: "全自动应用内升级", desc: "完美实现 PC 与 Android 端的后台静默下载更新。下载完毕直接触发原生安装，彻底告别跳转浏览器的烦恼。" }
     },
     simulator: {
       title: "交互式直连握手模拟",
@@ -142,7 +146,9 @@ const translations = {
       f1: { title: "BLE 藍牙無縫配對", desc: "摒棄繁瑣的傳統藍牙配對或局域網 IP 手動輸入。手機端只需掃描 PC 二維碼，即可通過 BLE 低功耗藍牙特性建立端到端的握手信令通道，自動發現彼此並交換連接描述。" },
       f2: { title: "WebRTC 局域網直連", desc: "握手成功後，自動建立 WebRTC 點對點直連（SCTP DataChannel）。在手機和電腦間開啟千兆級 Wi-Fi 本地 Socket 傳輸，秒傳高清原圖，免去雲端伺服器流量限制。" },
       f3: { title: "本地 MobileCLIP 智能分類", desc: "電腦端內置 MobileCLIP 零樣本圖像分類器。傳輸照片後，直接調用本地 ONNX 引擎在 0.2 秒內計算分類特徵，自動將照片歸檔至“人像、動物、風景”等類別，全程純本地執行。" },
-      f4: { title: "極速雙向互傳 & 聊天視窗", desc: "PC端連接成功後自動呈現聊天窗口，支援拖拽檔案直接發送！配合手機端圖片和影片分欄、深淺雙主題切換，給您帶來最清爽、最 premium 的互傳體驗！" }
+      f4: { title: "極速雙向互傳 & 聊天視窗", desc: "PC端連接成功後自動呈現聊天窗口，支援拖拽檔案直接發送！配合手機端圖片和影片分欄、深淺雙主題切換，給您帶來最清爽、最 premium 的互傳體驗！" },
+      f5: { title: "足跡地圖 (Footprint Map)", desc: "自動提取照片 EXIF 中的 GPS 座標資訊，並在交互式地圖上生成你的專屬旅行足跡圖。" },
+      f6: { title: "全自動應用內升級", desc: "完美實現 PC 與 Android 端的後台靜默下載更新。下載完畢直接觸發原生安裝，徹底告別跳轉瀏覽器的煩惱。" }
     },
     simulator: {
       title: "交互式直連握手模擬",
@@ -190,7 +196,9 @@ const translations = {
       f1: { title: "BLE 簡単ペアリング", desc: "IP 入力不要。QR コードをスキャンして BLE チャンネルを開き、ピアを自動検出して接続を確立します。" },
       f2: { title: "WebRTC 高速転送", desc: "ペアリング後、WebRTC SCTP データチャネルが開きます。高速なローカル Wi-Fi 接続で写真ファイルを数秒で送信します。" },
       f3: { title: "ローカル MobileCLIP AI", desc: "PC 上で MobileCLIP ONNX エンジンを直接実行。0.2秒以内にポートレート、動物、風景などに写真を自動分類します。" },
-      f4: { title: "双方向フロー制御", desc: "双方向送信に対応。BufferedAmount フロー制御により、大容量ファイル送信時のパケットロスを防ぎます。" }
+      f4: { title: "双方向フロー制御", desc: "双方向送信に対応。BufferedAmount フロー制御により、大容量ファイル送信時のパケットロスを防ぎます。" },
+      f5: { title: "足跡マップ", desc: "写真の EXIF GPS 座標を抽出し、インタラクティブな旅行マップを作成します。" },
+      f6: { title: "アプリ内自動更新", desc: "バックグラウンドでのシームレスなダウンロードとネイティブインストールにより、常に最新の状態を保ちます。" }
     },
     simulator: {
       title: "接続インタラクティブデモ",
@@ -238,7 +246,9 @@ const translations = {
       f1: { title: "BLE 간편 페어링", desc: "IP 입력 없음. QR 스캔만으로 BLE GATT 채널을 형성하고 기기를 자동으로 감지합니다." },
       f2: { title: "WebRTC 로컬 직련", desc: "페어링 즉시 WebRTC 데이터채널 오픈. 인터넷이 없어도 기가비트 Wi-Fi 속도로 고화질 사진을 전송합니다." },
       f3: { title: "로컬 MobileCLIP AI", desc: "PC 내장 MobileCLIP ONNX 모델 작동. 전송된 사진을 인물, 동물, 풍경 등으로 0.2초 내에 자동 분류합니다." },
-      f4: { title: "양방향 스마트 흐름 제어", desc: "양방향 전송 지원. 대용량 파일 전송 시 BufferedAmount 제어로 패킷 손실을 완벽히 차단합니다." }
+      f4: { title: "양방향 스마트 흐름 제어", desc: "양방향 전송 지원. 대용량 파일 전송 시 BufferedAmount 제어로 패킷 손실을 완벽히 차단합니다." },
+      f5: { title: "발자국 지도", desc: "사진의 EXIF GPS 좌표를 추출하여 인터랙티브한 여행 지도를 생성합니다." },
+      f6: { title: "앱 내 자동 업데이트", desc: "백그라운드에서 끊김 없이 다운로드하고 네이티브 설치를 진행하여 항상 최신 버전을 유지합니다." }
     },
     simulator: {
       title: "인터랙티브 연결 시뮬레이션",

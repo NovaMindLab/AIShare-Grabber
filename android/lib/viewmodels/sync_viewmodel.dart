@@ -443,7 +443,7 @@ class SyncViewModel extends ChangeNotifier {
       }
 
       final diff = DateTime.now().difference(_lastHeartbeatReceived);
-      if (diff.inSeconds >= 15) {
+      if (diff.inSeconds >= 45) {
         logMessage("⚠️ 心跳超时：PC端已离线");
         timer.cancel();
         resetToScanner();
