@@ -817,7 +817,7 @@
         </div>
 
         <!-- 2. IMAGES TAB -->
-        <div v-else-if="currentTab === 'images'" style="width: 100%;">
+        <div v-else-if="currentTab === 'images'" style="width: 100%; height: 100%; display: flex; flex-direction: column;">
           <!-- Empty State -->
           <div class="empty-state" v-if="localImages.length === 0">
             <div class="empty-state-icon">🖼️</div>
@@ -830,43 +830,43 @@
             </button>
           </div>
 
-          <!-- Grid display -->
-          <div class="image-grid" v-else>
-            <div 
-              v-for="img in filteredImages" 
-              :key="img.path" 
-              class="image-card" 
-              @click="openDetails(img)"
-            >
-              <div class="card-img-wrapper">
-                <img :src="img.src" class="card-img" loading="lazy" />
+          <!-- Virtual Grid display -->
+          <VirtualGrid v-else :items="filteredImages" :itemMinWidth="220" :gap="24" style="flex: 1;">
+            <template #item="{ item: img }">
+              <div 
+                class="image-card" 
+                @click="openDetails(img)"
+              >
+                <div class="card-img-wrapper">
+                  <img :src="img.src" class="card-img" loading="lazy" />
+                  
+                  <!-- Processing Indicator -->
+                  <div class="loading-indicator" v-if="img.status === 'processing'">
+                    <span class="spinner"></span>
+                    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 500;">{{ t.images.aiAnalyzing }}</span>
+                  </div>
+                </div>
                 
-                <!-- Processing Indicator -->
-                <div class="loading-indicator" v-if="img.status === 'processing'">
-                  <span class="spinner"></span>
-                  <span style="font-size: 11px; color: var(--text-secondary); font-weight: 500;">{{ t.images.aiAnalyzing }}</span>
+                <div class="card-overlay">
+                  <span class="card-title">{{ img.name }}</span>
+                  
+                  <!-- Badges -->
+                  <span v-if="isSearchActive && img.searchScore !== undefined && getMatchPercentage(img.searchScore) > 0" class="badge badge-search-match">
+                    🎯 {{ t.images.matchScore }} {{ getMatchPercentage(img.searchScore) }}%
+                  </span>
+                  <span v-else-if="img.status === 'completed' && img.predictions.length > 0" class="badge badge-classified">
+                    {{ getShortCategory(img.predictions[0].category) }} ({{ Math.round(img.predictions[0].score * 100) }}%)
+                  </span>
+                  <span v-else-if="img.status === 'processing'" class="badge badge-loading">
+                    <span class="spinner"></span> {{ t.images.aiAnalyzing }}
+                  </span>
+                  <span v-else class="badge badge-pending">
+                    ⏳ {{ t.images.waitingQueue }}
+                  </span>
                 </div>
               </div>
-              
-              <div class="card-overlay">
-                <span class="card-title">{{ img.name }}</span>
-                
-                <!-- Badges -->
-                <span v-if="isSearchActive && img.searchScore !== undefined && getMatchPercentage(img.searchScore) > 0" class="badge badge-search-match">
-                  🎯 {{ t.images.matchScore }} {{ getMatchPercentage(img.searchScore) }}%
-                </span>
-                <span v-else-if="img.status === 'completed' && img.predictions.length > 0" class="badge badge-classified">
-                  {{ getShortCategory(img.predictions[0].category) }} ({{ Math.round(img.predictions[0].score * 100) }}%)
-                </span>
-                <span v-else-if="img.status === 'processing'" class="badge badge-loading">
-                  <span class="spinner"></span> {{ t.images.aiAnalyzing }}
-                </span>
-                <span v-else class="badge badge-pending">
-                  ⏳ {{ t.images.waitingQueue }}
-                </span>
-              </div>
-            </div>
-          </div>
+            </template>
+          </VirtualGrid>
         </div>
 
         <!-- 2.5 ALBUM BACKUP TAB -->
@@ -1707,6 +1707,8 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted, watch, reactive } from 'vue';
+import { useVirtualList, useElementSize } from '@vueuse/core';
+import VirtualGrid from './components/VirtualGrid.vue';
 import QRCode from 'qrcode';
 import { locales, languages } from './locales.js';
 
@@ -2780,6 +2782,10 @@ async function toggleSyncService() {
     if (hasApi) {
       try {
         const payload = await window.api.startBleServer();
+        if (hotspotSsid.value && hotspotPassword.value) {
+          payload.hotspotSsid = hotspotSsid.value;
+          payload.hotspotPassword = hotspotPassword.value;
+        }
         qrPayload.value = payload;
         syncStatus.value = 'advertising';
         logSyncEvent(`GATT 广播成功! MAC: ${payload.ble_mac}, Session: ${payload.session_id}`);
@@ -2791,8 +2797,28 @@ async function toggleSyncService() {
         }
       } catch (err) {
         logSyncEvent(`❌ BLE GATT 启动失败: ${err.message || err}`);
-        isSyncActive.value = false;
-        syncStatus.value = 'idle';
+        if (hotspotSsid.value && hotspotPassword.value) {
+          logSyncEvent('⚠️ 降级为纯 Wi-Fi 热点模式，生成无 BLE 的二维码...');
+          const fallbackPayload = {
+            ble_mac: '',
+            service_uuid: '',
+            char_uuid: '',
+            session_id: '',
+            hotspotSsid: hotspotSsid.value,
+            hotspotPassword: hotspotPassword.value
+          };
+          qrPayload.value = fallbackPayload;
+          syncStatus.value = 'advertising'; // Use the same status so the UI shows the QR
+          await nextTick();
+          if (qrCanvas.value) {
+            QRCode.toCanvas(qrCanvas.value, JSON.stringify(fallbackPayload), { width: 140, margin: 1 }, (error) => {
+              if (error) logSyncEvent(`⚠️ QR Code error: ${error.message}`);
+            });
+          }
+        } else {
+          isSyncActive.value = false;
+          syncStatus.value = 'idle';
+        }
       }
     } else {
       // Mock Demo Web fallback
@@ -3284,6 +3310,9 @@ const startYtDownload = async () => {
 
 // Register listeners on mount
 onMounted(() => {
+  // Auto-start hotspot and BLE sync on PC startup
+  toggleHotspot();
+
   if (hasApi) {
     // Load saved download path from main process settings
     window.api.getDownloadPath().then(savedPath => {

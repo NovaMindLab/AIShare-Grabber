@@ -16,6 +16,7 @@
         "dist": "electron-builder"
     },
     "dependencies": {
+        "@vueuse/core": "^14.3.0",
         "electron-updater": "^6.8.9",
         "exif-reader": "^2.0.3",
         "onnxruntime-node": "^1.18.0",

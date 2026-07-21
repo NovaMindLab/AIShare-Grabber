@@ -321,7 +321,9 @@ body {
 /* Image Grid */
 .gallery-container {
   flex: 1;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Let virtual list scroll */
   padding: 32px;
 }
 
