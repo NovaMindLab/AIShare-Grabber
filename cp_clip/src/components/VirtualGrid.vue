@@ -99,9 +99,13 @@ const chunkedItems = computed(() => {
   return chunks;
 });
 
-const { list, containerProps, wrapperProps } = useVirtualList(chunkedItems, {
+const { list, containerProps, wrapperProps, scrollTo } = useVirtualList(chunkedItems, {
   itemHeight: () => itemHeight.value,
   overscan: 3, // Render 3 rows off-screen for smoother scrolling
+});
+
+defineExpose({
+  scrollTo
 });
 </script>
 

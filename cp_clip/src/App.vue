@@ -831,7 +831,7 @@
           </div>
 
           <!-- Virtual Grid display -->
-          <VirtualGrid v-else :items="filteredImages" :itemMinWidth="220" :gap="24" style="flex: 1;">
+          <VirtualGrid ref="virtualGridRef" v-else :items="filteredImages" :itemMinWidth="220" :gap="24" style="flex: 1;">
             <template #item="{ item: img }">
               <div 
                 class="image-card" 
@@ -1735,12 +1735,15 @@ const images = ref([]);
 const currentFolderPath = ref('');
 const selectedCategory = ref(null);
 const galleryContainerRef = ref(null);
+const virtualGridRef = ref(null);
 
 function selectCategory(cat) {
   selectedCategory.value = cat;
   handleClearSearch();
   nextTick(() => {
-    if (galleryContainerRef.value) {
+    if (virtualGridRef.value) {
+      virtualGridRef.value.scrollTo(0);
+    } else if (galleryContainerRef.value) {
       galleryContainerRef.value.scrollTop = 0;
     }
   });
@@ -3928,7 +3931,9 @@ async function handleSearch() {
   } finally {
     isSearching.value = false;
     nextTick(() => {
-      if (galleryContainerRef.value) {
+      if (virtualGridRef.value) {
+        virtualGridRef.value.scrollTo(0);
+      } else if (galleryContainerRef.value) {
         galleryContainerRef.value.scrollTop = 0;
       }
     });
