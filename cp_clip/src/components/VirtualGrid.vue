@@ -1,12 +1,15 @@
 <template>
   <div ref="outerRef" class="virtual-grid-outer">
+    <div style="position: absolute; top: 0; left: 0; background: rgba(0,0,0,0.8); color: lime; z-index: 9999; padding: 4px;">
+      Debug: W={{ containerWidth }}, Cols={{ columns }}, ItemW={{ itemWidth }}, ItemH={{ itemHeight }}
+    </div>
     <div v-bind="containerProps" class="virtual-grid-container">
     <div v-bind="wrapperProps" class="virtual-grid-wrapper">
       <div 
         v-for="row in list" 
         :key="row.index" 
         class="virtual-grid-row"
-        :style="{ gap: gap + 'px' }"
+        :style="{ gap: gap + 'px', height: itemHeight + 'px' }"
       >
         <div 
           v-for="(item, idx) in row.data" 
@@ -23,12 +26,13 @@
         ></div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { useVirtualList, useElementSize } from '@vueuse/core';
+import { ref, computed, onMounted, onUnmounted, shallowRef } from 'vue';
+import { useVirtualList } from '@vueuse/core';
 
 const props = defineProps({
   items: {
@@ -46,7 +50,28 @@ const props = defineProps({
 });
 
 const outerRef = ref(null);
-const { width: containerWidth } = useElementSize(outerRef);
+const containerWidth = ref(0);
+let resizeObserver = null;
+
+onMounted(() => {
+  if (outerRef.value) {
+    containerWidth.value = outerRef.value.clientWidth;
+    resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        if (entry.contentRect) {
+          containerWidth.value = entry.contentRect.width;
+        }
+      }
+    });
+    resizeObserver.observe(outerRef.value);
+  }
+});
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+});
 
 const columns = computed(() => {
   if (!containerWidth.value) return 1;
