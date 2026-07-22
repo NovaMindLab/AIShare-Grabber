@@ -3,6 +3,82 @@ const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 
+// -------------------------------------------------------------------------------
+// 📄 Local Persistent File Logger & Exception Protection
+// Writes all console outputs, connection events, and uncaught crash tracebacks
+// to %AppData%\ShareCLIP\logs\shareclip_YYYY-MM-DD.log for PC crash diagnosis.
+// -------------------------------------------------------------------------------
+let logDir = '';
+let logFilePath = '';
+
+try {
+  logDir = path.join(app.getPath('userData'), 'logs');
+  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+  const todayStr = new Date().toISOString().slice(0, 10);
+  logFilePath = path.join(logDir, `shareclip_${todayStr}.log`);
+} catch (e) {
+  // Fallback to current working dir if userData is inaccessible
+  logDir = path.join(process.cwd(), 'logs');
+  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+  logFilePath = path.join(logDir, 'shareclip.log');
+}
+
+function writeLog(level, ...args) {
+  const timestamp = new Date().toISOString();
+  const formattedArgs = args.map(arg => {
+    if (arg instanceof Error) return arg.stack || arg.message;
+    if (typeof arg === 'object') {
+      try { return JSON.stringify(arg); } catch (_) { return String(arg); }
+    }
+    return String(arg);
+  }).join(' ');
+  
+  const logLine = `[${timestamp}] [${level}] ${formattedArgs}\n`;
+  
+  try {
+    fs.appendFileSync(logFilePath, logLine, 'utf8');
+  } catch (_) {}
+}
+
+const originalConsoleLog = console.log;
+const originalConsoleWarn = console.warn;
+const originalConsoleError = console.error;
+
+console.log = function (...args) {
+  originalConsoleLog.apply(console, args);
+  writeLog('INFO', ...args);
+};
+
+console.warn = function (...args) {
+  originalConsoleWarn.apply(console, args);
+  writeLog('WARN', ...args);
+};
+
+console.error = function (...args) {
+  originalConsoleError.apply(console, args);
+  writeLog('ERROR', ...args);
+};
+
+// Intercept uncaught exceptions & rejections to record full stack trace before app exit ("秒退")
+process.on('uncaughtException', (err, origin) => {
+  writeLog('FATAL_UNCAUGHT_EXCEPTION', `Origin: ${origin}, Error:`, err);
+  if (err && err.stack) writeLog('FATAL_STACK', err.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  writeLog('FATAL_UNHANDLED_REJECTION', `Reason:`, reason);
+});
+
+app.on('render-process-gone', (event, webContents, details) => {
+  writeLog('FATAL_RENDERER_CRASH', `Renderer process gone, details:`, details);
+});
+
+app.on('child-process-gone', (event, details) => {
+  writeLog('FATAL_CHILD_PROCESS_CRASH', `Child process gone, details:`, details);
+});
+
+writeLog('SYSTEM_START', `=== ShareCLIP PC Starting (v${app.getVersion()}) === Log File: ${logFilePath}`);
+
 function getPhysicalPath(filePath) {
   return filePath.replace(/\bapp\.asar\b/, 'app.asar.unpacked');
 }
@@ -1441,6 +1517,20 @@ function downloadFile(url, destPath, progressCallback) {
 }
 
 const { autoUpdater } = require('electron-updater');
+
+ipcMain.handle('open-log-folder', async () => {
+  try {
+    if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+    shell.openPath(logDir);
+    return { success: true, path: logDir };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('get-log-path', async () => {
+  return logFilePath;
+});
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;

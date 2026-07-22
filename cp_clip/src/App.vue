@@ -1508,6 +1508,11 @@
                     <span class="info-badge">Vite 8</span>
                     <span class="info-badge">ONNX Runtime Node</span>
                   </div>
+                  <div style="margin-top: 12px; display: flex; gap: 8px;">
+                    <button class="dp-btn dp-open" @click="openLogFolder">
+                      📄 打开本地运行日志目录 (Open Log Folder)
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2010,6 +2015,12 @@ function showDownloadPathSaved() {
 
 async function openDownloadFolder() {
   await window.api.openDownloadFolder();
+}
+
+async function openLogFolder() {
+  if (hasApi && window.api.openLogFolder) {
+    await window.api.openLogFolder();
+  }
 }
 
 // App Update checks

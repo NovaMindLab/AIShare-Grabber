@@ -103,6 +103,8 @@ contextBridge.exposeInMainWorld('api', {
   setDownloadPath: (newPath) => ipcRenderer.invoke('set-download-path', newPath),
   selectDownloadFolder: () => ipcRenderer.invoke('select-download-folder'),
   openDownloadFolder: () => ipcRenderer.invoke('open-download-folder'),
+  openLogFolder: () => ipcRenderer.invoke('open-log-folder'),
+  getLogPath: () => ipcRenderer.invoke('get-log-path'),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   startUpdateDownload: (downloadUrl) => ipcRenderer.invoke('start-update-download', downloadUrl),
   installUpdate: (filePath) => ipcRenderer.invoke('install-update', filePath),
