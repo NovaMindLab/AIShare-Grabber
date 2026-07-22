@@ -647,6 +647,7 @@ async function classifyPhotoInternal(imagePath) {
 // ─────────────────────────────────────────────────────────────────
 const aiClassificationQueue = [];
 let isProcessingAiQueue = false;
+let lastNetworkTransferTime = 0;
 
 function enqueueAiClassification(item) {
   aiClassificationQueue.push(item);
@@ -658,6 +659,13 @@ async function processAiQueue() {
   isProcessingAiQueue = true;
 
   while (aiClassificationQueue.length > 0) {
+    // If WebRTC file/thumbnail transfers are actively occurring right now (< 2s ago),
+    // throttle AI queue execution to yield 100% CPU/bandwidth to network transfer and heartbeats!
+    const timeSinceLastTransfer = Date.now() - lastNetworkTransferTime;
+    if (timeSinceLastTransfer < 2000) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
     const task = aiClassificationQueue.shift();
     try {
       if (fs.existsSync(task.targetPath)) {
@@ -696,8 +704,8 @@ async function processAiQueue() {
       console.error(`[AI Queue] Error processing ${task.targetPath}:`, err.message);
     }
 
-    // Yield to Node event loop so WebRTC data channel packets & heartbeats process instantly
-    await new Promise(resolve => setTimeout(resolve, 20));
+    // Yield 50ms to Node event loop so WebRTC data channel packets & heartbeats process smoothly
+    await new Promise(resolve => setTimeout(resolve, 50));
   }
 
   isProcessingAiQueue = false;
@@ -1998,6 +2006,8 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     });
   }
   
+  lastNetworkTransferTime = Date.now();
+
   // Notify renderer immediately that file is saved on disk so UI updates instantly
   if (mainWindow) {
     mainWindow.webContents.send('photo-synced', {

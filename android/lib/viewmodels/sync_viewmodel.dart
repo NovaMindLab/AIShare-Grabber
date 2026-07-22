@@ -348,13 +348,15 @@ class SyncViewModel extends ChangeNotifier {
             return;
           }
 
+          // Any valid packet received from PC proves WebRTC connection is 100% alive
+          _lastHeartbeatReceived = DateTime.now();
+
           // Parse 16-byte header
           final byteData = ByteData.sublistView(binaryData, 0, 16);
           final fileId = byteData.getInt32(0, Endian.big);
 
           if (fileId == -1) {
             // Ping received from PC
-            _lastHeartbeatReceived = DateTime.now();
             final pongHeader = ByteData(16);
             pongHeader.setInt32(0, -2, Endian.big);
             pongHeader.setInt32(4, 0, Endian.big);
@@ -632,8 +634,12 @@ class SyncViewModel extends ChangeNotifier {
       }
 
       final diff = DateTime.now().difference(_lastHeartbeatReceived);
-      if (diff.inSeconds >= 60) {
-        logMessage("⚠️ 心跳超时：PC端已离线");
+      // Relax heartbeat timeout during active thumbnail/album syncs to prevent disconnects under heavy AI load
+      final isTransferring = isThumbnailSyncing || isAlbumSyncing || activeTransferName != null;
+      final maxTimeoutSeconds = isTransferring ? 180 : 60;
+
+      if (diff.inSeconds >= maxTimeoutSeconds) {
+        logMessage("⚠️ 心跳超时：PC端已离线 (${diff.inSeconds}s)");
         timer.cancel();
         resetToScanner();
         return;
