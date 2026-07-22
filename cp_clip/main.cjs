@@ -1470,19 +1470,72 @@ ipcMain.handle('check-for-updates', async () => {
   }
 });
 
-ipcMain.handle('start-update-download', async (event) => {
+ipcMain.handle('start-update-download', async (event, customUrl) => {
   try {
-    console.log('[Update Download] Starting download via autoUpdater...');
+    console.log('[Update Download] Starting download...');
     updateDownloadEventSender = event.sender;
     
-    await new Promise((resolve, reject) => {
-      autoUpdater.once('update-downloaded', resolve);
-      autoUpdater.once('error', reject);
-      autoUpdater.downloadUpdate();
+    // Attempt 1: autoUpdater
+    let success = false;
+    try {
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error("autoUpdater download timeout")), 12000);
+        autoUpdater.once('update-downloaded', () => { clearTimeout(timeout); resolve(); });
+        autoUpdater.once('error', (err) => { clearTimeout(timeout); reject(err); });
+        autoUpdater.downloadUpdate();
+      });
+      success = true;
+    } catch (autoErr) {
+      console.warn('[Update Download] autoUpdater failed, using direct GitHub fallback:', autoErr.message);
+    }
+
+    if (success) {
+      return { success: true, filePath: 'managed' };
+    }
+
+    // Attempt 2: Fallback to direct HTTPS download from latest GitHub Release
+    const destDir = app.getPath('downloads');
+    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+
+    let targetDownloadUrl = customUrl;
+    if (!targetDownloadUrl || targetDownloadUrl === 'managed') {
+      const releaseInfoStr = await new Promise((resolve, reject) => {
+        https.get('https://api.github.com/repos/NovaMindLab/AIShare-Grabber/releases/latest', {
+          headers: { 'User-Agent': 'ShareCLIP-PC-App' }
+        }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => resolve(data));
+        }).on('error', reject);
+      });
+      const releaseInfo = JSON.parse(releaseInfoStr);
+      if (releaseInfo && releaseInfo.assets) {
+        for (const asset of releaseInfo.assets) {
+          if (asset.name.endsWith('Setup.exe') || (asset.name.endsWith('.exe') && !asset.name.includes('blockmap'))) {
+            targetDownloadUrl = asset.browser_download_url;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!targetDownloadUrl || targetDownloadUrl === 'managed') {
+      throw new Error("Could not locate setup .exe URL in latest GitHub release.");
+    }
+
+    const exeName = path.basename(targetDownloadUrl.split('?')[0]) || 'ShareCLIP_Setup_Update.exe';
+    const destPath = path.join(destDir, exeName);
+
+    console.log(`[Update Download] Direct download fallback from ${targetDownloadUrl} to ${destPath}`);
+    await downloadFile(targetDownloadUrl, destPath, (progress) => {
+      if (updateDownloadEventSender) {
+        updateDownloadEventSender.send('update-download-progress', progress);
+      }
     });
-    
-    console.log('[Update Download] Download completed successfully.');
-    return { success: true, filePath: 'managed' };
+
+    console.log(`[Update Download] Direct download completed: ${destPath}`);
+    return { success: true, filePath: destPath };
+
   } catch (err) {
     console.error('[Update Download] Error downloading update:', err.message);
     return { success: false, error: err.message };
@@ -1491,12 +1544,21 @@ ipcMain.handle('start-update-download', async (event) => {
   }
 });
 
-ipcMain.handle('install-update', async () => {
+ipcMain.handle('install-update', async (event, filePath) => {
   try {
-    console.log('[Update Install] Quitting and installing update...');
-    setImmediate(() => {
-      autoUpdater.quitAndInstall(false, true);
-    });
+    console.log('[Update Install] Installing update, target:', filePath);
+    if (!filePath || filePath === 'managed') {
+      setImmediate(() => {
+        autoUpdater.quitAndInstall(false, true);
+      });
+    } else if (fs.existsSync(filePath)) {
+      shell.openPath(filePath);
+      setTimeout(() => {
+        app.quit();
+      }, 1000);
+    } else {
+      throw new Error(`Installer file does not exist at ${filePath}`);
+    }
     return { success: true };
   } catch (err) {
     console.error('[Update Install] Error installing update:', err.message);

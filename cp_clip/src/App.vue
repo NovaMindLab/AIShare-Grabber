@@ -3429,6 +3429,62 @@ onMounted(() => {
         }
       }
     });
+
+    // 4. Direct UDP Offer SDP received over Wi-Fi Hotspot (when BLE fails)
+    window.api.onDirectSdpReceived(async (data) => {
+      const { ip, sdp, sdpType } = data;
+      if (sdpType === 'offer') {
+        logSyncEvent(`📡 [UDP/Hotspot] 收到来自 ${ip} 的 WebRTC Offer SDP!`);
+        syncStatus.value = 'handshaking';
+        startHandshakeTimeout();
+        cleanupWebRtc();
+
+        activePeerIp.value = ip;
+        activePeerType.value = 'Mobile';
+        const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        peerConnection = new RTCPeerConnection(configuration);
+        setupPeerConnectionListeners(peerConnection);
+
+        peerConnection.onicecandidate = (event) => {
+          if (event.candidate) {
+            window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
+          }
+        };
+
+        peerConnection.ondatachannel = (event) => {
+          if (event.channel.label === 'photo_sync') {
+            logSyncEvent("📡 [UDP/Hotspot] 监听到直连数据通道 'photo_sync'");
+            dataChannel = event.channel;
+            setupDataChannel(dataChannel);
+          }
+        };
+
+        try {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription({
+            type: 'offer',
+            sdp: sdp
+          }));
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+
+          logSyncEvent("📡 [UDP/Hotspot] 成功创建 Answer SDP，向手机发送回应...");
+          await window.api.sendUdpSdp(ip, answer.sdp, 'answer');
+        } catch (err) {
+          logSyncEvent(`❌ [UDP/Hotspot] WebRTC 协商失败: ${err.message || err}`);
+          syncStatus.value = 'advertising';
+        }
+      }
+    });
+
+    // 5. Direct UDP ICE Candidate received over Wi-Fi Hotspot
+    window.api.onDirectIceReceived((data) => {
+      if (peerConnection) {
+        try {
+          const cand = typeof data.candidate === 'string' ? JSON.parse(data.candidate) : data.candidate;
+          peerConnection.addIceCandidate(new RTCIceCandidate(cand)).catch(e => {});
+        } catch (_) {}
+      }
+    });
     
     window.api.onPhotoSynced((imageInfo) => {
       const isAlbum = imageInfo.name.startsWith('album_');

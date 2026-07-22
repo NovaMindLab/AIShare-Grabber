@@ -270,10 +270,35 @@ class SyncViewModel extends ChangeNotifier {
     }
   }
 
-  void _sendUdp(Map<String, dynamic> payload) {
-     if (_udpSocket == null) return;
-     final bytes = utf8.encode(json.encode(payload));
-     _udpSocket!.send(bytes, InternetAddress("192.168.137.1"), 15185);
+  Future<void> _sendUdp(Map<String, dynamic> payload) async {
+    if (_udpSocket == null) return;
+    final bytes = utf8.encode(json.encode(payload));
+
+    final targets = <String>{
+      '255.255.255.255',
+      '192.168.137.1',
+      '192.168.43.1',
+      '192.168.137.255',
+      '192.168.43.255',
+    };
+
+    try {
+      final String? ip = await WiFiForIoTPlugin.getIP();
+      if (ip != null && ip.contains('.')) {
+        final parts = ip.split('.');
+        if (parts.length == 4) {
+          final prefix = '${parts[0]}.${parts[1]}.${parts[2]}';
+          targets.add('$prefix.1');
+          targets.add('$prefix.255');
+        }
+      }
+    } catch (_) {}
+
+    for (var ipStr in targets) {
+      try {
+        _udpSocket!.send(bytes, InternetAddress(ipStr), 15185);
+      } catch (_) {}
+    }
   }
 
   void _sendUdpSdp(String sdp, String type) {
