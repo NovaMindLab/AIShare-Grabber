@@ -279,6 +279,16 @@ body {
   border-color: rgba(56, 189, 248, 0.5);
 }
 
+.ai-processing-badge {
+  background: rgba(168, 85, 247, 0.18) !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(168, 85, 247, 0.35) !important;
+  font-weight: 700 !important;
+  padding: 2px 8px !important;
+  border-radius: 12px !important;
+  animation: pulse-glow 1.5s infinite ease-in-out;
+}
+
 /* Glass panel components */
 .glass-panel {
   background: var(--glass-bg);

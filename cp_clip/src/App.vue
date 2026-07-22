@@ -75,7 +75,7 @@
             @click="currentTab = 'images'"
           >
             <span>{{ t.sidebar.tabImages }}</span>
-            <span class="category-count">{{ localImages.length }}</span>
+            <span class="category-count" :class="{ 'ai-processing-badge': isReclassifying || aiQueueProgress.isProcessing }">{{ picturesBadgeText }}</span>
           </div>
           <div 
             class="category-item" 
@@ -145,7 +145,7 @@
             @click="selectCategory(null)"
           >
             <span>{{ t.sidebar.allImages }}</span>
-            <span class="category-count">{{ localImages.length }}</span>
+            <span class="category-count" :class="{ 'ai-processing-badge': isReclassifying || aiQueueProgress.isProcessing }">{{ picturesBadgeText }}</span>
           </div>
           <div 
             v-for="(count, cat) in categoryCounts" 
@@ -2064,6 +2064,18 @@ const aiQueueProgress = ref({
   completed: 0,
   remaining: 0,
   percent: 0
+});
+
+const picturesBadgeText = computed(() => {
+  if (isReclassifying.value) {
+    const done = reclassifyProgress.value.done || 0;
+    const total = reclassifyProgress.value.total || localImages.value.length;
+    return `🧠 ${done} / ${total}`;
+  }
+  if (aiQueueProgress.value.isProcessing && aiQueueProgress.value.total > 0) {
+    return `🧠 ${aiQueueProgress.value.completed} / ${aiQueueProgress.value.total}`;
+  }
+  return `${localImages.value.length}`;
 });
 
 watch(isDarkMode, (newVal) => {
