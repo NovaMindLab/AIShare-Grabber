@@ -156,16 +156,6 @@
           </div>
         </div>
       </div>
-
-      <!-- App Info / Status Warning -->
-      <div class="sidebar-section glass-panel warning-block">
-        <div class="warning-title">
-          <span>💡</span> {{ t.sidebar.archTitle }}
-        </div>
-        <div class="warning-desc">
-          {{ t.sidebar.archDesc }}
-        </div>
-      </div>
     </aside>
 
     <!-- Main Content Area -->
