@@ -3,6 +3,13 @@ const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 
+// Force Electron to use "ShareCLIP" as product name and AppData folder
+try {
+  app.setName('ShareCLIP');
+  const customUserData = path.join(app.getPath('appData'), 'ShareCLIP');
+  app.setPath('userData', customUserData);
+} catch (e) {}
+
 // -------------------------------------------------------------------------------
 // 📄 Local Persistent File Logger & Exception Protection
 // Writes all console outputs, connection events, and uncaught crash tracebacks

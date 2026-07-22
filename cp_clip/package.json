@@ -1,5 +1,5 @@
 {
-    "name":  "image-clip-classifier",
+    "name":  "shareclip",
     "private":  true,
     "version":  "1.2.45",
     "description":  "ShareCLIP PC Client",
