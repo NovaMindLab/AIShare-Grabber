@@ -33,7 +33,17 @@ parentPort.on('message', async (msg) => {
           intraOpNumThreads: 1,
           interOpNumThreads: 1
         };
-        ortSession = await ort.InferenceSession.create(physicalModelPath, sessionOptions);
+        try {
+          ortSession = await ort.InferenceSession.create(physicalModelPath, sessionOptions);
+        } catch (dmlErr) {
+          console.warn("[Inference Worker] DirectML GPU provider failed (" + dmlErr.message + "). Falling back to CPU provider for Image Encoder...");
+          ortSession = await ort.InferenceSession.create(physicalModelPath, {
+            executionProviders: ['cpu'],
+            executionMode: 'sequential',
+            intraOpNumThreads: 1,
+            interOpNumThreads: 1
+          });
+        }
         console.log("[Inference Worker] MobileCLIP Image Encoder ONNX model loaded successfully.");
         parentPort.postMessage({ type: 'init_result', success: true });
       } catch (err) {

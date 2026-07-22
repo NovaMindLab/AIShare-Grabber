@@ -259,9 +259,16 @@ async function initializeAI() {
   if (ort && fs.existsSync(physicalTextModelPath)) {
     try {
       console.log("[AI Init] Loading MobileCLIP Text Encoder ONNX model from:", physicalTextModelPath);
-      textEncoderSession = await ort.InferenceSession.create(physicalTextModelPath, {
-        executionProviders: ['dml', 'cpu']
-      });
+      try {
+        textEncoderSession = await ort.InferenceSession.create(physicalTextModelPath, {
+          executionProviders: ['dml', 'cpu']
+        });
+      } catch (dmlErr) {
+        console.warn("[AI Init] DirectML GPU provider failed (" + dmlErr.message + "). Falling back to CPU provider for Text Encoder...");
+        textEncoderSession = await ort.InferenceSession.create(physicalTextModelPath, {
+          executionProviders: ['cpu']
+        });
+      }
       console.log("[AI Init] MobileCLIP Text Encoder ONNX model loaded successfully.");
     } catch (err) {
       console.error("[AI Init] Failed to initialize Text Encoder ONNX model session:", err);
