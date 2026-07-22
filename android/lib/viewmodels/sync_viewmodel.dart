@@ -233,7 +233,6 @@ class SyncViewModel extends ChangeNotifier {
       if (Platform.isAndroid) {
         await Permission.location.request();
         await Permission.nearbyWifiDevices.request();
-        await Permission.changeWifiState.request();
       }
 
       bool connected = false;
