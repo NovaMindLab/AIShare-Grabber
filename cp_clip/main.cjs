@@ -708,6 +708,12 @@ async function processAiQueue() {
         }
 
         if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
+          mainWindow.webContents.send('single-photo-predictions-updated', {
+            id: task.filename,
+            path: task.targetPath,
+            name: task.filename,
+            predictions
+          });
           mainWindow.webContents.send('photo-synced', {
             isThumbnail: task.isThumbnail,
             path: task.targetPath,

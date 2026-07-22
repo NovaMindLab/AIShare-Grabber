@@ -3515,14 +3515,18 @@ onMounted(() => {
       });
     }
 
-    // Live single photo prediction update listener during reclassify
+    // Live single photo prediction update listener during reclassify & background AI queue
     if (window.api.onSinglePhotoPredictionsUpdated) {
       window.api.onSinglePhotoPredictionsUpdated((data) => {
-        if (data && data.id) {
-          const found = images.value.find(i => i.id === data.id);
-          if (found) {
-            found.predictions = data.predictions || [];
-            found.status = 'completed';
+        if (data) {
+          const idx = images.value.findIndex(i => (data.id && i.id == data.id) || (data.path && i.path === data.path) || (data.name && i.name === data.name));
+          if (idx !== -1) {
+            const updated = {
+              ...images.value[idx],
+              predictions: data.predictions || [],
+              status: 'completed'
+            };
+            images.value.splice(idx, 1, updated);
           }
         }
       });
@@ -3714,12 +3718,17 @@ onMounted(() => {
             thumbnailImages.value[idx].latitude = imageInfo.latitude;
             thumbnailImages.value[idx].longitude = imageInfo.longitude;
           }
-          // Also update predictions in images.value if found
-          const imgIdx = images.value.findIndex(img => img.name === imageInfo.name);
+          // Also update predictions in images.value if found with reactive splice
+          const imgIdx = images.value.findIndex(img => img.name === imageInfo.name || img.path === imageInfo.path);
           if (imgIdx !== -1) {
-            images.value[imgIdx].predictions = imageInfo.predictions;
-            images.value[imgIdx].latitude = imageInfo.latitude;
-            images.value[imgIdx].longitude = imageInfo.longitude;
+            const updated = {
+              ...images.value[imgIdx],
+              predictions: imageInfo.predictions || [],
+              status: 'completed',
+              latitude: imageInfo.latitude,
+              longitude: imageInfo.longitude
+            };
+            images.value.splice(imgIdx, 1, updated);
           }
         }
         // Always increment counter regardless of whether thumbnail was new or already existed
@@ -4069,22 +4078,15 @@ const progressPercentage = computed(() => {
 // Category counts based on Top-1 predictions
 const categoryCounts = computed(() => {
   const counts = {};
-  const groups = {};
   localImages.value.forEach(img => {
-    if (img.status === 'completed' && img.predictions.length > 0) {
-      const topCat = img.predictions[0].category;
-      if (!groups[topCat]) groups[topCat] = [];
-      groups[topCat].push(img);
+    if (img.predictions && Array.isArray(img.predictions) && img.predictions.length > 0) {
+      const topPred = img.predictions[0];
+      const catName = topPred.category || topPred.label || topPred.name;
+      if (catName && !catName.includes('⚠️') && !catName.includes('💻') && !catName.includes('❌')) {
+        counts[catName] = (counts[catName] || 0) + 1;
+      }
     }
   });
-
-  for (const cat in groups) {
-    const group = groups[cat];
-    let count = group.filter(img => img.predictions[0].score >= 0.40).length;
-    if (count > 0) {
-      counts[cat] = count;
-    }
-  }
   return counts;
 });
 
@@ -4094,14 +4096,14 @@ const filteredImages = computed(() => {
   if (selectedCategory.value === null) {
     list = [...localImages.value];
   } else {
-    const categoryGroup = localImages.value.filter(img => 
-      img.status === 'completed' && 
-      img.predictions.length > 0 && 
-      img.predictions[0].category === selectedCategory.value
-    );
-    categoryGroup.sort((a, b) => b.predictions[0].score - a.predictions[0].score);
-    
-    list = categoryGroup.filter(img => img.predictions[0].score >= 0.40);
+    const categoryGroup = localImages.value.filter(img => {
+      if (!img.predictions || img.predictions.length === 0) return false;
+      const topPred = img.predictions[0];
+      const catName = topPred.category || topPred.label || topPred.name;
+      return catName === selectedCategory.value;
+    });
+    categoryGroup.sort((a, b) => (b.predictions[0].score || 0) - (a.predictions[0].score || 0));
+    list = categoryGroup;
   }
 
   // If search is active, apply search filtering and sorting
