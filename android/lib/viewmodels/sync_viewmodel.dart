@@ -236,20 +236,34 @@ class SyncViewModel extends ChangeNotifier {
       }
 
       bool connected = false;
-      // Auto retry 3 times in background without popping error dialogs
+      const platform = MethodChannel('com.shareclip/system_info');
+
+      // 1. Try native silent connection (never launches Settings intent or exits app)
       for (int i = 0; i < 3; i++) {
-        logMessage("自动连入热点 ${payload.hotspotSsid} (第 ${i + 1} 次尝试)...");
+        logMessage("自动无感连入热点 ${payload.hotspotSsid} (第 ${i + 1} 次尝试)...");
+        try {
+          final bool? res = await platform.invokeMethod<bool>('connectWifiSilent', {
+            'ssid': payload.hotspotSsid,
+            'password': payload.hotspotPassword,
+          });
+          if (res == true) {
+            connected = true;
+            break;
+          }
+        } catch (err) {
+          logMessage("Silent Wi-Fi Attempt ${i + 1} error: $err");
+        }
+
+        // 2. Fallback attempt without joining System Intent
         try {
           connected = await WiFiForIoTPlugin.connect(
             payload.hotspotSsid!,
             password: payload.hotspotPassword,
             security: NetworkSecurity.WPA,
             withInternet: false,
-            joinOnce: false,
           );
-        } catch (err) {
-          logMessage("Wi-Fi Attempt ${i + 1} error: $err");
-        }
+        } catch (_) {}
+
         if (connected) break;
         await Future.delayed(const Duration(milliseconds: 1200));
       }
