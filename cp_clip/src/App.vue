@@ -1453,8 +1453,16 @@
                     </div>
 
                     <!-- Download progress bar -->
-                    <div class="update-download-progress" v-if="updateDownloading">
-                      <div class="progress-label">正在下载更新 {{ updateDownloadProgress }}%...</div>
+                    <div class="update-download-progress" v-if="updateDownloading" style="margin-top: 10px; width: 100%;">
+                      <div class="progress-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px;">
+                        <span v-if="updateType === 'differential'" style="color: #c084fc; font-weight: 600;">
+                          ⚡ 正在下载差分增量补丁包 (已下载 {{ updateTransferredMB }} MB / {{ updateTotalMB }} MB)
+                        </span>
+                        <span v-else style="color: #38bdf8; font-weight: 600;">
+                          📦 正在下载全量安装包 (已下载 {{ updateTransferredMB }} MB / {{ updateTotalMB }} MB)
+                        </span>
+                        <span style="font-weight: 700; color: var(--text-primary);">{{ updateDownloadProgress }}%</span>
+                      </div>
                       <div class="progress-track">
                         <div class="progress-fill" :style="{ width: updateDownloadProgress + '%' }"></div>
                       </div>
@@ -1529,15 +1537,27 @@
         </div>
         <div class="update-modal-body">
           <p class="update-ver-title">最新版本: <strong class="ver-tag">v{{ latestVersion }}</strong> （当前版本: v{{ currentVersion || '1.2.0' }}）</p>
+
+          <!-- Explicit Differential Upgrade Notice -->
+          <div style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.25); padding: 12px; border-radius: 10px; margin: 12px 0; display: flex; align-items: flex-start; gap: 10px; text-align: left;">
+            <span style="font-size: 20px;">⚡</span>
+            <div style="display: flex; flex-direction: column;">
+              <span style="font-size: 13px; font-weight: 700; color: #c084fc;">升级方式：智能差分增量升级 (Blockmap Patch)</span>
+              <span style="font-size: 11px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4;">
+                系统将优先通过 Blockmap 比对新旧二进制数据块，<strong>仅下载几 MB 的变动补丁包</strong>（比全量包节省 90%+ 流量）。若差分不匹配将自动降级为全量下载。
+              </span>
+            </div>
+          </div>
+
           <div class="update-notes-box" v-if="updateNotes">
             <div class="notes-header">📝 更新说明：</div>
             <pre class="notes-body">{{ updateNotes }}</pre>
           </div>
-          <p class="update-hint">升级后将获得性能提升、安全改进及最新 AI 引擎能力。点击“立即升级”将自动匹配差分增量下载。</p>
+          <p class="update-hint">点击“确认开始升级”后将进行手动确认并开启后台下载。</p>
         </div>
         <div class="update-modal-footer">
           <button class="dp-btn" @click="showUpdateConfirmModal = false">暂不升级</button>
-          <button class="dp-btn dp-open" @click="confirmAndStartUpdate">🚀 立即升级</button>
+          <button class="dp-btn dp-open" @click="confirmAndStartUpdate">🚀 确认开始升级</button>
         </div>
       </div>
     </div>
