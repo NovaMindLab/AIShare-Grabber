@@ -2568,6 +2568,48 @@ const isAlbumSyncPaused = ref(false);
 const albumSyncDone = ref(0);
 const albumSyncTotal = ref(0);
 
+function sendSafeDataChannelPacket(channel, packetType, payloadObj) {
+  if (!channel || channel.readyState !== 'open') return;
+  const jsonStr = JSON.stringify(payloadObj);
+  const encoder = new TextEncoder();
+  const payloadBytes = encoder.encode(jsonStr);
+  
+  const CHUNK_SIZE = 16384; // 16 KB chunks to safely fit under WebRTC DataChannel MTU
+  const totalLength = payloadBytes.byteLength;
+
+  if (totalLength <= CHUNK_SIZE) {
+    const buffer = new ArrayBuffer(16 + totalLength);
+    const view = new DataView(buffer);
+    view.setInt32(0, packetType, false);
+    view.setInt32(4, 0, false);
+    view.setInt32(8, 0, false);
+    view.setInt32(12, totalLength, false);
+    new Uint8Array(buffer, 16).set(payloadBytes);
+    channel.send(buffer);
+  } else {
+    let offset = 0;
+    let chunkIndex = 0;
+    const totalChunks = Math.ceil(totalLength / CHUNK_SIZE);
+    
+    while (offset < totalLength) {
+      const end = Math.min(offset + CHUNK_SIZE, totalLength);
+      const chunkBytes = payloadBytes.subarray(offset, end);
+      
+      const buffer = new ArrayBuffer(16 + chunkBytes.byteLength);
+      const view = new DataView(buffer);
+      view.setInt32(0, -5, false);         // -5 = Chunked Packet
+      view.setInt32(4, packetType, false); // Real Packet Type = -4
+      view.setInt32(8, chunkIndex, false);
+      view.setInt32(12, totalChunks, false);
+      new Uint8Array(buffer, 16).set(chunkBytes);
+      
+      channel.send(buffer);
+      offset = end;
+      chunkIndex++;
+    }
+  }
+}
+
 async function reSyncAlbum() {
   if (!dataChannel || dataChannel.readyState !== 'open') {
     logSyncEvent('❌ WebRTC 直连通道未建立，无法发送相册重新同步请求');
@@ -2606,22 +2648,11 @@ async function reSyncAlbum() {
       // Send updated synced IDs to phone via a handshake response update (-4)
       const nonThumbSyncedIds = syncInfo.resources.filter(r => r.type !== 'thumbnail').map(r => r.id);
       const thumbSyncedIds = syncInfo.resources.filter(r => r.type === 'thumbnail').map(r => r.id);
-      const responseStr = JSON.stringify({ 
+      sendSafeDataChannelPacket(dataChannel, -4, { 
         synced_ids: nonThumbSyncedIds, 
         synced_thumbnail_ids: thumbSyncedIds,
         last_album_sync_date: syncInfo.lastAlbumSyncDate || '' 
       });
-      
-      const encoder = new TextEncoder();
-      const responseBytes = encoder.encode(responseStr);
-      const responseBuffer = new ArrayBuffer(16 + responseBytes.byteLength);
-      const responseView = new DataView(responseBuffer);
-      responseView.setInt32(0, -4, false); // Update type = -4
-      responseView.setInt32(4, 0, false);
-      responseView.setInt32(8, 0, false);
-      responseView.setInt32(12, responseBytes.byteLength, false);
-      new Uint8Array(responseBuffer, 16).set(responseBytes);
-      dataChannel.send(responseBuffer);
       
     } catch (e) {
       logSyncEvent(`⚠️ 检查文件完整性失败: ${e.message}`);
@@ -3090,25 +3121,11 @@ function setupDataChannel(channel) {
           
           const nonThumbSyncedIds = syncInfo.resources.filter(r => r.type !== 'thumbnail').map(r => r.id);
           const thumbSyncedIds = syncInfo.resources.filter(r => r.type === 'thumbnail').map(r => r.id);
-          const responseStr = JSON.stringify({ 
+          sendSafeDataChannelPacket(channel, -4, { 
             synced_ids: nonThumbSyncedIds, 
             synced_thumbnail_ids: thumbSyncedIds,
             last_album_sync_date: syncInfo.lastAlbumSyncDate || '' 
           });
-          const encoder = new TextEncoder();
-          const responseBytes = encoder.encode(responseStr);
-          
-          const responseBuffer = new ArrayBuffer(16 + responseBytes.byteLength);
-          const responseView = new DataView(responseBuffer);
-          responseView.setInt32(0, -4, false); // Response type = -4
-          responseView.setInt32(4, 0, false);
-          responseView.setInt32(8, 0, false);
-          responseView.setInt32(12, responseBytes.byteLength, false);
-          
-          new Uint8Array(responseBuffer, 16).set(responseBytes);
-          if (channel.readyState === 'open') {
-            channel.send(responseBuffer);
-          }
         });
       }
       return;

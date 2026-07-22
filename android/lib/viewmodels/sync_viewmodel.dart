@@ -69,6 +69,7 @@ class SyncViewModel extends ChangeNotifier {
   Map<String, dynamic>? systemInfo;
   final Set<String> pcSyncedIds = {};
   final Set<String> pcSyncedThumbnailIds = {};
+  final List<Uint8List> _chunkedBufferList = [];
 
   bool isThumbnailSyncing = false;
   int thumbnailSyncTotal = 0;
@@ -366,6 +367,49 @@ class SyncViewModel extends ChangeNotifier {
           if (fileId == -2) {
             // Pong received
             _lastHeartbeatReceived = DateTime.now();
+            return;
+          }
+
+          if (fileId == -5) {
+            // Chunked Handshake Packet Receiver
+            final realPacketType = byteData.getInt32(4, Endian.big);
+            final chunkIndex = byteData.getInt32(8, Endian.big);
+            final totalChunks = byteData.getInt32(12, Endian.big);
+            final chunkData = binaryData.sublist(16);
+
+            _chunkedBufferList.add(chunkData);
+
+            if (chunkIndex == totalChunks - 1) {
+              final totalBytesCount = _chunkedBufferList.fold<int>(0, (sum, list) => sum + list.length);
+              final fullBytes = Uint8List(totalBytesCount);
+              int currOffset = 0;
+              for (var chunk in _chunkedBufferList) {
+                fullBytes.setAll(currOffset, chunk);
+                currOffset += chunk.length;
+              }
+              _chunkedBufferList.clear();
+
+              if (realPacketType == -4) {
+                final payloadStr = utf8.decode(fullBytes);
+                final Map<String, dynamic> data = jsonDecode(payloadStr);
+                final List<dynamic> syncedList = data['synced_ids'] ?? [];
+
+                pcSyncedIds.clear();
+                for (var id in syncedList) {
+                  pcSyncedIds.add(id.toString());
+                }
+
+                final List<dynamic> syncedThumbsList = data['synced_thumbnail_ids'] ?? [];
+                pcSyncedThumbnailIds.clear();
+                for (var id in syncedThumbsList) {
+                  pcSyncedThumbnailIds.add(id.toString());
+                }
+
+                lastAlbumSyncDate = data['last_album_sync_date'] ?? '';
+                logMessage("Handshake response received! PC has ${pcSyncedIds.length} files, ${pcSyncedThumbnailIds.length} thumbnails.");
+                notifyListeners();
+              }
+            }
             return;
           }
 

@@ -1338,6 +1338,8 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
               console.error(`[Database] Failed to load embedding from DB for ${row.path}:`, loadErr);
             }
           }
+          // Delete heavy 2KB BLOB buffer from object to prevent V8 Heap OOM memory crash over IPC
+          delete row.embedding;
         }
 
         // Find the most recent create_date among album_photo records for breakpoint resume
