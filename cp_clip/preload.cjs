@@ -112,6 +112,10 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.removeAllListeners('update-download-progress');
     ipcRenderer.on('update-download-progress', (event, progress) => callback(progress));
   },
+  onAiQueueProgress: (callback) => {
+    ipcRenderer.removeAllListeners('ai-queue-progress');
+    ipcRenderer.on('ai-queue-progress', (event, data) => callback(data));
+  },
 
   // YT-DLP Downloader
   getYtVideoInfo: (url) => ipcRenderer.invoke('yt-get-info', url),

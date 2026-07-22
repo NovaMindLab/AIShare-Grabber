@@ -648,9 +648,28 @@ async function classifyPhotoInternal(imagePath) {
 const aiClassificationQueue = [];
 let isProcessingAiQueue = false;
 let lastNetworkTransferTime = 0;
+let aiTotalBatchTasks = 0;
+let aiCompletedBatchTasks = 0;
+
+function sendAiQueueProgress() {
+  if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
+    mainWindow.webContents.send('ai-queue-progress', {
+      isProcessing: isProcessingAiQueue || aiClassificationQueue.length > 0,
+      total: aiTotalBatchTasks,
+      completed: aiCompletedBatchTasks,
+      remaining: aiClassificationQueue.length
+    });
+  }
+}
 
 function enqueueAiClassification(item) {
+  if (aiClassificationQueue.length === 0 && !isProcessingAiQueue) {
+    aiTotalBatchTasks = 0;
+    aiCompletedBatchTasks = 0;
+  }
+  aiTotalBatchTasks++;
   aiClassificationQueue.push(item);
+  sendAiQueueProgress();
   processAiQueue();
 }
 
@@ -688,7 +707,7 @@ async function processAiQueue() {
           );
         }
 
-        if (mainWindow) {
+        if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
           mainWindow.webContents.send('photo-synced', {
             isThumbnail: task.isThumbnail,
             path: task.targetPath,
@@ -704,11 +723,15 @@ async function processAiQueue() {
       console.error(`[AI Queue] Error processing ${task.targetPath}:`, err.message);
     }
 
+    aiCompletedBatchTasks++;
+    sendAiQueueProgress();
+
     // Yield 50ms to Node event loop so WebRTC data channel packets & heartbeats process smoothly
     await new Promise(resolve => setTimeout(resolve, 50));
   }
 
   isProcessingAiQueue = false;
+  sendAiQueueProgress();
 }
 
 ipcMain.handle('classify-photo', async (event, imagePath) => {

@@ -142,6 +142,19 @@ Rather than forcing silent background downloads, ShareCLIP prompts users with an
 
 ---
 
+## 8. 🧠 Real-Time Decoupled AI Queue Progress Reporting
+
+### Background & Need
+After decoupling WebRTC file reception from MobileCLIP ONNX inference to keep transfer latency near 0 ms, images are appended to the gallery grid immediately while classification tasks queue in the background. To provide full visibility into background AI feature extraction:
+- `main.cjs` tracks `aiTotalBatchTasks`, `aiCompletedBatchTasks`, and `remaining` count.
+- Broadcasts `ai-queue-progress` events across IPC to `mainWindow`.
+
+### UI Progress Banner
+Rendered in the PC top header navigation:
+- **`🧠 AI 照片特征识别中: 145 / 1024 (剩余 879 张)`** along with an animated pulse icon and a real-time progress bar fill.
+
+---
+
 ## 📋 Comprehensive v1.2 Changelog Summary
 
 | Version | Date | Key Features & Stability Fixes |

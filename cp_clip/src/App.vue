@@ -203,12 +203,16 @@
           </div>
         </div>
 
-        <!-- Global Progress Bar -->
-        <div class="global-progress" v-if="isProcessing" style="margin-left: 24px;">
-          <div class="progress-bar-container">
-            <div class="progress-bar-fill" :style="{ width: progressPercentage + '%' }"></div>
+        <!-- Live Decoupled AI Queue Progress Banner -->
+        <div class="ai-queue-status-banner" v-if="aiQueueProgress.isProcessing">
+          <div class="ai-queue-info">
+            <span class="ai-pulse-icon">🧠</span>
+            <span class="ai-queue-title">AI 照片特征识别中</span>
+            <span class="ai-queue-counts">{{ aiQueueProgress.completed }} / {{ aiQueueProgress.total }} (剩余 {{ aiQueueProgress.remaining }} 张)</span>
           </div>
-          <span class="progress-text">{{ processedCount }} / {{ totalCount }} 已识别</span>
+          <div class="ai-queue-bar-track">
+            <div class="ai-queue-bar-fill" :style="{ width: aiQueueProgress.percent + '%' }"></div>
+          </div>
         </div>
 
         <div style="display: flex; align-items: center; gap: 16px;">
@@ -2039,6 +2043,15 @@ const thumbSyncDone = ref(0);
 const thumbSyncTotal = ref(0);
 const isDarkMode = ref(localStorage.getItem('theme-dark') !== 'false');
 
+// Decoupled Background AI Queue Progress
+const aiQueueProgress = ref({
+  isProcessing: false,
+  total: 0,
+  completed: 0,
+  remaining: 0,
+  percent: 0
+});
+
 watch(isDarkMode, (newVal) => {
   localStorage.setItem('theme-dark', newVal ? 'true' : 'false');
 });
@@ -3448,6 +3461,22 @@ onMounted(() => {
     window.api.onYtProgress((data) => {
       ytProgress.value = data;
     });
+
+    // Decoupled background AI queue progress listener
+    if (window.api.onAiQueueProgress) {
+      window.api.onAiQueueProgress((data) => {
+        const total = data.total || 0;
+        const completed = data.completed || 0;
+        const percent = total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0;
+        aiQueueProgress.value = {
+          isProcessing: data.isProcessing && data.remaining > 0,
+          total,
+          completed,
+          remaining: data.remaining || 0,
+          percent
+        };
+      });
+    }
 
     // 1. Offer SDP received from mobile client
     window.api.onOfferReceived(async (offerSdp) => {
