@@ -218,28 +218,59 @@ class SyncViewModel extends ChangeNotifier {
   }
 
   Future<void> _triggerHotspotFallback(QrPayload payload) async {
-    logMessage("Connecting to Wi-Fi: ${payload.hotspotSsid}");
+    if (payload.hotspotSsid == null || payload.hotspotSsid!.isEmpty) {
+      errorMsg = "无可用电脑热点信息";
+      appState = AppState.failed;
+      notifyListeners();
+      return;
+    }
+
+    logMessage("BLE未建立，正在自动连入电脑热点: ${payload.hotspotSsid}");
+    appState = AppState.connectingWebRtc;
+    notifyListeners();
+
     try {
       if (Platform.isAndroid) {
         await Permission.location.request();
         await Permission.nearbyWifiDevices.request();
+        await Permission.changeWifiState.request();
       }
-      final connected = await WiFiForIoTPlugin.connect(
-        payload.hotspotSsid!,
-        password: payload.hotspotPassword,
-        security: NetworkSecurity.WPA,
-        withInternet: false,
-      );
+
+      bool connected = false;
+      // Auto retry 3 times in background without popping error dialogs
+      for (int i = 0; i < 3; i++) {
+        logMessage("自动连入热点 ${payload.hotspotSsid} (第 ${i + 1} 次尝试)...");
+        try {
+          connected = await WiFiForIoTPlugin.connect(
+            payload.hotspotSsid!,
+            password: payload.hotspotPassword,
+            security: NetworkSecurity.WPA,
+            withInternet: false,
+            joinOnce: false,
+          );
+        } catch (err) {
+          logMessage("Wi-Fi Attempt ${i + 1} error: $err");
+        }
+        if (connected) break;
+        await Future.delayed(const Duration(milliseconds: 1200));
+      }
+
       if (connected) {
-        logMessage("Wi-Fi Connected! Starting UDP signaling...");
+        logMessage("🎉 热点自动连接成功！绑定网络流量接口...");
+        try {
+          await WiFiForIoTPlugin.forceWifiUsage(true);
+        } catch (_) {}
+
+        logMessage("启动热点 UDP 直连信令...");
         _initializeWebRtc(isUdpFallback: true);
       } else {
-        errorMsg = "Wi-Fi Hotspot connection failed.";
+        logMessage("⚠️ 自动连接热点超时，请检查热点或手动连接。");
+        errorMsg = "自动连接电脑热点 (${payload.hotspotSsid}) 失败，请检查热点密码或尝试手动连接 Wi-Fi";
         appState = AppState.failed;
         notifyListeners();
       }
     } catch (e) {
-      errorMsg = "Wi-Fi error: $e";
+      errorMsg = "Wi-Fi 错误: $e";
       appState = AppState.failed;
       notifyListeners();
     }
