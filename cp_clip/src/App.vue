@@ -2939,8 +2939,8 @@ function setupDataChannel(channel) {
     lastHeartbeatTime = Date.now();
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     heartbeatTimer = setInterval(() => {
-      // Increase timeout limit to 30 seconds to prevent aggressive disconnects during heavy I/O
-      if (Date.now() - lastHeartbeatTime > 30000) {
+      // Increase timeout limit to 60 seconds to prevent aggressive disconnects during heavy AI / I/O tasks
+      if (Date.now() - lastHeartbeatTime > 60000) {
         logSyncEvent("⚠️ 心跳超时：手机端已离线");
         cleanupWebRtc();
         if (isSyncActive.value) {
@@ -2951,6 +2951,15 @@ function setupDataChannel(channel) {
             }
           });
         }
+      } else if (Date.now() - lastHeartbeatTime > 6000 && channel && channel.readyState === 'open') {
+        // Send a ping from PC to phone if no packets received for 6 seconds
+        const pingHeader = new ArrayBuffer(16);
+        const view = new DataView(pingHeader);
+        view.setInt32(0, -1, false);
+        view.setInt32(4, 0, false);
+        view.setInt32(8, 0, false);
+        view.setInt32(12, 0, false);
+        channel.send(pingHeader);
       }
     }, 3000);
   };

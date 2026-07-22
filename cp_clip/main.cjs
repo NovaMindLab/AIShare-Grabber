@@ -166,7 +166,9 @@ async function initializeAI() {
   if (ort && fs.existsSync(physicalTextModelPath)) {
     try {
       console.log("[AI Init] Loading MobileCLIP Text Encoder ONNX model from:", physicalTextModelPath);
-      textEncoderSession = await ort.InferenceSession.create(physicalTextModelPath);
+      textEncoderSession = await ort.InferenceSession.create(physicalTextModelPath, {
+        executionProviders: ['dml', 'cpu']
+      });
       console.log("[AI Init] MobileCLIP Text Encoder ONNX model loaded successfully.");
     } catch (err) {
       console.error("[AI Init] Failed to initialize Text Encoder ONNX model session:", err);
@@ -529,12 +531,76 @@ async function classifyPhotoInternal(imagePath) {
     return results.slice(0, 3);
 
   } catch (error) {
-    console.error(`Error classifying photo ${imagePath}:`, error);
+    console.error("Error classifying photo:", error);
+    const isHardware = error.message && error.message.includes("Text embeddings not loaded");
+    const title = isHardware ? "💻 电脑配置过低 (不支持AI加速或内存不足)" : "❌ 分类出错";
     return [
-      { category: "❌ Error during classification", score: 1.0 },
+      { category: title, score: 1.0 },
       { category: error.message || "Unknown error", score: 0.0 }
     ];
   }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 🧠 BACKGROUND AI CLASSIFICATION QUEUE
+// Decouples ONNX inference from WebRTC file reception to prevent event loop lag & heartbeat drops
+// ─────────────────────────────────────────────────────────────────
+const aiClassificationQueue = [];
+let isProcessingAiQueue = false;
+
+function enqueueAiClassification(item) {
+  aiClassificationQueue.push(item);
+  processAiQueue();
+}
+
+async function processAiQueue() {
+  if (isProcessingAiQueue) return;
+  isProcessingAiQueue = true;
+
+  while (aiClassificationQueue.length > 0) {
+    const task = aiClassificationQueue.shift();
+    try {
+      if (fs.existsSync(task.targetPath)) {
+        const predictions = await classifyPhotoInternal(task.targetPath);
+        const predictionsStr = JSON.stringify(predictions);
+
+        let embeddingBuffer = null;
+        const emb = imageEmbeddingsCache[task.targetPath];
+        if (emb) {
+          embeddingBuffer = Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength);
+        }
+
+        if (activeDeviceUuid && activeDeviceDb) {
+          activeDeviceDb.run(
+            `UPDATE resources SET predictions = ?, embedding = ? WHERE path = ?`,
+            [predictionsStr, embeddingBuffer, task.targetPath],
+            (err) => {
+              if (err) console.error(`[AI Queue DB] Error updating ${task.filename}:`, err);
+            }
+          );
+        }
+
+        if (mainWindow) {
+          mainWindow.webContents.send('photo-synced', {
+            isThumbnail: task.isThumbnail,
+            path: task.targetPath,
+            name: task.filename,
+            src: `local:///${task.targetPath.replace(/\\/g, '/')}`,
+            predictions,
+            latitude: task.latitude,
+            longitude: task.longitude
+          });
+        }
+      }
+    } catch (err) {
+      console.error(`[AI Queue] Error processing ${task.targetPath}:`, err.message);
+    }
+
+    // Yield to Node event loop so WebRTC data channel packets & heartbeats process instantly
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+
+  isProcessingAiQueue = false;
 }
 
 ipcMain.handle('classify-photo', async (event, imagePath) => {
@@ -613,6 +679,9 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
     } catch (err) {
       console.error(`[AI Reclassify] Failed for ${row.name}:`, err);
     }
+
+    // Pause 20ms between photos to keep event loop free for heartbeats and WebRTC transfers
+    await new Promise(resolve => setTimeout(resolve, 20));
   }
 
   // Final progress notification
@@ -1661,20 +1730,9 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
   fs.writeFileSync(targetPath, fullBuffer);
   console.log(`[Sync] Saved reassembled file to ${targetPath}`);
   
-  // Auto classify only if it is an image or thumbnail (not album originals to keep it fast)
-  let predictions = [];
-  if ((type === 'images' || isThumbnail) && !isAlbumPhoto) {
-    try {
-      predictions = await classifyPhotoInternal(targetPath);
-    } catch (err) {
-      console.error(`Auto classification failed for ${targetPath}:`, err);
-    }
-  }
-  
   // Register record in SQLite database if device is connected
   if (activeDeviceUuid && activeDeviceDb) {
     const size = fullBuffer.length;
-    const predictionsStr = JSON.stringify(predictions);
     const syncTime = Date.now();
     const createDate = metadata && metadata.create_date ? metadata.create_date : null;
     
@@ -1694,7 +1752,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
       targetPath, 
       isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type), 
       size, 
-      predictionsStr, 
+      '[]', 
       syncTime, 
       embeddingBuffer,
       metadata && metadata.latitude !== undefined ? metadata.latitude : null,
@@ -1709,19 +1767,30 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     });
   }
   
-  // Notify renderer that a new file is synced!
+  // Notify renderer immediately that file is saved on disk so UI updates instantly
   if (mainWindow) {
     mainWindow.webContents.send('photo-synced', {
       isThumbnail,
       path: targetPath,
       name: filename,
       src: `local:///${targetPath.replace(/\\/g, '/')}`,
-      predictions,
+      predictions: [],
       latitude: metadata && metadata.latitude !== undefined ? metadata.latitude : null,
       longitude: metadata && metadata.longitude !== undefined ? metadata.longitude : null
     });
   }
   
+  // Enqueue image for background AI classification to keep WebRTC DataChannel latency & heartbeats smooth
+  if ((type === 'images' || isThumbnail) && !isAlbumPhoto) {
+    enqueueAiClassification({
+      targetPath,
+      filename,
+      isThumbnail,
+      latitude: metadata && metadata.latitude !== undefined ? metadata.latitude : null,
+      longitude: metadata && metadata.longitude !== undefined ? metadata.longitude : null
+    });
+  }
+
   scheduleBackgroundClustering();
   
   return true;

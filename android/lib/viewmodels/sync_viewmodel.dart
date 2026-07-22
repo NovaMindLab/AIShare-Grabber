@@ -13,6 +13,8 @@ import '../models/qr_payload.dart';
 import '../services/ble_signaling_client.dart';
 import '../services/webrtc_sync_engine.dart';
 import '../services/photo_streamer.dart';
+import 'package:wifi_iot/wifi_iot.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 enum AppState {
   idle,
@@ -37,6 +39,8 @@ enum TransferStatus {
 }
 
 class SyncViewModel extends ChangeNotifier {
+  QrPayload? _lastScannedPayload;
+  RawDatagramSocket? _udpSocket;
   // Core Engines
   late final BleSignalingClient _bleClient;
   WebRtcSyncEngine? _syncEngine;
@@ -149,6 +153,14 @@ class SyncViewModel extends ChangeNotifier {
 
   // Phase 1 scanned trigger
   void connectToTarget(QrPayload payload) {
+    _lastScannedPayload = payload;
+    
+    if (payload.bleMac.isEmpty && payload.hotspotSsid != null) {
+      logMessage("QR Code indicates no BLE support. Triggering Wi-Fi Hotspot mode directly...");
+      _triggerHotspotFallback(payload);
+      return;
+    }
+
     logMessage("QR Code parsed. Scanning BLE target: ${payload.bleMac}");
     appState = AppState.connectingBle;
     notifyListeners();
@@ -192,14 +204,98 @@ class SyncViewModel extends ChangeNotifier {
         _initializeWebRtc();
         break;
       case BleState.failed:
-        errorMsg = _bleClient.errorNotifier.value;
-        appState = AppState.failed;
-        notifyListeners();
+        if (_lastScannedPayload?.hotspotSsid != null) {
+          logMessage("BLE Failed. Triggering Wi-Fi Hotspot Fallback...");
+          _triggerHotspotFallback(_lastScannedPayload!);
+        } else {
+          errorMsg = _bleClient.errorNotifier.value;
+          appState = AppState.failed;
+          notifyListeners();
+        }
         break;
     }
   }
 
-  void _initializeWebRtc() async {
+  Future<void> _triggerHotspotFallback(QrPayload payload) async {
+    logMessage("Connecting to Wi-Fi: ${payload.hotspotSsid}");
+    try {
+      if (Platform.isAndroid) {
+        await Permission.location.request();
+        await Permission.nearbyWifiDevices.request();
+      }
+      final connected = await WiFiForIoTPlugin.connect(
+        payload.hotspotSsid!,
+        password: payload.hotspotPassword,
+        security: NetworkSecurity.WPA,
+        withInternet: false,
+      );
+      if (connected) {
+        logMessage("Wi-Fi Connected! Starting UDP signaling...");
+        _initializeWebRtc(isUdpFallback: true);
+      } else {
+        errorMsg = "Wi-Fi Hotspot connection failed.";
+        appState = AppState.failed;
+        notifyListeners();
+      }
+    } catch (e) {
+      errorMsg = "Wi-Fi error: $e";
+      appState = AppState.failed;
+      notifyListeners();
+    }
+  }
+
+  void _startUdpListener() async {
+    try {
+      _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+      _udpSocket!.listen((RawSocketEvent event) {
+        if (event == RawSocketEvent.read) {
+          Datagram? dg = _udpSocket!.receive();
+          if (dg != null) {
+            try {
+              final msg = utf8.decode(dg.data);
+              final data = json.decode(msg);
+              if (data['type'] == 'ShareCLIP_Direct_Sdp' && data['sdpType'] == 'answer') {
+                logMessage("Received UDP Answer SDP");
+                _handleRemoteAnswer(data['sdp']);
+              } else if (data['type'] == 'ShareCLIP_Direct_Ice') {
+                 final cand = json.decode(data['candidate']);
+                 _syncEngine?.addRemoteIceCandidate(cand['sdpMid'], cand['sdpMLineIndex'], cand['candidate']);
+              }
+            } catch (_) {}
+          }
+        }
+      });
+    } catch (e) {
+      logMessage("UDP listener error: $e");
+    }
+  }
+
+  void _sendUdp(Map<String, dynamic> payload) {
+     if (_udpSocket == null) return;
+     final bytes = utf8.encode(json.encode(payload));
+     _udpSocket!.send(bytes, InternetAddress("192.168.137.1"), 15185);
+  }
+
+  void _sendUdpSdp(String sdp, String type) {
+    _sendUdp({
+      'type': 'ShareCLIP_Direct_Sdp',
+      'sdp': sdp,
+      'sdpType': type
+    });
+  }
+
+  void _sendUdpIce(RTCIceCandidate candidate) {
+    _sendUdp({
+       'type': 'ShareCLIP_Direct_Ice',
+       'candidate': json.encode({
+          'sdpMid': candidate.sdpMid,
+          'sdpMLineIndex': candidate.sdpMLineIndex,
+          'candidate': candidate.candidate
+       })
+    });
+  }
+
+  void _initializeWebRtc({bool isUdpFallback = false}) async {
     logMessage("GATT signaling connected. Starting local WebRTC...");
     appState = AppState.generatingOffer;
     notifyListeners();
@@ -209,11 +305,15 @@ class SyncViewModel extends ChangeNotifier {
 
     _syncEngine = WebRtcSyncEngine(
       onLocalIceCandidate: (localCandidate) async {
-        await _bleClient.sendIceCandidate(
-          localCandidate.sdpMid!,
-          localCandidate.sdpMLineIndex!,
-          localCandidate.candidate!,
-        );
+        if (isUdpFallback) {
+          _sendUdpIce(localCandidate);
+        } else {
+          await _bleClient.sendIceCandidate(
+            localCandidate.sdpMid!,
+            localCandidate.sdpMLineIndex!,
+            localCandidate.candidate!,
+          );
+        }
       },
       onMessageReceived: (binaryData) async {
         try {
@@ -225,6 +325,18 @@ class SyncViewModel extends ChangeNotifier {
           // Parse 16-byte header
           final byteData = ByteData.sublistView(binaryData, 0, 16);
           final fileId = byteData.getInt32(0, Endian.big);
+
+          if (fileId == -1) {
+            // Ping received from PC
+            _lastHeartbeatReceived = DateTime.now();
+            final pongHeader = ByteData(16);
+            pongHeader.setInt32(0, -2, Endian.big);
+            pongHeader.setInt32(4, 0, Endian.big);
+            pongHeader.setInt32(8, 0, Endian.big);
+            pongHeader.setInt32(12, 0, Endian.big);
+            await _syncEngine?.sendBinary(pongHeader.buffer.asUint8List());
+            return;
+          }
 
           if (fileId == -2) {
             // Pong received
@@ -366,16 +478,24 @@ class SyncViewModel extends ChangeNotifier {
       final offerSdp = await _syncEngine!.createOffer();
 
       appState = AppState.sendingOffer;
-      logMessage("Uploading generated Offer SDP over BLE...");
       notifyListeners();
 
-      final success = await _bleClient.sendSdp(offerSdp);
-      if (success) {
-        appState = AppState.waitingForAnswer;
-        logMessage("Offer SDP transmitted. Awaiting remote Answer SDP...");
-        notifyListeners();
+      if (isUdpFallback) {
+         logMessage("Sending UDP Offer SDP to PC...");
+         _startUdpListener();
+         _sendUdpSdp(offerSdp, 'offer');
+         appState = AppState.waitingForAnswer;
+         notifyListeners();
       } else {
-        throw Exception("Failed to send Offer SDP over BLE characteristics");
+         logMessage("Uploading generated Offer SDP over BLE...");
+         final success = await _bleClient.sendSdp(offerSdp);
+         if (success) {
+           appState = AppState.waitingForAnswer;
+           logMessage("Offer SDP transmitted. Awaiting remote Answer SDP...");
+           notifyListeners();
+         } else {
+           throw Exception("Failed to send Offer SDP over BLE characteristics");
+         }
       }
     } catch (e) {
       logMessage("WebRTC Error: $e");
@@ -443,7 +563,7 @@ class SyncViewModel extends ChangeNotifier {
       }
 
       final diff = DateTime.now().difference(_lastHeartbeatReceived);
-      if (diff.inSeconds >= 45) {
+      if (diff.inSeconds >= 60) {
         logMessage("⚠️ 心跳超时：PC端已离线");
         timer.cancel();
         resetToScanner();
