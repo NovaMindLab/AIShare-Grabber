@@ -2237,8 +2237,13 @@ async function handleReclassifyAllPhotos() {
   reclassifyProgress.value = { done: 0, total: 0, currentName: '' };
   reclassifyStartTime = Date.now();
   reclassifyElapsedTime.value = '0s';
-  reclassifyRemainingTime.value = '计算中...';
   logSyncEvent("🔄 开始对当前手机的所有图片重新做 AI 分析...");
+  
+  // Instantly clear old predictions so left sidebar category counts reset & update live!
+  images.value.forEach(img => {
+    img.predictions = [];
+    img.status = 'processing';
+  });
   
   try {
     const updatedResources = await window.api.reclassifyAllPhonePhotos();
@@ -3475,6 +3480,19 @@ onMounted(() => {
           remaining: data.remaining || 0,
           percent
         };
+      });
+    }
+
+    // Live single photo prediction update listener during reclassify
+    if (window.api.onSinglePhotoPredictionsUpdated) {
+      window.api.onSinglePhotoPredictionsUpdated((data) => {
+        if (data && data.id) {
+          const found = images.value.find(i => i.id === data.id);
+          if (found) {
+            found.predictions = data.predictions || [];
+            found.status = 'completed';
+          }
+        }
       });
     }
 

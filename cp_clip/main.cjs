@@ -1408,6 +1408,11 @@ ipcMain.handle('clear-device-database', async (event) => {
   }
   
   try {
+    // 0. Clear pending AI queue tasks
+    aiClassificationQueue.length = 0;
+    isProcessingAiQueue = false;
+    sendAiQueueProgress();
+
     // 1. Delete all records from resources table
     await new Promise((resolve, reject) => {
       activeDeviceDb.run(`DELETE FROM resources`, (err) => {
