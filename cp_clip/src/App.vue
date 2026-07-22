@@ -33,9 +33,12 @@
     <div class="app-body">
       <!-- Sidebar -->
       <aside class="sidebar">
-      <div class="brand">
+      <div class="brand" style="display: flex; align-items: center; gap: 10px;">
         <span class="brand-icon">📸</span>
-        <h1 class="brand-title">ShareCLIP</h1>
+        <div style="display: flex; flex-direction: column; text-align: left;">
+          <h1 class="brand-title" style="margin: 0; line-height: 1.1;">ShareCLIP</h1>
+          <span style="font-size: 11px; font-weight: 600; color: var(--text-muted); opacity: 0.75; letter-spacing: 0.5px; margin-top: 3px;">v{{ currentVersion || '1.2.50' }}</span>
+        </div>
       </div>
 
       <!-- Main Navigation -->
@@ -162,34 +165,96 @@
     <main class="main-content">
       <!-- Top Header Bar -->
       <header class="top-bar">
-        <div style="display: flex; align-items: center; gap: 16px;">
-          <div class="folder-path-display" style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            <span v-if="currentFolderPath" style="color: var(--text-secondary); font-size: 13px;">
-              {{ t.header.currentPath }}<code style="background-color: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px; font-family: monospace;">{{ currentFolderPath }}</code>
-            </span>
-            <span v-else-if="syncStatus !== 'connected'" style="color: var(--text-muted); font-size: 13px;">
-              {{ t.header.noPath }}
-            </span>
+        <!-- Scenario A: Link Mobile Tab Header -->
+        <div v-if="currentTab === 'link'" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <!-- Left Title & Device Connection Badge -->
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="display: flex; flex-direction: column; text-align: left;">
+              <h2 style="font-size: 17px; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span>📱</span>
+                <span style="background: linear-gradient(135deg, #ffffff, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">连接您的手机</span>
+              </h2>
+              <span style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">快速建立连接，开始无缝跨端传输</span>
+            </div>
+
+            <!-- Connected Badge in Top Header -->
+            <div v-if="syncStatus === 'connected'" class="header-device-status" style="display: flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); padding: 4px 12px; border-radius: 99px; margin-left: 8px;">
+              <span style="font-size: 12px; font-weight: 700; color: var(--text-primary); display: inline-flex; align-items: center; gap: 4px;">
+                📱 {{ activeDeviceName }}
+              </span>
+              <span style="font-size: 9px; font-weight: 600; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 2px 6px; border-radius: 20px; display: inline-flex; align-items: center; gap: 3px;">
+                <span style="width: 5px; height: 5px; border-radius: 50%; background: #10b981; animation: pulse-glow 1.5s infinite;"></span>
+                已连接
+              </span>
+              <div style="width: 1px; height: 10px; background: rgba(255,255,255,0.15); margin: 0 4px;"></div>
+              <button 
+                @click="cleanupWebRtc"
+                style="background: transparent; border: none; color: #ef4444; font-size: 11px; font-weight: 700; cursor: pointer; padding: 2px 4px; margin: 0; display: flex; align-items: center; gap: 2px; transition: color 0.2s;"
+                onmouseover="this.style.color='#f87171'"
+                onmouseout="this.style.color='#ef4444'"
+              >
+                🔴 断开
+              </button>
+            </div>
           </div>
 
-          <!-- Connection Status & Disconnect Action in Header -->
-          <div v-if="syncStatus === 'connected'" class="header-device-status" style="display: flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 12px; border-radius: 99px;">
-            <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); display: inline-flex; align-items: center; gap: 4px;">
-              📱 {{ activeDeviceName }}
-            </span>
-            <span style="font-size: 9px; font-weight: 600; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 1px 5px; border-radius: 20px; display: inline-flex; align-items: center; gap: 2px;">
-              <span style="width: 4px; height: 4px; border-radius: 50%; background: #10b981; animation: pulse-glow 1.5s infinite;"></span>
-              已连接
-            </span>
-            <div style="width: 1px; height: 10px; background: rgba(255,255,255,0.15); margin: 0 4px;"></div>
+          <!-- Right Action Pill Buttons -->
+          <div style="display: flex; align-items: center; gap: 10px;" v-if="syncStatus !== 'connected'">
             <button 
-              @click="cleanupWebRtc"
-              style="background: transparent; border: none; color: #ef4444; font-size: 11px; font-weight: 700; cursor: pointer; padding: 2px 4px; margin: 0; display: flex; align-items: center; gap: 2px; transition: color 0.2s;"
-              onmouseover="this.style.color='#f87171'"
-              onmouseout="this.style.color='#ef4444'"
+              @click="handleOpenThumbnailFolder" 
+              class="top-nav-btn top-btn-accent"
             >
-              🔴 断开
+              📁 {{ t.link.openThumbnailFolder }}
             </button>
+
+            <button 
+              @click="showHowToConnectModal = true" 
+              class="top-nav-btn top-btn-glass"
+            >
+              ❓ 如何连接
+            </button>
+
+            <button 
+              @click="showEnterCodeModal = true" 
+              class="top-nav-btn top-btn-outline"
+            >
+              ⌨️ 输入连接码
+            </button>
+          </div>
+        </div>
+
+        <!-- Scenario B: Other Tabs Header (Images, Settings, etc.) -->
+        <div v-else style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="folder-path-display" style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              <span v-if="currentFolderPath" style="color: var(--text-secondary); font-size: 13px;">
+                {{ t.header.currentPath }}<code style="background-color: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px; font-family: monospace;">{{ currentFolderPath }}</code>
+              </span>
+              <span v-else style="color: var(--text-muted); font-size: 13px;">
+                {{ t.header.noPath }}
+              </span>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <!-- Search Bar -->
+            <div class="search-bar-container" v-if="currentTab === 'images' && localImages.length > 0">
+              <input 
+                type="text" 
+                class="search-input" 
+                :placeholder="t.header.searchPlaceholder"
+                v-model="searchQuery"
+                @keyup.enter="handleSearch"
+                :disabled="isSearching"
+              />
+              <button class="btn btn-search" @click="handleSearch" :disabled="isSearching">
+                <span v-if="isSearching" class="spinner" style="width: 12px; height: 12px;"></span>
+                <span v-else>{{ t.header.searchBtn }}</span>
+              </button>
+              <button class="btn btn-clear-search" v-if="isSearchActive" @click="handleClearSearch">
+                ✕
+              </button>
+            </div>
           </div>
         </div>
 
@@ -204,27 +269,6 @@
             <div class="ai-queue-bar-fill" :style="{ width: aiQueueProgress.percent + '%' }"></div>
           </div>
         </div>
-
-        <div style="display: flex; align-items: center; gap: 16px;">
-          <!-- Search Bar -->
-          <div class="search-bar-container" v-if="currentTab === 'images' && localImages.length > 0">
-            <input 
-              type="text" 
-              class="search-input" 
-              :placeholder="t.header.searchPlaceholder"
-              v-model="searchQuery"
-              @keyup.enter="handleSearch"
-              :disabled="isSearching"
-            />
-            <button class="btn btn-search" @click="handleSearch" :disabled="isSearching">
-              <span v-if="isSearching" class="spinner" style="width: 12px; height: 12px;"></span>
-              <span v-else>{{ t.header.searchBtn }}</span>
-            </button>
-            <button class="btn btn-clear-search" v-if="isSearchActive" @click="handleClearSearch">
-              ✕
-            </button>
-          </div>
-        </div>
       </header>
 
       <!-- Grid Gallery -->
@@ -232,46 +276,6 @@
         <!-- ==================== TABS SWITCH ==================== -->
         
         <div v-if="currentTab === 'link'" style="display: flex; flex-direction: column; width: 100%; gap: 24px;">
-          
-          <!-- Top Header Row -->
-          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <!-- Scenario 1: Not connected -->
-            <div v-if="syncStatus !== 'connected'">
-              <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">连接您的<span style="color: #a855f7; -webkit-text-fill-color: initial;">手机</span></h2>
-              <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">快速建立连接，开始高速文件传输</p>
-            </div>
-            <div v-else></div>
-            
-            <!-- Right Actions Row -->
-            <div style="display: flex; align-items: center; gap: 16px;">
-              <!-- Show these pairing buttons ONLY when NOT connected -->
-              <template v-if="syncStatus !== 'connected'">
-                <!-- Open Thumbnail Folder (always visible when not connected) -->
-                <button 
-                  @click="handleOpenThumbnailFolder" 
-                  style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(168,85,247,0.3); background: rgba(168,85,247,0.1); color: #c084fc; cursor: pointer; transition: all 0.2s; font-weight: 600;"
-                  onmouseover="this.style.background='rgba(168,85,247,0.2)'"
-                  onmouseout="this.style.background='rgba(168,85,247,0.1)'"
-                >
-                  📁 {{ t.link.openThumbnailFolder }}
-                </button>
-
-                <button 
-                  @click="showHowToConnectModal = true" 
-                  style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"
-                  onmouseover="this.style.background='rgba(255,255,255,0.1)'"
-                  onmouseout="this.style.background='rgba(255,255,255,0.05)'"
-                >
-                  ❓ 如何连接?
-                </button>
-                
-                <span style="font-size: 13px; color: var(--text-secondary);">
-                  没有摄像头? 
-                  <a href="#" @click.prevent="showEnterCodeModal = true" style="color: #a855f7; text-decoration: none; font-weight: 600; margin-left: 4px; transition: color 0.2s;" onmouseover="this.style.color='#c084fc'" onmouseout="this.style.color='#a855f7'">输入连接码</a>
-                </span>
-              </template>
-            </div>
-          </div>
 
           <!-- Main Split Pairing Panel -->
           <div v-if="syncStatus !== 'connected'" style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(147, 51, 234, 0.2); box-shadow: 0 8px 32px rgba(147, 51, 234, 0.05); border-radius: 16px; padding: 32px; display: flex; width: 100%; gap: 24px; box-sizing: border-box; justify-content: space-between; align-items: center; min-height: 290px; flex-shrink: 0; position: relative; overflow: hidden; backdrop-filter: blur(12px);">
