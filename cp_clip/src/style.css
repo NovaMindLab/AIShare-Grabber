@@ -137,6 +137,24 @@ body {
   color: white;
 }
 
+.title-bar-btn.settings-top-btn {
+  width: auto;
+  padding: 0 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  margin-right: 4px;
+}
+
+.title-bar-btn.settings-top-btn:hover {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+
+.title-bar-btn.settings-top-btn.active {
+  background: rgba(168, 85, 247, 0.25);
+  color: #a855f7;
+  font-weight: 700;
+}
+
 /* Main app body below title bar */
 .app-body {
   display: flex;

@@ -8,6 +8,15 @@
       </div>
       <div class="title-bar-drag-area"></div>
       <div class="title-bar-actions">
+        <button 
+          class="title-bar-btn settings-top-btn" 
+          :class="{ active: currentTab === 'settings' }"
+          @click="currentTab = 'settings'" 
+          title="软件设置"
+        >
+          <span style="font-size: 13px;">⚙️</span>
+          <span style="font-size: 12px; font-weight: 600; margin-left: 4px;">设置</span>
+        </button>
         <button class="title-bar-btn minimize" @click="minimizeWindow" title="最小化">
           <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10v1H0z" fill="currentColor"/></svg>
         </button>
@@ -29,9 +38,7 @@
         <h1 class="brand-title">ShareCLIP</h1>
       </div>
 
-
-
-      <!-- Connection Manager Navigation -->
+      <!-- Main Navigation -->
       <div class="sidebar-section">
         <h2 class="section-title">{{ t.sidebar.connHeader }}</h2>
         <div class="category-list">
@@ -44,6 +51,13 @@
               {{ t.sidebar.linkMobile }}
             </span>
             <span v-if="syncStatus === 'connected'" style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--success); display: inline-block; box-shadow: 0 0 6px var(--success);"></span>
+          </div>
+          <div 
+            class="category-item" 
+            :class="{ active: currentTab === 'settings' }"
+            @click="currentTab = 'settings'"
+          >
+            <span>⚙️ {{ t.sidebar.settings }}</span>
           </div>
         </div>
       </div>
@@ -139,20 +153,6 @@
           >
             <span>{{ getShortCategory(cat) }}</span>
             <span class="category-count">{{ count }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- System Settings Navigation -->
-      <div class="sidebar-section">
-        <h2 class="section-title">{{ t.sidebar.settingsHeader }}</h2>
-        <div class="category-list">
-          <div 
-            class="category-item" 
-            :class="{ active: currentTab === 'settings' }"
-            @click="currentTab = 'settings'"
-          >
-            <span>⚙️ {{ t.sidebar.settings }}</span>
           </div>
         </div>
       </div>
