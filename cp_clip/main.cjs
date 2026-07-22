@@ -2437,10 +2437,25 @@ function getBroadcastAddresses() {
   return [...new Set(addresses)];
 }
 
+let isWebRtcConnected = false;
+
+ipcMain.handle('set-sync-status', (event, { status, deviceUuid }) => {
+  if (status === 'connected') {
+    isWebRtcConnected = true;
+    if (deviceUuid) activeDeviceUuid = deviceUuid;
+    console.log(`[Sync Status] Active device set: ${activeDeviceUuid}`);
+  } else {
+    isWebRtcConnected = false;
+    activeDeviceUuid = null;
+    console.log(`[Sync Status] Disconnected. Resuming UDP discovery broadcast immediately.`);
+    broadcastDiscovery();
+  }
+});
+
 function broadcastDiscovery() {
   if (!udpSocket) return;
-  // If device is already connected, stop auto-searching / broadcasting to save CPU and network resources!
-  if (activeDeviceUuid) return;
+  // Stop discovery broadcast ONLY when WebRTC is actively connected right now!
+  if (isWebRtcConnected && activeDeviceUuid) return;
 
   const hostname = require('os').hostname();
   const payload = JSON.stringify({
@@ -2467,7 +2482,7 @@ function broadcastDiscovery() {
 }
 
 function pruneDiscoveryList() {
-  if (activeDeviceUuid) return;
+  if (isWebRtcConnected && activeDeviceUuid) return;
   const now = Date.now();
   let changed = false;
   for (const [uuid, device] of discoveredDevices.entries()) {
@@ -2499,9 +2514,13 @@ ipcMain.handle('send-udp-connect-request', async (event, { ip }) => {
   });
   const message = Buffer.from(payload);
   return new Promise((resolve) => {
-    udpSocket.send(message, 0, message.length, 15185, ip, (err) => {
-      resolve(!err);
-    });
+    // Retransmit 3 times to ensure Wi-Fi packet drops do not stall pairing
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        udpSocket.send(message, 0, message.length, 15185, ip, () => {});
+      }, i * 80);
+    }
+    resolve(true);
   });
 });
 
@@ -2513,9 +2532,12 @@ ipcMain.handle('respond-to-connection-request', async (event, { ip, accept }) =>
   });
   const message = Buffer.from(payload);
   return new Promise((resolve) => {
-    udpSocket.send(message, 0, message.length, 15185, ip, (err) => {
-      resolve(!err);
-    });
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        udpSocket.send(message, 0, message.length, 15185, ip, () => {});
+      }, i * 80);
+    }
+    resolve(true);
   });
 });
 
@@ -2528,9 +2550,12 @@ ipcMain.handle('send-udp-sdp', async (event, { ip, sdp, sdpType }) => {
   });
   const message = Buffer.from(payload);
   return new Promise((resolve) => {
-    udpSocket.send(message, 0, message.length, 15185, ip, (err) => {
-      resolve(!err);
-    });
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        udpSocket.send(message, 0, message.length, 15185, ip, () => {});
+      }, i * 80);
+    }
+    resolve(true);
   });
 });
 

@@ -117,12 +117,18 @@ try {
 
 ---
 
-## 6. 🚫 Zero-Waste UDP Discovery Broadcast Suppression
+## 6. 🚫 Zero-Waste UDP Discovery Broadcast & Dynamic Status Recovery
 
-When a device establishes an active WebRTC data connection (`activeDeviceUuid != null`), background UDP scanning is paused:
-- `broadcastDiscovery()` in `main.cjs` returns early immediately, stopping 3-second subnet UDP broadcast sweeps.
-- `pruneDiscoveryList()` skips device eviction and IPC notifications.
-- Reduces idle background network and CPU usage to zero.
+### Active Connection Suppression & Instant Disconnect Recovery
+- **`isWebRtcConnected` Lifecycle Tracking**:
+  Added IPC `set-sync-status` handler to bridge WebRTC state from `App.vue` to `main.cjs`.
+- **Permanent Mute Fix**:
+  Previously, `activeDeviceUuid` remained set after device disconnection, causing `broadcastDiscovery()` to return early and permanently muting UDP broadcasts for subsequent connections.
+- **Dynamic Recovery**:
+  When `syncStatus` transitions to `'disconnected'` / `'idle'`, `activeDeviceUuid` resets to `null`, `isWebRtcConnected = false`, and an immediate UDP broadcast sweep is triggered.
+
+### 3x UDP Packet Retransmission Guard
+- Both PC (`main.cjs`) and Android (`sync_viewmodel.dart`) transmit SDP Offer/Answer and ICE candidates **3 times** with 80ms intervals over UDP to eliminate pairing drops caused by Wi-Fi packet loss.
 
 ---
 

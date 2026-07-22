@@ -302,23 +302,29 @@ class SyncViewModel extends ChangeNotifier {
     }
   }
 
-  void _sendUdpSdp(String sdp, String type) {
-    _sendUdp({
-      'type': 'ShareCLIP_Direct_Sdp',
-      'sdp': sdp,
-      'sdpType': type
-    });
+  void _sendUdpSdp(String sdp, String type) async {
+    for (int i = 0; i < 3; i++) {
+      _sendUdp({
+        'type': 'ShareCLIP_Direct_Sdp',
+        'sdp': sdp,
+        'sdpType': type
+      });
+      await Future.delayed(const Duration(milliseconds: 80));
+    }
   }
 
-  void _sendUdpIce(RTCIceCandidate candidate) {
-    _sendUdp({
-       'type': 'ShareCLIP_Direct_Ice',
-       'candidate': json.encode({
-          'sdpMid': candidate.sdpMid,
-          'sdpMLineIndex': candidate.sdpMLineIndex,
-          'candidate': candidate.candidate
-       })
-    });
+  void _sendUdpIce(RTCIceCandidate candidate) async {
+    for (int i = 0; i < 3; i++) {
+      _sendUdp({
+         'type': 'ShareCLIP_Direct_Ice',
+         'candidate': json.encode({
+            'sdpMid': candidate.sdpMid,
+            'sdpMLineIndex': candidate.sdpMLineIndex,
+            'candidate': candidate.candidate
+         })
+      });
+      await Future.delayed(const Duration(milliseconds: 80));
+    }
   }
 
   void _initializeWebRtc({bool isUdpFallback = false}) async {

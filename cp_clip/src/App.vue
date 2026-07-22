@@ -2050,6 +2050,12 @@ watch(isDarkMode, (newVal) => {
   localStorage.setItem('theme-dark', newVal ? 'true' : 'false');
 });
 
+watch(syncStatus, (newStatus) => {
+  if (hasApi && window.api.setSyncStatus) {
+    window.api.setSyncStatus(newStatus, activeDeviceUuid.value);
+  }
+});
+
 function toggleTheme() {
   isDarkMode.value = !isDarkMode.value;
 }

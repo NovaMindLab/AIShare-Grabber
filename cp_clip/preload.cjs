@@ -98,7 +98,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   deleteFiles: (files) => ipcRenderer.invoke('delete-files', files),
 
-  // Download path settings
+  setSyncStatus: (status, deviceUuid) => ipcRenderer.invoke('set-sync-status', { status, deviceUuid }),
   getDownloadPath: () => ipcRenderer.invoke('get-download-path'),
   setDownloadPath: (newPath) => ipcRenderer.invoke('set-download-path', newPath),
   selectDownloadFolder: () => ipcRenderer.invoke('select-download-folder'),
