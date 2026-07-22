@@ -4075,14 +4075,15 @@ const progressPercentage = computed(() => {
   return Math.round((processedCount.value / totalCount.value) * 100);
 });
 
-// Category counts based on Top-1 predictions
+// Category counts based on Top-1 predictions with score >= 0.40 threshold
 const categoryCounts = computed(() => {
   const counts = {};
   localImages.value.forEach(img => {
     if (img.predictions && Array.isArray(img.predictions) && img.predictions.length > 0) {
       const topPred = img.predictions[0];
       const catName = topPred.category || topPred.label || topPred.name;
-      if (catName && !catName.includes('⚠️') && !catName.includes('💻') && !catName.includes('❌')) {
+      const score = topPred.score !== undefined ? topPred.score : 1.0;
+      if (score >= 0.40 && catName && !catName.includes('⚠️') && !catName.includes('💻') && !catName.includes('❌')) {
         counts[catName] = (counts[catName] || 0) + 1;
       }
     }
@@ -4100,7 +4101,8 @@ const filteredImages = computed(() => {
       if (!img.predictions || img.predictions.length === 0) return false;
       const topPred = img.predictions[0];
       const catName = topPred.category || topPred.label || topPred.name;
-      return catName === selectedCategory.value;
+      const score = topPred.score !== undefined ? topPred.score : 1.0;
+      return catName === selectedCategory.value && score >= 0.40;
     });
     categoryGroup.sort((a, b) => (b.predictions[0].score || 0) - (a.predictions[0].score || 0));
     list = categoryGroup;
