@@ -1517,7 +1517,7 @@ function downloadFile(url, destPath, progressCallback) {
           fileStream.write(chunk);
           if (totalBytes > 0) {
             const progress = Math.round((downloadedBytes / totalBytes) * 100);
-            progressCallback(progress);
+            progressCallback(progress, downloadedBytes, totalBytes);
           }
         });
         
@@ -1560,10 +1560,31 @@ autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
 
 let updateDownloadEventSender = null;
+let lastUpdateProgressInfo = {
+  percent: 0,
+  transferredMB: '0.00',
+  totalMB: '0.00',
+  isDifferential: false,
+  updateType: 'full'
+};
 
 autoUpdater.on('download-progress', (progressObj) => {
+  const percent = Math.round(progressObj.percent);
+  const transferredMB = (progressObj.transferred / (1024 * 1024)).toFixed(2);
+  const totalMB = (progressObj.total / (1024 * 1024)).toFixed(2);
+  // Full installer size is ~96.5 MB. If progressObj.total < 40 MB, it's a differential patch!
+  const isDifferential = progressObj.total > 0 && progressObj.total < 40 * 1024 * 1024;
+  
+  lastUpdateProgressInfo = {
+    percent,
+    transferredMB,
+    totalMB,
+    isDifferential,
+    updateType: isDifferential ? 'differential' : 'full'
+  };
+
   if (updateDownloadEventSender) {
-    updateDownloadEventSender.send('update-download-progress', Math.round(progressObj.percent));
+    updateDownloadEventSender.send('update-download-progress', lastUpdateProgressInfo);
   }
 });
 
@@ -1667,7 +1688,14 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
     }
 
     if (success) {
-      return { success: true, filePath: 'managed' };
+      return { 
+        success: true, 
+        filePath: 'managed',
+        isDifferential: lastUpdateProgressInfo.isDifferential,
+        updateType: lastUpdateProgressInfo.updateType,
+        transferredMB: lastUpdateProgressInfo.transferredMB,
+        totalMB: lastUpdateProgressInfo.totalMB
+      };
     }
 
     // Attempt 2: Fallback to direct HTTPS download from latest GitHub Release
@@ -1704,14 +1732,30 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
     const destPath = path.join(destDir, exeName);
 
     console.log(`[Update Download] Direct download fallback from ${targetDownloadUrl} to ${destPath}`);
-    await downloadFile(targetDownloadUrl, destPath, (progress) => {
+    await downloadFile(targetDownloadUrl, destPath, (progress, transferred, total) => {
+      const transferredMB = (transferred / (1024 * 1024)).toFixed(2);
+      const totalMB = (total / (1024 * 1024)).toFixed(2);
+      lastUpdateProgressInfo = {
+        percent: progress,
+        transferredMB,
+        totalMB,
+        isDifferential: false,
+        updateType: 'full'
+      };
       if (updateDownloadEventSender) {
-        updateDownloadEventSender.send('update-download-progress', progress);
+        updateDownloadEventSender.send('update-download-progress', lastUpdateProgressInfo);
       }
     });
 
     console.log(`[Update Download] Direct download completed: ${destPath}`);
-    return { success: true, filePath: destPath };
+    return { 
+      success: true, 
+      filePath: destPath,
+      isDifferential: false,
+      updateType: 'full',
+      transferredMB: lastUpdateProgressInfo.transferredMB,
+      totalMB: lastUpdateProgressInfo.totalMB
+    };
 
   } catch (err) {
     console.error('[Update Download] Error downloading update:', err.message);

@@ -1521,6 +1521,67 @@
       </section>
     </main>
 
+    <!-- Update Confirmation Modal -->
+    <div class="modal-backdrop" v-if="showUpdateConfirmModal" @click.self="showUpdateConfirmModal = false">
+      <div class="modal-content update-modal">
+        <button class="modal-close" @click="showUpdateConfirmModal = false">✕</button>
+        <div class="update-modal-header">
+          <span class="update-icon">🚀</span>
+          <h3>发现软件新版本</h3>
+        </div>
+        <div class="update-modal-body">
+          <p class="update-ver-title">最新版本: <strong class="ver-tag">v{{ latestVersion }}</strong> （当前版本: v{{ currentVersion || '1.2.0' }}）</p>
+          <div class="update-notes-box" v-if="updateNotes">
+            <div class="notes-header">📝 更新说明：</div>
+            <pre class="notes-body">{{ updateNotes }}</pre>
+          </div>
+          <p class="update-hint">升级后将获得性能提升、安全改进及最新 AI 引擎能力。点击“立即升级”将自动匹配差分增量下载。</p>
+        </div>
+        <div class="update-modal-footer">
+          <button class="dp-btn" @click="showUpdateConfirmModal = false">暂不升级</button>
+          <button class="dp-btn dp-open" @click="confirmAndStartUpdate">🚀 立即升级</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Update Downloaded & Ready Modal -->
+    <div class="modal-backdrop" v-if="updateReadyToInstall && showUpdateCompleteModal" @click.self="showUpdateCompleteModal = false">
+      <div class="modal-content update-modal">
+        <button class="modal-close" @click="showUpdateCompleteModal = false">✕</button>
+        <div class="update-modal-header">
+          <span class="update-icon">🎉</span>
+          <h3>升级包下载完成</h3>
+        </div>
+        <div class="update-modal-body">
+          <div class="update-type-badge" :class="updateType">
+            <span v-if="updateType === 'differential'">⚡ 差分增量升级模式 (Blockmap Differential)</span>
+            <span v-else>📦 全量完整升级模式 (Full Setup)</span>
+          </div>
+
+          <div class="update-stats-card">
+            <div class="stat-row" v-if="updateType === 'differential'">
+              <span class="stat-label">本次升级下载流量:</span>
+              <span class="stat-val highlight">⚡ 已下载差分包 {{ updateTransferredMB }} MB (比全量包节省 90%+ 流量)</span>
+            </div>
+            <div class="stat-row" v-else>
+              <span class="stat-label">本次升级下载流量:</span>
+              <span class="stat-val">📦 已下载完整安装包 {{ updateTransferredMB }} MB</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">目标版本号:</span>
+              <span class="stat-val">v{{ latestVersion || '1.2.49' }}</span>
+            </div>
+          </div>
+
+          <p class="update-ready-desc">软件将在重启后自动完成应用升级，是否立即重启？</p>
+        </div>
+        <div class="update-modal-footer">
+          <button class="dp-btn" @click="showUpdateCompleteModal = false">稍后应用</button>
+          <button class="dp-btn dp-open" @click="installUpdate">🔄 立即重启并应用升级</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Detailed Modal -->
     <div class="modal-backdrop" v-if="selectedImage" @click.self="closeDetails">
       <div class="modal-content">
@@ -2029,11 +2090,19 @@ const currentVersion = ref('');
 const latestVersion = ref('');
 const updateUrl = ref('');
 const updateDownloadUrl = ref('');
+const updateNotes = ref('');
 const updateError = ref('');
 const updateDownloading = ref(false);
 const updateDownloadProgress = ref(0);
 const updateReadyToInstall = ref(false);
 const updateInstallerPath = ref('');
+
+// Differential & Full update stats
+const showUpdateConfirmModal = ref(false);
+const showUpdateCompleteModal = ref(false);
+const updateType = ref('full'); // 'differential' | 'full'
+const updateTransferredMB = ref('0.00');
+const updateTotalMB = ref('0.00');
 
 async function checkAppUpdates(showToast = false) {
   if (updateStatus.value === 'checking') return;
@@ -2049,30 +2118,30 @@ async function checkAppUpdates(showToast = false) {
     latestVersion.value = result.latestVersion || '';
     updateUrl.value = result.url || '';
     updateDownloadUrl.value = result.downloadUrl || '';
+    updateNotes.value = result.body || '';
     
     if (result.error) {
       updateStatus.value = 'failed';
       updateError.value = result.error;
+      if (showToast) alert('检查更新失败: ' + result.error);
     } else if (result.available) {
       updateStatus.value = 'new-available';
-      
-      // Auto download and install in-app
-      if (updateDownloadUrl.value) {
-        startDownloadUpdate().then(() => {
-          if (updateReadyToInstall.value) {
-            installUpdate();
-          }
-        }).catch(err => {
-          console.error('[Auto Update] Failed:', err);
-        });
-      }
+      // Prompt user with interactive modal asking whether to upgrade!
+      showUpdateConfirmModal.value = true;
     } else {
       updateStatus.value = 'up-to-date';
+      if (showToast) alert('已是最新版本 (v' + currentVersion.value + ')');
     }
   } catch (err) {
     updateStatus.value = 'failed';
     updateError.value = err.message || err;
+    if (showToast) alert('检查更新失败: ' + (err.message || err));
   }
+}
+
+async function confirmAndStartUpdate() {
+  showUpdateConfirmModal.value = false;
+  await startDownloadUpdate();
 }
 
 async function startDownloadUpdate() {
@@ -2080,9 +2149,16 @@ async function startDownloadUpdate() {
   updateDownloading.value = true;
   updateDownloadProgress.value = 0;
   
-  // Register progress listener
-  window.api.onUpdateDownloadProgress((progress) => {
-    updateDownloadProgress.value = progress;
+  // Register progress listener with detailed differential info
+  window.api.onUpdateDownloadProgress((progressInfo) => {
+    if (typeof progressInfo === 'object') {
+      updateDownloadProgress.value = progressInfo.percent || 0;
+      updateTransferredMB.value = progressInfo.transferredMB || '0.00';
+      updateTotalMB.value = progressInfo.totalMB || '0.00';
+      updateType.value = progressInfo.updateType || (progressInfo.isDifferential ? 'differential' : 'full');
+    } else {
+      updateDownloadProgress.value = progressInfo;
+    }
   });
   
   try {
@@ -2090,11 +2166,17 @@ async function startDownloadUpdate() {
     if (result.success) {
       updateInstallerPath.value = result.filePath;
       updateReadyToInstall.value = true;
+      if (result.updateType) updateType.value = result.updateType;
+      if (result.transferredMB) updateTransferredMB.value = result.transferredMB;
+      if (result.totalMB) updateTotalMB.value = result.totalMB;
+      
+      // Open completed confirmation modal showing differential vs full stats!
+      showUpdateCompleteModal.value = true;
     } else {
-      alert('下载失败: ' + result.error);
+      alert('下载升级包失败: ' + result.error);
     }
   } catch (err) {
-    alert('下载出错: ' + (err.message || err));
+    alert('下载升级包发生错误: ' + (err.message || err));
   } finally {
     updateDownloading.value = false;
   }
