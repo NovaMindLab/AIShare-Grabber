@@ -839,7 +839,7 @@
                   <img :src="img.src" class="card-img" loading="lazy" />
                   
                   <!-- Processing Indicator -->
-                  <div class="loading-indicator" v-if="img.status === 'processing'">
+                  <div class="loading-indicator" v-if="(!img.predictions || img.predictions.length === 0) && img.status === 'processing'">
                     <span class="spinner"></span>
                     <span style="font-size: 11px; color: var(--text-secondary); font-weight: 500;">{{ t.images.aiAnalyzing }}</span>
                   </div>
@@ -852,8 +852,8 @@
                   <span v-if="isSearchActive && img.searchScore !== undefined && getMatchPercentage(img.searchScore) > 0" class="badge badge-search-match">
                     🎯 {{ t.images.matchScore }} {{ getMatchPercentage(img.searchScore) }}%
                   </span>
-                  <span v-else-if="img.status === 'completed' && img.predictions.length > 0" class="badge badge-classified">
-                    {{ getShortCategory(img.predictions[0].category) }} ({{ Math.round(img.predictions[0].score * 100) }}%)
+                  <span v-else-if="img.predictions && img.predictions.length > 0" class="badge badge-classified">
+                    {{ getShortCategory(img.predictions[0].category || img.predictions[0].label || img.predictions[0].name) }} ({{ Math.round((img.predictions[0].score || 0) * 100) }}%)
                   </span>
                   <span v-else-if="img.status === 'processing'" class="badge badge-loading">
                     <span class="spinner"></span> {{ t.images.aiAnalyzing }}
