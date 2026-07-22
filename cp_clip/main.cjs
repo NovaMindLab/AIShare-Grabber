@@ -2416,6 +2416,8 @@ function getBroadcastAddresses() {
 
 function broadcastDiscovery() {
   if (!udpSocket) return;
+  // If device is already connected, stop auto-searching / broadcasting to save CPU and network resources!
+  if (activeDeviceUuid) return;
 
   const hostname = require('os').hostname();
   const payload = JSON.stringify({
@@ -2442,6 +2444,7 @@ function broadcastDiscovery() {
 }
 
 function pruneDiscoveryList() {
+  if (activeDeviceUuid) return;
   const now = Date.now();
   let changed = false;
   for (const [uuid, device] of discoveredDevices.entries()) {
