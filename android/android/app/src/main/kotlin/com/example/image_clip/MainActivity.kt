@@ -5,7 +5,15 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.Uri
+import android.net.wifi.WifiConfiguration
+import android.net.wifi.WifiManager
+import android.net.wifi.WifiNetworkSpecifier
+import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
@@ -71,8 +79,8 @@ class MainActivity : FlutterActivity() {
                 val url = call.argument<String>("url")
                 if (url != null) {
                     try {
-                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
-                        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         context.startActivity(intent)
                         result.success(true)
                     } catch (e: Exception) {
@@ -160,9 +168,7 @@ class MainActivity : FlutterActivity() {
                         result.error("ERROR", "Downloaded file URI is null", null)
                     }
                 } else {
-                    } else {
-                        result.error("ERROR", "No active download", null)
-                    }
+                    result.error("ERROR", "No active download", null)
                 }
             } else if (call.method == "connectWifiSilent") {
                 val ssid = call.argument<String>("ssid")
@@ -180,11 +186,11 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private var currentNetworkCallback: android.net.ConnectivityManager.NetworkCallback? = null
+    private var currentNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
     private fun connectWifiSilent(ssid: String, password: String, result: MethodChannel.Result) {
-        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
-        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
         currentNetworkCallback?.let {
             try { connectivityManager.unregisterNetworkCallback(it) } catch (_: Exception) {}
@@ -193,19 +199,19 @@ class MainActivity : FlutterActivity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             try {
-                val specifier = android.net.wifi.WifiNetworkSpecifier.Builder()
+                val specifier = WifiNetworkSpecifier.Builder()
                     .setSsid(ssid)
                     .setWpa2Passphrase(password)
                     .build()
 
-                val request = android.net.NetworkRequest.Builder()
-                    .addTransportType(android.net.NetworkCapabilities.TRANSPORT_WIFI)
-                    .removeCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                val request = NetworkRequest.Builder()
+                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                    .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                     .setNetworkSpecifier(specifier)
                     .build()
 
-                val callback = object : android.net.ConnectivityManager.NetworkCallback() {
-                    override fun onAvailable(network: android.net.Network) {
+                val callback = object : ConnectivityManager.NetworkCallback() {
+                    override fun onAvailable(network: Network) {
                         try {
                             connectivityManager.bindProcessToNetwork(network)
                         } catch (_: Exception) {}
@@ -226,7 +232,7 @@ class MainActivity : FlutterActivity() {
         } else {
             try {
                 @Suppress("DEPRECATION")
-                val wifiConfig = android.net.wifi.WifiConfiguration().apply {
+                val wifiConfig = WifiConfiguration().apply {
                     SSID = "\"$ssid\""
                     preSharedKey = "\"$password\""
                 }
@@ -249,16 +255,16 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun trySuggestNetwork(ssid: String, password: String, wifiManager: android.net.wifi.WifiManager, result: MethodChannel.Result) {
+    private fun trySuggestNetwork(ssid: String, password: String, wifiManager: WifiManager, result: MethodChannel.Result) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             try {
-                val suggestion = android.net.wifi.WifiNetworkSuggestion.Builder()
+                val suggestion = WifiNetworkSuggestion.Builder()
                     .setSsid(ssid)
                     .setWpa2Passphrase(password)
                     .setIsAppInteractionRequired(false)
                     .build()
                 val status = wifiManager.addNetworkSuggestions(listOf(suggestion))
-                result.success(status == android.net.wifi.WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS)
+                result.success(status == WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS)
             } catch (e: Exception) {
                 result.error("ERROR", e.message, null)
             }
@@ -270,12 +276,12 @@ class MainActivity : FlutterActivity() {
     private fun disconnectWifiSilent(result: MethodChannel.Result) {
         try {
             currentNetworkCallback?.let {
-                val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+                val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
                 connectivityManager.unregisterNetworkCallback(it)
                 currentNetworkCallback = null
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+                val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
                 connectivityManager.bindProcessToNetwork(null)
             }
             result.success(true)
