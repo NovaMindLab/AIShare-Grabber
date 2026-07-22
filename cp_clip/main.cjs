@@ -51,6 +51,16 @@ const taskManager = require('./src/workers/task-manager.cjs');
 
 const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
 let mainWindow = null;
+
+function sendToRenderer(channel, payload) {
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && !mainWindow.webContents.isDestroyed()) {
+    try {
+      mainWindow.webContents.send(channel, payload);
+    } catch (e) {
+      // Suppress destroyed webContents errors during app shutdown
+    }
+  }
+}
 let textEncoderSession = null;
 let tokenizer = null;
 let textEmbeddings = {};
@@ -1443,13 +1453,28 @@ autoUpdater.on('download-progress', (progressObj) => {
   }
 });
 
+function isNewVersionAvailable(current, latest) {
+  if (!current || !latest) return false;
+  const cParts = current.replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+  const lParts = latest.replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(cParts.length, lParts.length); i++) {
+    const c = cParts[i] || 0;
+    const l = lParts[i] || 0;
+    if (l > c) return true;
+    if (l < c) return false;
+  }
+  return false;
+}
+
 ipcMain.handle('check-for-updates', async () => {
+  const currentVersion = app.getVersion();
+  
+  // Method 1: autoUpdater check
   try {
     const result = await autoUpdater.checkForUpdates();
     if (result && result.updateInfo) {
-      const currentVersion = app.getVersion();
       const latestVersion = result.updateInfo.version;
-      const available = currentVersion !== latestVersion;
+      const available = isNewVersionAvailable(currentVersion, latestVersion);
       
       return {
         available,
@@ -1457,16 +1482,54 @@ ipcMain.handle('check-for-updates', async () => {
         latestVersion,
         url: `https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v${latestVersion}`,
         downloadUrl: 'managed',
-        body: result.updateInfo.releaseNotes || 'A new update is available.'
+        body: typeof result.updateInfo.releaseNotes === 'string' ? result.updateInfo.releaseNotes : 'A new update is available.'
       };
     }
-    return { available: false };
   } catch (err) {
-    console.error('[Update Check] Failed to check for updates:', err.message);
-    return {
-      available: false,
-      error: err.message
-    };
+    console.warn('[Update Check] autoUpdater check failed, using direct GitHub API fallback:', err.message);
+  }
+
+  // Method 2: Direct GitHub API check fallback
+  try {
+    const releaseInfoStr = await new Promise((resolve, reject) => {
+      https.get('https://api.github.com/repos/NovaMindLab/AIShare-Grabber/releases/latest', {
+        headers: { 'User-Agent': 'ShareCLIP-PC-App' }
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => resolve(data));
+      }).on('error', reject);
+    });
+
+    const releaseInfo = JSON.parse(releaseInfoStr);
+    if (releaseInfo && releaseInfo.tag_name) {
+      const latestTag = releaseInfo.tag_name;
+      const latestVersion = latestTag.replace(/^v/, '');
+      const available = isNewVersionAvailable(currentVersion, latestVersion);
+      
+      let downloadUrl = '';
+      if (releaseInfo.assets && releaseInfo.assets.length > 0) {
+        for (const asset of releaseInfo.assets) {
+          if (asset.name.endsWith('Setup.exe') || (asset.name.endsWith('.exe') && !asset.name.includes('blockmap'))) {
+            downloadUrl = asset.browser_download_url;
+            break;
+          }
+        }
+      }
+
+      return {
+        available,
+        currentVersion,
+        latestVersion,
+        url: releaseInfo.html_url || `https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${latestTag}`,
+        downloadUrl: downloadUrl || releaseInfo.html_url,
+        body: releaseInfo.body || 'A new update is available.'
+      };
+    }
+    return { available: false, currentVersion };
+  } catch (err) {
+    console.error('[Update Check] Direct GitHub API check failed:', err.message);
+    return { available: false, currentVersion, error: err.message };
   }
 });
 

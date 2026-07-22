@@ -1259,6 +1259,14 @@ body {
 /* ==========================================================================
    ⚙️ Settings Page Styles
    ========================================================================== */
+.settings-tab-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding-bottom: 40px;
+  box-sizing: border-box;
+}
+
 .settings-container {
   display: flex;
   flex-direction: column;
@@ -1266,7 +1274,7 @@ body {
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-  padding: 10px 20px;
+  padding: 10px 20px 60px 20px;
   box-sizing: border-box;
   text-align: left;
 }

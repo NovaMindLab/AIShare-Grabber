@@ -1333,7 +1333,7 @@
         </div>
 
         <!-- 6. SETTINGS TAB -->
-        <div v-else-if="currentTab === 'settings'" style="width: 100%;">
+        <div v-else-if="currentTab === 'settings'" class="settings-tab-wrapper">
           <div class="settings-container">
             <h2 class="settings-title">{{ t.settings.title }}</h2>
             <p class="settings-subtitle">{{ t.settings.subtitle }}</p>
