@@ -1,7 +1,7 @@
 {
     "name":  "shareclip",
     "private":  true,
-    "version":  "1.2.58",
+    "version":  "1.2.59",
     "description":  "ShareCLIP PC Client",
     "author":  "ShareCLIP Team",
     "type":  "module",
