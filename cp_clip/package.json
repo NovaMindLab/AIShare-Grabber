@@ -1,7 +1,7 @@
 {
     "name":  "shareclip",
     "private":  true,
-    "version":  "1.2.54",
+    "version":  "1.2.56",
     "description":  "ShareCLIP PC Client",
     "author":  "ShareCLIP Team",
     "type":  "module",
@@ -13,7 +13,8 @@
                     "dev":  "concurrently -k \"npm run vite:dev\" \"wait-on http://localhost:5173 \u0026\u0026 npm run electron:dev\"",
                     "build":  "vite build",
                     "preview":  "vite preview",
-                    "dist":  "electron-builder"
+                    "dist":  "electron-builder",
+                    "build:wasm":  "asc src/workers/simd_math.ts -o src/workers/simd_math.wasm -O3 --enable simd --enable threads --importMemory --sharedMemory --maximumMemory 10000"
                 },
     "dependencies":  {
                          "@vueuse/core":  "^14.3.0",
@@ -27,6 +28,7 @@
                      },
     "devDependencies":  {
                             "@vitejs/plugin-vue":  "^6.0.7",
+                            "assemblyscript":  "^0.28.20",
                             "concurrently":  "^8.2.2",
                             "electron":  "^30.0.0",
                             "electron-builder":  "^24.13.3",
@@ -54,6 +56,8 @@
                                 "mobileclip2_s0_image_encoder.onnx",
                                 "mobileclip2_s0_image_encoder.onnx.data",
                                 "mobileclip2_s0_text_encoder_quant.onnx",
+                                "det_500m.onnx",
+                                "w600k_mbf.onnx",
                                 "package.json",
                                 "icon.png",
                                 "ble_signaling_server.exe",
