@@ -8,6 +8,8 @@ try {
   app.setName('ShareCLIP');
   const customUserData = path.join(app.getPath('appData'), 'ShareCLIP');
   app.setPath('userData', customUserData);
+  // Disable GPU hardware acceleration for low-end device compatibility
+  app.disableHardwareAcceleration();
 } catch (e) {}
 
 // -------------------------------------------------------------------------------
@@ -248,8 +250,12 @@ async function initializeAI() {
 
   // 3. Initialize Task Manager & Worker Threads
   const physicalModelPath = getPhysicalPath(modelPath);
+  const scrfdModelPath = path.join(__dirname, 'det_500m.onnx');
+  const mobilefacenetModelPath = path.join(__dirname, 'w600k_mbf.onnx');
+  const physicalScrfdModelPath = getPhysicalPath(scrfdModelPath);
+  const physicalMobilefacenetModelPath = getPhysicalPath(mobilefacenetModelPath);
   try {
-    taskManager.init(physicalModelPath);
+    taskManager.init(physicalModelPath, physicalScrfdModelPath, physicalMobilefacenetModelPath);
   } catch (err) {
     console.error("[AI Init] TaskManager failed to initialize models:", err);
   }
@@ -259,17 +265,10 @@ async function initializeAI() {
   if (ort && fs.existsSync(physicalTextModelPath)) {
     try {
       console.log("[AI Init] Loading MobileCLIP Text Encoder ONNX model from:", physicalTextModelPath);
-      try {
-        textEncoderSession = await ort.InferenceSession.create(physicalTextModelPath, {
-          executionProviders: ['dml', 'cpu']
-        });
-      } catch (dmlErr) {
-        console.warn("[AI Init] DirectML GPU provider failed (" + dmlErr.message + "). Falling back to CPU provider for Text Encoder...");
-        textEncoderSession = await ort.InferenceSession.create(physicalTextModelPath, {
-          executionProviders: ['cpu']
-        });
-      }
-      console.log("[AI Init] MobileCLIP Text Encoder ONNX model loaded successfully.");
+      textEncoderSession = await ort.InferenceSession.create(physicalTextModelPath, {
+        executionProviders: ['cpu']
+      });
+      console.log("[AI Init] MobileCLIP Text Encoder ONNX model loaded successfully (CPU execution provider).");
     } catch (err) {
       console.error("[AI Init] Failed to initialize Text Encoder ONNX model session:", err);
     }
@@ -410,6 +409,9 @@ app.whenReady().then(async () => {
   await initializeAI();
   createWindow();
   
+  // Start the async face recognition background daemon
+  startBackgroundFaceScanner();
+  
   // Start local network UDP discovery
   startUdpDiscoveryService();
 
@@ -438,7 +440,188 @@ app.on('will-quit', () => {
   }
 });
 
+// --- Background Asynchronous Face Scanner ---
+let backgroundScannerInterval = null;
+let isFaceScannerRunning = false;
+
+function startBackgroundFaceScanner() {
+  // Disabled: Face scanning is now triggered manually via "刷新聚类" button.
+  console.log("[Background Scanner] Automatic background face recognition is disabled by user configuration.");
+}
+
+async function scanFacesOnDemand(event) {
+  if (!activeDeviceDb) return;
+  console.log("[Manual Scanner] Starting manual on-demand face scanning...");
+
+  const rows = await new Promise((resolve, reject) => {
+    activeDeviceDb.all(`SELECT id, path FROM resources WHERE type = 'image' AND face_scanned = 0`, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows || []);
+    });
+  });
+
+  const total = rows.length;
+  if (total === 0) {
+    console.log("[Manual Scanner] No unscanned faces found.");
+    return;
+  }
+  console.log(`[Manual Scanner] Found ${total} images to scan for faces.`);
+
+  const CONCURRENCY = taskManager.maxInferenceWorkers || 4;
+  let done = 0;
+
+  for (let batchStart = 0; batchStart < total; batchStart += CONCURRENCY) {
+    const batch = rows.slice(batchStart, batchStart + CONCURRENCY);
+
+    await Promise.all(batch.map(async (row) => {
+      try {
+        if (!fs.existsSync(row.path)) {
+          await new Promise((resolve) => activeDeviceDb.run(`UPDATE resources SET face_scanned = 1 WHERE id = ?`, [row.id], resolve));
+          return;
+        }
+
+        const result = await taskManager.computeFace(row.path);
+
+        if (result && result.faces && Array.isArray(result.faces)) {
+          for (const face of result.faces) {
+            const faceBuffer = face.embedding ? Buffer.from(face.embedding.buffer, face.embedding.byteOffset, face.embedding.byteLength) : null;
+            await new Promise((resolve) => {
+              activeDeviceDb.run(
+                `INSERT OR REPLACE INTO faces (id, photo_id, path, bbox, landmarks, embedding) VALUES (?, ?, ?, ?, ?, ?)`,
+                [face.id, row.id, row.path, face.bbox, face.landmarks, faceBuffer],
+                resolve
+              );
+            });
+          }
+        }
+
+        await new Promise((resolve) => {
+          activeDeviceDb.run(`UPDATE resources SET face_scanned = 1 WHERE id = ?`, [row.id], resolve);
+        });
+
+      } catch (scanErr) {
+        console.error(`[Manual Scanner] Error processing ${row.path}:`, scanErr.message);
+        await new Promise((resolve) => activeDeviceDb.run(`UPDATE resources SET face_scanned = 1 WHERE id = ?`, [row.id], resolve));
+      } finally {
+        done++;
+        if (event) {
+          event.sender.send('face-scan-progress', { done, total, currentName: row.path });
+        }
+      }
+    }));
+  }
+  
+  if (event) {
+    event.sender.send('face-scan-progress', { done: total, total });
+  }
+  console.log("[Manual Scanner] Completed face scanning.");
+}
+
 // IPC Communication
+
+// --- Local Folder Import ---
+const crypto = require('crypto');
+
+function scanImagesRecursive(dir, results = []) {
+  const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif', '.heic', '.tiff']);
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return results; }
+  for (const entry of entries) {
+    if (entry.name.startsWith('.')) continue;
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      scanImagesRecursive(fullPath, results);
+    } else if (IMAGE_EXTS.has(path.extname(entry.name).toLowerCase())) {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+
+ipcMain.handle('open-folder-dialog', async () => {
+  const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle('import-local-folder', async (event, { folderPath }) => {
+  if (!folderPath || !fs.existsSync(folderPath)) {
+    throw new Error('Invalid folder path');
+  }
+
+  // Build a deterministic UUID from the folder path
+  const folderHash = crypto.createHash('md5').update(folderPath).digest('hex').slice(0, 16);
+  const virtualUuid = `local_${folderHash}`;
+  const folderName = path.basename(folderPath);
+
+  // Reuse the existing init-device-sync logic to create db + directories
+  activeDeviceUuid = virtualUuid;
+  const baseDir = path.join(app.getPath('userData'), 'sync_storage', virtualUuid);
+  if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir, { recursive: true });
+
+  if (activeDeviceDb) { try { activeDeviceDb.close(); } catch (_) {} }
+
+  const dbPath = path.join(baseDir, 'database.sqlite');
+  activeDeviceDb = new sqlite3.Database(dbPath);
+
+  // Create tables (mirrors init-device-sync schema)
+  const run = (sql) => new Promise((res, rej) => activeDeviceDb.run(sql, (e) => e ? rej(e) : res()));
+  await run(`CREATE TABLE IF NOT EXISTS resources (id TEXT PRIMARY KEY, name TEXT, path TEXT, type TEXT, size INTEGER, predictions TEXT, sync_time INTEGER, embedding BLOB, cluster_id TEXT, face_scanned INTEGER DEFAULT 0, latitude REAL, longitude REAL, create_date TEXT)`);
+  await run(`CREATE TABLE IF NOT EXISTS faces (id TEXT PRIMARY KEY, photo_id TEXT, path TEXT, bbox TEXT, landmarks TEXT, embedding BLOB, person_id TEXT)`);
+  await run(`CREATE TABLE IF NOT EXISTS person_clusters (id TEXT PRIMARY KEY, name TEXT, cover_face_id TEXT, face_count INTEGER)`);
+
+  // Scan images
+  const imagePaths = scanImagesRecursive(folderPath);
+  console.log(`[Local Import] Found ${imagePaths.length} images in: ${folderPath}`);
+
+  // Insert new images (skip already-existing ones by path)
+  const insertStmt = activeDeviceDb.prepare(
+    `INSERT OR IGNORE INTO resources (id, name, path, type, size, sync_time, face_scanned) VALUES (?, ?, ?, 'image', ?, ?, 0)`
+  );
+  const now = Date.now();
+  for (const imgPath of imagePaths) {
+    let size = 0;
+    try { size = fs.statSync(imgPath).size; } catch (_) {}
+    const id = crypto.createHash('md5').update(imgPath).digest('hex');
+    insertStmt.run(id, path.basename(imgPath), imgPath, size, now);
+  }
+  insertStmt.finalize();
+
+  // Load existing embeddings from DB into memory cache
+  const rows = await new Promise((res) => activeDeviceDb.all(
+    `SELECT id, name, path, type, size, predictions, embedding, latitude, longitude, create_date FROM resources`, (_, r) => res(r || [])
+  ));
+  for (const row of rows) {
+    if (row.embedding && row.path) {
+      try {
+        const buf = row.embedding;
+        const fa = new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
+        imageEmbeddingsCache[row.path] = fa;
+        taskManager.addEmbeddingToSAB(row.path, fa);
+      } catch (_) {}
+    } else if (!row.predictions) {
+      // Automatically enqueue unclassified local images to the background AI queue
+      enqueueAiClassification({
+        targetPath: row.path,
+        filename: row.name,
+        isThumbnail: false
+      });
+    }
+  }
+
+  return {
+    uuid: virtualUuid,
+    name: folderName,
+    folderPath,
+    totalImages: imagePaths.length,
+    resources: rows.map(r => ({
+      id: r.id, name: r.name, path: r.path, type: r.type, size: r.size,
+      predictions: r.predictions ? JSON.parse(r.predictions) : null,
+      hasEmbedding: !!r.embedding, latitude: r.latitude, longitude: r.longitude, create_date: r.create_date
+    }))
+  };
+});
+
 ipcMain.handle('open-thumbnail-folder', async () => {
   const rootThumbDir = path.join(app.getPath('userData'), 'thumbnail_sync');
   if (!fs.existsSync(rootThumbDir)) {
@@ -515,6 +698,229 @@ ipcMain.handle('clean-missing-resources', async () => {
   });
 });
 
+async function reclusterFacesInternal() {
+  if (!activeDeviceDb) return [];
+
+  console.log("[Face Cluster] Starting strict human-only face clustering process...");
+
+  // 1. Get all valid human photo paths from resources table
+  const validHumanPaths = await new Promise((resolve) => {
+    activeDeviceDb.all(`SELECT path, predictions FROM resources WHERE type = 'images' OR type = 'thumbnail' OR type = 'photo'`, (err, rows) => {
+      if (err || !rows) resolve(new Set());
+      else {
+        const humanSet = new Set();
+        rows.forEach(r => {
+          if (!r.predictions) return;
+          try {
+            const preds = JSON.parse(r.predictions);
+            if (!Array.isArray(preds) || preds.length === 0) return;
+            const topPred = preds[0];
+            const topCat = (topPred.category || topPred.label || topPred.name || '').toLowerCase();
+            
+            // Explicitly exclude animals, pets, landscapes, documents, food
+            if (topCat.includes('宠物') || topCat.includes('动物') || topCat.includes('pet') || topCat.includes('animal') || topCat.includes('wildlife') || topCat.includes('风景') || topCat.includes('文档') || topCat.includes('美食')) {
+              return;
+            }
+
+            const isHuman = preds.some(p => {
+              const cat = (p.category || p.label || p.name || '').toLowerCase();
+              const isHumanCat = cat.includes('人像') || cat.includes('合影') || cat.includes('自拍') || cat.includes('儿童') || cat.includes('portrait') || cat.includes('people') || cat.includes('group');
+              return isHumanCat && (p.score || 0) >= 0.25;
+            });
+
+            if (isHuman) {
+              humanSet.add(r.path);
+            }
+          } catch (_) {}
+        });
+        resolve(humanSet);
+      }
+    });
+  });
+
+  console.log(`[Face Cluster] Found ${validHumanPaths.size} verified human photos.`);
+
+  // 2. PURGE all old non-human face records from SQLite database!
+  await new Promise(r => activeDeviceDb.run(`DELETE FROM person_clusters`, () => r()));
+  if (validHumanPaths.size > 0) {
+    const validArray = Array.from(validHumanPaths);
+    const placeholders = validArray.map(() => '?').join(',');
+    await new Promise(r => activeDeviceDb.run(`DELETE FROM faces WHERE path NOT IN (${placeholders})`, validArray, () => r()));
+  } else {
+    await new Promise(r => activeDeviceDb.run(`DELETE FROM faces`, () => r()));
+    return [];
+  }
+
+  // 3. Get existing faces for valid human photos
+  let faces = await new Promise((resolve) => {
+    activeDeviceDb.all(`SELECT id, photo_id, path, bbox, landmarks, embedding FROM faces`, (err, rows) => {
+      resolve(rows || []);
+    });
+  });
+
+  // 4. Fallback: Build face entries for any valid human photos missing from faces table
+  const existingPaths = new Set(faces.map(f => f.path));
+  const missingHumanPaths = Array.from(validHumanPaths).filter(p => !existingPaths.has(p));
+
+  if (missingHumanPaths.length > 0) {
+    const placeholders = missingHumanPaths.map(() => '?').join(',');
+    const personResources = await new Promise((resolve) => {
+      activeDeviceDb.all(`SELECT id, name, path, predictions, embedding FROM resources WHERE path IN (${placeholders})`, missingHumanPaths, (err, rows) => {
+        resolve(rows || []);
+      });
+    });
+
+    for (const res of personResources) {
+      const faceId = `face_${res.id}`;
+      let floatEmb = null;
+      if (res.embedding) {
+        floatEmb = new Float32Array(res.embedding.buffer, res.embedding.byteOffset, res.embedding.byteLength / 4);
+      } else if (imageEmbeddingsCache[res.path]) {
+        floatEmb = imageEmbeddingsCache[res.path];
+      }
+
+      if (floatEmb && floatEmb.length === 512) {
+        const embBuffer = Buffer.from(floatEmb.buffer, floatEmb.byteOffset, floatEmb.byteLength);
+        await new Promise(r => {
+          activeDeviceDb.run(
+            `INSERT OR REPLACE INTO faces (id, photo_id, path, bbox, landmarks, embedding) VALUES (?, ?, ?, ?, ?, ?)`,
+            [faceId, res.id, res.path, JSON.stringify([0,0,100,100]), null, embBuffer],
+            () => r()
+          );
+        });
+        faces.push({
+          id: faceId,
+          photo_id: res.id,
+          path: res.path,
+          bbox: JSON.stringify([0,0,100,100]),
+          landmarks: null,
+          embedding: embBuffer
+        });
+      }
+    }
+  }
+
+  if (faces.length === 0) {
+    console.log("[Face Cluster] No faces or person embeddings found to cluster.");
+    return [];
+  }
+
+  // 3. Populate faceSharedBuffer in TaskManager
+  const validFaces = [];
+  const faceSabIndices = [];
+
+  for (const f of faces) {
+    let floatEmb = null;
+    if (f.embedding) {
+      floatEmb = new Float32Array(f.embedding.buffer, f.embedding.byteOffset, f.embedding.byteLength / 4);
+    } else if (imageEmbeddingsCache[f.path]) {
+      floatEmb = imageEmbeddingsCache[f.path];
+    }
+
+    if (floatEmb && floatEmb.length === 512) {
+      const sabIdx = taskManager.addFaceEmbeddingToSAB(f.id, floatEmb);
+      if (sabIdx !== -1) {
+        validFaces.push(f);
+        faceSabIndices.push(sabIdx);
+      }
+    }
+  }
+
+  if (validFaces.length === 0) {
+    console.log("[Face Cluster] No valid face embeddings in SAB.");
+    return [];
+  }
+
+  // 4. Run DBSCAN clustering via TaskManager Search Worker with strict 0.70 similarity threshold
+  console.log(`[Face Cluster] Clustering ${validFaces.length} face crops via DBSCAN (threshold: 0.70)...`);
+  const rawPersonClusters = await taskManager.clusterFaces(faceSabIndices, validFaces, 0.70);
+
+  // Filter out noise clusters with only 1 photo to ensure high precision
+  const personClusters = rawPersonClusters.filter(c => c.face_count >= 2);
+
+  // 5. Persist person_clusters into SQLite
+  await new Promise(r => activeDeviceDb.run(`DELETE FROM person_clusters`, () => r()));
+  for (const cluster of personClusters) {
+    await new Promise(r => {
+      activeDeviceDb.run(
+        `INSERT INTO person_clusters (id, name, cover_face_id, face_count) VALUES (?, ?, ?, ?)`,
+        [cluster.id, cluster.name, cluster.cover_face_id, cluster.face_count],
+        () => r()
+      );
+    });
+    for (const f of cluster.faces) {
+      activeDeviceDb.run(`UPDATE faces SET person_id = ? WHERE id = ?`, [cluster.id, f.id]);
+    }
+  }
+
+  console.log(`[Face Cluster] Created ${personClusters.length} person clusters successfully.`);
+
+  // 6. Return populated clusters with cover_path
+  return new Promise((resolve) => {
+    activeDeviceDb.all(`
+      SELECT p.id, p.name, p.cover_face_id, p.face_count, f.path as cover_path, f.bbox as cover_bbox
+      FROM person_clusters p
+      LEFT JOIN faces f ON p.cover_face_id = f.id
+      ORDER BY p.face_count DESC
+    `, (err, rows) => {
+      if (err || !rows) resolve([]);
+      else resolve(rows);
+    });
+  });
+}
+
+ipcMain.handle('get-person-clusters', async () => {
+  if (!activeDeviceDb) return [];
+  const rows = await new Promise((resolve) => {
+    activeDeviceDb.all(`
+      SELECT p.id, p.name, p.cover_face_id, p.face_count, f.path as cover_path, f.bbox as cover_bbox
+      FROM person_clusters p
+      LEFT JOIN faces f ON p.cover_face_id = f.id
+      ORDER BY p.face_count DESC
+    `, (err, rows) => {
+      if (err || !rows) resolve([]);
+      else resolve(rows);
+    });
+  });
+
+  if (rows.length > 0) {
+    return rows;
+  }
+
+  // Auto-trigger clustering if person_clusters is empty!
+  return await reclusterFacesInternal();
+});
+
+ipcMain.handle('recluster-faces', async (event) => {
+  await scanFacesOnDemand(event);
+  return await reclusterFacesInternal();
+});
+
+ipcMain.handle('update-person-name', async (event, { personId, name }) => {
+  if (!activeDeviceDb) return false;
+  return new Promise((resolve) => {
+    activeDeviceDb.run(`UPDATE person_clusters SET name = ? WHERE id = ?`, [name, personId], (err) => {
+      if (err) resolve(false);
+      else resolve(true);
+    });
+  });
+});
+
+ipcMain.handle('get-person-photos', async (event, personId) => {
+  if (!activeDeviceDb) return [];
+  return new Promise((resolve) => {
+    activeDeviceDb.all(`
+      SELECT DISTINCT r.id, r.name, r.path, r.type, r.size, r.predictions, r.latitude, r.longitude
+      FROM resources r
+      INNER JOIN faces f ON r.path = f.path
+      WHERE f.person_id = ?
+    `, [personId], (err, rows) => {
+      if (err || !rows) resolve([]);
+      else resolve(rows);
+    });
+  });
+});
+
 
 
 ipcMain.handle('select-folder', async () => {
@@ -584,8 +990,10 @@ ipcMain.handle('read-image-bytes', async (event, filePath) => {
 
   // Offload computation to TaskManager pool
   try {
-    const embedding = await taskManager.computeEmbedding(imagePath);
+    const result = await taskManager.computeClip(imagePath);
+    const embedding = (result && result.embedding) ? result.embedding : result;
     imageEmbeddingsCache[imagePath] = embedding;
+
     return embedding;
   } catch (error) {
     throw new Error(`Embedding compute failed: ${error.message}`);
@@ -693,7 +1101,7 @@ async function processAiQueue() {
 
         let embeddingBuffer = null;
         const emb = imageEmbeddingsCache[task.targetPath];
-        if (emb) {
+        if (emb && emb.buffer) {
           embeddingBuffer = Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength);
         }
 
@@ -772,53 +1180,49 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
   const total = rows.length;
   console.log(`[AI Reclassify] Found ${total} phone photos to reclassify.`);
 
-  // 2. Loop and reclassify
-  for (let i = 0; i < total; i++) {
-    const row = rows[i];
-    
-    // Notify renderer of progress
-    event.sender.send('reclassify-progress', {
-      done: i,
-      total,
-      currentName: row.name
-    });
+  // 2. Concurrent batch processing — send CONCURRENCY images in parallel
+  const CONCURRENCY = taskManager.maxInferenceWorkers || 4;
+  console.log(`[AI Reclassify] Processing ${total} photos with concurrency: ${CONCURRENCY}`);
 
-    try {
-      if (fs.existsSync(row.path)) {
+  let done = 0;
+  for (let batchStart = 0; batchStart < total; batchStart += CONCURRENCY) {
+    const batch = rows.slice(batchStart, batchStart + CONCURRENCY);
+
+    await Promise.all(batch.map(async (row) => {
+      try {
+        if (!fs.existsSync(row.path)) return;
+
         const predictions = await classifyPhotoInternal(row.path);
         const predictionsStr = JSON.stringify(predictions);
 
-        // Get the cached embedding Buffer
         let embeddingBuffer = null;
         const emb = imageEmbeddingsCache[row.path];
-        if (emb) {
+        if (emb && emb.buffer) {
           embeddingBuffer = Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength);
         }
 
-        // Update database with both predictions and embedding blob
         await new Promise((resolve, reject) => {
           activeDeviceDb.run(
-            `UPDATE resources SET predictions = ?, embedding = ? WHERE id = ?`,
+            `UPDATE resources SET predictions = ?, embedding = ?, face_scanned = 0 WHERE id = ?`,
             [predictionsStr, embeddingBuffer, row.id],
-            (err) => {
-              if (err) reject(err);
-              else resolve();
-            }
+            (err) => { if (err) reject(err); else resolve(); }
           );
         });
 
-        // Send a single image update event to the renderer immediately!
-        event.sender.send('single-photo-predictions-updated', {
-          id: row.id,
-          predictions
+        event.sender.send('single-photo-predictions-updated', { id: row.id, predictions });
+
+      } catch (err) {
+        console.error(`[AI Reclassify] Failed for ${row.name}:`, err);
+      } finally {
+        done++;
+        // Report progress after each image completes
+        event.sender.send('reclassify-progress', {
+          done,
+          total,
+          currentName: row.name
         });
       }
-    } catch (err) {
-      console.error(`[AI Reclassify] Failed for ${row.name}:`, err);
-    }
-
-    // Pause 20ms between photos to keep event loop free for heartbeats and WebRTC transfers
-    await new Promise(resolve => setTimeout(resolve, 20));
+    }));
   }
 
   // Final progress notification
@@ -827,6 +1231,14 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
     total,
     currentName: 'Completed'
   });
+
+  // Automatically trigger face clustering at the end of AI re-classification!
+  try {
+    console.log("[AI Reclassify] Automatically triggering face clustering...");
+    await reclusterFacesInternal();
+  } catch (err) {
+    console.error("[AI Reclassify] Auto face clustering failed:", err);
+  }
 
   // 3. Query all updated resources to return
   const updatedRows = await new Promise((resolve, reject) => {
@@ -955,7 +1367,8 @@ ipcMain.handle('get-similar-images-groups', async (event, { imageList, threshold
     const validUnclustered = [];
     
     for (const img of unclusteredImages) {
-      const idx = taskManager.getSabIndex(img.path);
+      if (!imageEmbeddingsCache[img.path]) continue; // Skip images that haven't been computed yet
+      const idx = taskManager.getExistingSabIndex(img.path);
       if (idx !== -1) {
         sabIndices.push(idx);
         validUnclustered.push(img);
@@ -1321,7 +1734,8 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
         predictions TEXT,
         sync_time INTEGER,
         embedding BLOB,
-        cluster_id TEXT
+        cluster_id TEXT,
+        face_scanned INTEGER DEFAULT 0
       )
     `, (err) => {
       if (err) reject(err);
@@ -1359,6 +1773,40 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
     activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN create_date TEXT`, () => {
       resolve(); // ignore error if already exists
     });
+  });
+
+  // Safe schema upgrade: add face_scanned for background asynchronous face recognition
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN face_scanned INTEGER DEFAULT 0`, () => {
+      resolve(); // ignore error if already exists
+    });
+  });
+
+  // Create faces table for storing face BBoxes and face Embeddings
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`
+      CREATE TABLE IF NOT EXISTS faces (
+        id TEXT PRIMARY KEY,
+        photo_id TEXT,
+        path TEXT,
+        bbox TEXT,
+        landmarks TEXT,
+        embedding BLOB,
+        person_id TEXT
+      )
+    `, () => resolve());
+  });
+
+  // Create person_clusters table for storing people/person album groups
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`
+      CREATE TABLE IF NOT EXISTS person_clusters (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        cover_face_id TEXT,
+        face_count INTEGER
+      )
+    `, () => resolve());
   });
   
   // Read and return already synced assets
@@ -2056,7 +2504,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     // Get the cached embedding Buffer
     let embeddingBuffer = null;
     const emb = imageEmbeddingsCache[targetPath];
-    if (emb) {
+    if (emb && emb.buffer) {
       embeddingBuffer = Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength);
     }
 
@@ -2100,7 +2548,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
   }
   
   // Enqueue image for background AI classification to keep WebRTC DataChannel latency & heartbeats smooth
-  if ((type === 'images' || isThumbnail) && !isAlbumPhoto) {
+  if (type === 'images' || isThumbnail) {
     enqueueAiClassification({
       targetPath,
       filename,
@@ -2139,7 +2587,7 @@ async function runBackgroundClustering() {
       (err, rows) => {
         if (!err && rows) {
           for (const row of rows) {
-             const idx = taskManager.getSabIndex(row.path);
+             const idx = taskManager.getExistingSabIndex(row.path);
              if (idx !== -1) {
                sabIndices.push(idx);
                validImages.push(row);
@@ -2286,22 +2734,15 @@ ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
       }
     }
 
-    // 6. Calculate cosine similarity against cached image embeddings
-    const results = [];
+    // 6. Delegate search to TaskManager (WASM SIMD)
+    const validImages = [];
     for (const imagePath of imagePaths) {
-      const imgEmbedding = imageEmbeddingsCache[imagePath];
-      if (imgEmbedding) {
-        // Compute cosine similarity using the defined helper function
-        const score = cosineSimilarity(imgEmbedding, queryEmbedding);
-        results.push({ path: imagePath, score });
-      } else {
-        // If image embedding is not yet cached (pending classification), return default low score
-        results.push({ path: imagePath, score: 0.0 });
-      }
+      // Find SAB index for fast SIMD comparison
+      const sabIdx = taskManager.getExistingSabIndex(imagePath);
+      validImages.push({ path: imagePath, sabIdx: sabIdx !== -1 ? sabIdx : -1 });
     }
 
-    // Sort descending by score
-    results.sort((a, b) => b.score - a.score);
+    const results = await taskManager.searchImages(queryEmbedding, validImages);
     return results;
     
   } catch (error) {

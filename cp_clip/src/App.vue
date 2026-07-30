@@ -103,6 +103,14 @@
           </div>
           <div 
             class="category-item" 
+            :class="{ active: currentTab === 'people' }"
+            @click="currentTab = 'people'"
+          >
+            <span>{{ t.sidebar.tabPeople || '👥 人物相册' }}</span>
+            <span class="category-count">{{ personClusters.length }}</span>
+          </div>
+          <div 
+            class="category-item" 
             :class="{ active: currentTab === 'videos' }"
             @click="currentTab = 'videos'"
           >
@@ -238,7 +246,7 @@
 
           <div style="display: flex; align-items: center; gap: 16px;">
             <!-- Search Bar -->
-            <div class="search-bar-container" v-if="currentTab === 'images' && localImages.length > 0">
+            <div class="search-bar-container" v-if="images.length > 0">
               <input 
                 type="text" 
                 class="search-input" 
@@ -366,6 +374,26 @@
                     <span style="font-size: 11px; font-weight: bold; color: #f59e0b;">小贴士</span>
                     <span style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">请确保手机和电脑处于同一 Wi-Fi 网络或已开启蓝牙</span>
                   </div>
+                </div>
+
+                <!-- Local Folder Import Card -->
+                <div style="background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 14px;">📂</span>
+                    <span style="font-size: 11px; font-weight: 700; color: #60a5fa;">没有手机？直接导入本地文件夹</span>
+                  </div>
+                  <span style="font-size: 10px; color: var(--text-secondary); line-height: 1.5;">支持递归扫描子文件夹，导入后可立即运行 AI 分类与人脸识别</span>
+                  <button
+                    id="import-local-folder-btn"
+                    @click="handleImportLocalFolder"
+                    :disabled="isImportingFolder"
+                    style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; font-size: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; border: 1px solid rgba(59,130,246,0.4); background: rgba(59,130,246,0.12); color: #93c5fd; transition: background 0.2s;"
+                    onmouseover="this.style.background='rgba(59,130,246,0.22)'"
+                    onmouseout="this.style.background='rgba(59,130,246,0.12)'"
+                  >
+                    <span>{{ isImportingFolder ? '⏳' : '📂' }}</span>
+                    <span>{{ isImportingFolder ? '正在扫描文件夹...' : '选择文件夹并导入' }}</span>
+                  </button>
                 </div>
               </div>
 
@@ -993,6 +1021,105 @@
               </div>
               <span class="badge badge-pending">{{ t.media.fileDoc }}</span>
             </div>
+          </div>
+        </div>
+
+        <!-- 5.0 PEOPLE ALBUM TAB -->
+        <div v-else-if="currentTab === 'people'" style="width: 100%; height: 100%; display: flex; text-align: left; box-sizing: border-box; overflow: hidden;">
+          <!-- Empty State -->
+          <div class="empty-state" v-if="personClusters.length === 0" style="width: 100%;">
+            <div class="empty-state-icon">👥</div>
+            <h2 class="empty-state-title">暂无人物相册</h2>
+            <p class="empty-state-desc">
+              点击右上角“智能计算/刷新人物聚类”即可开始自动为相册中现有的照片做人物归纳聚类。
+            </p>
+            <button class="btn btn-primary" @click="handleReclusterPeople" :disabled="isClusteringPeople" style="margin-top: 16px;">
+              🔄 智能计算/刷新人物聚类
+            </button>
+          </div>
+
+          <!-- Split People Album View (Left Avatars Sidebar + Right Timeline Gallery) -->
+          <div v-else style="display: flex; width: 100%; height: 100%; gap: 16px; overflow: hidden;">
+            <!-- Left Avatars Sidebar Column -->
+            <aside style="width: 110px; display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 16px 8px; border-right: 1px solid var(--border-color); overflow-y: auto; flex-shrink: 0; scrollbar-width: none;">
+              <div 
+                v-for="person in personClusters" 
+                :key="person.id" 
+                style="display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; width: 100%; transition: transform 0.2s;"
+                :style="{ transform: selectedPersonId === person.id ? 'scale(1.06)' : 'scale(1)' }"
+                @click="selectPerson(person)"
+              >
+                <!-- Circular Avatar Ring -->
+                <div style="width: 76px; height: 76px; border-radius: 50%; overflow: hidden; background: #0f172a; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
+                  :style="{ border: selectedPersonId === person.id ? '3px solid #10b981' : '3px solid rgba(255,255,255,0.1)', boxShadow: selectedPersonId === person.id ? '0 0 16px rgba(16, 185, 129, 0.4)' : '0 4px 10px rgba(0,0,0,0.3)' }"
+                >
+                  <img v-if="person.cover_path" :src="`local:///${person.cover_path.replace(/\\/g, '/')}`" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <span v-else style="font-size: 32px;">🧑</span>
+                </div>
+                <!-- Dark Pill Badge beneath Avatar -->
+                <div style="position: relative; margin-top: -12px; background: #1e293b; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 2px 6px rgba(0,0,0,0.4); white-space: nowrap; z-index: 2;">
+                  {{ person.face_count }}
+                </div>
+              </div>
+            </aside>
+
+            <!-- Right Main Area: Timeline Gallery -->
+            <main style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 12px 20px 24px 12px; height: 100%; box-sizing: border-box;">
+              <!-- Header Bar -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <h2 style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin: 0;">
+                    👥 {{ currentSelectedPerson ? currentSelectedPerson.name : '选择人物' }} ({{ selectedPersonPhotos.length }} 张照片)
+                  </h2>
+                  <button v-if="currentSelectedPerson" class="btn btn-secondary" @click="promptRenamePerson(currentSelectedPerson)" style="padding: 4px 10px; font-size: 11px; border-radius: 6px;">
+                    ✏️ 重命名
+                  </button>
+                </div>
+
+                <button 
+                  class="btn btn-primary" 
+                  @click="handleReclusterPeople" 
+                  :disabled="isClusteringPeople"
+                  style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 12px; font-weight: 600; border-radius: 10px; background: linear-gradient(135deg, #a855f7, #7c3aed); cursor: pointer;"
+                >
+                  <span v-if="isClusteringPeople" class="spinner" style="width: 12px; height: 12px;"></span>
+                  <span v-else>🔄</span>
+                  <span>{{ isClusteringPeople ? (faceScanProgress.total > 0 && faceScanProgress.done < faceScanProgress.total ? '提取人脸中 (' + faceScanProgress.done + '/' + faceScanProgress.total + ')' : '计算聚类中...') : '刷新聚类' }}</span>
+                </button>
+              </div>
+
+              <!-- Date Grouped Timeline Photo Grids -->
+              <div v-if="Object.keys(groupedPersonPhotos).length > 0" style="display: flex; flex-direction: column; gap: 24px;">
+                <div v-for="(photos, dateStr) in groupedPersonPhotos" :key="dateStr" style="display: flex; flex-direction: column; gap: 12px;">
+                  <!-- Date Header -->
+                  <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--text-secondary);">
+                    <input type="checkbox" style="cursor: pointer;" />
+                    <span>{{ dateStr }}</span>
+                  </div>
+
+                  <!-- Photos Grid for this date -->
+                  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;">
+                    <div 
+                      v-for="img in photos" 
+                      :key="img.path" 
+                      class="image-card" 
+                      style="border-radius: 12px; overflow: hidden; aspect-ratio: 1; cursor: pointer;"
+                      @click="openDetails(img)"
+                    >
+                      <div class="card-img-wrapper" style="width: 100%; height: 100%;">
+                        <img :src="img.src" class="card-img" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- No Person Selected Fallback -->
+              <div v-else style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: var(--text-muted);">
+                <span style="font-size: 40px; margin-bottom: 12px;">📸</span>
+                <span>请在左侧点击选择一个人物查看相册照片</span>
+              </div>
+            </main>
           </div>
         </div>
 
@@ -1753,6 +1880,31 @@
       </div>
     </div>
 
+    <!-- Person Photos Gallery Modal -->
+    <div class="modal-backdrop" v-if="showPersonModal" @click.self="showPersonModal = false">
+      <div class="modal-content" style="max-width: 900px; width: 90%; max-height: 85vh; padding: 24px; border-radius: 16px; display: flex; flex-direction: column; text-align: left;">
+        <button class="modal-close" @click="showPersonModal = false">✕</button>
+        <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 16px; color: var(--text-primary);">
+          👥 {{ selectedPersonName }} 包含的照片 ({{ selectedPersonPhotos.length }} 张)
+        </h3>
+        <div style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;">
+          <div 
+            v-for="img in selectedPersonPhotos" 
+            :key="img.path" 
+            class="image-card" 
+            @click="openDetails(img)"
+          >
+            <div class="card-img-wrapper">
+              <img :src="img.src" class="card-img" loading="lazy" />
+            </div>
+            <div class="card-overlay">
+              <span class="card-title">{{ img.name }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- How to Connect Modal -->
     <div class="modal-backdrop" v-if="showHowToConnectModal" @click.self="showHowToConnectModal = false">
       <div class="modal-content" style="max-width: 480px; padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: #0f172a; text-align: left; display: flex; flex-direction: column; gap: 16px;">
@@ -1833,7 +1985,100 @@ function selectCategory(cat) {
   });
 }
 const selectedImage = ref(null);
-const currentTab = ref('images'); // 'link' | 'images' | 'videos' | 'audios' | 'files' | 'yt-dlp'
+const currentTab = ref('images'); // 'link' | 'images' | 'album' | 'similar' | 'map' | 'people' | 'videos' | 'audios' | 'files' | 'yt-dlp'
+
+// Person Clusters & Face Recognition State
+const personClusters = ref([]);
+const selectedPersonPhotos = ref([]);
+const selectedPersonName = ref('');
+const showPersonModal = ref(false);
+const isClusteringPeople = ref(false);
+const faceScanProgress = ref({ done: 0, total: 0 });
+const selectedPersonId = ref(null);
+
+const currentSelectedPerson = computed(() => 
+  personClusters.value.find(p => p.id === selectedPersonId.value) || personClusters.value[0]
+);
+
+async function selectPerson(person) {
+  if (!person) return;
+  selectedPersonId.value = person.id;
+  selectedPersonName.value = person.name;
+  if (hasApi && window.api.getPersonPhotos) {
+    try {
+      const photos = await window.api.getPersonPhotos(person.id);
+      selectedPersonPhotos.value = photos.map(p => ({
+        ...p,
+        src: `local:///${p.path.replace(/\\/g, '/')}`
+      }));
+    } catch (e) {
+      console.error('[People] Failed to load person photos:', e);
+    }
+  }
+}
+
+const groupedPersonPhotos = computed(() => {
+  const groups = {};
+  selectedPersonPhotos.value.forEach(p => {
+    let dateStr = '2025/1/23';
+    if (p.create_date) {
+      dateStr = p.create_date.split('T')[0].replace(/-/g, '/');
+    }
+    if (!groups[dateStr]) groups[dateStr] = [];
+    groups[dateStr].push(p);
+  });
+  return groups;
+});
+
+async function loadPersonClusters() {
+  if (hasApi && window.api.getPersonClusters) {
+    try {
+      const clusters = await window.api.getPersonClusters();
+      personClusters.value = clusters;
+      if (clusters.length > 0) {
+        if (!selectedPersonId.value || !clusters.some(c => c.id === selectedPersonId.value)) {
+          selectPerson(clusters[0]);
+        }
+      }
+    } catch (e) {
+      console.error('[People] Failed to load person clusters:', e);
+    }
+  }
+}
+
+async function handleReclusterPeople() {
+  if (!hasApi || !window.api.reclusterFaces) return;
+  isClusteringPeople.value = true;
+  faceScanProgress.value = { done: 0, total: 0 };
+  try {
+    const clusters = await window.api.reclusterFaces();
+    personClusters.value = clusters;
+    if (clusters.length > 0) {
+      selectPerson(clusters[0]);
+    }
+  } catch (e) {
+    console.error('[People] Failed to recluster faces:', e);
+  } finally {
+    isClusteringPeople.value = false;
+  }
+}
+
+async function promptRenamePerson(person) {
+  if (!person) return;
+  const newName = prompt('请输入人物名称：', person.name);
+  if (newName && newName.trim() && newName !== person.name) {
+    if (hasApi && window.api.updatePersonName) {
+      await window.api.updatePersonName(person.id, newName.trim());
+      loadPersonClusters();
+    }
+  }
+}
+
+watch(currentTab, (newTab) => {
+  if (newTab === 'people') {
+    loadPersonClusters();
+  }
+});
 
 // YT-DLP State
 const ytUrl = ref('');
@@ -2246,6 +2491,8 @@ function openUpdateRelease() {
 
 
 
+const isImportingFolder = ref(false);
+
 const isReclassifying = ref(false);
 const reclassifyProgress = ref({ done: 0, total: 0, currentName: '' });
 let reclassifyStartTime = 0;
@@ -2295,9 +2542,51 @@ async function handleReclassifyAllPhotos() {
     }));
     
     logSyncEvent("🎉 数据库资源列表已完全同步更新。");
+    await loadPersonClusters();
   } catch (err) {
     logSyncEvent(`❌ AI 重新分析失败: ${err.message}`);
     isReclassifying.value = false;
+  }
+}
+
+async function handleImportLocalFolder() {
+  if (!window.api || !window.api.openFolderDialog) return;
+  
+  const folderPath = await window.api.openFolderDialog();
+  if (!folderPath) return;
+
+  isImportingFolder.value = true;
+  logSyncEvent(`📂 正在导入本地文件夹: ${folderPath}`);
+  
+  try {
+    const result = await window.api.importLocalFolder(folderPath);
+    
+    if (!result || result.totalImages === 0) {
+      alert(`所选文件夹中未找到任何图片文件。\n支持格式: JPG, PNG, WEBP, BMP, GIF, HEIC, TIFF`);
+      return;
+    }
+
+    // Populate the gallery with imported resources
+    images.value = result.resources;
+    thumbnailImages.value = result.resources;
+    activeDeviceUuid.value = result.uuid;
+    syncStatus.value = 'connected';
+    
+    logSyncEvent(`✅ 成功导入 ${result.totalImages} 张图片！来自: ${result.name}`);
+    
+    // Switch to images tab to show the gallery
+    currentTab.value = 'images';
+    
+    // Remind user to run AI
+    setTimeout(() => {
+      alert(`🎉 成功导入 ${result.totalImages} 张图片！\n\n请点击左侧面板的【重新算 AI】按钮开始 AI 分类与人脸识别。`);
+    }, 300);
+
+  } catch (err) {
+    logSyncEvent(`❌ 导入失败: ${err.message}`);
+    alert(`导入失败: ${err.message}`);
+  } finally {
+    isImportingFolder.value = false;
   }
 }
 
@@ -3887,7 +4176,14 @@ onMounted(() => {
       }
     });
 
-    // 12. Reclassify AI progress & predictions updated events
+    // 12. Face Scan progress
+    if (window.api.onFaceScanProgress) {
+      window.api.onFaceScanProgress((data) => {
+        faceScanProgress.value = data;
+      });
+    }
+
+    // 13. Reclassify AI progress & predictions updated events
     window.api.onReclassifyProgress((data) => {
       reclassifyProgress.value = data;
       

@@ -11,6 +11,12 @@ contextBridge.exposeInMainWorld('api', {
   openAlbumSyncFolder: () => ipcRenderer.invoke('open-album-sync-folder'),
   cleanMissingResources: () => ipcRenderer.invoke('clean-missing-resources'),
 
+  // Person Album & Face Recognition APIs
+  getPersonClusters: () => ipcRenderer.invoke('get-person-clusters'),
+  reclusterFaces: () => ipcRenderer.invoke('recluster-faces'),
+  updatePersonName: (personId, name) => ipcRenderer.invoke('update-person-name', { personId, name }),
+  getPersonPhotos: (personId) => ipcRenderer.invoke('get-person-photos', personId),
+
   // BLE Signaling & Sync Connection APIs
   startBleServer: () => ipcRenderer.invoke('start-ble-server'),
   stopBleServer: () => ipcRenderer.invoke('stop-ble-server'),
@@ -81,9 +87,17 @@ contextBridge.exposeInMainWorld('api', {
 
   // Reclassify AI analysis for photos
   reclassifyAllPhonePhotos: () => ipcRenderer.invoke('reclassify-all-phone-photos'),
+  
+  // Local Folder Import
+  openFolderDialog: () => ipcRenderer.invoke('open-folder-dialog'),
+  importLocalFolder: (folderPath) => ipcRenderer.invoke('import-local-folder', { folderPath }),
   onReclassifyProgress: (callback) => {
     ipcRenderer.removeAllListeners('reclassify-progress');
     ipcRenderer.on('reclassify-progress', (event, data) => callback(data));
+  },
+  onFaceScanProgress: (callback) => {
+    ipcRenderer.removeAllListeners('face-scan-progress');
+    ipcRenderer.on('face-scan-progress', (event, data) => callback(data));
   },
   onSinglePhotoPredictionsUpdated: (callback) => {
     ipcRenderer.removeAllListeners('single-photo-predictions-updated');

@@ -19,15 +19,20 @@ class WorkerPool {
 
   _spawnWorker() {
     const worker = new Worker(this.scriptPath);
-    const workerObj = { worker, busy: false, callbacks: new Map() };
+    const requiresInit = !!this.initData;
+    const workerObj = { worker, initialized: !requiresInit, busy: requiresInit, callbacks: new Map() };
     
     worker.on('message', (msg) => {
       // Handle initialization responses
       if (msg.type === 'init_result') {
         if (!msg.success) {
            console.warn(`[WorkerPool] Init failed for ${path.basename(this.scriptPath)}:`, msg.error || msg);
+           this.workers = this.workers.filter(w => w !== workerObj);
         } else {
            console.log(`[WorkerPool] Init success for ${path.basename(this.scriptPath)}`);
+           workerObj.initialized = true;
+           workerObj.busy = false;
+           this._pumpQueue();
         }
         return;
       }
@@ -74,9 +79,10 @@ class WorkerPool {
     
     if (this.queue.length === 0) return;
     
-    let freeWorker = this.workers.find(w => !w.busy);
+    let freeWorker = this.workers.find(w => w.initialized && !w.busy);
     if (!freeWorker && this.workers.length < this.maxWorkers) {
-      freeWorker = this._spawnWorker();
+      this._spawnWorker();
+      return; // Wait for newly spawned worker to finish init_result before assigning task
     }
     
     if (freeWorker) {
@@ -85,14 +91,14 @@ class WorkerPool {
       freeWorker.callbacks.set(task.reqId, { resolve: task.resolve, reject: task.reject });
       
       // search worker uses nested payload structure in stage 1, let's keep it robust
-      if (task.msg.type === 'cluster' && task.msg.payload) {
+      if ((task.msg.type === 'cluster' || task.msg.type === 'cluster_faces') && task.msg.payload) {
          task.msg.payload.reqId = task.reqId;
       }
       
       freeWorker.worker.postMessage(task.msg);
       
-      // If there are still items in queue and we haven't reached maxWorkers, spawn another
-      if (this.queue.length > 0 && this.workers.length < this.maxWorkers) {
+      // If there are still items in queue and we have other free workers or room to spawn, pump queue
+      if (this.queue.length > 0) {
         this._pumpQueue();
       }
     }
@@ -150,21 +156,33 @@ class TaskManager {
     // --- Stage 3: SharedArrayBuffer Setup ---
     if (this.tier === 'Low') {
       this.MAX_IMAGES = 20000;  // 40MB
+      this.MAX_FACES = 10000;   // 20MB
     } else if (this.tier === 'Mid') {
       this.MAX_IMAGES = 50000;  // 100MB
+      this.MAX_FACES = 20000;   // 40MB
     } else {
       this.MAX_IMAGES = 100000; // 200MB
+      this.MAX_FACES = 50000;   // 100MB
     }
     
     this.DIM = 512;
-    // Allocate shared memory dynamically based on tier
-    this.sharedBuffer = new SharedArrayBuffer(this.MAX_IMAGES * this.DIM * 4);
+    // Allocate shared memory dynamically based on tier using WebAssembly.Memory
+    const maxPages = Math.ceil((this.MAX_IMAGES * this.DIM * 4) / 65536);
+    this.wasmMemImages = new WebAssembly.Memory({ initial: 16, maximum: maxPages, shared: true });
+    this.sharedBuffer = this.wasmMemImages.buffer;
     this.floatView = new Float32Array(this.sharedBuffer);
     this.imageToIndex = new Map();
-    this.nextIndex = 0;
+    this.nextIndex = 1; // Reserve index 0 for the query vector
+
+    // Face SharedArrayBuffer Allocation
+    const maxFacePages = Math.ceil((this.MAX_FACES * this.DIM * 4) / 65536);
+    this.wasmMemFaces = new WebAssembly.Memory({ initial: 16, maximum: maxFacePages, shared: true });
+    this.faceSharedBuffer = this.wasmMemFaces.buffer;
+    this.faceFloatView = new Float32Array(this.faceSharedBuffer);
+    this.faceIdToIndex = new Map();
+    this.nextFaceIndex = 0;
     
-    const allocMB = (this.MAX_IMAGES * this.DIM * 4) / (1024 * 1024);
-    console.log(`[TaskManager] Allocated ${allocMB}MB SharedArrayBuffer (Capacity: ${this.MAX_IMAGES} images) for Zero-Copy exchange.`);
+    console.log(`[TaskManager] Allocated initial 1MB Image SAB (Max ${maxPages} pages) and 1MB Face SAB for Zero-Copy exchange.`);
   }
   
   getSabIndex(imagePath) {
@@ -180,44 +198,115 @@ class TaskManager {
     return idx;
   }
 
+  getExistingSabIndex(imagePath) {
+    return this.imageToIndex.has(imagePath) ? this.imageToIndex.get(imagePath) : -1;
+  }
+
   addEmbeddingToSAB(imagePath, embedding) {
     const sabIndex = this.getSabIndex(imagePath);
-    if (sabIndex !== -1) {
+    if (sabIndex !== -1 && embedding) {
+      const requiredBytes = (sabIndex + 1) * this.DIM * 4;
+      if (requiredBytes > this.sharedBuffer.byteLength) {
+        const pagesToGrow = Math.ceil((requiredBytes - this.sharedBuffer.byteLength) / 65536);
+        const growPages = Math.max(pagesToGrow, 100);
+        try {
+          this.wasmMemImages.grow(growPages);
+        } catch(e) {
+          this.wasmMemImages.grow(pagesToGrow);
+        }
+        this.sharedBuffer = this.wasmMemImages.buffer; // FIX: Update buffer reference
+        this.floatView = new Float32Array(this.sharedBuffer); // Refresh view
+      }
       this.floatView.set(embedding, sabIndex * this.DIM);
     }
     return sabIndex;
   }
 
-  init(modelPath) {
-    const cpus = os.cpus().length;
-    // Cap inference workers to max 2 to maximize cache efficiency, prevent thread thrashing and preserve CPU cores for WebRTC & UI
-    const inferenceWorkers = Math.min(2, Math.max(1, Math.floor(cpus / 4)));
+  getFaceSabIndex(faceId) {
+    if (this.faceIdToIndex.has(faceId)) {
+      return this.faceIdToIndex.get(faceId);
+    }
+    if (this.nextFaceIndex >= this.MAX_FACES) {
+      console.warn("[TaskManager] Face SAB capacity reached! Ignoring new face for SAB.");
+      return -1;
+    }
+    const idx = this.nextFaceIndex++;
+    this.faceIdToIndex.set(faceId, idx);
+    return idx;
+  }
+
+  addFaceEmbeddingToSAB(faceId, embedding) {
+    const sabIndex = this.getFaceSabIndex(faceId);
+    if (sabIndex !== -1 && embedding) {
+      const requiredBytes = (sabIndex + 1) * this.DIM * 4;
+      if (requiredBytes > this.faceSharedBuffer.byteLength) {
+        const pagesToGrow = Math.ceil((requiredBytes - this.faceSharedBuffer.byteLength) / 65536);
+        const growPages = Math.max(pagesToGrow, 100);
+        try {
+          this.wasmMemFaces.grow(growPages);
+        } catch(e) {
+          this.wasmMemFaces.grow(pagesToGrow);
+        }
+        this.faceSharedBuffer = this.wasmMemFaces.buffer; // FIX: Update buffer reference
+        this.faceFloatView = new Float32Array(this.faceSharedBuffer); // Refresh view
+      }
+      this.faceFloatView.set(embedding, sabIndex * this.DIM);
+    }
+    return sabIndex;
+  }
+
+  init(modelPath, scrfdModelPath = null, mobilefacenetModelPath = null) {
+    // Use the tier-based maxInferenceWorkers (e.g., up to 6 on High tier) to fully utilize CPU
+    const inferenceWorkers = this.maxInferenceWorkers || Math.max(1, Math.floor(cpus / 2) - 1);
     
     this.inferencePool = new WorkerPool(
       path.join(__dirname, 'inference.worker.cjs'), 
       inferenceWorkers, 
       60000,
-      { physicalModelPath: modelPath }
+      { 
+        physicalModelPath: modelPath,
+        physicalScrfdModelPath: scrfdModelPath,
+        physicalMobilefacenetModelPath: mobilefacenetModelPath
+      }
     );
     
-    // Pass the sharedBuffer to the Search Worker
+    // Pass the WebAssembly.Memory objects to the Search Worker
     this.searchPool = new WorkerPool(
       path.join(__dirname, 'search.worker.cjs'), 
       1, 
       this.idleTimeoutMs,
-      { sharedBuffer: this.sharedBuffer }
+      { 
+        wasmMemImages: this.wasmMemImages,
+        wasmMemFaces: this.wasmMemFaces,
+        sharedBuffer: this.sharedBuffer,
+        faceSharedBuffer: this.faceSharedBuffer
+      }
     );
   }
   
-  async computeEmbedding(imagePath) {
+  async computeClip(imagePath) {
     if (!this.inferencePool) throw new Error("TaskManager not initialized");
-    const result = await this.inferencePool.executeTask({ type: 'compute', imagePath });
+    const result = await this.inferencePool.executeTask({ type: 'compute_clip', imagePath });
     
     // Automatically populate SAB when computed
     if (result.embedding) {
       this.addEmbeddingToSAB(imagePath, result.embedding);
     }
-    return result.embedding;
+    return result;
+  }
+
+  async computeFace(imagePath) {
+    if (!this.inferencePool) throw new Error("TaskManager not initialized");
+    const result = await this.inferencePool.executeTask({ type: 'compute_face', imagePath });
+    
+    if (result.faces && Array.isArray(result.faces)) {
+      result.faces.forEach(face => {
+        if (face.id && face.embedding) {
+          this.addFaceEmbeddingToSAB(face.id, face.embedding);
+        }
+      });
+    }
+    return result;
   }
   
   async clusterImages(sabIndices, validImages, threshold) {
@@ -227,6 +316,28 @@ class TaskManager {
       payload: { sabIndices, validImages, threshold } 
     });
     return result.groups;
+  }
+
+  async clusterFaces(faceSabIndices, validFaces, threshold = 0.65) {
+    if (!this.searchPool) throw new Error("TaskManager not initialized");
+    const result = await this.searchPool.executeTask({
+      type: 'cluster_faces',
+      payload: { faceSabIndices, validFaces, threshold }
+    });
+    return result.personClusters;
+  }
+
+  async searchImages(queryEmbedding, validImages) {
+    if (!this.searchPool) throw new Error("TaskManager not initialized");
+    
+    // Copy query embedding to index 0 (reserved for query)
+    this.floatView.set(queryEmbedding, 0);
+
+    const result = await this.searchPool.executeTask({
+      type: 'search_images',
+      payload: { validImages }
+    });
+    return result.searchResults;
   }
 }
 
