@@ -1,6 +1,6 @@
 # 🚀 ShareCLIP 语义搜索底层架构与性能优化汇报
 
-> **文档目标**：深度剖析 ShareCLIP (Image Clip) 桌面端“自然语言搜图”的核心技术架构，对比传统方案，阐述性能极限优化（Zero-Copy / WASM SIMD）的选型依据，并分析内存管理的潜在缺陷与演进方向。
+> **文档目标**：深度剖析 ShareCLIP (Image Clip) 桌面端“自然语言搜图”的核心技术架构，对比传统方案，阐述性能极限优化（零拷贝 / 向量化并行计算）的选型依据，并分析内存管理的潜在缺陷与演进方向。
 
 ---
 
@@ -24,10 +24,10 @@
 
 ### 1. 传统方案 VS ShareCLIP 方案
 
-| 维度 | 传统方案 (Node.js/Vue 直接计算) | ShareCLIP 最终方案 (SAB + WASM) | 选型依据与收益 |
+| 维度 | 传统方案 (Node.js/Vue 直接计算) | ShareCLIP 最终方案 (共享内存 + 硬件引擎) | 选型依据与收益 |
 | :--- | :--- | :--- | :--- |
 | **内存开销** | 极高 (IPC 序列化产生海量冗余对象) | **极低 (复用同一块连续物理内存)** | 拒绝 IPC 传值，引入 `SharedArrayBuffer`，实现跨线程 **零拷贝 (Zero-Copy)**。 |
-| **计算速度** | 慢 (JS 解释执行，单指令单数据) | **极快 (编译级 C++ 代码，SIMD)** | 引入 `WebAssembly (WASM)` 模块，利用 SIMD 硬件指令，一个时钟周期计算多个浮点数。 |
+| **计算速度** | 慢 (JS 解释执行，单指令单数据) | **极快 (高性能底层指令，SIMD)** | 引入高性能计算模块，利用 SIMD 硬件加速指令，一个时钟周期计算多个浮点数。 |
 | **UI 流畅度** | 严重掉帧、卡死 | **60 FPS 满帧，瞬间返回** | 将计算完全剥离至 Worker 子线程，主进程和 Vue 渲染线程 0 负担。 |
 
 ---
@@ -42,7 +42,7 @@ sequenceDiagram
     participant Main as Node 主进程
     participant ONNX as ONNX Runtime
     participant SAB as SharedArrayBuffer (共享内存)
-    participant Worker as WASM Worker 线程
+    participant Worker as 计算 Worker 线程
 
     Vue->>Main: 发起搜索请求 (query: "奔跑的狗", paths: [...])
     Main->>ONNX: Tokenize 文本并输入 Text Encoder
@@ -54,7 +54,7 @@ sequenceDiagram
     Main->>Worker: 下发比对任务 (仅发送目标图片路径及缓存区 Index)
     
     Note over Worker, SAB: 直接读取共享内存
-    Worker->>Worker: 触发 WASM SIMD (C++) 硬件级并行计算
+    Worker->>Worker: 触发硬件级 (SIMD) 向量并行计算
     Worker->>SAB: 读取 0 号文字块与目标图片数据块
     Worker-->>Main: 返回排序结果数组 [{path, score}] (无冗余数据)
     
@@ -66,7 +66,7 @@ sequenceDiagram
 
 ## 四、 内存字典映射机制 (解耦设计)
 
-**问题**：底层的 C++ WASM 代码只懂数字，不懂冗长的本地物理路径。那么，内存中的特征块，是如何与真实的图片对上号的？
+**问题**：底层的并行计算引擎为了追求极速只处理纯数字，不处理冗长的本地物理路径。那么，内存中的特征块，是如何与真实的图片对上号的？
 
 **解法**：主进程中的 `TaskManager` 引入了 **双向映射机制 (Map Dictionary)**。
 
