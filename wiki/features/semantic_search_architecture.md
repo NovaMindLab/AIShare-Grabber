@@ -8,7 +8,37 @@
 
 ShareCLIP 能够实现“不依赖标签，直接用自然语言搜索几十万张本地图片”，其核心在于将 **自然语言（NLP）** 和 **机器视觉（CV）** 统一到了同一个 512 维的数学空间中。
 
-当用户在界面输入检索词（例如：“在沙滩奔跑的狗”）并按下回车，系统会瞬间触发一条极度优化的端到端执行链路：
+当用户在界面输入检索词（例如：“在沙滩奔跑的狗”）并按下回车，整个检索链路在架构上依托三大核心拓扑节点，触发一条极度优化的端到端数据流转：
+
+### 1. 系统架构拓扑图 (Topology)
+
+```mermaid
+flowchart TD
+    subgraph 前端渲染层
+        UI[Vue 3 交互界面]
+        VirtualList[虚拟列表渲染引擎]
+    end
+
+    subgraph Node.js 调度层
+        NLP[BPE 文本分词器]
+        ONNX[AI 推理引擎 Text Encoder]
+        MapDict[物理路径双向映射字典]
+    end
+
+    subgraph 高性能计算层
+        SAB[(SharedArrayBuffer 物理内存池)]
+        Worker[后台多线程并发集群]
+    end
+
+    UI -- 1. 提交自然语言 --> NLP
+    NLP -- 2. 77 维 Token 序列 --> ONNX
+    ONNX -- 3. 零拷贝写入 512 维特征 --> SAB
+    MapDict -- 4. 派发比对任务及内存 Index --> Worker
+    Worker -- 5. 跨线程极速读取内存块 --> SAB
+    Worker -- 6. 异步返回轻量级打分数组 --> VirtualList
+```
+
+### 2. 端到端执行时序图 (Sequence)
 
 ```mermaid
 sequenceDiagram
