@@ -62,18 +62,79 @@ sequenceDiagram
 
 ## 二、 语义理解与特征提取 (NLP to Vision)
 
-搜索的起点，是将人类的自然语言转化为机器能够进行精确比对的“数学坐标”。这一阶段完全在主进程中流转。
+搜索的起点，是将人类毫无规律的自然语言转化为机器能够进行精确比对的“统一数学坐标”。这一阶段完全在 Node.js 主进程中流转，全程围绕**如何提取“灵魂坐标”**展开。
+
+```mermaid
+flowchart LR
+    A[用户输入: "奔跑的狗"] -->|BPE Tokenizer| B[77 维 Token 序列<br/>Int64]
+    B -->|构建张量 Tensor| C[ONNX Runtime<br/>Text Encoder]
+    C -->|神经网络推理| D[512 维特征向量<br/>Float32]
+    D -->|L2 数学归一化| E[标准单位向量<br/>Norm=1]
+    E -.-> F[进入底层内存比对]
+```
 
 ### 1. BPE Tokenization (字节对分词编码)
-传统的关键词搜索依赖分词库，而 ShareCLIP 采用了基于模型语料训练的 **BPE (Byte Pair Encoding)** 算法。
-系统会将用户输入的任意长短句、生僻词，精准拆解为模型能理解的词根（Token）。为了对齐底层 AI 模型的张量维度，所有输入最终都会被严格对齐填充为一个长度固定的 **77 维数组**（`BigInt64Array[77]`）。
+传统的关键词搜索依赖固定的分词词典（如结巴分词），一旦遇到生僻词或复杂句式就会失效。ShareCLIP 采用了基于大规模语料训练的 **BPE (Byte Pair Encoding)** 算法。
+无论您输入什么长短句，系统都能通过字词频率，将其精准“切碎”为 AI 模型能理解的基础词根（Token ID）。为了匹配模型输入张量（Tensor）的形状，生成的 Token 数组会被首尾加上特殊的标记符，并用 0 填充（Pad）到一个永远固定的 **77 维数组** (`BigInt64Array`)。
+
+**核心实现代码**：
+```javascript
+// 1. 调用内置 BPE 算法将文本转化为纯数字 Token
+const tokenIds = tokenizer.encodeForCLIP(queryText);
+
+// 2. 将结果填充进长度为 77 的 64位大整数数组中
+const bigintData = new BigInt64Array(77);
+for (let i = 0; i < 77; i++) {
+  bigintData[i] = BigInt(tokenIds[i]);
+}
+
+// 3. 将数组包装为 ONNX Runtime 能够识别的 Tensor (张量) 形状 [1, 77]
+const tensor = new ort.Tensor('int64', bigintData, [1, 77]);
+```
 
 ### 2. ONNX 文本编码器 (Text Encoder) 推理
-分词完成后的 77 维 Token 序列，被送入内置的轻量级推理引擎（ONNX Runtime）。
-该文本编码器会将这些离散的词根，升维映射到了一个极其庞大的数学空间中，最终输出一个包含 **512 个浮点数的稠密向量 (Dense Float32 Vector)**。这个 512 维的向量，就是这句话的“灵魂坐标”。
+分词生成的张量矩阵，随即被喂给 ShareCLIP 内置的轻量级 AI 推理引擎（`ONNX Runtime`）。
+在这里，系统调用了经过特殊剪枝优化的 `Text Encoder`（MobileCLIP 文本神经网络）。经过 Transformer 架构中数十层注意力和多层感知机的密集计算，这 77 个离散词根的上下文关系被充分理解。最终，引擎会输出一个包含 **512 个浮点数的稠密向量 (Dense Float32 Vector)**。这就是这句话在物理空间中的绝对“灵魂坐标”。
+
+**核心实现代码**：
+```javascript
+// 4. 将打包好的 77 维 Tensor 送入 ONNX 模型进行前向推理
+const inputName = textEncoderSession.inputNames[0];
+const feeds = {};
+feeds[inputName] = tensor;
+
+// 执行神经网络计算
+const outputs = await textEncoderSession.run(feeds);
+
+// 获取输出结果：一条完美的 512 维 Float32 特征数组
+const outputName = textEncoderSession.outputNames[0];
+const textFeatures = outputs[outputName].data; // 得到 Float32Array(512)
+```
 
 ### 3. 特征 L2 归一化 (Normalization)
-为了确保文本向量和早已存在数据库中的图片向量能够处于同一个标尺下进行比较，系统会在最终环节对提取出的文本向量进行 **L2 数学归一化处理**（将其长度缩放为 1），以确保后续的余弦相似度计算绝对精准。
+AI 输出的 512 维向量虽然方向精准，但其在数学空间中的“长度”往往是不规则的。而存储在本地数据库和内存中的图片特征，都已经过标准化处理。
+为了确保后续能够使用极致高效的“余弦相似度”（点积计算）来比较文本和图片的匹配度，系统必须对这个新生成的文本向量进行 **L2 归一化处理**：通过勾股定理求出该向量的模长（Norm），然后将 512 个维度的每个数值都除以模长，使得该向量的总长度完美缩放为 1（标准单位向量）。
+
+**核心实现代码**：
+```javascript
+// 5. 对 512 维特征执行 L2 归一化 (L2 Normalization)
+let norm = 0;
+// 第一步：计算所有维度平方和
+for (let i = 0; i < textFeatures.length; i++) {
+  norm += textFeatures[i] * textFeatures[i];
+}
+// 第二步：开根号得到总模长
+norm = Math.sqrt(norm);
+
+const queryEmbedding = new Float32Array(512);
+if (norm > 0) {
+  // 第三步：将每个维度都除以模长，将其收敛为标准单位向量
+  for (let i = 0; i < textFeatures.length; i++) {
+    queryEmbedding[i] = textFeatures[i] / norm;
+  }
+}
+// 最终完美的 queryEmbedding 即被送往底层内存进行百万级扫库！
+```
 
 ---
 
