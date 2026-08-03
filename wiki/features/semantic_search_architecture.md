@@ -66,11 +66,11 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A[用户输入: "奔跑的狗"] -->|BPE Tokenizer| B[77 维 Token 序列<br/>Int64]
-    B -->|构建张量 Tensor| C[ONNX Runtime<br/>Text Encoder]
-    C -->|神经网络推理| D[512 维特征向量<br/>Float32]
-    D -->|L2 数学归一化| E[标准单位向量<br/>Norm=1]
-    E -.-> F[进入底层内存比对]
+    A["用户输入 (奔跑的狗)"] -->|BPE Tokenizer| B["77 维 Token 序列 (Int64)"]
+    B -->|构建张量 Tensor| C["ONNX Runtime (Text Encoder)"]
+    C -->|神经网络推理| D["512 维特征向量 (Float32)"]
+    D -->|L2 数学归一化| E["标准单位向量 (Norm=1)"]
+    E -.-> F["进入内存并行比对"]
 ```
 
 ### 1. BPE Tokenization (字节对分词编码)
