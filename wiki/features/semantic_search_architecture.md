@@ -26,15 +26,15 @@ flowchart TD
     end
 
     subgraph 高性能计算层
-        SAB[(SharedArrayBuffer 物理内存池)]
+        MemPool[(底层连续物理内存池)]
         Worker[后台多线程并发集群]
     end
 
     UI -- 1. 提交自然语言 --> NLP
     NLP -- 2. 77 维 Token 序列 --> ONNX
-    ONNX -- 3. 零拷贝写入 512 维特征 --> SAB
+    ONNX -- 3. 零拷贝写入 512 维特征 --> MemPool
     MapDict -- 4. 派发比对任务及内存 Index --> Worker
-    Worker -- 5. 跨线程极速读取内存块 --> SAB
+    Worker -- 5. 极速读取物理内存块 --> MemPool
     Worker -- 6. 异步返回轻量级打分数组 --> VirtualList
 ```
 
@@ -45,7 +45,7 @@ sequenceDiagram
     participant Vue as 表现层 (Vue 3)
     participant NLP as 文本解析模块
     participant ONNX as AI 推理引擎 (ONNX)
-    participant Mem as 特征共享内存 (SAB)
+    participant Mem as 连续物理内存池
     participant Calc as 多线程并发计算引擎
 
     Vue->>NLP: 1. 发起自然语言搜索请求 ("在沙滩奔跑的狗")
@@ -81,8 +81,8 @@ sequenceDiagram
 
 得到了 512 维的文本向量后，如果采用常规在主线程中循环遍历并逐一计算余弦距离的做法，极易造成 UI 线程阻塞。ShareCLIP 在这里引入了工业级的高速向量检索引擎架构：
 
-### 1. 内存零拷贝 (Zero-Copy) 共享
-系统在启动时，会向系统申请一块巨大的连续物理内存池（`SharedArrayBuffer`），并将本地所有图片的 512 维特征预先加载到连续的区块中。
+### 1. 内存零拷贝 (Zero-Copy) 设计
+系统在启动时，会向底层申请一块巨大的连续物理内存池，并将本地所有图片的 512 维特征预先加载到该连续的内存区块中。
 * 内存的 **第 0 号区块** 被永久保留，专属于“文本查询向量”。
 * 每次搜索时，提取出的文本特征直接写入该预留内存块，完美避开了多线程环境下的高成本 IPC 数据拷贝。
 
