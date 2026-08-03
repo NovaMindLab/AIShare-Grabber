@@ -22,19 +22,19 @@ flowchart TD
     subgraph Node.js 调度层
         NLP[BPE 文本分词器]
         ONNX[AI 推理引擎 Text Encoder]
-        MapDict[物理路径双向映射字典]
+        MapDict[路径双向映射字典]
     end
 
     subgraph 高性能计算层
-        MemPool[(底层连续物理内存池)]
+        MemPool[(内存)]
         Worker[后台多线程并发集群]
     end
 
     UI -- 1. 提交自然语言 --> NLP
     NLP -- 2. 77 维 Token 序列 --> ONNX
-    ONNX -- 3. 零拷贝写入 512 维特征 --> MemPool
+    ONNX -- 3. 写入 512 维特征至内存 --> MemPool
     MapDict -- 4. 派发比对任务及内存 Index --> Worker
-    Worker -- 5. 极速读取物理内存块 --> MemPool
+    Worker -- 5. 在内存中读取运算 --> MemPool
     Worker -- 6. 异步返回轻量级打分数组 --> VirtualList
 ```
 
@@ -45,7 +45,7 @@ sequenceDiagram
     participant Vue as 表现层 (Vue 3)
     participant NLP as 文本解析模块
     participant ONNX as AI 推理引擎 (ONNX)
-    participant Mem as 连续物理内存池
+    participant Mem as 内存
     participant Calc as 多线程并发计算引擎
 
     Vue->>NLP: 1. 发起自然语言搜索请求 ("在沙滩奔跑的狗")
@@ -81,8 +81,8 @@ sequenceDiagram
 
 得到了 512 维的文本向量后，如果采用常规在主线程中循环遍历并逐一计算余弦距离的做法，极易造成 UI 线程阻塞。ShareCLIP 在这里引入了工业级的高速向量检索引擎架构：
 
-### 1. 内存零拷贝 (Zero-Copy) 设计
-系统在启动时，会向底层申请一块巨大的连续物理内存池，并将本地所有图片的 512 维特征预先加载到该连续的内存区块中。
+### 1. 内存化直接运算
+系统在启动时，会将本地所有图片的 512 维特征预先加载到内存中。
 * 内存的 **第 0 号区块** 被永久保留，专属于“文本查询向量”。
 * 每次搜索时，提取出的文本特征直接写入该预留内存块，完美避开了多线程环境下的高成本 IPC 数据拷贝。
 
@@ -99,7 +99,7 @@ sequenceDiagram
 > **关于系统长效稳定运行的探讨（内存回收机制）**
 > 
 > 目前在图片新增时，系统采用线性的递增逻辑（`nextIndex++`）分配内存区块。
-> 当用户频繁同步并删除图片时，由于时序被字典严格隔离，搜索过程绝不会错乱。但被删除图片的物理内存区块会变成“幽灵区块”，不可被重用。
+> 当用户频繁同步并删除图片时，由于时序被字典严格隔离，搜索过程绝不会错乱。但被删除图片的内存区块会变成“幽灵区块”，不可被重用。
 >
 > **未来迭代方案**：
 > 计划在架构中引入 **空闲回收池 (Free Pool Queue)**。当图片被删除时，将其索引推入回收池；新图片入库时优先从回收池复用旧内存块。这将彻底解决长期高频存取下的内存碎片与泄漏隐患，确保内存池容量达成 100% 闭环复用。
