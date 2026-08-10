@@ -1,7 +1,7 @@
 {
     "name":  "shareclip",
     "private":  true,
-    "version":  "1.2.61",
+    "version":  "1.2.62",
     "description":  "ShareCLIP PC Client",
     "author":  "ShareCLIP Team",
     "type":  "module",
@@ -111,8 +111,7 @@
                               "icon":  "build/icon.png",
                               "signAndEditExecutable":  false,
                               "target":  [
-                                             "nsis",
-                                             "portable"
+                                             "nsis"
                                          ]
                           },
                   "portable":  {
