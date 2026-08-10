@@ -11,7 +11,7 @@ import 'views/home_view.dart';
 import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 
-const String appVersion = '1.2.60';
+const String appVersion = '1.2.61';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
