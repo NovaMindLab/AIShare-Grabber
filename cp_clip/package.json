@@ -1,7 +1,7 @@
 {
     "name":  "shareclip",
     "private":  true,
-    "version":  "1.2.65",
+    "version":  "1.2.66",
     "description":  "ShareCLIP PC Client",
     "author":  "ShareCLIP Team",
     "type":  "module",
@@ -9,7 +9,7 @@
     "scripts":  {
                     "vite:dev":  "vite",
                     "vite:build":  "vite build",
-                    "electron:dev":  "electron .",
+                    "electron:dev":  "cross-env NODE_ENV=development electron .",
                     "dev":  "concurrently -k \"npm run vite:dev\" \"wait-on http://localhost:5173 \u0026\u0026 npm run electron:dev\"",
                     "build":  "vite build",
                     "preview":  "vite preview",
@@ -30,6 +30,7 @@
                             "@vitejs/plugin-vue":  "^6.0.7",
                             "assemblyscript":  "^0.28.20",
                             "concurrently":  "^8.2.2",
+                            "cross-env":  "^10.1.0",
                             "electron":  "^30.0.0",
                             "electron-builder":  "^24.13.3",
                             "vite":  "^8.1.0",

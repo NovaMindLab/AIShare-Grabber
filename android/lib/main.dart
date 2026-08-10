@@ -11,7 +11,7 @@ import 'views/home_view.dart';
 import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 
-const String appVersion = '1.2.65';
+const String appVersion = '1.2.66';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -146,90 +146,44 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
 
   void _showUpdateDialog(String latestVersion, String apkUrl) {
     final lang = Provider.of<LocalizationService>(context, listen: false);
-    bool isDownloading = false;
-    double progress = 0.0;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text(lang.get('updateTitle')),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(lang.get('updateMessage').replaceAll('{version}', latestVersion)),
-                  if (isDownloading) ...[
-                    const SizedBox(height: 24),
-                    LinearProgressIndicator(
-                      value: progress > 0 ? progress : null,
-                      backgroundColor: Colors.grey[200],
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF7C3AED)),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('${(progress * 100).toStringAsFixed(1)}%', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                  ]
-                ],
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(lang.get('updateTitle')),
+          content: Text(lang.get('updateMessage').replaceAll('{version}', latestVersion)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(lang.get('laterBtn')),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                foregroundColor: Colors.white,
               ),
-              actions: isDownloading ? [] : [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(lang.get('laterBtn')),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7C3AED),
-                    foregroundColor: Colors.white,
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('已转入后台下载，可在系统通知栏查看进度。下载完成后将自动提示安装。'),
+                    duration: Duration(seconds: 4),
                   ),
-                  onPressed: () async {
-                    setState(() {
-                      isDownloading = true;
-                      progress = 0.0;
-                    });
-                    const platform = MethodChannel('com.shareclip/system_info');
-                    try {
-                      await platform.invokeMethod('downloadAndInstallApk', {'url': apkUrl});
-                      
-                      bool done = false;
-                      while (!done && mounted) {
-                        await Future.delayed(const Duration(milliseconds: 500));
-                        try {
-                          final double p = await platform.invokeMethod('getDownloadProgress');
-                          if (p >= 1.0 || p < 0) {
-                            done = true;
-                            if (p >= 1.0) {
-                                try {
-                                    await platform.invokeMethod('installDownloadedApk');
-                                } catch (e) {
-                                    debugPrint('[Update] Error invoking install: $e');
-                                }
-                            }
-                            if (mounted && Navigator.canPop(context)) {
-                              Navigator.of(context).pop();
-                            }
-                          } else {
-                            setState(() {
-                              progress = p;
-                            });
-                          }
-                        } catch (e) {
-                          done = true;
-                        }
-                      }
-                    } catch (e) {
-                      debugPrint('[Update] Error downloading update: $e');
-                      setState(() {
-                        isDownloading = false;
-                      });
-                    }
-                  },
-                  child: Text(lang.get('updateBtn')),
-                ),
-              ],
-            );
-          },
+                );
+
+                const platform = MethodChannel('com.shareclip/system_info');
+                try {
+                  await platform.invokeMethod('downloadAndInstallApk', {'url': apkUrl});
+                } catch (e) {
+                  debugPrint('[Update] Error downloading update: $e');
+                }
+              },
+              child: Text(lang.get('updateBtn')),
+            ),
+          ],
         );
       },
     );
