@@ -8,10 +8,11 @@ import 'viewmodels/sync_viewmodel.dart';
 import 'views/qr_scanner_view.dart';
 import 'views/transfer_console_view.dart';
 import 'views/home_view.dart';
+import 'views/connecting_view.dart';
 import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 
-const String appVersion = '1.2.71';
+const String appVersion = '1.2.72';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -213,9 +214,50 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
     switch (appState) {
       case AppState.idle:
         return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          backgroundColor: const Color(0xFF070A12),
           body: Center(
-            child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF6366F1).withOpacity(0.4),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'S',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 32,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       case AppState.home:
@@ -231,7 +273,7 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
       case AppState.sendingOffer:
       case AppState.waitingForAnswer:
       case AppState.connectingWebRtc:
-        return _buildConnectingProgressScreen(appState, viewModel);
+        return ConnectingView(appState: appState, viewModel: viewModel);
       case AppState.connected:
         return const TransferConsoleView();
       case AppState.failed:
@@ -244,102 +286,55 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
   Widget _buildPermissionsRequiredScreen() {
     final t = Provider.of<LocalizationService>(context);
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text("🔒", style: TextStyle(fontSize: 64.0)),
-            const SizedBox(height: 16.0),
-            Text(
-              t.get('permissionTitle'),
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 22.0,
-                  fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              t.get('permissionDesc'),
-              style: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6), fontSize: 14.0),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24.0),
-            ElevatedButton(
-              onPressed: _checkAndRequestPermissions,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0)),
-              ),
-              child: Text(t.get('grantBtn')),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // �?CONNECTING PROGRESS
-  // ─────────────────────────────────────────────────────────────────
-  Widget _buildConnectingProgressScreen(
-      AppState appState, SyncViewModel viewModel) {
-    final t = Provider.of<LocalizationService>(context);
-    final isZh = t.currentLocale.startsWith('zh');
-    final labels = {
-      AppState.connectingBle: isZh ? "正在通过蓝牙搜索并连接电�?.." : "Scanning & Connecting to PC via BLE...",
-      AppState.negotiatingMtu: isZh ? "正在协商蓝牙传输属�?.." : "Negotiating BLE transfer properties...",
-      AppState.discoveringGatt: isZh ? "正在发现GATT特征服务..." : "Discovering GATT service characteristics...",
-      AppState.generatingOffer: isZh ? "正在生成WebRTC Offer参数..." : "Generating WebRTC Offer parameters...",
-      AppState.sendingOffer: isZh ? "正在通过蓝牙上传Offer SDP..." : "Uploading Offer SDP over BLE...",
-      AppState.waitingForAnswer: isZh ? "正在等待电脑端回应Answer SDP..." : "Awaiting remote WebRTC Answer SDP...",
-      AppState.connectingWebRtc: isZh ? "正在执行WebRTC直连握手..." : "Performing WebRTC DTLS/ICE Handshake...",
-    };
-    final statusText = labels[appState] ?? (isZh ? "正在连接..." : "Handshaking...");
-
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFF070A12),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(
-                width: 60.0,
-                height: 60.0,
-                child: CircularProgressIndicator(
-                  strokeWidth: 4.0,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.3)),
                 ),
+                alignment: Alignment.center,
+                child: const Icon(Icons.shield_outlined, color: Color(0xFF818CF8), size: 40),
               ),
-              const SizedBox(height: 32.0),
+              const SizedBox(height: 24.0),
               Text(
-                t.get('connecting'),
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontSize: 18.0,
+                t.get('permissionTitle'),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22.0,
                     fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8.0),
-              Text(
-                statusText,
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontSize: 13.0,
-                    fontWeight: FontWeight.w500),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
-              TextButton(
-                onPressed: () => viewModel.returnHome(),
-                child: Text(isZh ? "取消" : "Cancel",
-                    style: const TextStyle(color: Color(0xFF64748B))),
+              const SizedBox(height: 12.0),
+              Text(
+                t.get('permissionDesc'),
+                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.0, height: 1.5),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32.0),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _checkAndRequestPermissions,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0)),
+                    elevation: 0,
+                  ),
+                  child: Text(t.get('grantBtn'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                ),
               ),
             ],
           ),
@@ -354,36 +349,70 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
     final t = Provider.of<LocalizationService>(context);
     final isZh = t.currentLocale.startsWith('zh');
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text("⚠️", style: TextStyle(fontSize: 56.0)),
-            const SizedBox(height: 16.0),
-            Text(
-              t.get('connFailed'),
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 20.0,
-                  fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              viewModel.errorMsg.isNotEmpty
-                  ? viewModel.errorMsg
-                  : t.get('connFailedDesc'),
-              style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13.0),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32.0),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => viewModel.resetToScanner(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: const Color(0xFF070A12),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withOpacity(0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.3)),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(Icons.link_off_rounded, color: Color(0xFFF87171), size: 40),
+              ),
+              const SizedBox(height: 24.0),
+              Text(
+                t.get('connFailed'),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20.0,
+                    fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10.0),
+              Text(
+                viewModel.errorMsg.isNotEmpty
+                    ? viewModel.errorMsg
+                    : t.get('connFailedDesc'),
+                style: const TextStyle(color: Color(0xFFF87171), fontSize: 13.0, height: 1.4),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 36.0),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => viewModel.resetToScanner(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14.0),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0)),
+                    elevation: 0,
+                  ),
+                  child: Text(t.get('retry'),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextButton(
+                onPressed: () => viewModel.returnHome(),
+                child: Text(isZh ? "返回主页" : "Back to Home",
+                    style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}f(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14.0),
                   shape: RoundedRectangleBorder(
