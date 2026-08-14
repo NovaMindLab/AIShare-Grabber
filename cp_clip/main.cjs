@@ -8,8 +8,8 @@ try {
   app.setName('ShareCLIP');
   const customUserData = path.join(app.getPath('appData'), 'ShareCLIP');
   app.setPath('userData', customUserData);
-  // Disable GPU hardware acceleration for low-end device compatibility
-  app.disableHardwareAcceleration();
+  // Force WebRTC to gather actual IPv4 host candidates instead of .local mDNS hostnames
+  app.commandLine.appendSwitch('disable-features', 'WebRtcHideLocalIpsWithMdns');
 } catch (e) {}
 
 // -------------------------------------------------------------------------------
@@ -95,27 +95,43 @@ function getPhysicalPath(filePath) {
 let activeDeviceUuid = null;
 let activeDeviceDb = null;
 const { pathToFileURL } = require('url');
-let ort;
-let sharp;
+let ort = null;
+let sharp = null;
+let exifReader = null;
+let SimpleTokenizer = null;
+const taskManager = require('./src/workers/task-manager.cjs');
 
-// Dynamically load native dependencies and log errors
-try {
-  ort = require('onnxruntime-node');
-} catch (err) {
-  console.error("Critical: Failed to load onnxruntime-node.", err);
+function getOrt() {
+  if (!ort) {
+    try { ort = require('onnxruntime-node'); } catch (err) { console.error("Critical: Failed to load onnxruntime-node.", err); }
+  }
+  return ort;
 }
 
-try {
-  sharp = require('sharp');
-} catch (err) {
-  console.error("Critical: Failed to load sharp.", err);
+function getSharp() {
+  if (!sharp) {
+    try { sharp = require('sharp'); } catch (err) { console.error("Critical: Failed to load sharp.", err); }
+  }
+  return sharp;
 }
 
-let exifReader;
-try {
-  exifReader = require('exif-reader');
-} catch (err) {
-  console.error("Critical: Failed to load exif-reader.", err);
+function getExifReader() {
+  if (!exifReader) {
+    try { exifReader = require('exif-reader'); } catch (err) { console.error("Critical: Failed to load exif-reader.", err); }
+  }
+  return exifReader;
+}
+
+function getSimpleTokenizer() {
+  if (!SimpleTokenizer) {
+    try {
+      const tokenizerModule = require('./tokenizer.cjs');
+      SimpleTokenizer = tokenizerModule.SimpleTokenizer;
+    } catch (err) {
+      console.error("Critical: Failed to load tokenizer.cjs", err);
+    }
+  }
+  return SimpleTokenizer;
 }
 
 // Register the custom local protocol to bypass CSP and allow local file loading
@@ -130,9 +146,6 @@ protocol.registerSchemesAsPrivileged([
     }
   }
 ]);
-
-const { SimpleTokenizer } = require('./tokenizer.cjs');
-const taskManager = require('./src/workers/task-manager.cjs');
 
 const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
 let mainWindow = null;
@@ -203,18 +216,21 @@ async function initializeAI() {
   const mergesPath = path.join(__dirname, 'merges.txt');
   const embeddingsPath = path.join(__dirname, 'text_embeddings.json');
 
+  const ST = getSimpleTokenizer();
+  const onnxRuntime = getOrt();
+
   // 1. Load Tokenizer BPE Merges
-  if (fs.existsSync(mergesPath)) {
+  if (fs.existsSync(mergesPath) && ST) {
     try {
       console.log("[AI Init] Loading BPE merges and initializing tokenizer...");
       const mergesText = fs.readFileSync(mergesPath, 'utf-8');
-      tokenizer = new SimpleTokenizer(mergesText);
+      tokenizer = new ST(mergesText);
       console.log("[AI Init] Tokenizer initialized successfully.");
     } catch (err) {
       console.error("[AI Init] Failed to initialize tokenizer:", err);
     }
   } else {
-    console.warn("[AI Init] merges.txt not found. Dynamic search will run in mock mode.");
+    console.warn("[AI Init] merges.txt not found or tokenizer unavailable. Dynamic search will run in mock mode.");
   }
 
   // 2. Load Text Embeddings
@@ -262,10 +278,10 @@ async function initializeAI() {
 
   // 4. Load Text Encoder ONNX Model
   const physicalTextModelPath = getPhysicalPath(textModelPath);
-  if (ort && fs.existsSync(physicalTextModelPath)) {
+  if (onnxRuntime && fs.existsSync(physicalTextModelPath)) {
     try {
       console.log("[AI Init] Loading MobileCLIP Text Encoder ONNX model from:", physicalTextModelPath);
-      textEncoderSession = await ort.InferenceSession.create(physicalTextModelPath, {
+      textEncoderSession = await onnxRuntime.InferenceSession.create(physicalTextModelPath, {
         executionProviders: ['cpu']
       });
       console.log("[AI Init] MobileCLIP Text Encoder ONNX model loaded successfully (CPU execution provider).");
@@ -307,10 +323,12 @@ function convertDMSToDD(dmsArray, ref) {
 // Function to extract coordinates from local file
 async function extractImageGPS(imagePath) {
   try {
-    if (!sharp || !exifReader) return null;
-    const metadata = await sharp(imagePath).metadata();
+    const s = getSharp();
+    const er = getExifReader();
+    if (!s || !er) return null;
+    const metadata = await s(imagePath).metadata();
     if (metadata && metadata.exif) {
-      const exifData = exifReader(metadata.exif);
+      const exifData = er(metadata.exif);
       if (exifData && exifData.gps) {
         const lat = convertDMSToDD(exifData.gps.GPSLatitude, exifData.gps.GPSLatitudeRef);
         const lon = convertDMSToDD(exifData.gps.GPSLongitude, exifData.gps.GPSLongitudeRef);
@@ -330,8 +348,9 @@ function createWindow() {
     width: 1200,
     height: 850,
     title: "ShareCLIP",
-    icon: path.join(__dirname, 'icon.png'),
-    backgroundColor: '#0f172a', // Dark theme background color
+    icon: path.join(__dirname, fs.existsSync(path.join(__dirname, 'icon.ico')) ? 'icon.ico' : 'icon.png'),
+    backgroundColor: '#0b0f19', // Dark theme background matching CSS --bg-primary
+    show: false, // Don't show immediately to prevent white/blank flicker
     frame: false, // Make window frameless
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -343,15 +362,40 @@ function createWindow() {
 
   mainWindow.setMenu(null);
 
+  // Smoothly display window when first paint is ready
+  mainWindow.once('ready-to-show', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+    }
+  });
+
+  // Safety fallback: ensure window shows within 1.5s even if ready-to-show event is delayed
+  const fallbackShowTimer = setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+  }, 1500);
+
+  mainWindow.on('show', () => {
+    clearTimeout(fallbackShowTimer);
+  });
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
-    // Open DevTools in dev mode
-    mainWindow.webContents.openDevTools();
+    // Open DevTools in detached mode only after initial paint has settled
+    mainWindow.webContents.once('did-finish-load', () => {
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.openDevTools({ mode: 'detach' });
+        }
+      }, 800);
+    });
   } else {
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
 
   mainWindow.on('closed', () => {
+    clearTimeout(fallbackShowTimer);
     mainWindow = null;
   });
 }
@@ -405,10 +449,21 @@ app.whenReady().then(async () => {
       return new Response("Error", { status: 500 });
     }
   });
-
-  await initializeAI();
+  // Create window immediately so user doesn't wait
   createWindow();
-  
+
+  if (mainWindow) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      setTimeout(() => {
+        // Initialize AI models in the background after UI renders to avoid blocking the main thread
+        initializeAI().then(() => {
+          console.log("[App] AI fully initialized in background.");
+        }).catch(e => {
+          console.error("[App] AI initialization error:", e);
+        });
+      }, 1000); // Give Vue 1 second to fully mount and paint before blocking with C++ modules
+    });
+  }
   // Start the async face recognition background daemon
   startBackgroundFaceScanner();
   
@@ -454,7 +509,7 @@ async function scanFacesOnDemand(event) {
   console.log("[Manual Scanner] Starting manual on-demand face scanning...");
 
   const rows = await new Promise((resolve, reject) => {
-    activeDeviceDb.all(`SELECT id, path FROM resources WHERE type = 'image' AND face_scanned = 0`, (err, rows) => {
+    activeDeviceDb.all(`SELECT id, path FROM resources WHERE (type IN ('image', 'images', 'thumbnail', 'album_photo', 'photo')) AND (face_scanned = 0 OR face_scanned IS NULL)`, (err, rows) => {
       if (err) reject(err);
       else resolve(rows || []);
     });
@@ -701,107 +756,30 @@ ipcMain.handle('clean-missing-resources', async () => {
 async function reclusterFacesInternal() {
   if (!activeDeviceDb) return [];
 
-  console.log("[Face Cluster] Starting strict human-only face clustering process...");
+  console.log("[Face Cluster] Starting high-precision face clustering process...");
 
-  // 1. Get all valid human photo paths from resources table
-  const validHumanPaths = await new Promise((resolve) => {
-    activeDeviceDb.all(`SELECT path, predictions FROM resources WHERE type = 'images' OR type = 'thumbnail' OR type = 'photo'`, (err, rows) => {
-      if (err || !rows) resolve(new Set());
-      else {
-        const humanSet = new Set();
-        rows.forEach(r => {
-          if (!r.predictions) return;
-          try {
-            const preds = JSON.parse(r.predictions);
-            if (!Array.isArray(preds) || preds.length === 0) return;
-            const topPred = preds[0];
-            const topCat = (topPred.category || topPred.label || topPred.name || '').toLowerCase();
-            
-            // Explicitly exclude animals, pets, landscapes, documents, food
-            if (topCat.includes('宠物') || topCat.includes('动物') || topCat.includes('pet') || topCat.includes('animal') || topCat.includes('wildlife') || topCat.includes('风景') || topCat.includes('文档') || topCat.includes('美食')) {
-              return;
-            }
-
-            const isHuman = preds.some(p => {
-              const cat = (p.category || p.label || p.name || '').toLowerCase();
-              const isHumanCat = cat.includes('人像') || cat.includes('合影') || cat.includes('自拍') || cat.includes('儿童') || cat.includes('portrait') || cat.includes('people') || cat.includes('group');
-              return isHumanCat && (p.score || 0) >= 0.25;
-            });
-
-            if (isHuman) {
-              humanSet.add(r.path);
-            }
-          } catch (_) {}
-        });
-        resolve(humanSet);
-      }
+  // 1. Check if there are unscanned image resources, and scan them if needed
+  const unscannedCount = await new Promise((resolve) => {
+    activeDeviceDb.get(`SELECT COUNT(*) as count FROM resources WHERE (type IN ('image', 'images', 'thumbnail', 'album_photo', 'photo')) AND (face_scanned = 0 OR face_scanned IS NULL)`, (err, row) => {
+      resolve((row && row.count) || 0);
     });
   });
 
-  console.log(`[Face Cluster] Found ${validHumanPaths.size} verified human photos.`);
-
-  // 2. PURGE all old non-human face records from SQLite database!
-  await new Promise(r => activeDeviceDb.run(`DELETE FROM person_clusters`, () => r()));
-  if (validHumanPaths.size > 0) {
-    const validArray = Array.from(validHumanPaths);
-    const placeholders = validArray.map(() => '?').join(',');
-    await new Promise(r => activeDeviceDb.run(`DELETE FROM faces WHERE path NOT IN (${placeholders})`, validArray, () => r()));
-  } else {
-    await new Promise(r => activeDeviceDb.run(`DELETE FROM faces`, () => r()));
-    return [];
+  if (unscannedCount > 0) {
+    console.log(`[Face Cluster] Found ${unscannedCount} unscanned photos, running face detection first...`);
+    await scanFacesOnDemand(null);
   }
 
-  // 3. Get existing faces for valid human photos
+  // 2. Fetch all real biometric face embeddings extracted by MobileFaceNet
   let faces = await new Promise((resolve) => {
-    activeDeviceDb.all(`SELECT id, photo_id, path, bbox, landmarks, embedding FROM faces`, (err, rows) => {
+    activeDeviceDb.all(`SELECT id, photo_id, path, bbox, landmarks, embedding FROM faces WHERE embedding IS NOT NULL`, (err, rows) => {
       resolve(rows || []);
     });
   });
 
-  // 4. Fallback: Build face entries for any valid human photos missing from faces table
-  const existingPaths = new Set(faces.map(f => f.path));
-  const missingHumanPaths = Array.from(validHumanPaths).filter(p => !existingPaths.has(p));
-
-  if (missingHumanPaths.length > 0) {
-    const placeholders = missingHumanPaths.map(() => '?').join(',');
-    const personResources = await new Promise((resolve) => {
-      activeDeviceDb.all(`SELECT id, name, path, predictions, embedding FROM resources WHERE path IN (${placeholders})`, missingHumanPaths, (err, rows) => {
-        resolve(rows || []);
-      });
-    });
-
-    for (const res of personResources) {
-      const faceId = `face_${res.id}`;
-      let floatEmb = null;
-      if (res.embedding) {
-        floatEmb = new Float32Array(res.embedding.buffer, res.embedding.byteOffset, res.embedding.byteLength / 4);
-      } else if (imageEmbeddingsCache[res.path]) {
-        floatEmb = imageEmbeddingsCache[res.path];
-      }
-
-      if (floatEmb && floatEmb.length === 512) {
-        const embBuffer = Buffer.from(floatEmb.buffer, floatEmb.byteOffset, floatEmb.byteLength);
-        await new Promise(r => {
-          activeDeviceDb.run(
-            `INSERT OR REPLACE INTO faces (id, photo_id, path, bbox, landmarks, embedding) VALUES (?, ?, ?, ?, ?, ?)`,
-            [faceId, res.id, res.path, JSON.stringify([0,0,100,100]), null, embBuffer],
-            () => r()
-          );
-        });
-        faces.push({
-          id: faceId,
-          photo_id: res.id,
-          path: res.path,
-          bbox: JSON.stringify([0,0,100,100]),
-          landmarks: null,
-          embedding: embBuffer
-        });
-      }
-    }
-  }
-
   if (faces.length === 0) {
-    console.log("[Face Cluster] No faces or person embeddings found to cluster.");
+    console.log("[Face Cluster] No faces detected in photos.");
+    await new Promise(r => activeDeviceDb.run(`DELETE FROM person_clusters`, () => r()));
     return [];
   }
 
@@ -810,33 +788,29 @@ async function reclusterFacesInternal() {
   const faceSabIndices = [];
 
   for (const f of faces) {
-    let floatEmb = null;
     if (f.embedding) {
-      floatEmb = new Float32Array(f.embedding.buffer, f.embedding.byteOffset, f.embedding.byteLength / 4);
-    } else if (imageEmbeddingsCache[f.path]) {
-      floatEmb = imageEmbeddingsCache[f.path];
-    }
-
-    if (floatEmb && floatEmb.length === 512) {
-      const sabIdx = taskManager.addFaceEmbeddingToSAB(f.id, floatEmb);
-      if (sabIdx !== -1) {
-        validFaces.push(f);
-        faceSabIndices.push(sabIdx);
+      const floatEmb = new Float32Array(f.embedding.buffer, f.embedding.byteOffset, f.embedding.byteLength / 4);
+      if (floatEmb.length === 512) {
+        const sabIdx = taskManager.addFaceEmbeddingToSAB(f.id, floatEmb);
+        if (sabIdx !== -1) {
+          validFaces.push(f);
+          faceSabIndices.push(sabIdx);
+        }
       }
     }
   }
 
   if (validFaces.length === 0) {
-    console.log("[Face Cluster] No valid face embeddings in SAB.");
+    console.log("[Face Cluster] No valid 512-dim face embeddings in SAB.");
     return [];
   }
 
-  // 4. Run DBSCAN clustering via TaskManager Search Worker with strict 0.70 similarity threshold
-  console.log(`[Face Cluster] Clustering ${validFaces.length} face crops via DBSCAN (threshold: 0.70)...`);
-  const rawPersonClusters = await taskManager.clusterFaces(faceSabIndices, validFaces, 0.70);
+  // 4. Run face clustering via TaskManager Search Worker with 0.65 threshold (MobileFaceNet ArcFace verified threshold)
+  console.log(`[Face Cluster] Clustering ${validFaces.length} face crops (threshold: 0.65)...`);
+  const rawPersonClusters = await taskManager.clusterFaces(faceSabIndices, validFaces, 0.65);
 
-  // Filter out noise clusters with only 1 photo to ensure high precision
-  const personClusters = rawPersonClusters.filter(c => c.face_count >= 2);
+  // Keep valid person clusters
+  const personClusters = rawPersonClusters.filter(c => c.face_count >= 1);
 
   // 5. Persist person_clusters into SQLite
   await new Promise(r => activeDeviceDb.run(`DELETE FROM person_clusters`, () => r()));
@@ -892,6 +866,29 @@ ipcMain.handle('get-person-clusters', async () => {
 });
 
 ipcMain.handle('recluster-faces', async (event) => {
+  await scanFacesOnDemand(event);
+  return await reclusterFacesInternal();
+});
+
+ipcMain.handle('recalculate-all-faces', async (event) => {
+  if (!activeDeviceDb) return [];
+  console.log("[Face Scanner] Forcing full recalculation of all faces...");
+  
+  // 1. Delete all existing face data
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`DELETE FROM faces`, resolve);
+  });
+  
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`DELETE FROM person_clusters`, resolve);
+  });
+
+  // 2. Reset face_scanned flag on all image resources so they get processed again
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`UPDATE resources SET face_scanned = 0 WHERE type IN ('image', 'images', 'thumbnail', 'album_photo', 'photo')`, resolve);
+  });
+
+  // 3. Re-run scan and clustering
   await scanFacesOnDemand(event);
   return await reclusterFacesInternal();
 });
@@ -1512,11 +1509,15 @@ ipcMain.handle('start-ble-server', async (event) => {
         if (!resolved) {
           resolved = true;
           clearTimeout(timeout);
+          
+          const localIps = getValidPhysicalIps();
+
           resolve({
             ble_mac: macAddress,
             service_uuid,
             char_uuid,
-            session_id: pcSessionId
+            session_id: pcSessionId,
+            pc_ips: localIps
           });
         }
       } else if (line === "STATUS:CONNECTED") {
@@ -1583,6 +1584,14 @@ ipcMain.handle('stop-ble-server', async () => {
     return true;
   }
   return false;
+});
+
+ipcMain.handle('get-valid-physical-ips', async () => {
+  return getValidPhysicalIps();
+});
+
+ipcMain.handle('get-pc-session-id', async () => {
+  return pcSessionId;
 });
 
 ipcMain.handle('start-hotspot', async (event, { ssid, password }) => {
@@ -2127,7 +2136,7 @@ ipcMain.handle('check-for-updates', async () => {
       let downloadUrl = '';
       if (releaseInfo.assets && releaseInfo.assets.length > 0) {
         for (const asset of releaseInfo.assets) {
-          if (asset.name.endsWith('Setup.exe') || (asset.name.endsWith('.exe') && !asset.name.includes('blockmap'))) {
+          if (asset.name.includes('Setup') && asset.name.endsWith('.exe')) {
             downloadUrl = asset.browser_download_url;
             break;
           }
@@ -2159,9 +2168,25 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
     let success = false;
     try {
       await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error("autoUpdater download timeout")), 12000);
-        autoUpdater.once('update-downloaded', () => { clearTimeout(timeout); resolve(); });
-        autoUpdater.once('error', (err) => { clearTimeout(timeout); reject(err); });
+        let timeout = setTimeout(() => reject(new Error("autoUpdater download timeout (12s idle)")), 12000);
+        
+        const progressHandler = () => {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => reject(new Error("autoUpdater download timeout (12s idle)")), 12000);
+        };
+        autoUpdater.on('download-progress', progressHandler);
+        
+        autoUpdater.once('update-downloaded', () => { 
+          clearTimeout(timeout); 
+          autoUpdater.removeListener('download-progress', progressHandler);
+          resolve(); 
+        });
+        autoUpdater.once('error', (err) => { 
+          clearTimeout(timeout); 
+          autoUpdater.removeListener('download-progress', progressHandler);
+          reject(err); 
+        });
+        
         autoUpdater.downloadUpdate();
       });
       success = true;
@@ -2198,7 +2223,7 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
       const releaseInfo = JSON.parse(releaseInfoStr);
       if (releaseInfo && releaseInfo.assets) {
         for (const asset of releaseInfo.assets) {
-          if (asset.name.endsWith('Setup.exe') || (asset.name.endsWith('.exe') && !asset.name.includes('blockmap'))) {
+          if (asset.name.includes('Setup') && asset.name.endsWith('.exe')) {
             targetDownloadUrl = asset.browser_download_url;
             break;
           }
@@ -2786,7 +2811,7 @@ function startUdpDiscoveryService() {
   udpSocket = dgram.createSocket('udp4');
 
   udpSocket.on('error', (err) => {
-    console.error(`[UDP Error]: ${err.stack}`);
+    console.error(`[UDP Service Error]: ${err.stack}`);
     try { udpSocket.close(); } catch (_) {}
     udpSocket = null;
   });
@@ -2797,6 +2822,7 @@ function startUdpDiscoveryService() {
       if (data.type === 'ShareCLIP_Discovery') {
         if (data.device_uuid === getComputerUuid()) return;
 
+        const isNew = !discoveredDevices.has(data.device_uuid);
         discoveredDevices.set(data.device_uuid, {
           uuid: data.device_uuid,
           name: data.device_name,
@@ -2805,9 +2831,13 @@ function startUdpDiscoveryService() {
           lastSeen: Date.now(),
           sessionId: data.session_id
         });
-        
+
+        if (isNew) {
+          console.log(`[UDP Message] Discovered peer '${data.device_name || 'Device'}' (${data.device_type || 'Device'}) at ${rinfo.address}:${rinfo.port} (UUID: ${data.device_uuid})`);
+        }
         notifyDiscoveredDevices();
       } else if (data.type === 'ShareCLIP_Connect_Request') {
+        console.log(`[UDP Message] Received Connection Request from ${rinfo.address}:${rinfo.port} (Name: ${data.from_name}, UUID: ${data.from_uuid})`);
         if (mainWindow) {
           mainWindow.webContents.send('connection-request', {
             uuid: data.from_uuid,
@@ -2816,6 +2846,7 @@ function startUdpDiscoveryService() {
           });
         }
       } else if (data.type === 'ShareCLIP_Connect_Response') {
+        console.log(`[UDP Message] Received Connection Response from ${rinfo.address}:${rinfo.port} (Accepted: ${data.accept})`);
         if (mainWindow) {
           mainWindow.webContents.send('connection-response', {
             ip: rinfo.address,
@@ -2824,6 +2855,7 @@ function startUdpDiscoveryService() {
           });
         }
       } else if (data.type === 'ShareCLIP_Direct_Sdp') {
+        console.log(`[UDP Message] Received Direct SDP (${data.sdpType}) from ${rinfo.address}:${rinfo.port}`);
         if (mainWindow) {
           mainWindow.webContents.send('direct-sdp-received', {
             ip: rinfo.address,
@@ -2832,15 +2864,18 @@ function startUdpDiscoveryService() {
           });
         }
       } else if (data.type === 'ShareCLIP_Direct_Ice') {
+        console.log(`[UDP Message] Received Direct ICE Candidate from ${rinfo.address}:${rinfo.port}`);
         if (mainWindow) {
           mainWindow.webContents.send('direct-ice-received', {
             ip: rinfo.address,
             candidate: data.candidate
           });
         }
+      } else {
+        console.log(`[UDP Message] Received unknown packet type '${data.type}' from ${rinfo.address}:${rinfo.port}`);
       }
     } catch (e) {
-      // Ignore parsing errors
+      console.warn(`[UDP Message] Raw non-JSON packet received from ${rinfo.address}:${rinfo.port}`);
     }
   });
 
@@ -2848,21 +2883,69 @@ function startUdpDiscoveryService() {
     try {
       udpSocket.setBroadcast(true);
     } catch (e) {
-      console.error("[UDP] Failed to set broadcast:", e);
+      console.error("[UDP Service] Failed to set broadcast:", e);
     }
     const address = udpSocket.address();
+    const validIps = getValidPhysicalIps();
+    const broadcastTargets = getBroadcastAddresses();
     console.log(`[UDP Service] Listening on ${address.address}:${address.port}`);
+    console.log(`[UDP Service] Local Physical IPv4 Address(es): [${validIps.join(', ')}]`);
+    console.log(`[UDP Service] Target Broadcast Address(es): [${broadcastTargets.join(', ')}]`);
   });
 
   try {
     udpSocket.bind(15185);
   } catch (e) {
-    console.error("[UDP] Bind failed:", e);
+    console.error("[UDP Service] Bind failed:", e);
   }
 
   // Start timers
   setInterval(broadcastDiscovery, 3000);
   setInterval(pruneDiscoveryList, 5000);
+}
+
+function isVirtualAdapter(name) {
+  const lower = name.toLowerCase();
+  return (
+    lower.includes('vmware') ||
+    lower.includes('virtualbox') ||
+    lower.includes('vethernet') ||
+    lower.includes('wsl') ||
+    lower.includes('docker') ||
+    lower.includes('tap') ||
+    lower.includes('zerotier') ||
+    lower.includes('tailscale') ||
+    lower.includes('vpn') ||
+    lower.includes('pseudo') ||
+    lower.includes('host-only') ||
+    lower.includes('npcap') ||
+    lower.includes('loopback') ||
+    lower.includes('bluetooth') ||
+    lower.includes('hyper-v')
+  );
+}
+
+function getValidPhysicalIps() {
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  const physicalIps = [];
+  const fallbackIps = [];
+
+  for (const name of Object.keys(interfaces)) {
+    const isVirtual = isVirtualAdapter(name);
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        if (iface.address.startsWith('169.254.')) continue;
+        if (!isVirtual) {
+          physicalIps.push(iface.address);
+        } else {
+          fallbackIps.push(iface.address);
+        }
+      }
+    }
+  }
+
+  return physicalIps.length > 0 ? physicalIps : fallbackIps;
 }
 
 function getBroadcastAddresses() {
@@ -2871,8 +2954,10 @@ function getBroadcastAddresses() {
   const addresses = [];
   
   for (const name of Object.keys(interfaces)) {
+    if (isVirtualAdapter(name)) continue;
     for (const net of interfaces[name]) {
       if (net.family === 'IPv4' && !net.internal) {
+        if (net.address.startsWith('169.254.')) continue;
         const ipSplit = net.address.split('.');
         const maskSplit = net.netmask.split('.');
         
@@ -2948,11 +3033,16 @@ function pruneDiscoveryList() {
   }
 }
 
+let notifyDevicesTimer = null;
 function notifyDiscoveredDevices() {
-  if (mainWindow) {
-    const list = Array.from(discoveredDevices.values());
-    mainWindow.webContents.send('discovered-devices', list);
-  }
+  if (notifyDevicesTimer) return;
+  notifyDevicesTimer = setTimeout(() => {
+    notifyDevicesTimer = null;
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && !mainWindow.webContents.isDestroyed()) {
+      const list = Array.from(discoveredDevices.values());
+      mainWindow.webContents.send('discovered-devices', list);
+    }
+  }, 400);
 }
 
 // IPC Handlers for UDP P2P Discovery & WebRTC signaling

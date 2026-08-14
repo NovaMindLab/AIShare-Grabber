@@ -61,6 +61,7 @@
                                 "w600k_mbf.onnx",
                                 "package.json",
                                 "icon.png",
+                                "icon.ico",
                                 "ble_signaling_server.exe",
                                 "wifi_ap.ps1",
                                 "node_modules/**",
@@ -109,8 +110,7 @@
                                   "repo":  "AIShare-Grabber"
                               },
                   "win":  {
-                              "icon":  "build/icon.png",
-                              "signAndEditExecutable":  false,
+                              "icon":  "build/icon.ico",
                               "target":  [
                                              "nsis"
                                          ]
@@ -125,6 +125,9 @@
                                "createDesktopShortcut":  "always",
                                "createStartMenuShortcut":  true,
                                "shortcutName":  "ShareCLIP",
+                               "installerIcon":  "build/icon.ico",
+                               "uninstallerIcon":  "build/icon.ico",
+                               "installerHeaderIcon":  "build/icon.ico",
                                "differentialPackage":  true
                            }
               }
