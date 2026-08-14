@@ -16,6 +16,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   late TabController _subTabController;
+  int _mediaSubTab = 0; // 0: Photos, 1: Videos
 
   @override
   void initState() {
@@ -44,6 +45,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
     final viewModel = Provider.of<SyncViewModel>(context);
     final t = Provider.of<LocalizationService>(context);
     final totalCount = viewModel.selectedImages.length +
+        viewModel.selectedVideos.length +
         viewModel.selectedAudios.length +
         viewModel.chosenFiles.length;
 
@@ -381,133 +383,254 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
           ),
         ),
         const Divider(color: Color(0xFF1E293B), height: 1),
-        Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.all(8.0),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8.0,
-              mainAxisSpacing: 8.0,
-            ),
-            itemCount: viewModel.localImages.length,
-      itemBuilder: (context, idx) {
-        final media = viewModel.localImages[idx];
-        final isSelected = viewModel.selectedImages.contains(media.id);
-        final status = viewModel.transferStatusMap[media.id];
-        final isVideo = media.type == AssetType.video;
 
-        return GestureDetector(
-          onTap: () => viewModel.toggleImageSelection(media.id),
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F172A),
-              borderRadius: BorderRadius.circular(8.0),
-              border: Border.all(
-                color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF1E293B),
-                width: isSelected ? 2.0 : 1.0,
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(6.0),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  AssetEntityImage(
-                    media,
-                    isOriginal: false,
-                    thumbnailSize: const ThumbnailSize.square(200),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stack) {
-                      return Container(
-                        color: const Color(0xFF1E293B),
-                        alignment: Alignment.center,
-                        child: Text(isVideo ? "🎥" : "🖼️", style: const TextStyle(fontSize: 24.0)),
-                      );
-                    },
-                  ),
-
-                  // Selection shading overlay
-                  if (isSelected)
-                    Container(color: const Color(0x338B5CF6)),
-
-                  // Video Play / Duration Badge
-                  if (isVideo)
-                    Positioned(
-                      bottom: 4.0,
-                      left: 4.0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(4.0),
+        // Sub-segmented Tab: Photos vs Videos
+        Container(
+          margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F172A),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFF1E293B)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _mediaSubTab = 0),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _mediaSubTab == 0 ? const Color(0xFF8B5CF6) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.photo_outlined,
+                          size: 14,
+                          color: _mediaSubTab == 0 ? Colors.white : const Color(0xFF94A3B8),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        const SizedBox(width: 4),
+                        Text(
+                          "${t.currentLocale.startsWith('zh') ? '照片' : 'Photos'} (${viewModel.localImages.length})",
+                          style: TextStyle(
+                            color: _mediaSubTab == 0 ? Colors.white : const Color(0xFF94A3B8),
+                            fontSize: 12,
+                            fontWeight: _mediaSubTab == 0 ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _mediaSubTab = 1),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _mediaSubTab == 1 ? const Color(0xFF8B5CF6) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.videocam_outlined,
+                          size: 14,
+                          color: _mediaSubTab == 1 ? Colors.white : const Color(0xFF94A3B8),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${t.currentLocale.startsWith('zh') ? '视频' : 'Videos'} (${viewModel.localVideos.length})",
+                          style: TextStyle(
+                            color: _mediaSubTab == 1 ? Colors.white : const Color(0xFF94A3B8),
+                            fontSize: 12,
+                            fontWeight: _mediaSubTab == 1 ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        Expanded(
+          child: Builder(
+            builder: (context) {
+              final currentList = _mediaSubTab == 0 ? viewModel.localImages : viewModel.localVideos;
+              final isZh = t.currentLocale.startsWith('zh');
+
+              if (currentList.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _mediaSubTab == 0 ? Icons.photo_library_outlined : Icons.video_library_outlined,
+                        color: const Color(0xFF475569),
+                        size: 48,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _mediaSubTab == 0
+                            ? (isZh ? "相册中暂无照片" : "No photos available")
+                            : (isZh ? "相册中暂无视频" : "No videos available"),
+                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return GridView.builder(
+                padding: const EdgeInsets.all(8.0),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 8.0,
+                  mainAxisSpacing: 8.0,
+                ),
+                itemCount: currentList.length,
+                itemBuilder: (context, idx) {
+                  final media = currentList[idx];
+                  final isSelected = _mediaSubTab == 0
+                      ? viewModel.selectedImages.contains(media.id)
+                      : viewModel.selectedVideos.contains(media.id);
+                  final status = viewModel.transferStatusMap[media.id];
+                  final isVideo = media.type == AssetType.video;
+
+                  return GestureDetector(
+                    onTap: () {
+                      if (_mediaSubTab == 0) {
+                        viewModel.toggleImageSelection(media.id);
+                      } else {
+                        viewModel.toggleVideoSelection(media.id);
+                      }
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A),
+                        borderRadius: BorderRadius.circular(8.0),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF1E293B),
+                          width: isSelected ? 2.0 : 1.0,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6.0),
+                        child: Stack(
+                          fit: StackFit.expand,
                           children: [
-                            const Icon(Icons.play_arrow, color: Colors.white, size: 10.0),
-                            const SizedBox(width: 2.0),
-                            Text(
-                              _formatDuration(media.duration),
-                              style: const TextStyle(color: Colors.white, fontSize: 9.0, fontWeight: FontWeight.bold),
+                            AssetEntityImage(
+                              media,
+                              isOriginal: false,
+                              thumbnailSize: const ThumbnailSize.square(200),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stack) {
+                                return Container(
+                                  color: const Color(0xFF1E293B),
+                                  alignment: Alignment.center,
+                                  child: Text(isVideo ? "🎥" : "🖼️", style: const TextStyle(fontSize: 24.0)),
+                                );
+                              },
                             ),
+
+                            // Selection shading overlay
+                            if (isSelected)
+                              Container(color: const Color(0x338B5CF6)),
+
+                            // Video Play / Duration Badge
+                            if (isVideo)
+                              Positioned(
+                                bottom: 4.0,
+                                left: 4.0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.7),
+                                    borderRadius: BorderRadius.circular(4.0),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.play_arrow, color: Colors.white, size: 10.0),
+                                      const SizedBox(width: 2.0),
+                                      Text(
+                                        _formatDuration(media.duration),
+                                        style: const TextStyle(color: Colors.white, fontSize: 9.0, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                            // Status badge
+                            if (status != null)
+                              Positioned(
+                                bottom: 4.0,
+                                right: 4.0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.8),
+                                    borderRadius: BorderRadius.circular(4.0),
+                                  ),
+                                  child: Text(
+                                    _getBadgeText(status),
+                                    style: const TextStyle(fontSize: 10.0),
+                                  ),
+                                ),
+                              ),
+
+                            // Selection checkmark indicator
+                            if (isSelected)
+                              Positioned(
+                                top: 6.0,
+                                right: 6.0,
+                                child: Container(
+                                  width: 16.0,
+                                  height: 16.0,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF8B5CF6),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 1.5),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Text(
+                                    "✓",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),
                     ),
-
-                  // Status badge
-                  if (status != null)
-                    Positioned(
-                      bottom: 4.0,
-                      right: 4.0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(4.0),
-                        ),
-                        child: Text(
-                          _getBadgeText(status),
-                          style: const TextStyle(fontSize: 10.0),
-                        ),
-                      ),
-                    ),
-
-                  // Selection checkmark indicator
-                  if (isSelected)
-                    Positioned(
-                      top: 6.0,
-                      right: 6.0,
-                      child: Container(
-                        width: 16.0,
-                        height: 16.0,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
-                        alignment: Alignment.center,
-                        child: const Text(
-                          "✓",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+                  );
+                },
+              );
+            },
           ),
-        );
-      },
-    ),
-  ),
-],
-);
-}
+        ),
+      ],
+    );
+  }
+
 
   String _formatDuration(int seconds) {
     final int m = seconds ~/ 60;
@@ -741,11 +864,14 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
   }
 
   Widget _buildQueueListContent(SyncViewModel viewModel) {
-    final selectedMedia = viewModel.localImages.where((img) => viewModel.selectedImages.contains(img.id)).toList();
+    final selectedPhotos = viewModel.localImages.where((img) => viewModel.selectedImages.contains(img.id)).toList();
+    final selectedVideos = viewModel.localVideos.where((v) => viewModel.selectedVideos.contains(v.id)).toList();
     final selectedMusic = viewModel.localAudios.where((a) => viewModel.selectedAudios.contains(a.id)).toList();
-    final totalSelected = selectedMedia.length + selectedMusic.length + viewModel.chosenFiles.length;
+    final totalSelected = selectedPhotos.length + selectedVideos.length + selectedMusic.length + viewModel.chosenFiles.length;
 
     final t = Provider.of<LocalizationService>(context);
+    final isZh = t.currentLocale.startsWith('zh');
+
     if (totalSelected == 0) {
       return Center(
         child: Column(
@@ -758,9 +884,9 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
               style: const TextStyle(color: Color(0xFF64748B), fontSize: 14.0),
             ),
             const SizedBox(height: 6.0),
-            const Text(
-              "Browse other tabs to select files to transmit",
-              style: TextStyle(color: Color(0xFF475569), fontSize: 12.0),
+            Text(
+              isZh ? "前往其他选项卡勾选要传输的文件" : "Browse other tabs to select files to transmit",
+              style: const TextStyle(color: Color(0xFF475569), fontSize: 12.0),
             ),
           ],
         ),
@@ -770,21 +896,37 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       children: [
-        if (selectedMedia.isNotEmpty) ...[
+        if (selectedPhotos.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Text(
-              "MEDIA ALBUM ASSETS (${selectedMedia.length})",
+              isZh ? "已选照片 (${selectedPhotos.length})" : "SELECTED PHOTOS (${selectedPhotos.length})",
               style: const TextStyle(fontSize: 11.0, color: Color(0xFF64748B), fontWeight: FontWeight.bold, letterSpacing: 0.8),
             ),
           ),
-          ...selectedMedia.map((media) {
-            final isVideo = media.type == AssetType.video;
+          ...selectedPhotos.map((media) {
             return _buildListFileItem(
-              (media.title != null && media.title!.isNotEmpty) ? media.title! : "Media Asset",
-              isVideo ? "Video (${_formatDuration(media.duration)})" : "Photo",
-              isVideo ? "🎥" : "🖼️",
+              (media.title != null && media.title!.isNotEmpty) ? media.title! : "Photo Asset",
+              "Photo",
+              "🖼️",
               () => viewModel.toggleImageSelection(media.id),
+            );
+          }).toList(),
+        ],
+        if (selectedVideos.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Text(
+              isZh ? "已选视频 (${selectedVideos.length})" : "SELECTED VIDEOS (${selectedVideos.length})",
+              style: const TextStyle(fontSize: 11.0, color: Color(0xFF64748B), fontWeight: FontWeight.bold, letterSpacing: 0.8),
+            ),
+          ),
+          ...selectedVideos.map((media) {
+            return _buildListFileItem(
+              (media.title != null && media.title!.isNotEmpty) ? media.title! : "Video Asset",
+              "Video (${_formatDuration(media.duration)})",
+              "🎥",
+              () => viewModel.toggleVideoSelection(media.id),
             );
           }).toList(),
         ],
@@ -792,7 +934,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Text(
-              "SELECTED MUSIC (${selectedMusic.length})",
+              isZh ? "已选音乐 (${selectedMusic.length})" : "SELECTED MUSIC (${selectedMusic.length})",
               style: const TextStyle(fontSize: 11.0, color: Color(0xFF64748B), fontWeight: FontWeight.bold, letterSpacing: 0.8),
             ),
           ),
@@ -805,6 +947,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
             );
           }).toList(),
         ],
+
         if (viewModel.chosenFiles.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
