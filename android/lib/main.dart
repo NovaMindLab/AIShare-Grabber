@@ -412,25 +412,4 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
       ),
     );
   }
-}f(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14.0),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0)),
-                ),
-                child: Text(t.get('retry'),
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => viewModel.returnHome(),
-              child: Text(isZh ? "返回主页" : "Back to Home",
-                  style: const TextStyle(color: Color(0xFF64748B))),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
