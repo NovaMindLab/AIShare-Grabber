@@ -81,38 +81,19 @@
 
 ---
 
-## ⚡ Direct-Link P2P Signaling & Transmission Pipeline
+## ⚡ Zero-Traffic Direct P2P Wireless Pipeline
 
-```mermaid
-flowchart LR
-    subgraph Mobile ["📱 Android Companion (Flutter)"]
-        direction TB
-        M1["📸 Photo Gallery / MediaStore"]
-        M2["📡 BLE Peripheral (GATT Client)"]
-        M3["🚀 WebRTC Stream Engine"]
-    end
+<div align="center">
+  <img src="./docs/images/p2p_pipeline.jpg" width="100%" alt="Direct-Link P2P Signaling & Transmission Pipeline" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 16px 48px rgba(0,0,0,0.6);" />
+</div>
 
-    subgraph Channel ["⚡ Zero-Traffic Direct P2P Channel"]
-        direction TB
-        C1["1️⃣ Offline BLE Signaling<br/>(SDP Offer / Answer Handshake)"]
-        C2["2️⃣ High-Speed WebRTC DataChannel<br/>(Local Wi-Fi / Hotspot Direct Stream)"]
-    end
+<br/>
 
-    subgraph PC ["🖥️ Desktop Client (Electron + Vue 3)"]
-        direction TB
-        P1["📡 BLE Central (GATT Server)"]
-        P2["📥 Zero-Copy RAM RingBuffer"]
-        P3["🧠 Local ONNX AI<br/>(MobileCLIP + MobileFaceNet)"]
-    end
-
-    M2 <===>|1. BLE Handshake| C1 <===>|1. SDP Exchange| P1
-    M3 ====>|2. Gigabit Wi-Fi Stream| C2 ====>|2. 4K & Thumbnails| P2
-    P2 ====>|3. Embeddings & Clustering| P3
-
-    style Mobile fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#fff
-    style PC fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff
-    style Channel fill:#0f2027,stroke:#34d399,stroke-width:2px,stroke-dasharray: 5 5,color:#fff
-```
+| Step | Mechanism | Technical Spec |
+|:---:|---|---|
+| **1️⃣ BLE Discovery** | **Offline Handshake** | GATT Server/Client auto-pairs mobile & desktop in **< 300ms** without local router dependency. |
+| **2️⃣ SDP Exchange** | **Signaling via BLE** | Coordinates WebRTC SDP Offer/Answer candidates over Bluetooth characteristics. |
+| **3️⃣ Gigabit Stream** | **P2P WebRTC DataChannel** | Chunked 32KB packet binary streaming with backpressure control reaching **80+ MB/s** over local Wi-Fi. |
 
 ---
 
