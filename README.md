@@ -12,6 +12,16 @@
   </p>
 
   <p align="center">
+    <a href="https://novamindlab.github.io/AIShare-Grabber/">
+      <img src="https://img.shields.io/badge/🌐_Official_Website-Live_Demo_&_Hub-6366f1?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Official Website" height="40" />
+    </a>
+    &nbsp;&nbsp;
+    <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/latest">
+      <img src="https://img.shields.io/badge/⚡_Download_v1.2.80-EXE_&_APK-10b981?style=for-the-badge&logo=github&logoColor=white" alt="Download Release" height="40" />
+    </a>
+  </p>
+
+  <p align="center">
     <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases"><img src="https://img.shields.io/github/v/release/NovaMindLab/AIShare-Grabber?color=a855f7&label=Release&logo=github" alt="Release" /></a>
     <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Flutter-%E2%89%A53.11.1-02569B?logo=flutter&logoColor=white" alt="Flutter" /></a>
     <a href="https://www.electronjs.org"><img src="https://img.shields.io/badge/Electron-30.5.1-47848F?logo=electron&logoColor=white" alt="Electron" /></a>
@@ -25,17 +35,16 @@
   <p align="center">
     <a href="#-key-features"><b>✨ Features</b></a> •
     <a href="#-ai-photo-management-ecosystem"><b>🧠 AI Architecture</b></a> •
-    <a href="#-p2p-transmission-pipeline"><b>⚡ Protocol</b></a> •
+    <a href="#-direct-link-p2p-signaling--transmission-pipeline"><b>⚡ Protocol</b></a> •
     <a href="#-product-screenshots"><b>📸 Screenshots</b></a> •
     <a href="#-getting-started"><b>🚀 Quick Start</b></a> •
     <a href="#-中文详细介绍"><b>🇨🇳 中文说明</b></a>
   </p>
 
-  <p align="center">
-    🌐 <b>Official Landing Portal</b>: <a href="https://novamindlab.github.io/AIShare-Grabber/">https://novamindlab.github.io/AIShare-Grabber/</a>
-  </p>
-
 </div>
+
+> 🌐 **Live Website & Interactive Web Demo**: 👉 **[https://novamindlab.github.io/AIShare-Grabber/](https://novamindlab.github.io/AIShare-Grabber/)** 👈  
+> *Experience live MobileCLIP natural language search simulation, interactive P2P handshakes, and download installers directly!*
 
 ---
 
@@ -198,6 +207,8 @@ npm run dev
 
 ### 🌟 核心理念
 **ShareCLIP (AIShare-Grabber)** 是一款专为重视隐私与效率的用户打造的 **跨端无网照片同步与本地 AI 智能管理系统**。无需数据线、无需公网服务器中转、不消耗手机移动流量，手机与电脑之间依靠近场蓝牙（BLE）秒速握手，并通过局域网 **WebRTC DataChannel 直连** 实现千兆级极速传输。
+
+👉 **在线体验官网与下载中枢**：**[https://novamindlab.github.io/AIShare-Grabber/](https://novamindlab.github.io/AIShare-Grabber/)**
 
 ### 🚀 六大核心技术亮点
 1. **纯本地离线 AI 大脑**：集成 MobileCLIP 512 维多模态向量特征提取与 Buffalo_SC 人脸识别，支持自然语言搜图（如“海边日落”、“在草地上奔跑的金毛”）与人脸人物智能聚类，所有计算 100% 在 PC 本地运行，绝无隐私泄露风险。
