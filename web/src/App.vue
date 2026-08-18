@@ -13,14 +13,14 @@
         <div class="nav-logo" @click="scrollToTop">
           <span class="logo-emoji">📸</span>
           <span class="logo-text">Share<span class="gradient-text-purple">CLIP</span></span>
-          <span class="version-tag">v1.2.76</span>
+          <span class="version-tag">v1.2.80</span>
         </div>
         
         <nav class="nav-links">
           <a href="#features" class="nav-link">{{ t.nav.features }}</a>
-          <a href="#ai-ecosystem" class="nav-link">{{ t.nav.ai || 'AI 架构' }}</a>
+          <a href="#ai-ecosystem" class="nav-link">AI 智能引擎</a>
           <a href="#simulator" class="nav-link">{{ t.nav.simulator }}</a>
-          <a href="#comparison" class="nav-link">{{ t.nav.comparison || '对比优势' }}</a>
+          <a href="#comparison" class="nav-link">方案对比</a>
           <a href="#download" class="btn btn-primary nav-btn">{{ t.nav.download }}</a>
           
           <!-- GitHub Stars Button -->
@@ -28,7 +28,6 @@
             href="https://github.com/NovaMindLab/AIShare-Grabber" 
             target="_blank" 
             class="btn btn-github"
-            style="padding: 8px 14px; font-size: 13px;"
             title="Star on GitHub"
           >
             ⭐ <span style="font-weight: 700;">GitHub</span>
@@ -52,12 +51,12 @@
         <!-- Hero Header -->
         <div class="hero-header-center">
           <div class="badge-pill pulse-glow">
-            <span>✨</span> {{ t.hero.badge }}
+            <span>✨</span> {{ t.hero.badge }} • v1.2.80 正式发布
           </div>
           
           <h1 class="hero-main-title">
             <span class="gradient-text">打破设备壁垒</span><br />
-            本地 AI 赋能的跨端无网照片生态
+            本地 AI 赋能的跨端无网照片管理生态
           </h1>
           
           <p class="hero-main-desc">
@@ -66,13 +65,21 @@
 
           <!-- CTA Buttons -->
           <div class="hero-actions-row">
-            <a href="#download" class="btn btn-primary" style="font-size: 16px; padding: 14px 30px;">
-              <span>🖥️</span> {{ t.download.pc.btn || '下载 Windows 桌面端' }}
+            <a 
+              href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v1.2.80/ShareCLIP-Setup-1.2.80.exe" 
+              class="btn btn-primary btn-lg"
+              @click="showDownloadToast('🚀 正在启动 Windows 桌面版 (v1.2.80) 极速下载...')"
+            >
+              <span>🖥️</span> 下载 Windows 桌面端 (175 MB)
             </a>
-            <a href="#download" class="btn btn-secondary" style="font-size: 16px; padding: 14px 30px;">
-              <span>📱</span> {{ t.download.android.btn || '下载 Android APK' }}
+            <a 
+              href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v1.2.80/app-arm64-v8a-release.apk" 
+              class="btn btn-secondary btn-lg"
+              @click="showDownloadToast('📱 正在启动 Android 手机端 (v1.2.80) 极速下载...')"
+            >
+              <span>📱</span> 下载 Android APK (35 MB)
             </a>
-            <a href="#simulator" class="btn btn-outline" style="font-size: 16px; padding: 14px 26px;">
+            <a href="#simulator" class="btn btn-outline btn-lg">
               <span>⚡</span> {{ t.hero.simulate }}
             </a>
           </div>
@@ -115,8 +122,8 @@
             <div class="stat-label">云端中转延迟 (纯本地 P2P 直连)</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value gradient-text-cyan">1.2 GB/s</div>
-            <div class="stat-label">局域网 Wi-Fi Socket 极限吞吐</div>
+            <div class="stat-value gradient-text-cyan">80+ MB/s</div>
+            <div class="stat-label">局域网 Wi-Fi Socket 实测吞吐</div>
           </div>
           <div class="stat-card">
             <div class="stat-value gradient-text">512-D</div>
@@ -161,10 +168,10 @@
             <p>{{ t.features.f3.desc }}</p>
           </div>
 
-          <!-- Feature 4: Two-way chat -->
+          <!-- Feature 4: 4K Lightbox -->
           <div class="glass-panel glass-panel-hover feature-card">
             <div class="feature-icon-box icon-purple">🖼️</div>
-            <h3>渐进式大图画廊 (Lightbox)</h3>
+            <h3>渐进式 4K 大图画廊 (Lightbox)</h3>
             <p>0ms 秒开缩略图，手机在线时按需直传 4K 原图无缝热替换，支持键盘左右键快速切图与自由放大旋转。</p>
           </div>
 
@@ -175,7 +182,7 @@
             <p>{{ t.features.f5.desc }}</p>
           </div>
 
-          <!-- Feature 6: Auto Update & Deduplication -->
+          <!-- Feature 6: Deduplication -->
           <div class="glass-panel glass-panel-hover feature-card">
             <div class="feature-icon-box icon-emerald">🧹</div>
             <h3>智能相似图去重 & 双端同步清理</h3>
@@ -185,77 +192,206 @@
       </div>
     </section>
 
-    <!-- ==================== AI ECOSYSTEM & INTERACTIVE SEARCH ==================== -->
-    <section id="ai-ecosystem" class="section-padding" style="background: rgba(10, 15, 30, 0.4);">
+    <!-- ==================== AI ECOSYSTEM & INTERACTIVE PLAYGROUND ==================== -->
+    <section id="ai-ecosystem" class="section-padding" style="background: rgba(10, 15, 30, 0.45);">
       <div class="container">
         <div class="section-header">
-          <div class="badge-pill">AI ECOSYSTEM</div>
+          <div class="badge-pill">AI PLAYGROUND</div>
           <h2 class="section-title">端侧多模态 AI 智能相册引擎</h2>
           <p class="section-subtitle">所有 AI 运算均在 PC 端 CPU/GPU 及 WASM SIMD 多线程上本地运行，保障极致速度与绝对隐私</p>
         </div>
 
         <!-- AI Illustration Banner -->
-        <div class="ai-banner-frame glass-panel" style="margin-bottom: 40px;">
+        <div class="ai-banner-frame glass-panel" style="margin-bottom: 36px;">
           <img src="/ai_features.jpg" alt="ShareCLIP AI Features Showcase" class="ai-banner-img" />
         </div>
 
-        <!-- Interactive AI Semantic Search Simulator -->
+        <!-- Interactive AI Playground Card with 3 Tabs -->
         <div class="glass-panel interactive-ai-box">
-          <div class="interactive-ai-header">
-            <div style="display: flex; align-items: center; gap: 10px;">
+          <!-- Playground Tabs Navigation -->
+          <div class="playground-nav-tabs">
+            <button 
+              class="playground-tab-btn" 
+              :class="{ active: activeAiTab === 'search' }"
+              @click="activeAiTab = 'search'"
+            >
+              <span>🔍</span> 自然语言语义搜图 (CLIP 512-D)
+            </button>
+            <button 
+              class="playground-tab-btn" 
+              :class="{ active: activeAiTab === 'faces' }"
+              @click="activeAiTab = 'faces'"
+            >
+              <span>👥</span> 人脸识别与人物时间轴 (SIMD 聚类)
+            </button>
+            <button 
+              class="playground-tab-btn" 
+              :class="{ active: activeAiTab === 'dedup' }"
+              @click="activeAiTab = 'dedup'"
+            >
+              <span>🧹</span> 相似图与连拍去重 (Cosine 质心)
+            </button>
+          </div>
+
+          <!-- TAB 1: CLIP Search Simulator -->
+          <div v-if="activeAiTab === 'search'" class="tab-pane-content">
+            <div class="interactive-ai-header">
               <span style="font-size: 22px;">🔍</span>
               <div>
-                <h3 style="font-size: 18px; font-weight: 700; margin: 0; color: #fff;">自然语言语义搜图体验 (Interactive CLIP Simulation)</h3>
-                <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">输入或点击下方预设关键词，体验 MobileCLIP 512-D 向量空间语义检索能力：</p>
+                <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: #fff;">MobileCLIP 512-D 向量空间语义检索</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">输入自然语言或点击测试词，实时感受本地向量语义匹配能力（点击照片可全屏预览）：</p>
+              </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="ai-search-bar">
+              <span style="font-size: 18px; color: #a855f7;">🔍</span>
+              <input 
+                v-model="aiSearchQuery" 
+                type="text" 
+                placeholder="输入如：海边日落、在草地奔跑的金毛、发票收据、城市夜景..."
+                class="ai-search-input"
+                @keydown.enter="runAiSearch"
+              />
+              <button class="btn btn-primary" style="padding: 8px 18px; font-size: 13px;" @click="runAiSearch">
+                语义检索
+              </button>
+            </div>
+
+            <!-- Preset Chips -->
+            <div class="preset-chips-row">
+              <span style="font-size: 12px; color: var(--text-muted); align-self: center;">推荐测试词：</span>
+              <button 
+                v-for="preset in presetQueries" 
+                :key="preset.text" 
+                class="preset-chip"
+                :class="{ active: aiSearchQuery === preset.text }"
+                @click="setSearchQuery(preset.text)"
+              >
+                {{ preset.icon }} {{ preset.text }}
+              </button>
+            </div>
+
+            <!-- Match Results Grid -->
+            <div class="ai-results-grid">
+              <div 
+                v-for="item in simulatedResults" 
+                :key="item.name" 
+                class="ai-result-card"
+                @click="openLightbox(item)"
+              >
+                <div class="ai-card-img-wrap">
+                  <img :src="item.img" :alt="item.name" class="ai-card-img" />
+                  <span class="ai-score-badge" :class="item.score > 0.85 ? 'score-high' : 'score-low'">
+                    {{ Math.round(item.score * 100) }}% 相似度
+                  </span>
+                  <div class="lightbox-hint">🔍 点击 4K 预览</div>
+                </div>
+                <div class="ai-card-info">
+                  <div class="ai-card-title">{{ item.name }}</div>
+                  <div class="ai-card-meta">
+                    <span class="ai-card-tag">{{ item.tag }}</span>
+                    <span class="ai-card-dim">512-D</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Search Bar -->
-          <div class="ai-search-bar">
-            <span style="font-size: 18px; color: #a855f7;">🔍</span>
-            <input 
-              v-model="aiSearchQuery" 
-              type="text" 
-              placeholder="输入如：海边日落、在草地奔跑的金毛、发票收据..."
-              class="ai-search-input"
-              @keydown.enter="runAiSearch"
-            />
-            <button class="btn btn-primary" style="padding: 8px 18px; font-size: 13px;" @click="runAiSearch">
-              语义检索
-            </button>
-          </div>
-
-          <!-- Preset Chips -->
-          <div class="preset-chips-row">
-            <span style="font-size: 12px; color: var(--text-muted); align-self: center;">推荐测试词：</span>
-            <button 
-              v-for="preset in presetQueries" 
-              :key="preset.text" 
-              class="preset-chip"
-              :class="{ active: aiSearchQuery === preset.text }"
-              @click="setSearchQuery(preset.text)"
-            >
-              {{ preset.icon }} {{ preset.text }}
-            </button>
-          </div>
-
-          <!-- Match Results Grid -->
-          <div class="ai-results-grid">
-            <div 
-              v-for="item in simulatedResults" 
-              :key="item.name" 
-              class="ai-result-card"
-            >
-              <div class="ai-card-img-wrap">
-                <img :src="item.img" :alt="item.name" class="ai-card-img" />
-                <span class="ai-score-badge" :style="{ background: item.score >= 0.85 ? 'rgba(16, 185, 129, 0.85)' : 'rgba(168, 85, 247, 0.85)' }">
-                  匹配度: {{ (item.score * 100).toFixed(1) }}%
-                </span>
+          <!-- TAB 2: Face Clustering Simulator -->
+          <div v-else-if="activeAiTab === 'faces'" class="tab-pane-content">
+            <div class="interactive-ai-header">
+              <span style="font-size: 22px;">👥</span>
+              <div>
+                <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: #fff;">WASM SIMD 128位 人脸特征聚类与时间轴</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">SCRFD + MobileFaceNet 本地高精度聚类，点击人物头像筛选专属相册：</p>
               </div>
-              <div class="ai-card-meta">
-                <span class="ai-card-name">{{ item.name }}</span>
-                <span class="ai-card-tag">🏷️ {{ item.tag }}</span>
+            </div>
+
+            <!-- Face Avatars Row -->
+            <div class="face-avatars-row">
+              <div 
+                v-for="face in mockFaceGroups" 
+                :key="face.name"
+                class="face-avatar-card"
+                :class="{ active: selectedFace === face.name }"
+                @click="selectedFace = face.name"
+              >
+                <img :src="face.avatar" :alt="face.name" class="face-avatar-img" />
+                <div class="face-name">{{ face.name }}</div>
+                <div class="face-count">{{ face.photos.length }} 张照片</div>
+              </div>
+            </div>
+
+            <!-- Clustered Photos Grid -->
+            <div class="ai-results-grid" style="margin-top: 20px;">
+              <div 
+                v-for="item in currentFacePhotos" 
+                :key="item.name" 
+                class="ai-result-card"
+                @click="openLightbox(item)"
+              >
+                <div class="ai-card-img-wrap">
+                  <img :src="item.img" :alt="item.name" class="ai-card-img" />
+                  <span class="ai-score-badge score-high">
+                    👤 {{ selectedFace }}
+                  </span>
+                  <div class="lightbox-hint">🔍 点击 4K 预览</div>
+                </div>
+                <div class="ai-card-info">
+                  <div class="ai-card-title">{{ item.name }}</div>
+                  <div class="ai-card-meta">
+                    <span class="ai-card-tag">{{ item.date }}</span>
+                    <span class="ai-card-dim">0.04ms SIMD</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: Duplicate Deduplication Simulator -->
+          <div v-else-if="activeAiTab === 'dedup'" class="tab-pane-content">
+            <div class="interactive-ai-header">
+              <span style="font-size: 22px;">🧹</span>
+              <div>
+                <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: #fff;">Leader Centroid 连拍与相似图识别</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">毫秒级定位连拍废片与重复抓拍，电脑端一键释放双端存储空间：</p>
+              </div>
+            </div>
+
+            <!-- Deduplication Controls -->
+            <div class="dedup-controls-bar">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 13px; color: var(--text-muted);">相似度阈值：</span>
+                <input type="range" min="80" max="98" v-model="simThreshold" class="sim-slider" />
+                <span style="font-weight: 700; color: #38bdf8; font-size: 14px;">{{ simThreshold }}%</span>
+              </div>
+              <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 13px;" @click="simulateDedupCleanup">
+                <span>🧹</span> 模拟清理重复项 (释放 48.2 MB)
+              </button>
+            </div>
+
+            <!-- Duplicate Groups List -->
+            <div class="dedup-groups-container">
+              <div v-for="(group, gIdx) in mockDuplicateGroups" :key="gIdx" class="dedup-group-card">
+                <div class="dedup-group-header">
+                  <span class="dedup-group-title">分组 #{{ gIdx + 1 }}: {{ group.title }}</span>
+                  <span class="badge-pill" style="font-size: 11px; padding: 2px 10px;">相似度 ≥ {{ group.similarity }}%</span>
+                </div>
+                <div class="dedup-photos-row">
+                  <div 
+                    v-for="(photo, pIdx) in group.photos" 
+                    :key="photo.name"
+                    class="dedup-photo-item"
+                    :class="{ 'to-keep': pIdx === 0, 'to-delete': pIdx > 0 }"
+                    @click="openLightbox(photo)"
+                  >
+                    <img :src="photo.img" :alt="photo.name" />
+                    <div class="dedup-status-label" :class="pIdx === 0 ? 'keep-badge' : 'del-badge'">
+                      {{ pIdx === 0 ? '🌟 推荐保留最佳' : '🗑️ 建议清理' }}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -263,17 +399,17 @@
       </div>
     </section>
 
-    <!-- ==================== HANDSHAKE SIMULATOR ==================== -->
+    <!-- ==================== HANDSHAKE SIMULATOR & ANIMATED PROTOCOL ==================== -->
     <section id="simulator" class="section-padding">
       <div class="container">
         <div class="section-header">
-          <div class="badge-pill">INTERACTIVE DEMO</div>
-          <h2 class="section-title">{{ t.simulator.title }}</h2>
-          <p class="section-subtitle">{{ t.simulator.subtitle }}</p>
+          <div class="badge-pill">ZERO-TRAFFIC PROTOCOL</div>
+          <h2 class="section-title">真·局域网 P2P 零流量极速同步架构</h2>
+          <p class="section-subtitle">无需数据线、无需公网服务器，近场 BLE 自动握手 + WebRTC DataChannel 千兆级局域网直连</p>
         </div>
 
         <!-- Dynamic 60fps Animated P2P Stream Banner -->
-        <div class="ai-banner-frame glass-panel" style="margin-bottom: 32px; padding: 4px; background: rgba(5,8,17,0.85); border: 1px solid rgba(56,189,248,0.25); box-shadow: 0 16px 40px rgba(0,0,0,0.6);">
+        <div class="ai-banner-frame glass-panel" style="margin-bottom: 36px; padding: 6px; background: rgba(5,8,17,0.85); border: 1px solid rgba(56,189,248,0.25); box-shadow: 0 16px 40px rgba(0,0,0,0.6);">
           <img src="/p2p_flow_animated.svg" alt="Direct-Link P2P Signaling & Transmission Animation" style="width: 100%; border-radius: 12px; display: block;" />
         </div>
 
@@ -303,12 +439,18 @@
 
           <!-- Stepper Content Grid -->
           <div class="simulator-content-grid">
-            <div class="simulator-view">
-              <!-- Step 1 View: QR Code -->
+            <!-- Dynamic Step Visual Area -->
+            <div class="simulator-viewport">
+              <!-- Step 1 View: QR scan -->
               <div v-if="currentStep === 1" class="step-view-center">
-                <div class="sim-qr-box">
-                  <div class="sim-qr-matrix"></div>
-                  <div class="sim-qr-overlay">📸 手机扫码配对</div>
+                <div class="mock-qr-wrap">
+                  <div class="mock-qr">
+                    <div class="qr-corner top-left"></div>
+                    <div class="qr-corner top-right"></div>
+                    <div class="qr-corner bottom-left"></div>
+                    <div class="qr-center-icon">⚡</div>
+                    <div class="qr-scan-bar"></div>
+                  </div>
                 </div>
                 <div class="sim-view-text">
                   <h4>{{ t.simulator.qrText }}</h4>
@@ -373,10 +515,18 @@
                 </div>
                 
                 <div class="transfer-controls">
-                  <button class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;" @click="simulateTransfer('pc-to-phone')">
+                  <button 
+                    class="btn btn-outline" 
+                    :class="{ active: flowDir === 'pc-to-phone' }"
+                    @click="simulateTransfer('pc-to-phone')"
+                  >
                     {{ t.simulator.pcToPhone }}
                   </button>
-                  <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px;" @click="simulateTransfer('phone-to-pc')">
+                  <button 
+                    class="btn btn-outline" 
+                    :class="{ active: flowDir === 'phone-to-pc' }"
+                    @click="simulateTransfer('phone-to-pc')"
+                  >
                     {{ t.simulator.phoneToPc }}
                   </button>
                 </div>
@@ -443,7 +593,7 @@
             <tbody>
               <tr>
                 <td><strong>传输速度</strong></td>
-                <td class="highlight-col"><span class="badge-green">千兆 Wi-Fi 直连 (无上限)</span></td>
+                <td class="highlight-col"><span class="badge-green">80+ MB/s Wi-Fi 直连 (千兆级)</span></td>
                 <td>受限于公网带宽与 VIP 限速</td>
                 <td>受公网服务器限速 (极慢)</td>
                 <td>高速物理直连</td>
@@ -487,7 +637,7 @@
       <div class="container">
         <div class="glass-panel download-container">
           <div class="section-header">
-            <div class="badge-pill">DOWNLOAD</div>
+            <div class="badge-pill">OFFICIAL RELEASES (v1.2.80)</div>
             <h2 class="section-title">{{ t.download.title }}</h2>
             <p class="section-subtitle">{{ t.download.subtitle }}</p>
           </div>
@@ -495,41 +645,119 @@
           <div class="download-cards-row">
             <!-- PC Desktop App -->
             <div class="glass-panel glass-panel-hover download-card">
-              <img src="/pc_logo.png" alt="ShareCLIP PC" class="download-icon" />
-              <h3 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px;">{{ t.download.pc.title }}</h3>
-              <p class="download-meta">{{ t.download.pc.meta }}</p>
-              <p class="download-desc">{{ t.download.pc.desc }}</p>
+              <div class="download-badge-tag">Windows 10 / 11</div>
+              <div class="download-icon-circle">🖥️</div>
+              <h3 style="font-size: 22px; font-weight: 800; color: #fff; margin: 12px 0 6px 0;">ShareCLIP PC 桌面端</h3>
+              <p class="download-meta">版本 v1.2.80 • 64-bit Installer • ~175 MB</p>
+              <p class="download-desc">内置 MobileCLIP ONNX 引擎、WASM SIMD 聚类加速与 4K Lightbox 画廊。</p>
               <a 
-                href="https://github.com/NovaMindLab/AIShare-Grabber/releases" 
-                target="_blank"
+                href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v1.2.80/ShareCLIP-Setup-1.2.80.exe" 
                 class="btn btn-primary" 
-                style="width: 100%; justify-content: center;"
-                @click="showDownloadToast('已前往 GitHub Releases 获取 Windows 桌面版')"
+                style="width: 100%; justify-content: center; font-size: 15px;"
+                @click="showDownloadToast('🚀 正在启动 Windows 安装包 (175 MB) 下载...')"
               >
-                <span>🖥️</span> {{ t.download.pc.btn }}
+                <span>⚡</span> 下载 Windows 安装包 (.exe)
               </a>
             </div>
 
             <!-- Android Companion App -->
             <div class="glass-panel glass-panel-hover download-card">
-              <img src="/android_logo.png" alt="ShareCLIP Android" class="download-icon" />
-              <h3 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px;">{{ t.download.android.title }}</h3>
-              <p class="download-meta">{{ t.download.android.meta }}</p>
-              <p class="download-desc">{{ t.download.android.desc }}</p>
+              <div class="download-badge-tag">Android 8.0+</div>
+              <div class="download-icon-circle" style="background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.35);">📱</div>
+              <h3 style="font-size: 22px; font-weight: 800; color: #fff; margin: 12px 0 6px 0;">ShareCLIP Android 移动端</h3>
+              <p class="download-meta">版本 v1.2.80 • 64-bit ARMv8/v9 • ~35 MB</p>
+              <p class="download-desc">基于 Flutter 构建，支持 BLE 近场扫码、Wi-Fi 直连与后台无感增量对齐。</p>
               <a 
-                href="/app-release.apk" 
-                download 
+                href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v1.2.80/app-arm64-v8a-release.apk" 
                 class="btn btn-secondary" 
-                style="width: 100%; justify-content: center;"
-                @click="showDownloadToast('Android 安装包 (APK) 已开始极速下载！')"
+                style="width: 100%; justify-content: center; font-size: 15px;"
+                @click="showDownloadToast('📱 正在启动 Android 安装包 (35 MB) 下载...')"
               >
-                <span>📱</span> {{ t.download.android.btn }}
+                <span>⚡</span> 下载 Android 安装包 (.apk)
               </a>
             </div>
+          </div>
+
+          <!-- Quick Clone Developer Bar -->
+          <div class="quick-install-box">
+            <div class="quick-install-header">
+              <span>💻 开发者源码极速克隆 (GitHub Clone)</span>
+              <button class="btn-copy-code" @click="copyGitClone">
+                {{ copySuccess ? '✅ 已复制命令' : '📋 复制命令' }}
+              </button>
+            </div>
+            <code class="quick-install-code">git clone https://github.com/NovaMindLab/AIShare-Grabber.git &amp;&amp; cd AIShare-Grabber</code>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- ==================== FULL-SCREEN LIGHTBOX MODAL ==================== -->
+    <transition name="fade">
+      <div v-if="activeLightboxPhoto" class="lightbox-overlay" @click.self="closeLightbox">
+        <div class="lightbox-dialog glass-panel">
+          <!-- Lightbox Top Bar -->
+          <div class="lightbox-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="badge-pill" style="font-size: 11px; padding: 2px 10px;">4K RAW ON-DEMAND STREAM</span>
+              <span style="color: var(--text-muted); font-size: 13px;">{{ activeLightboxPhoto.name }}</span>
+            </div>
+            <button class="lightbox-close-btn" @click="closeLightbox">✕</button>
+          </div>
+
+          <!-- Lightbox Body -->
+          <div class="lightbox-body">
+            <div class="lightbox-image-viewport">
+              <img 
+                :src="activeLightboxPhoto.img" 
+                :alt="activeLightboxPhoto.name"
+                class="lightbox-img"
+                :style="{ transform: `scale(${lightboxZoom}) rotate(${lightboxRotate}deg)` }"
+              />
+            </div>
+
+            <!-- Lightbox Metadata Sidebar -->
+            <div class="lightbox-sidebar">
+              <h4 style="color: #fff; margin-bottom: 12px; font-size: 15px;">📊 EXIF & AI 向量元数据</h4>
+              
+              <div class="meta-item">
+                <span class="meta-label">类别归档:</span>
+                <span class="meta-val">{{ activeLightboxPhoto.tag || 'AI 智能分类' }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">分辨率:</span>
+                <span class="meta-val">4032 × 3024 (4K RAW)</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">传输耗时:</span>
+                <span class="meta-val" style="color: #34d399;">38 ms (P2P Wi-Fi Direct)</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">向量空间:</span>
+                <span class="meta-val" style="color: #c084fc;">MobileCLIP 512-D Float32</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">安全哈希:</span>
+                <span class="meta-val mono">sha256:8f4c...3e1a</span>
+              </div>
+
+              <!-- Action Buttons -->
+              <div style="display: flex; gap: 8px; margin-top: 18px;">
+                <button class="btn btn-outline" style="flex: 1; padding: 8px; font-size: 12px;" @click="lightboxZoom = Math.min(lightboxZoom + 0.25, 2.5)">
+                  🔍 放大
+                </button>
+                <button class="btn btn-outline" style="flex: 1; padding: 8px; font-size: 12px;" @click="lightboxZoom = Math.max(lightboxZoom - 0.25, 0.75)">
+                  🔍 缩小
+                </button>
+                <button class="btn btn-outline" style="flex: 1; padding: 8px; font-size: 12px;" @click="lightboxRotate = (lightboxRotate + 90) % 360">
+                  🔄 旋转
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- Toast Notification -->
     <transition name="fade">
@@ -552,27 +780,36 @@
         </div>
 
         <div class="footer-right">
-          <a href="https://github.com/NovaMindLab/AIShare-Grabber" target="_blank" class="footer-link">GitHub Repository</a>
-          <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases" target="_blank" class="footer-link">Releases</a>
-          <a href="https://github.com/NovaMindLab/AIShare-Grabber/blob/main/LICENSE" target="_blank" class="footer-link">Apache 2.0 License</a>
+          <a href="https://github.com/NovaMindLab/AIShare-Grabber" target="_blank" class="footer-link">GitHub 仓库</a>
+          <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v1.2.80" target="_blank" class="footer-link">Release v1.2.80</a>
+          <a href="https://github.com/NovaMindLab/AIShare-Grabber/blob/main/LICENSE" target="_blank" class="footer-link">Apache 2.0 开源协议</a>
         </div>
       </div>
       <div class="container footer-bottom">
         <span>{{ t.footer.copyright }}</span>
-        <span>{{ t.footer.privacy }}</span>
+        <span>100% 本地计算 • 零云端中转 • 绝无隐私泄露</span>
       </div>
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { languages, messages } from './locales.js';
 
 const currentLocale = ref('zh');
 const currentStep = ref(1);
 const flowDir = ref('pc-to-phone');
 const toastMessage = ref('');
+const activeAiTab = ref('search');
+const selectedFace = ref('Alex');
+const simThreshold = ref(92);
+const copySuccess = ref(false);
+
+// Lightbox state
+const activeLightboxPhoto = ref(null);
+const lightboxZoom = ref(1);
+const lightboxRotate = ref(0);
 
 const t = computed(() => messages[currentLocale.value] || messages.zh);
 
@@ -585,6 +822,39 @@ function showDownloadToast(msg) {
   setTimeout(() => {
     toastMessage.value = '';
   }, 3500);
+}
+
+function openLightbox(photo) {
+  activeLightboxPhoto.value = photo;
+  lightboxZoom.value = 1;
+  lightboxRotate.value = 0;
+}
+
+function closeLightbox() {
+  activeLightboxPhoto.value = null;
+}
+
+function handleKeydown(e) {
+  if (e.key === 'Escape' && activeLightboxPhoto.value) {
+    closeLightbox();
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
+
+function copyGitClone() {
+  navigator.clipboard.writeText('git clone https://github.com/NovaMindLab/AIShare-Grabber.git');
+  copySuccess.value = true;
+  showDownloadToast('📋 源码仓库地址已复制到剪贴板！');
+  setTimeout(() => {
+    copySuccess.value = false;
+  }, 3000);
 }
 
 // Stepper Simulator Logic
@@ -612,7 +882,7 @@ function simulateTransfer(direction) {
   flowDir.value = direction;
 }
 
-// AI Semantic Search Simulator Logic
+// AI Semantic Search Simulator Data
 const aiSearchQuery = ref('海边日落');
 const presetQueries = [
   { icon: '🌅', text: '海边日落' },
@@ -623,11 +893,11 @@ const presetQueries = [
 ];
 
 const mockPhotoDatabase = [
-  { name: 'IMG_2026_0818_142.jpg', tag: '风景与日落', img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop&q=80', keywords: ['海边', '日落', '沙滩', '海洋', '晚霞'] },
-  { name: 'IMG_2026_0815_098.jpg', tag: '宠物与动物', img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&auto=format&fit=crop&q=80', keywords: ['狗', '金毛', '草地', '奔跑', '宠物'] },
-  { name: 'IMG_2026_0812_014.jpg', tag: '文档与发票', img: 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=500&auto=format&fit=crop&q=80', keywords: ['发票', '收据', '文档', '票据', '账单'] },
-  { name: 'IMG_2026_0809_771.jpg', tag: '城市与建筑', img: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=500&auto=format&fit=crop&q=80', keywords: ['城市', '夜景', '建筑', '大楼', '霓虹'] },
-  { name: 'IMG_2026_0802_334.jpg', tag: '美食与餐饮', img: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&auto=format&fit=crop&q=80', keywords: ['美食', '拉面', '面条', '餐饮', '晚餐'] }
+  { name: 'IMG_2026_0818_142.jpg', tag: '风景与日落', img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=700&auto=format&fit=crop&q=80', keywords: ['海边', '日落', '沙滩', '海洋', '晚霞'] },
+  { name: 'IMG_2026_0815_098.jpg', tag: '宠物与动物', img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=700&auto=format&fit=crop&q=80', keywords: ['狗', '金毛', '草地', '奔跑', '宠物'] },
+  { name: 'IMG_2026_0812_014.jpg', tag: '文档与发票', img: 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=700&auto=format&fit=crop&q=80', keywords: ['发票', '收据', '文档', '票据', '账单'] },
+  { name: 'IMG_2026_0809_771.jpg', tag: '城市与建筑', img: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=700&auto=format&fit=crop&q=80', keywords: ['城市', '夜景', '建筑', '大楼', '霓虹'] },
+  { name: 'IMG_2026_0802_334.jpg', tag: '美食与餐饮', img: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=700&auto=format&fit=crop&q=80', keywords: ['美食', '拉面', '面条', '餐饮', '晚餐'] }
 ];
 
 const simulatedResults = computed(() => {
@@ -635,9 +905,9 @@ const simulatedResults = computed(() => {
   return mockPhotoDatabase.map(item => {
     let score = 0.45;
     if (item.keywords.some(k => query.includes(k) || k.includes(query))) {
-      score = 0.94 + Math.random() * 0.04;
+      score = 0.95 + Math.random() * 0.04;
     } else if (item.tag.toLowerCase().includes(query)) {
-      score = 0.88 + Math.random() * 0.05;
+      score = 0.89 + Math.random() * 0.04;
     } else {
       score = 0.35 + Math.random() * 0.25;
     }
@@ -650,8 +920,66 @@ function setSearchQuery(q) {
 }
 
 function runAiSearch() {
-  // Triggers reactivity
   showDownloadToast(`🔍 MobileCLIP 512-D 向量空间匹配已完成: "${aiSearchQuery.value}"`);
+}
+
+// Face Grouping Mock Data
+const mockFaceGroups = [
+  {
+    name: 'Alex',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80',
+    photos: [
+      { name: 'ALEX_PORTRAIT_01.jpg', date: '2026-08-10', tag: '人物抓拍', img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=700&auto=format&fit=crop&q=80' },
+      { name: 'ALEX_BEACH_TRIP.jpg', date: '2026-07-22', tag: '旅行写真', img: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=700&auto=format&fit=crop&q=80' },
+      { name: 'ALEX_GRADUATION.jpg', date: '2026-06-18', tag: '纪念瞬间', img: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=700&auto=format&fit=crop&q=80' }
+    ]
+  },
+  {
+    name: 'Emma',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&auto=format&fit=crop&q=80',
+    photos: [
+      { name: 'EMMA_CAFE_01.jpg', date: '2026-08-14', tag: '日常写真', img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=700&auto=format&fit=crop&q=80' },
+      { name: 'EMMA_SUNSET.jpg', date: '2026-07-30', tag: '户外自拍', img: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=700&auto=format&fit=crop&q=80' }
+    ]
+  },
+  {
+    name: 'David',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&auto=format&fit=crop&q=80',
+    photos: [
+      { name: 'DAVID_WORK.jpg', date: '2026-08-01', tag: '会议办公', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=700&auto=format&fit=crop&q=80' },
+      { name: 'DAVID_HIKING.jpg', date: '2026-05-12', tag: '徒步户外', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=700&auto=format&fit=crop&q=80' }
+    ]
+  }
+];
+
+const currentFacePhotos = computed(() => {
+  const group = mockFaceGroups.find(g => g.name === selectedFace.value);
+  return group ? group.photos : [];
+});
+
+// Deduplication Mock Data
+const mockDuplicateGroups = [
+  {
+    title: '海边跳跃 3 连拍',
+    similarity: 96,
+    photos: [
+      { name: 'BURST_01.jpg', tag: '保留最佳', img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop&q=80' },
+      { name: 'BURST_02.jpg', tag: '重复连拍', img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop&q=80' },
+      { name: 'BURST_03.jpg', tag: '重复连拍', img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop&q=80' }
+    ]
+  },
+  {
+    title: '同一场景抓拍',
+    similarity: 94,
+    photos: [
+      { name: 'DOG_RUN_01.jpg', tag: '保留最佳', img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&auto=format&fit=crop&q=80' },
+      { name: 'DOG_RUN_02.jpg', tag: '重复抓拍', img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&auto=format&fit=crop&q=80' }
+    ]
+  }
+];
+
+function simulateDedupCleanup() {
+  showDownloadToast('🧹 质心去重完成：已模拟通过 WebRTC 信令同步清理手机与 PC 上的 3 张冗余重复抓拍！');
 }
 </script>
 
@@ -669,7 +997,7 @@ function runAiSearch() {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(5, 8, 20, 0.8);
+  background: rgba(5, 8, 20, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-light);
@@ -788,6 +1116,11 @@ function runAiSearch() {
   flex-wrap: wrap;
 }
 
+.btn-lg {
+  font-size: 16px;
+  padding: 14px 28px;
+}
+
 /* 3D Hero Banner Frame */
 .hero-banner-frame {
   margin-top: 50px;
@@ -840,6 +1173,35 @@ function runAiSearch() {
 .chip-1 { top: 24px; left: 24px; animation-delay: 0s; border-color: rgba(56, 189, 248, 0.3); }
 .chip-2 { bottom: 24px; left: 24px; animation-delay: 1.5s; border-color: rgba(168, 85, 247, 0.3); }
 .chip-3 { top: 24px; right: 24px; animation-delay: 3s; border-color: rgba(16, 185, 129, 0.3); }
+
+/* Stats Matrix */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-top: 40px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 24px 18px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 900;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
 
 /* Section Generic */
 .section-padding {
@@ -906,22 +1268,49 @@ function runAiSearch() {
   line-height: 1.6;
 }
 
-/* AI Banner & Search Simulator */
-.ai-banner-frame {
-  border-radius: 20px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-}
-.ai-banner-img {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
+/* AI Playground Tabs */
 .interactive-ai-box {
   padding: 32px;
   text-align: left;
+}
+
+.playground-nav-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.playground-tab-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+}
+
+.playground-tab-btn.active {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: #a855f7;
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(168, 85, 247, 0.3);
+}
+
+.interactive-ai-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
 }
 
 .ai-search-bar {
@@ -932,7 +1321,7 @@ function runAiSearch() {
   border: 1px solid rgba(168, 85, 247, 0.4);
   border-radius: 14px;
   padding: 8px 14px;
-  margin: 18px 0 14px 0;
+  margin-bottom: 14px;
   box-shadow: 0 4px 20px rgba(168, 85, 247, 0.15);
 }
 
@@ -948,25 +1337,25 @@ function runAiSearch() {
 
 .preset-chips-row {
   display: flex;
-  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 24px;
 }
 
 .preset-chip {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
-  padding: 5px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-main);
+  padding: 6px 14px;
   border-radius: 99px;
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;
 }
 .preset-chip:hover, .preset-chip.active {
-  background: rgba(168, 85, 247, 0.2);
+  background: rgba(168, 85, 247, 0.25);
   border-color: #a855f7;
   color: #fff;
 }
@@ -978,70 +1367,237 @@ function runAiSearch() {
 }
 
 .ai-result-card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
   overflow: hidden;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
 }
 .ai-result-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(168, 85, 247, 0.35);
+  border-color: #a855f7;
+  box-shadow: 0 10px 25px rgba(168, 85, 247, 0.3);
 }
 
 .ai-card-img-wrap {
-  width: 100%;
-  height: 120px;
   position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
   overflow: hidden;
+  background: #000;
 }
+
 .ai-card-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.ai-result-card:hover .ai-card-img {
+  transform: scale(1.08);
 }
 
 .ai-score-badge {
   position: absolute;
-  bottom: 6px;
-  right: 6px;
+  top: 8px;
+  right: 8px;
   font-size: 10px;
   font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  backdrop-filter: blur(8px);
+}
+.score-high {
+  background: rgba(16, 185, 129, 0.85);
   color: #fff;
-  padding: 2px 6px;
-  border-radius: 4px;
-  backdrop-filter: blur(4px);
+}
+.score-low {
+  background: rgba(100, 116, 139, 0.75);
+  color: #f1f5f9;
 }
 
-.ai-card-meta {
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.lightbox-hint {
+  position: absolute;
+  bottom: 0;
+  inset-inline: 0;
+  background: rgba(0,0,0,0.7);
+  font-size: 10px;
+  text-align: center;
+  padding: 4px 0;
+  color: #38bdf8;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
-.ai-card-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: #f8fafc;
+.ai-result-card:hover .lightbox-hint {
+  opacity: 1;
+}
+
+.ai-card-info {
+  padding: 10px 12px;
+}
+.ai-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+.ai-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
 }
 .ai-card-tag {
   font-size: 10px;
   color: var(--text-muted);
 }
+.ai-card-dim {
+  font-size: 9px;
+  font-weight: 700;
+  color: #a855f7;
+  background: rgba(168, 85, 247, 0.12);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
 
-/* Simulator Stepper */
+/* Face Avatars Row */
+.face-avatars-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.face-avatar-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.face-avatar-card.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(56, 189, 248, 0.25);
+}
+
+.face-avatar-img {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #38bdf8;
+}
+.face-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+.face-count {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Dedup Controls */
+.dedup-controls-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(4, 7, 18, 0.6);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 18px;
+}
+
+.sim-slider {
+  accent-color: #38bdf8;
+  cursor: pointer;
+}
+
+.dedup-groups-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dedup-group-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  padding: 14px 18px;
+}
+
+.dedup-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.dedup-group-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.dedup-photos-row {
+  display: flex;
+  gap: 14px;
+}
+
+.dedup-photo-item {
+  position: relative;
+  width: 120px;
+  aspect-ratio: 4/3;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+.dedup-photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.dedup-photo-item.to-keep {
+  border-color: #10b981;
+}
+.dedup-photo-item.to-delete {
+  border-color: #ef4444;
+  opacity: 0.75;
+}
+
+.dedup-status-label {
+  position: absolute;
+  bottom: 0;
+  inset-inline: 0;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  padding: 2px 0;
+  color: #fff;
+}
+.keep-badge { background: rgba(16, 185, 129, 0.9); }
+.del-badge { background: rgba(239, 68, 68, 0.9); }
+
+/* Handshake Simulator Card */
 .simulator-card {
-  padding: 36px;
+  padding: 40px;
 }
 
 .stepper-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 36px;
+  margin-bottom: 40px;
 }
 
 .step-item {
@@ -1049,35 +1605,45 @@ function runAiSearch() {
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  opacity: 0.5;
-  transition: opacity 0.3s;
-}
-.step-item.active {
-  opacity: 1;
+  user-select: none;
 }
 
 .step-num {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
   font-weight: 700;
-  color: #fff;
+  font-size: 14px;
+  color: var(--text-muted);
+  transition: all 0.3s ease;
 }
+
 .step-item.active .step-num {
   background: var(--primary);
-  border-color: #c084fc;
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.step-item.completed .step-num {
+  background: var(--secondary);
+  border-color: var(--secondary);
+  color: white;
 }
 
 .step-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: color 0.3s;
+}
+.step-item.active .step-label {
+  color: white;
 }
 
 .step-line {
@@ -1085,24 +1651,25 @@ function runAiSearch() {
   height: 2px;
   background: rgba(255, 255, 255, 0.1);
   margin: 0 16px;
-  transition: background 0.4s;
+  position: relative;
 }
 .step-line.filled {
-  background: var(--primary);
+  background: linear-gradient(90deg, var(--secondary) 0%, var(--primary) 100%);
 }
 
 .simulator-content-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 32px;
-  align-items: stretch;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 40px;
+  align-items: center;
 }
 
-.simulator-view {
-  background: rgba(5, 8, 20, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.simulator-viewport {
+  background: rgba(5, 8, 20, 0.8);
+  border: 1px solid var(--border-light);
   border-radius: 16px;
-  padding: 28px;
+  padding: 30px;
+  min-height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1116,132 +1683,152 @@ function runAiSearch() {
   gap: 16px;
 }
 
-.sim-qr-box {
+/* Mock QR Code */
+.mock-qr-wrap {
+  padding: 16px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
+}
+
+.mock-qr {
   width: 140px;
   height: 140px;
-  background: #fff;
-  border-radius: 12px;
+  background: #0f172a;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
 }
 
-.sim-qr-matrix {
-  width: 100%;
-  height: 100%;
-  background-image: 
-    radial-gradient(#000 40%, transparent 40%),
-    radial-gradient(#000 40%, transparent 40%);
-  background-size: 10px 10px;
-  background-position: 0 0, 5px 5px;
-  opacity: 0.85;
-}
-
-.sim-qr-overlay {
+.qr-corner {
   position: absolute;
-  bottom: 8px;
-  font-size: 11px;
-  font-weight: 800;
-  background: #a855f7;
-  color: #fff;
-  padding: 2px 8px;
-  border-radius: 99px;
+  width: 32px;
+  height: 32px;
+  border: 5px solid white;
+}
+.top-left { top: 8px; left: 8px; }
+.top-right { top: 8px; right: 8px; }
+.bottom-left { bottom: 8px; left: 8px; }
+
+.qr-center-icon {
+  font-size: 28px;
+  color: var(--primary);
 }
 
-/* Terminal Log Mock */
+.qr-scan-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #a855f7, transparent);
+  box-shadow: 0 0 10px #a855f7;
+  animation: qrScan 2s ease-in-out infinite alternate;
+}
+
+@keyframes qrScan {
+  from { top: 0; }
+  to { top: 137px; }
+}
+
+/* Phone Log Mock */
 .phone-log-mock {
-  width: 100%;
-  background: #020617;
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: #030712;
+  border: 1px solid #1e293b;
   border-radius: 12px;
-  overflow: hidden;
-  font-family: var(--font-mono);
-  font-size: 12px;
+  padding: 14px;
   text-align: left;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  width: 100%;
 }
 
 .log-mock-header {
-  background: rgba(255, 255, 255, 0.04);
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #1e293b;
   color: var(--text-muted);
-  font-size: 11px;
 }
+
 .dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
 }
-.dot.red { background: #ef4444; }
-.dot.yellow { background: #f59e0b; }
-.dot.green { background: #10b981; }
+.red { background: #ef4444; }
+.yellow { background: #f59e0b; }
+.green { background: #10b981; }
 
-.log-mock-body {
-  padding: 14px;
-  color: #a7f3d0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.log-line {
+  color: #38bdf8;
+  margin-bottom: 6px;
 }
 
 .log-cursor {
-  animation: pulse 1s infinite;
-  color: #38bdf8;
+  display: inline-block;
+  animation: blink 1s infinite;
+  color: var(--primary);
   font-weight: bold;
 }
 
 /* Success Portal */
 .success-portal {
   position: relative;
-  width: 90px;
-  height: 90px;
+  width: 100px;
+  height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.success-icon {
-  font-size: 44px;
-  z-index: 2;
 }
 
 .pulse-ring {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid #10b981;
-  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  border: 2px solid var(--secondary);
+  animation: portalPulse 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
-.ring-2 { animation-delay: 0.6s; }
-
-@keyframes pulse-ring {
-  0% { transform: scale(0.6); opacity: 0.9; }
-  100% { transform: scale(1.8); opacity: 0; }
+.ring-2 {
+  animation-delay: 1s;
 }
 
-/* Transfer animation */
+@keyframes portalPulse {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.success-icon {
+  font-size: 40px;
+}
+
+/* Transfer Simulator Box */
 .transfer-simulator-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 10px 20px;
+  padding: 20px 10px;
 }
 
 .sim-device {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 13px;
   font-weight: 700;
+  color: #fff;
 }
-.dev-emoji { font-size: 38px; }
+
+.dev-emoji {
+  font-size: 36px;
+}
 
 .sim-flow-line {
   flex: 1;
@@ -1254,105 +1841,116 @@ function runAiSearch() {
 
 .flow-dot {
   position: absolute;
-  top: -12px;
+  top: -14px;
   font-size: 20px;
 }
+
 .flow-left-to-right {
-  animation: travel-right 1.8s infinite linear;
+  animation: flowLR 1.5s infinite linear;
 }
 .flow-right-to-left {
-  animation: travel-left 1.8s infinite linear;
+  animation: flowRL 1.5s infinite linear;
 }
 
-@keyframes travel-right {
+@keyframes flowLR {
   0% { left: 0%; opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
   100% { left: 90%; opacity: 0; }
 }
-@keyframes travel-left {
+
+@keyframes flowRL {
   0% { left: 90%; opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
   100% { left: 0%; opacity: 0; }
 }
 
 .transfer-controls {
   display: flex;
-  gap: 12px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.sim-view-text h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.sim-view-text p {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .simulator-explainer {
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   text-align: left;
 }
 
 .explainer-desc {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 16px;
   font-size: 14px;
+  line-height: 1.6;
   color: var(--text-muted);
-  line-height: 1.7;
+  min-height: 130px;
+  margin-bottom: 20px;
 }
 
 /* Comparison Table */
 .comparison-table-wrap {
+  padding: 24px;
   overflow-x: auto;
-  padding: 10px;
 }
 
 .comparison-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light);
   font-size: 14px;
 }
 
-.comparison-table th, .comparison-table td {
-  padding: 18px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
 .comparison-table th {
-  color: var(--text-muted);
+  color: #fff;
   font-weight: 700;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  background: rgba(15, 23, 42, 0.5);
 }
 
 .highlight-col {
   background: rgba(168, 85, 247, 0.08);
   color: #fff;
   font-weight: 700;
-  border-left: 1px solid rgba(168, 85, 247, 0.2);
-  border-right: 1px solid rgba(168, 85, 247, 0.2);
+  border-inline: 1px solid rgba(168, 85, 247, 0.25);
 }
 
 .badge-green {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
   color: #34d399;
+  border-radius: 6px;
+  font-size: 12px;
 }
 
 /* Download Section */
 .download-container {
-  padding: 50px 30px;
-  border-radius: 28px;
+  padding: 50px 40px;
 }
 
 .download-cards-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 30px;
-  max-width: 900px;
-  margin: 0 auto;
+  margin-bottom: 36px;
 }
 
 .download-card {
@@ -1361,17 +1959,37 @@ function runAiSearch() {
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
 }
 
-.download-icon {
-  width: 72px;
-  height: 72px;
-  margin-bottom: 18px;
+.download-badge-tag {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 2px 10px;
+  border-radius: 99px;
+  color: #cbd5e1;
+}
+
+.download-icon-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
 }
 
 .download-meta {
-  font-size: 13px;
-  color: #a855f7;
+  font-size: 12px;
+  color: #38bdf8;
   font-weight: 700;
   margin-bottom: 10px;
 }
@@ -1379,54 +1997,196 @@ function runAiSearch() {
 .download-desc {
   font-size: 14px;
   color: var(--text-muted);
-  line-height: 1.6;
+  line-height: 1.5;
   margin-bottom: 24px;
   flex: 1;
 }
 
-/* Toast */
+/* Quick Install Bar */
+.quick-install-box {
+  background: rgba(4, 7, 18, 0.8);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  padding: 16px 20px;
+  text-align: left;
+}
+
+.quick-install-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.btn-copy-code {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.btn-copy-code:hover {
+  background: rgba(168, 85, 247, 0.3);
+  border-color: #a855f7;
+  color: #fff;
+}
+
+.quick-install-code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: #38bdf8;
+  display: block;
+}
+
+/* Lightbox Modal */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(16px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.lightbox-dialog {
+  max-width: 1080px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.lightbox-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.lightbox-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.2s;
+}
+.lightbox-close-btn:hover {
+  color: #fff;
+}
+
+.lightbox-body {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.lightbox-image-viewport {
+  background: #030712;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 20px;
+}
+
+.lightbox-img {
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: 8px;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+}
+
+.lightbox-sidebar {
+  padding: 24px 20px;
+  background: rgba(10, 15, 30, 0.8);
+  border-left: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.meta-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.meta-label {
+  color: var(--text-muted);
+}
+.meta-val {
+  color: #fff;
+  font-weight: 600;
+}
+.meta-val.mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* Toast Popup */
 .toast-popup {
   position: fixed;
   bottom: 30px;
-  right: 30px;
-  z-index: 1000;
-  padding: 14px 24px;
-  font-size: 14px;
-  font-weight: 700;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid #a855f7;
+  padding: 12px 24px;
+  border-radius: 99px;
   color: #fff;
-  border-color: #a855f7;
-  box-shadow: 0 10px 30px rgba(168, 85, 247, 0.4);
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 10px 40px rgba(168, 85, 247, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Footer */
 .footer {
   border-top: 1px solid var(--border-light);
-  background: #020612;
-  padding: 60px 0 30px 0;
+  padding: 50px 0 30px 0;
   margin-top: auto;
+  background: rgba(3, 7, 18, 0.9);
 }
 
 .footer-content {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 40px;
-  flex-wrap: wrap;
-  gap: 30px;
+  align-items: center;
+  margin-bottom: 30px;
 }
 
 .footer-desc {
   font-size: 13px;
   color: var(--text-muted);
-  max-width: 380px;
-  margin-top: 10px;
-  line-height: 1.6;
+  margin-top: 8px;
 }
 
 .footer-right {
   display: flex;
   gap: 24px;
-  flex-wrap: wrap;
 }
 
 .footer-link {
@@ -1440,28 +2200,42 @@ function runAiSearch() {
 }
 
 .footer-bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 24px;
   display: flex;
   justify-content: space-between;
   font-size: 12px;
   color: var(--text-subtle);
-  flex-wrap: wrap;
-  gap: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 20px;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
+/* Animations */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 992px) {
+  .hero-main-title { font-size: 38px; }
   .features-grid { grid-template-columns: repeat(2, 1fr); }
   .ai-results-grid { grid-template-columns: repeat(3, 1fr); }
   .simulator-content-grid { grid-template-columns: 1fr; }
+  .download-cards-row { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .lightbox-body { grid-template-columns: 1fr; }
+  .lightbox-sidebar { border-left: none; border-top: 1px solid var(--border-light); }
 }
 
 @media (max-width: 768px) {
-  .hero-main-title { font-size: 36px; }
   .features-grid { grid-template-columns: 1fr; }
-  .download-cards-row { grid-template-columns: 1fr; }
   .ai-results-grid { grid-template-columns: repeat(2, 1fr); }
+  .nav-links { display: none; }
+  .hero-main-title { font-size: 32px; }
   .floating-chip { display: none; }
+  .stats-grid { grid-template-columns: 1fr; }
 }
 </style>
