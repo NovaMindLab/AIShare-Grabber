@@ -74,128 +74,35 @@
 
 ## ⚡ Direct-Link P2P Signaling & Transmission Pipeline
 
-```xml
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340" width="100%" height="auto" style="background:#0f172a; border-radius:12px; font-family:'Segoe UI',system-ui,sans-serif; border: 1px solid rgba(255,255,255,0.1);">
-  <!-- Styles for Animation -->
-  <style>
-    .node-title { fill: #f8fafc; font-size: 14px; font-weight: bold; }
-    .node-subtitle { fill: #94a3b8; font-size: 11px; }
-    .label { fill: #cbd5e1; font-size: 12px; }
-    .flow-line { stroke: #334155; stroke-width: 2; stroke-dasharray: 6 4; }
-    
-    /* BLE Handshake Animation */
-    .ble-pulse {
-      stroke: #a855f7;
-      stroke-width: 2;
-      fill: none;
-      animation: pulse 2.5s infinite ease-out;
-    }
-    @keyframes pulse {
-      0% { r: 10; opacity: 1; }
-      100% { r: 50; opacity: 0; }
-    }
-    
-    .ble-packet {
-      fill: #c084fc;
-      animation: ble-travel 3s infinite linear;
-    }
-    @keyframes ble-travel {
-      0% { cx: 200; cy: 110; opacity: 0; }
-      10% { opacity: 1; }
-      40% { cx: 400; cy: 60; }
-      50% { cx: 600; cy: 110; opacity: 1; }
-      51% { opacity: 0; }
-      100% { opacity: 0; }
-    }
+```mermaid
+flowchart LR
+    subgraph Mobile ["📱 Android Companion (Flutter)"]
+        direction TB
+        M1["📸 Photo Gallery / MediaStore"]
+        M2["📡 BLE Peripheral (GATT Client)"]
+        M3["🚀 WebRTC Stream Engine"]
+    end
 
-    /* WebRTC Stream Animation */
-    .webrtc-stream {
-      stroke: #3b82f6;
-      stroke-width: 3;
-      stroke-dasharray: 8 6;
-      animation: stream-flow 1.5s infinite linear;
-    }
-    @keyframes stream-flow {
-      to { stroke-dashoffset: -20; }
-    }
+    subgraph Channel ["⚡ Zero-Traffic Direct P2P Channel"]
+        direction TB
+        C1["1️⃣ Offline BLE Signaling<br/>(SDP Offer / Answer Handshake)"]
+        C2["2️⃣ High-Speed WebRTC DataChannel<br/>(Local Wi-Fi / Hotspot Direct Stream)"]
+    end
 
-    .data-chunk {
-      fill: #60a5fa;
-      animation: chunk-travel 2s infinite ease-in-out;
-    }
-    @keyframes chunk-travel {
-      0% { cx: 200; cy: 220; r: 0; opacity: 0; }
-      15% { r: 6; opacity: 1; }
-      85% { r: 6; opacity: 1; }
-      100% { cx: 600; cy: 220; r: 0; opacity: 0; }
-    }
-    
-    /* Glow filters */
-    .glow-purple { filter: drop-shadow(0 0 6px rgba(168,85,247,0.6)); }
-    .glow-blue { filter: drop-shadow(0 0 6px rgba(59,130,246,0.6)); }
-  </style>
+    subgraph PC ["🖥️ Desktop Client (Electron + Vue 3)"]
+        direction TB
+        P1["📡 BLE Central (GATT Server)"]
+        P2["📥 Zero-Copy RAM RingBuffer"]
+        P3["🧠 Local ONNX AI<br/>(MobileCLIP + MobileFaceNet)"]
+    end
 
-  <!-- Gradients -->
-  <defs>
-    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#a855f7" />
-      <stop offset="100%" stop-color="#7c3aed" />
-    </linearGradient>
-    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3b82f6" />
-      <stop offset="100%" stop-color="#1d4ed8" />
-    </linearGradient>
-    <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.8" />
-      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.9" />
-    </linearGradient>
-  </defs>
+    M2 <===>|1. BLE Handshake| C1 <===>|1. SDP Exchange| P1
+    M3 ====>|2. Gigabit Wi-Fi Stream| C2 ====>|2. 4K & Thumbnails| P2
+    P2 ====>|3. Embeddings & Clustering| P3
 
-  <!-- Background grid pattern -->
-  <g opacity="0.05">
-    <path d="M 0,40 L 800,40 M 0,80 L 800,80 M 0,120 L 800,120 M 0,160 L 800,160 M 0,200 L 800,200 M 0,240 L 800,240 M 0,280 L 800,280" stroke="#94a3b8" stroke-width="1"/>
-    <path d="M 100,0 L 100,340 M 200,0 L 200,340 M 300,0 L 300,340 M 400,0 L 400,340 M 500,0 L 500,340 M 600,0 L 600,340 M 700,0 L 700,340" stroke="#94a3b8" stroke-width="1"/>
-  </g>
-
-  <!-- Connections / Lines -->
-  <!-- BLE Signaling Arch -->
-  <path d="M 200,110 Q 400,50 600,110" fill="none" class="flow-line" />
-  <circle class="ble-pulse" cx="200" cy="110" r="10" />
-  <circle class="ble-packet glow-purple" cx="200" cy="110" r="6" />
-
-  <!-- WebRTC P2P DataChannel Link -->
-  <path d="M 200,220 L 600,220" fill="none" class="webrtc-stream glow-blue" />
-  <circle class="data-chunk" cx="200" cy="220" r="6" />
-  <circle class="data-chunk" cx="200" cy="220" r="6" style="animation-delay: 0.6s;" />
-  <circle class="data-chunk" cx="200" cy="220" r="6" style="animation-delay: 1.2s;" />
-
-  <!-- Left Node: Android Client -->
-  <rect x="50" y="80" width="150" height="180" rx="16" fill="url(#glassGrad)" stroke="#334155" stroke-width="2" />
-  <rect x="50" y="80" width="150" height="40" rx="16" fill="url(#purpleGrad)" opacity="0.15" />
-  <circle cx="125" cy="115" r="22" fill="url(#purpleGrad)" class="glow-purple" />
-  <text x="125" y="120" text-anchor="middle" font-size="16">📱</text>
-  <text x="125" y="165" text-anchor="middle" class="node-title">Android App</text>
-  <text x="125" y="185" text-anchor="middle" class="node-subtitle">Flutter Companion</text>
-  <text x="125" y="210" text-anchor="middle" fill="#a855f7" font-size="10" font-weight="bold" letter-spacing="1">GATT CLIENT</text>
-  <text x="125" y="230" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold" letter-spacing="1">WEBRTC SENDER</text>
-
-  <!-- Right Node: PC Client -->
-  <rect x="600" y="80" width="150" height="180" rx="16" fill="url(#glassGrad)" stroke="#334155" stroke-width="2" />
-  <rect x="600" y="80" width="150" height="40" rx="16" fill="url(#blueGrad)" opacity="0.15" />
-  <circle cx="675" cy="115" r="22" fill="url(#blueGrad)" class="glow-blue" />
-  <text x="675" y="120" text-anchor="middle" font-size="16">🖥️</text>
-  <text x="675" y="165" text-anchor="middle" class="node-title">PC Client</text>
-  <text x="675" y="185" text-anchor="middle" class="node-subtitle">Electron + Vue</text>
-  <text x="675" y="210" text-anchor="middle" fill="#a855f7" font-size="10" font-weight="bold" letter-spacing="1">GATT SERVER</text>
-  <text x="675" y="230" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold" letter-spacing="1">LOCAL ONNX AI</text>
-
-  <!-- Explanatory text overlays -->
-  <rect x="310" y="15" width="180" height="26" rx="6" fill="#1e293b" stroke="#a855f7" stroke-width="1" opacity="0.9" />
-  <text x="400" y="32" text-anchor="middle" fill="#d8b4fe" font-size="10" font-weight="bold" class="glow-purple">1. BLE SIGNALING (OFFLINE SDP)</text>
-
-  <rect x="300" y="245" width="200" height="26" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1" opacity="0.9" />
-  <text x="400" y="262" text-anchor="middle" fill="#93c5fd" font-size="10" font-weight="bold" class="glow-blue">2. WEBRTC DATA CHANNEL (P2P WI-FI)</text>
-</svg>
+    style Mobile fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#fff
+    style PC fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff
+    style Channel fill:#0f2027,stroke:#34d399,stroke-width:2px,stroke-dasharray: 5 5,color:#fff
 ```
 
 ---
