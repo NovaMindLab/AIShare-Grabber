@@ -1,134 +1,135 @@
 {
-  "name": "shareclip",
-  "private": true,
-  "version": "1.2.76",
-  "description": "ShareCLIP PC Client",
-  "author": "ShareCLIP Team",
-  "type": "module",
-  "main": "main.cjs",
-  "scripts": {
-    "vite:dev": "vite",
-    "vite:build": "vite build",
-    "electron:dev": "cross-env NODE_ENV=development electron .",
-    "dev": "concurrently -k \"npm run vite:dev\" \"wait-on http://localhost:5173 && npm run electron:dev\"",
-    "build": "vite build",
-    "preview": "vite preview",
-    "dist": "electron-builder",
-    "build:wasm": "asc src/workers/simd_math.ts -o src/workers/simd_math.wasm -O3 --enable simd --enable threads --importMemory --sharedMemory --maximumMemory 10000"
-  },
-  "dependencies": {
-    "@vueuse/core": "^14.3.0",
-    "electron-updater": "^6.8.9",
-    "exif-reader": "^2.0.3",
-    "onnxruntime-node": "^1.18.0",
-    "qrcode": "^1.5.4",
-    "sharp": "^0.33.4",
-    "sqlite3": "^6.0.1",
-    "vue": "^3.5.38"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.7",
-    "assemblyscript": "^0.28.20",
-    "concurrently": "^8.2.2",
-    "cross-env": "^10.1.0",
-    "electron": "^30.0.0",
-    "electron-builder": "^24.13.3",
-    "vite": "^8.1.0",
-    "wait-on": "^7.2.0"
-  },
-  "build": {
-    "appId": "com.shareclip.album.sync",
-    "productName": "ShareCLIP",
-    "electronLanguages": [
-      "zh-CN",
-      "en-US"
-    ],
-    "directories": {
-      "output": "dist_electron"
-    },
-    "files": [
-      "dist/**/*",
-      "src/workers/**/*",
-      "main.cjs",
-      "preload.cjs",
-      "tokenizer.cjs",
-      "merges.txt",
-      "text_embeddings.json",
-      "mobileclip2_s0_image_encoder.onnx",
-      "mobileclip2_s0_image_encoder.onnx.data",
-      "mobileclip2_s0_text_encoder_quant.onnx",
-      "det_500m.onnx",
-      "w600k_mbf.onnx",
-      "package.json",
-      "icon.png",
-      "icon.ico",
-      "ble_signaling_server.exe",
-      "wifi_ap.ps1",
-      "node_modules/**",
-      "!node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
-      "!node_modules/onnxruntime-node/bin/napi-v6/linux/**",
-      "!node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/**",
-      "!node_modules/onnxruntime-node/bin/napi-v6/win32/x64/DirectML.dll",
-      "!node_modules/onnxruntime-node/bin/napi-v6/win32/x64/dxcompiler.dll",
-      "!node_modules/onnxruntime-node/bin/napi-v6/win32/x64/dxil.dll",
-      "!node_modules/sqlite3/deps/**",
-      "!node_modules/sqlite3/src/**",
-      "!node_modules/sqlite3/build/**/*.obj",
-      "!node_modules/sqlite3/build/**/*.iobj",
-      "!node_modules/sqlite3/build/**/*.ipdb",
-      "!node_modules/sqlite3/build/**/*.lib",
-      "!node_modules/sqlite3/build/**/*.pdb",
-      "!node_modules/sqlite3/build/Release/obj/**",
-      "!node_modules/vue/**",
-      "!node_modules/@vue/**",
-      "!node_modules/@babel/**",
-      "!node_modules/node-gyp/**",
-      "!node_modules/@img/sharp-linux-x64/**",
-      "!node_modules/@img/sharp-linux-arm64/**",
-      "!node_modules/@img/sharp-darwin-x64/**",
-      "!node_modules/@img/sharp-darwin-arm64/**",
-      "!node_modules/@img/sharp-win32-arm64/**"
-    ],
-    "asar": true,
-    "asarUnpack": [
-      "node_modules/onnxruntime-node/bin/**/*.dll",
-      "node_modules/onnxruntime-node/bin/**/*.node",
-      "node_modules/sqlite3/build/Release/*.node",
-      "node_modules/sharp/build/Release/*.node",
-      "node_modules/@img/sharp-win32-x64/lib/*.dll",
-      "node_modules/@img/sharp-win32-x64/build/Release/*.node",
-      "*.onnx",
-      "*.onnx.data",
-      "ble_signaling_server.exe",
-      "wifi_ap.ps1"
-    ],
-    "npmRebuild": false,
-    "buildDependenciesFromSource": false,
-    "publish": {
-      "provider": "github",
-      "owner": "NovaMindLab",
-      "repo": "AIShare-Grabber"
-    },
-    "win": {
-      "icon": "build/icon.ico",
-      "target": [
-        "nsis"
-      ]
-    },
-    "portable": {
-      "artifactName": "${productName}-Portable-${version}.${ext}"
-    },
-    "nsis": {
-      "artifactName": "${productName}-Setup-${version}.${ext}",
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": "always",
-      "createStartMenuShortcut": true,
-      "shortcutName": "ShareCLIP",
-      "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico",
-      "installerHeaderIcon": "build/icon.ico",
-      "differentialPackage": true
-    }
-  }
+    "name":  "shareclip",
+    "private":  true,
+    "version":  "1.2.79",
+    "description":  "ShareCLIP PC Client",
+    "author":  "ShareCLIP Team",
+    "type":  "module",
+    "main":  "main.cjs",
+    "scripts":  {
+                    "vite:dev":  "vite",
+                    "vite:build":  "vite build",
+                    "electron:dev":  "cross-env NODE_ENV=development electron .",
+                    "dev":  "concurrently -k \"npm run vite:dev\" \"wait-on http://localhost:5173 \u0026\u0026 npm run electron:dev\"",
+                    "build":  "vite build",
+                    "preview":  "vite preview",
+                    "dist":  "electron-builder",
+                    "build:wasm":  "asc src/workers/simd_math.ts -o src/workers/simd_math.wasm -O3 --enable simd --enable threads --importMemory --sharedMemory --maximumMemory 10000"
+                },
+    "dependencies":  {
+                         "@vueuse/core":  "^14.3.0",
+                         "electron-updater":  "^6.8.9",
+                         "exif-reader":  "^2.0.3",
+                         "mixpanel-browser":  "^2.82.0",
+                         "onnxruntime-node":  "^1.18.0",
+                         "qrcode":  "^1.5.4",
+                         "sharp":  "^0.33.4",
+                         "sqlite3":  "^6.0.1",
+                         "vue":  "^3.5.38"
+                     },
+    "devDependencies":  {
+                            "@vitejs/plugin-vue":  "^6.0.7",
+                            "assemblyscript":  "^0.28.20",
+                            "concurrently":  "^8.2.2",
+                            "cross-env":  "^10.1.0",
+                            "electron":  "^30.0.0",
+                            "electron-builder":  "^24.13.3",
+                            "vite":  "^8.1.0",
+                            "wait-on":  "^7.2.0"
+                        },
+    "build":  {
+                  "appId":  "com.shareclip.album.sync",
+                  "productName":  "ShareCLIP",
+                  "electronLanguages":  [
+                                            "zh-CN",
+                                            "en-US"
+                                        ],
+                  "directories":  {
+                                      "output":  "dist_electron"
+                                  },
+                  "files":  [
+                                "dist/**/*",
+                                "src/workers/**/*",
+                                "main.cjs",
+                                "preload.cjs",
+                                "tokenizer.cjs",
+                                "merges.txt",
+                                "text_embeddings.json",
+                                "mobileclip2_s0_image_encoder.onnx",
+                                "mobileclip2_s0_image_encoder.onnx.data",
+                                "mobileclip2_s0_text_encoder_quant.onnx",
+                                "det_500m.onnx",
+                                "w600k_mbf.onnx",
+                                "package.json",
+                                "icon.png",
+                                "icon.ico",
+                                "ble_signaling_server.exe",
+                                "wifi_ap.ps1",
+                                "node_modules/**",
+                                "!node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
+                                "!node_modules/onnxruntime-node/bin/napi-v6/linux/**",
+                                "!node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/**",
+                                "!node_modules/onnxruntime-node/bin/napi-v6/win32/x64/DirectML.dll",
+                                "!node_modules/onnxruntime-node/bin/napi-v6/win32/x64/dxcompiler.dll",
+                                "!node_modules/onnxruntime-node/bin/napi-v6/win32/x64/dxil.dll",
+                                "!node_modules/sqlite3/deps/**",
+                                "!node_modules/sqlite3/src/**",
+                                "!node_modules/sqlite3/build/**/*.obj",
+                                "!node_modules/sqlite3/build/**/*.iobj",
+                                "!node_modules/sqlite3/build/**/*.ipdb",
+                                "!node_modules/sqlite3/build/**/*.lib",
+                                "!node_modules/sqlite3/build/**/*.pdb",
+                                "!node_modules/sqlite3/build/Release/obj/**",
+                                "!node_modules/vue/**",
+                                "!node_modules/@vue/**",
+                                "!node_modules/@babel/**",
+                                "!node_modules/node-gyp/**",
+                                "!node_modules/@img/sharp-linux-x64/**",
+                                "!node_modules/@img/sharp-linux-arm64/**",
+                                "!node_modules/@img/sharp-darwin-x64/**",
+                                "!node_modules/@img/sharp-darwin-arm64/**",
+                                "!node_modules/@img/sharp-win32-arm64/**"
+                            ],
+                  "asar":  true,
+                  "asarUnpack":  [
+                                     "node_modules/onnxruntime-node/bin/**/*.dll",
+                                     "node_modules/onnxruntime-node/bin/**/*.node",
+                                     "node_modules/sqlite3/build/Release/*.node",
+                                     "node_modules/sharp/build/Release/*.node",
+                                     "node_modules/@img/sharp-win32-x64/lib/*.dll",
+                                     "node_modules/@img/sharp-win32-x64/build/Release/*.node",
+                                     "*.onnx",
+                                     "*.onnx.data",
+                                     "ble_signaling_server.exe",
+                                     "wifi_ap.ps1"
+                                 ],
+                  "npmRebuild":  false,
+                  "buildDependenciesFromSource":  false,
+                  "publish":  {
+                                  "provider":  "github",
+                                  "owner":  "NovaMindLab",
+                                  "repo":  "AIShare-Grabber"
+                              },
+                  "win":  {
+                              "icon":  "build/icon.ico",
+                              "target":  [
+                                             "nsis"
+                                         ]
+                          },
+                  "portable":  {
+                                   "artifactName":  "${productName}-Portable-${version}.${ext}"
+                               },
+                  "nsis":  {
+                               "artifactName":  "${productName}-Setup-${version}.${ext}",
+                               "oneClick":  false,
+                               "allowToChangeInstallationDirectory":  true,
+                               "createDesktopShortcut":  "always",
+                               "createStartMenuShortcut":  true,
+                               "shortcutName":  "ShareCLIP",
+                               "installerIcon":  "build/icon.ico",
+                               "uninstallerIcon":  "build/icon.ico",
+                               "installerHeaderIcon":  "build/icon.ico",
+                               "differentialPackage":  true
+                           }
+              }
 }

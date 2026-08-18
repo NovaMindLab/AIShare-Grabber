@@ -14,12 +14,15 @@ contextBridge.exposeInMainWorld('api', {
   // Person Album & Face Recognition APIs
   getPersonClusters: () => ipcRenderer.invoke('get-person-clusters'),
   reclusterFaces: () => ipcRenderer.invoke('recluster-faces'),
+  recalculateAllFaces: () => ipcRenderer.invoke('recalculate-all-faces'),
   updatePersonName: (personId, name) => ipcRenderer.invoke('update-person-name', { personId, name }),
   getPersonPhotos: (personId) => ipcRenderer.invoke('get-person-photos', personId),
 
   // BLE Signaling & Sync Connection APIs
   startBleServer: () => ipcRenderer.invoke('start-ble-server'),
   stopBleServer: () => ipcRenderer.invoke('stop-ble-server'),
+  getValidPhysicalIps: () => ipcRenderer.invoke('get-valid-physical-ips'),
+  getPcSessionId: () => ipcRenderer.invoke('get-pc-session-id'),
   sendAnswerSdp: (sdp) => ipcRenderer.invoke('send-answer-sdp', sdp),
   sendIceCandidate: (sdpMid, sdpMLineIndex, candidate) => 
     ipcRenderer.invoke('send-ice-candidate', { sdpMid, sdpMLineIndex, candidate }),
@@ -117,6 +120,7 @@ contextBridge.exposeInMainWorld('api', {
   setDownloadPath: (newPath) => ipcRenderer.invoke('set-download-path', newPath),
   selectDownloadFolder: () => ipcRenderer.invoke('select-download-folder'),
   openDownloadFolder: () => ipcRenderer.invoke('open-download-folder'),
+  openFileLocation: (filePath) => ipcRenderer.invoke('open-file-location', filePath),
   openLogFolder: () => ipcRenderer.invoke('open-log-folder'),
   getLogPath: () => ipcRenderer.invoke('get-log-path'),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),

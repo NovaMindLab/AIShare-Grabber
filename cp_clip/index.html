@@ -5,14 +5,40 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ShareCLIP</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" crossorigin="" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" crossorigin="" />
+    <link rel="stylesheet" href="/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="/leaflet/MarkerCluster.css" />
+    <link rel="stylesheet" href="/leaflet/MarkerCluster.Default.css" />
   </head>
-  <body>
-    <div id="app"></div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js" crossorigin=""></script>
+  <body style="background-color: #0b0f19; margin: 0; padding: 0;">
+    <div id="app">
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; background-color: #0b0f19; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; user-select: none; -webkit-app-region: drag;">
+        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px;">
+          <div style="width: 52px; height: 52px; background: linear-gradient(135deg, #6366f1, #a855f7); border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size: 24px; font-weight: 700; letter-spacing: -0.5px; background: linear-gradient(135deg, #ffffff, #cbd5e1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ShareCLIP</div>
+            <div style="font-size: 12px; color: #64748b; font-weight: 500;">v1.2.71 &bull; 正在初始化工作空间...</div>
+          </div>
+        </div>
+        <div style="width: 200px; height: 4px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; position: relative;">
+          <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 40%; background: linear-gradient(90deg, #6366f1, #a855f7); border-radius: 4px; animation: splash-pulse 1.2s infinite ease-in-out;"></div>
+        </div>
+      </div>
+      <style>
+        @keyframes splash-pulse {
+          0% { left: -40%; width: 40%; }
+          50% { width: 60%; }
+          100% { left: 100%; width: 40%; }
+        }
+      </style>
+    </div>
+    <script src="/leaflet/leaflet.js" defer></script>
+    <script src="/leaflet/leaflet.markercluster.js" defer></script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

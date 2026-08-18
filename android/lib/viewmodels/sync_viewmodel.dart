@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -39,6 +41,9 @@ enum TransferStatus {
 }
 
 class SyncViewModel extends ChangeNotifier {
+  List<Map<String, dynamic>> discoveredPCs = [];
+  Timer? _discoveryTimer;
+  String? _mobileName;
   QrPayload? _lastScannedPayload;
   RawDatagramSocket? _udpSocket;
   // Core Engines
@@ -69,6 +74,8 @@ class SyncViewModel extends ChangeNotifier {
   Map<String, dynamic>? systemInfo;
   final Set<String> pcSyncedIds = {};
   final Set<String> pcSyncedThumbnailIds = {};
+  bool _isCleanedUp = false;
+  bool _remoteAnswerApplied = false;
   final List<Uint8List> _chunkedBufferList = [];
 
   bool isThumbnailSyncing = false;
@@ -113,10 +120,12 @@ class SyncViewModel extends ChangeNotifier {
   void setPermissionsGranted(bool granted) {
     permissionsGranted = granted;
     notifyListeners();
-    if (granted && appState == AppState.idle) {
-      // Go to home screen, not directly to scanner
-      appState = AppState.home;
-      notifyListeners();
+    if (granted) {
+      _startUdpListener();
+      if (appState == AppState.idle) {
+        appState = AppState.home;
+        notifyListeners();
+      }
     }
   }
 
@@ -156,6 +165,38 @@ class SyncViewModel extends ChangeNotifier {
   void connectToTarget(QrPayload payload) {
     _lastScannedPayload = payload;
     
+    if (payload.pcIps != null && payload.pcIps!.isNotEmpty) {
+      logMessage("QR Code contains PC IPs. Attempting ultra-fast Wi-Fi Direct UDP Signaling...");
+      appState = AppState.connectingWebRtc;
+      notifyListeners();
+      _initializeWebRtc(isUdpFallback: true);
+      
+      Timer(const Duration(seconds: 12), () {
+        if (appState != AppState.connected && appState != AppState.failed) {
+          logMessage("Wi-Fi Direct timeout (12s). Falling back to BLE Signaling...");
+          cleanup();
+          appState = AppState.connectingBle;
+          notifyListeners();
+          
+          if (payload.bleMac.isNotEmpty) {
+            _bleClient.startConnect(
+              mac: payload.bleMac,
+              serviceUuid: payload.serviceUuid,
+              charUuid: payload.charUuid,
+              sessionId: payload.sessionId,
+            );
+          } else if (payload.hotspotSsid != null) {
+            _triggerHotspotFallback(payload);
+          } else {
+            errorMsg = "Wi-Fi Direct 失败且无备用连接方式";
+            appState = AppState.failed;
+            notifyListeners();
+          }
+        }
+      });
+      return;
+    }
+
     if (payload.bleMac.isEmpty && payload.hotspotSsid != null) {
       logMessage("QR Code indicates no BLE support. Triggering Wi-Fi Hotspot mode directly...");
       _triggerHotspotFallback(payload);
@@ -289,9 +330,74 @@ class SyncViewModel extends ChangeNotifier {
     }
   }
 
-  void _startUdpListener() async {
+  Future<void> _initMobileName() async {
+    if (_mobileName != null) return;
     try {
-      _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        _mobileName = androidInfo.model;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        _mobileName = iosInfo.name;
+      }
+    } catch (_) {
+      _mobileName = "Mobile Device";
+    }
+  }
+
+  void _startUdpDiscoveryBroadcast() {
+    _discoveryTimer?.cancel();
+    _discoveryTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      if (appState == AppState.connected) return;
+      await _initMobileName();
+      _sendUdp({
+        'type': 'ShareCLIP_Discovery',
+        'device_uuid': deviceUuid ?? 'mobile-device-uuid',
+        'device_name': _mobileName ?? 'Mobile',
+        'device_type': 'Mobile',
+      });
+      
+      // Prune old PCs
+      final now = DateTime.now().millisecondsSinceEpoch;
+      bool changed = false;
+      discoveredPCs.removeWhere((pc) {
+        if (now - (pc['lastSeen'] as int) > 10000) {
+          changed = true;
+          return true;
+        }
+        return false;
+      });
+      if (changed) notifyListeners();
+    });
+  }
+
+  void connectToPC(String ip, String name) async {
+    logMessage("Connecting to LAN PC $name ($ip)...");
+    appState = AppState.connectingWebRtc;
+    notifyListeners();
+    await _initMobileName();
+
+    _lastScannedPayload = QrPayload(
+      bleMac: '',
+      serviceUuid: '',
+      charUuid: '',
+      sessionId: 'lan-${DateTime.now().millisecondsSinceEpoch}',
+      pcIps: [ip],
+    );
+
+    _initializeWebRtc(isUdpFallback: true); 
+  }
+
+  void _startUdpListener() async {
+    // Guard: don't rebind if already listening
+    if (_udpSocket != null) return;
+    try {
+      // Bind to 15185 to receive broadcasts from PC (reusePort must be false on Linux/Android)
+      _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 15185, reuseAddress: true, reusePort: false);
+      _udpSocket!.broadcastEnabled = true;
+      _startUdpDiscoveryBroadcast();
+      
       _udpSocket!.listen((RawSocketEvent event) {
         if (event == RawSocketEvent.read) {
           Datagram? dg = _udpSocket!.receive();
@@ -299,9 +405,51 @@ class SyncViewModel extends ChangeNotifier {
             try {
               final msg = utf8.decode(dg.data);
               final data = json.decode(msg);
-              if (data['type'] == 'ShareCLIP_Direct_Sdp' && data['sdpType'] == 'answer') {
-                logMessage("Received UDP Answer SDP");
-                _handleRemoteAnswer(data['sdp']);
+              
+              // Ignore packets sent by ourselves via broadcast loopback
+              if (deviceUuid != null && (data['sender_uuid'] == deviceUuid || data['device_uuid'] == deviceUuid)) {
+                return;
+              }
+
+              if (data['type'] == 'ShareCLIP_Discovery' && data['device_type'] == 'PC') {
+                final existingIndex = discoveredPCs.indexWhere((pc) => pc['uuid'] == data['device_uuid']);
+                if (existingIndex >= 0) {
+                  discoveredPCs[existingIndex]['lastSeen'] = DateTime.now().millisecondsSinceEpoch;
+                } else {
+                  discoveredPCs.add({
+                    'uuid': data['device_uuid'],
+                    'name': data['device_name'],
+                    'ip': dg.address.address,
+                    'lastSeen': DateTime.now().millisecondsSinceEpoch,
+                  });
+                  notifyListeners();
+                }
+              } else if (data['type'] == 'ShareCLIP_Connect_Request') {
+                // PC requested to connect to mobile
+                // Accept immediately for seamless experience
+                _initializeWebRtc(isUdpFallback: true);
+                _sendUdp({
+                   'type': 'ShareCLIP_Connect_Response',
+                   'accept': true
+                });
+              } else if (data['type'] == 'ShareCLIP_Connect_Response') {
+                 // PC responded to our request
+                 if (data['accept'] == true && data['sdp'] != null) {
+                    _handleRemoteOffer(data['sdp']);
+                 }
+              } else if (data['type'] == 'ShareCLIP_Direct_Sdp' && data['sdpType'] == 'answer') {
+                if (appState != AppState.connected) {
+                  logMessage("Received UDP Answer SDP");
+                  _handleRemoteAnswer(data['sdp']);
+                }
+              } else if (data['type'] == 'ShareCLIP_Direct_Sdp' && data['sdpType'] == 'offer') {
+                // ONLY handle incoming Offer if we are NOT currently in outgoing connecting/waiting states
+                if (appState == AppState.idle || appState == AppState.scanning) {
+                  logMessage("Received UDP Offer SDP");
+                  _handleRemoteOffer(data['sdp']);
+                } else {
+                  debugPrint("[ViewModel LOG] Ignored incoming Offer while in active state: $appState");
+                }
               } else if (data['type'] == 'ShareCLIP_Direct_Ice') {
                  final cand = json.decode(data['candidate']);
                  _syncEngine?.addRemoteIceCandidate(cand['sdpMid'], cand['sdpMLineIndex'], cand['candidate']);
@@ -317,27 +465,36 @@ class SyncViewModel extends ChangeNotifier {
 
   Future<void> _sendUdp(Map<String, dynamic> payload) async {
     if (_udpSocket == null) return;
-    final bytes = utf8.encode(json.encode(payload));
+    final payloadWithSender = Map<String, dynamic>.from(payload);
+    if (deviceUuid != null) {
+      payloadWithSender['sender_uuid'] = deviceUuid;
+    }
+    final bytes = utf8.encode(json.encode(payloadWithSender));
 
-    final targets = <String>{
-      '255.255.255.255',
-      '192.168.137.1',
-      '192.168.43.1',
-      '192.168.137.255',
-      '192.168.43.255',
-    };
+    final targets = <String>{};
 
-    try {
-      final String? ip = await WiFiForIoTPlugin.getIP();
-      if (ip != null && ip.contains('.')) {
-        final parts = ip.split('.');
-        if (parts.length == 4) {
-          final prefix = '${parts[0]}.${parts[1]}.${parts[2]}';
-          targets.add('$prefix.1');
-          targets.add('$prefix.255');
+    if (_lastScannedPayload?.pcIps != null && _lastScannedPayload!.pcIps!.isNotEmpty) {
+      targets.addAll(_lastScannedPayload!.pcIps!);
+    }
+
+    final bool isDirectSignaling = payload['type'] == 'ShareCLIP_Direct_Sdp' || payload['type'] == 'ShareCLIP_Direct_Ice';
+
+    if (!isDirectSignaling) {
+      targets.add('255.255.255.255');
+      targets.add('192.168.137.1');
+      targets.add('192.168.43.1');
+
+      try {
+        final String? ip = await WiFiForIoTPlugin.getIP();
+        if (ip != null && ip.contains('.')) {
+          final parts = ip.split('.');
+          if (parts.length == 4) {
+            final prefix = '${parts[0]}.${parts[1]}.${parts[2]}';
+            targets.add('$prefix.255');
+          }
         }
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
 
     for (var ipStr in targets) {
       try {
@@ -529,6 +686,71 @@ class SyncViewModel extends ChangeNotifier {
             return;
           }
 
+          if (fileId == -12) {
+            // Delete Assets Request from PC
+            final payloadSize = byteData.getInt32(12, Endian.big);
+            final payloadStr = utf8.decode(binaryData.sublist(16, 16 + payloadSize));
+            final Map<String, dynamic> data = jsonDecode(payloadStr);
+            final List<dynamic> rawIds = data['asset_ids'] ?? [];
+            final List<String> assetIdsToDelete = rawIds.map((e) => e.toString()).toList();
+
+            if (assetIdsToDelete.isNotEmpty) {
+              logMessage("🗑️ 收到电脑端同步删除 ${assetIdsToDelete.length} 张照片请求...");
+              try {
+                final List<String> deletedResult = await PhotoManager.editor.deleteWithIds(assetIdsToDelete);
+                logMessage("🗑️ 手机相册已成功删除 ${deletedResult.length} 张照片。");
+                // Remove from in-memory lists
+                localImages.removeWhere((img) => deletedResult.contains(img.id));
+                pcSyncedIds.removeWhere((id) => deletedResult.contains(id));
+                pcSyncedThumbnailIds.removeWhere((id) => deletedResult.contains(id));
+                notifyListeners();
+              } catch (e) {
+                logMessage("❌ 手机端删除照片发生异常: $e");
+              }
+            }
+            return;
+          }
+
+          if (fileId == -14) {
+            // Request single original photo on-demand from PC
+            final payloadSize = byteData.getInt32(12, Endian.big);
+            final payloadStr = utf8.decode(binaryData.sublist(16, 16 + payloadSize));
+            final Map<String, dynamic> data = jsonDecode(payloadStr);
+            final String? targetAssetId = data['asset_id']?.toString();
+
+            if (targetAssetId != null && targetAssetId.isNotEmpty && _photoStreamer != null) {
+              logMessage("📥 PC 端请求查看超清原图: $targetAssetId");
+              Future.microtask(() async {
+                try {
+                  AssetEntity? targetEntity;
+                  final int idx = localImages.indexWhere((e) => e.id == targetAssetId);
+                  if (idx >= 0) {
+                    targetEntity = localImages[idx];
+                  } else {
+                    targetEntity = await AssetEntity.fromId(targetAssetId);
+                  }
+
+                  if (targetEntity != null) {
+                    final int singleFileId = _fileIdCounter++;
+                    final success = await _photoStreamer!.streamOriginalPhoto(
+                      entity: targetEntity,
+                      fileId: singleFileId,
+                      onProgress: (chunkIndex, totalChunks, bytesSent) {},
+                    );
+                    if (success) {
+                      logMessage("✅ 超清原图已直传至电脑端: ${targetEntity.title}");
+                    }
+                  } else {
+                    logMessage("⚠️ 未在手机相册中找到照片 ID: $targetAssetId");
+                  }
+                } catch (e) {
+                  logMessage("❌ 直传超清原图异常: $e");
+                }
+              });
+            }
+            return;
+          }
+
           final chunkIndex = byteData.getInt32(4, Endian.big);
           final totalChunks = byteData.getInt32(8, Endian.big);
           final payloadSize = byteData.getInt32(12, Endian.big);
@@ -594,6 +816,25 @@ class SyncViewModel extends ChangeNotifier {
       },
     );
 
+    // CRITICAL: Register DataChannel and Connection state listeners BEFORE
+    // creating/sending offer. The answer can arrive within 50ms via UDP,
+    // and if listeners aren't registered yet, the DataChannelOpen event is missed.
+    _remoteAnswerApplied = false;
+    _syncEngine?.dataChannelState.addListener(_onDataChannelStateChanged);
+    _syncEngine?.connectionState.addListener(() {
+      final pcState = _syncEngine?.connectionState.value;
+      logMessage("WebRTC ConnectionState: $pcState");
+      if (pcState == RTCPeerConnectionState.RTCPeerConnectionStateFailed || 
+          pcState == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
+        if (appState == AppState.connected) {
+          errorMsg = "WebRTC connection failed/closed";
+          appState = AppState.failed;
+          notifyListeners();
+          cleanup();
+        }
+      }
+    });
+
     try {
       await _syncEngine!.startPeerConnection();
       final offerSdp = await _syncEngine!.createOffer();
@@ -625,38 +866,56 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
       cleanup();
     }
+  }
 
-    // Observe DataChannel and Connection states
-    _syncEngine?.dataChannelState.addListener(_onDataChannelStateChanged);
-    _syncEngine?.connectionState.addListener(() {
-      final pcState = _syncEngine?.connectionState.value;
-      logMessage("WebRTC ConnectionState: $pcState");
-      if (pcState == RTCPeerConnectionState.RTCPeerConnectionStateFailed || 
-          pcState == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
-        if (appState == AppState.connected) {
-          errorMsg = "WebRTC connection failed/closed";
-          appState = AppState.failed;
-          notifyListeners();
-          cleanup();
-        }
+  
+  void _handleRemoteOffer(String offerSdp) async {
+    if (appState == AppState.connected) return;
+    logMessage("Received remote Offer SDP via UDP.");
+    if (appState != AppState.connectingWebRtc) {
+      appState = AppState.connectingWebRtc;
+      notifyListeners();
+    }
+
+    try {
+      if (_syncEngine == null) {
+        _initializeWebRtc(isUdpFallback: true);
       }
-    });
+      final String? answerSdp = await _syncEngine!.handleRemoteOffer(offerSdp);
+      if (answerSdp != null && answerSdp.isNotEmpty) {
+        logMessage("Generated local answer. Sending back via UDP...");
+        _sendUdpSdp(answerSdp, 'answer');
+      }
+    } catch (e) {
+      logMessage("Warning handling Remote Offer: $e");
+    }
   }
 
   void _handleRemoteAnswer(String answerSdp) async {
-    logMessage("Received remote Answer SDP via BLE notification.");
-    appState = AppState.connectingWebRtc;
-    notifyListeners();
+    if (appState == AppState.connected) return;
+    // Only apply the very first Answer to prevent concurrent setRemoteDescription calls
+    if (_remoteAnswerApplied) {
+      debugPrint("[ViewModel LOG] Ignoring duplicate Answer SDP (already applied)");
+      return;
+    }
+    _remoteAnswerApplied = true;
+    logMessage("Received remote Answer SDP.");
+    if (appState != AppState.connectingWebRtc) {
+      appState = AppState.connectingWebRtc;
+      notifyListeners();
+    }
 
     try {
-      await _syncEngine?.setRemoteAnswer(answerSdp);
-      logMessage("Applied remote answer. Performing WebRTC ICE handshaking...");
+      final bool applied = await _syncEngine?.setRemoteAnswer(answerSdp) ?? false;
+      if (applied) {
+        logMessage("Applied remote answer. Performing WebRTC ICE handshaking...");
+      } else {
+        // If applying failed, allow retry
+        _remoteAnswerApplied = false;
+      }
     } catch (e) {
-      logMessage("Error applying Remote Answer: $e");
-      errorMsg = "Failed to apply Answer SDP";
-      appState = AppState.failed;
-      notifyListeners();
-      cleanup();
+      logMessage("Warning handling Remote Answer: $e");
+      _remoteAnswerApplied = false;
     }
   }
 
@@ -1319,10 +1578,17 @@ class SyncViewModel extends ChangeNotifier {
   void cleanup() {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
+    _discoveryTimer?.cancel();
+    _discoveryTimer = null;
     _bleClient.disconnect();
     _syncEngine?.close();
     _syncEngine = null;
     _photoStreamer = null;
+    _remoteAnswerApplied = false;
+    try {
+      _udpSocket?.close();
+    } catch (_) {}
+    _udpSocket = null;
     appState = AppState.idle;
     localImages.clear();
     localVideos.clear();

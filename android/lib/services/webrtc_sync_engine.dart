@@ -25,9 +25,7 @@ class WebRtcSyncEngine {
 
   Future<void> startPeerConnection() async {
     final Map<String, dynamic> configuration = {
-      "iceServers": [
-        {"url": "stun:stun.l.google.com:19302"},
-      ],
+      "iceServers": [],
       "sdpSemantics": "unified-plan",
       "bundlePolicy": "max-bundle",
       "rtcpMuxPolicy": "require",
@@ -95,19 +93,90 @@ class WebRtcSyncEngine {
     return offer.sdp!;
   }
 
-  Future<void> setRemoteAnswer(String answerSdp) async {
-    if (_peerConnection == null) throw StateError("PeerConnection is not initialized");
+  final List<RTCIceCandidate> _pendingRemoteCandidates = [];
+  bool _isApplyingRemoteOffer = false;
+  bool _isApplyingRemoteAnswer = false;
 
-    RTCSessionDescription answer = RTCSessionDescription(answerSdp, "answer");
-    await _peerConnection!.setRemoteDescription(answer);
-    debugPrint("[WebRTC] Remote Answer SDP successfully injected");
+  Future<String?> handleRemoteOffer(String offerSdp) async {
+    if (_peerConnection == null || _isApplyingRemoteOffer) return null;
+    _isApplyingRemoteOffer = true;
+    try {
+      final state = _peerConnection!.signalingState;
+      if (state != RTCSignalingState.RTCSignalingStateStable && 
+          state != RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
+        debugPrint("[WebRTC] Ignored duplicate Remote Offer (current state: $state)");
+        return null;
+      }
+      RTCSessionDescription offer = RTCSessionDescription(offerSdp, 'offer');
+      await _peerConnection!.setRemoteDescription(offer);
+      RTCSessionDescription answer = await _peerConnection!.createAnswer({});
+      await _peerConnection!.setLocalDescription(answer);
+      await _drainPendingIceCandidates();
+      return answer.sdp;
+    } catch (e) {
+      debugPrint("[WebRTC] Exception in handleRemoteOffer: $e");
+      return null;
+    } finally {
+      _isApplyingRemoteOffer = false;
+    }
+  }
+
+  Future<bool> setRemoteAnswer(String answerSdp) async {
+    if (_peerConnection == null || _isApplyingRemoteAnswer) return false;
+    _isApplyingRemoteAnswer = true;
+    try {
+      final state = _peerConnection!.signalingState;
+      if (state == RTCSignalingState.RTCSignalingStateStable) {
+        debugPrint("[WebRTC] Already in Stable state, ignoring duplicate Remote Answer");
+        return true;
+      }
+      if (state != RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
+        debugPrint("[WebRTC] Cannot apply Remote Answer in state: $state");
+        return false;
+      }
+      RTCSessionDescription answer = RTCSessionDescription(answerSdp, "answer");
+      await _peerConnection!.setRemoteDescription(answer);
+      debugPrint("[WebRTC] Remote Answer SDP successfully injected");
+      await _drainPendingIceCandidates();
+      return true;
+    } catch (e) {
+      debugPrint("[WebRTC] Exception in setRemoteAnswer: $e");
+      return false;
+    } finally {
+      _isApplyingRemoteAnswer = false;
+    }
   }
 
   Future<void> addRemoteIceCandidate(String sdpMid, int sdpMLineIndex, String candidateStr) async {
     if (_peerConnection == null) return;
-    RTCIceCandidate candidate = RTCIceCandidate(candidateStr, sdpMid, sdpMLineIndex);
-    await _peerConnection!.addCandidate(candidate);
-    debugPrint("[WebRTC] Injected remote ICE Candidate");
+    final candidate = RTCIceCandidate(candidateStr, sdpMid, sdpMLineIndex);
+    try {
+      final remoteDesc = await _peerConnection!.getRemoteDescription();
+      if (remoteDesc == null || remoteDesc.sdp == null || remoteDesc.sdp!.isEmpty) {
+        _pendingRemoteCandidates.add(candidate);
+        debugPrint("[WebRTC] Queued remote ICE Candidate (waiting for Remote Description)");
+        return;
+      }
+      await _peerConnection!.addCandidate(candidate);
+      debugPrint("[WebRTC] Injected remote ICE Candidate directly");
+    } catch (e) {
+      debugPrint("[WebRTC] Error adding ICE candidate: $e, queuing as fallback");
+      _pendingRemoteCandidates.add(candidate);
+    }
+  }
+
+  Future<void> _drainPendingIceCandidates() async {
+    if (_peerConnection == null || _pendingRemoteCandidates.isEmpty) return;
+    debugPrint("[WebRTC] Draining ${_pendingRemoteCandidates.length} queued ICE candidates...");
+    for (final cand in List.of(_pendingRemoteCandidates)) {
+      try {
+        await _peerConnection!.addCandidate(cand);
+        debugPrint("[WebRTC] Flushed queued ICE Candidate: ${cand.candidate}");
+      } catch (e) {
+        debugPrint("[WebRTC] Warning flushing queued ICE Candidate: $e");
+      }
+    }
+    _pendingRemoteCandidates.clear();
   }
 
   int getBufferedAmount() {
@@ -147,5 +216,8 @@ class WebRtcSyncEngine {
 
     connectionState.value = RTCPeerConnectionState.RTCPeerConnectionStateClosed;
     dataChannelState.value = RTCDataChannelState.RTCDataChannelClosed;
+    _pendingRemoteCandidates.clear();
+    _isApplyingRemoteOffer = false;
+    _isApplyingRemoteAnswer = false;
   }
 }

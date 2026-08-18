@@ -227,8 +227,8 @@ void notification_worker(GattLocalCharacteristic characteristic) {
             std::cerr << "Failed to send BLE notification: " << winrt::to_string(ex.message()) << std::endl;
         }
         
-        // Pace notifications with 80ms sleep
-        std::this_thread::sleep_for(std::chrono::milliseconds(80));
+        // Pace notifications with 15ms sleep
+        std::this_thread::sleep_for(std::chrono::milliseconds(15));
     }
 }
 
@@ -290,6 +290,7 @@ int main(int argc, char* argv[]) {
         charParams.CharacteristicProperties(
             GattCharacteristicProperties::Read |
             GattCharacteristicProperties::Write |
+            GattCharacteristicProperties::WriteWithoutResponse |
             GattCharacteristicProperties::Notify
         );
         charParams.WriteProtectionLevel(GattProtectionLevel::Plain);
@@ -372,8 +373,8 @@ int main(int argc, char* argv[]) {
                 std::string sdp = replace_all(payload, "\\n", "\n");
                 sdp = replace_all(sdp, "\\r", "\r");
                 
-                // Segment SDP into 150-byte chunks
-                const size_t chunk_size = 150;
+                // Segment SDP into 250-byte chunks
+                const size_t chunk_size = 250;
                 std::vector<std::string> chunks;
                 for (size_t i = 0; i < sdp.length(); i += chunk_size) {
                     chunks.push_back(sdp.substr(i, chunk_size));

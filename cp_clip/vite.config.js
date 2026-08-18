@@ -5,4 +5,12 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   base: './', // Ensures assets are loaded with relative paths in production
+  optimizeDeps: {
+    include: ['vue', '@vueuse/core', 'qrcode']
+  },
+  server: {
+    hmr: {
+      overlay: false
+    }
+  }
 })

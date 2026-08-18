@@ -29,7 +29,46 @@
       </div>
     </div>
 
-    <!-- Main App Body -->
+    <!-- Custom Confirm Modal -->
+    <Transition name="modal-fade">
+      <div v-if="confirmModal.visible" style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.65); backdrop-filter: blur(8px);" @click.self="confirmModal.visible = false">
+        <div style="background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 28px 32px; max-width: 440px; width: 90%; box-shadow: 0 25px 60px rgba(0,0,0,0.6); position: relative;">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+            <div :style="{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              background: confirmModal.danger ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+              border: confirmModal.danger ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(168, 85, 247, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '22px',
+              flexShrink: 0
+            }">{{ confirmModal.icon }}</div>
+            <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--text-primary);">{{ confirmModal.title }}</h3>
+          </div>
+          <p style="margin: 0 0 24px 0; font-size: 13.5px; line-height: 1.7; color: var(--text-secondary); white-space: pre-line;">{{ confirmModal.message }}</p>
+          <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button @click="confirmModal.onCancel && confirmModal.onCancel(); confirmModal.visible = false" style="padding: 9px 22px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">取消</button>
+            <button @click="confirmModal.onConfirm && confirmModal.onConfirm(); confirmModal.visible = false" :style="{
+              padding: '9px 22px',
+              borderRadius: '10px',
+              border: 'none',
+              background: confirmModal.danger ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: confirmModal.danger ? '0 4px 16px rgba(239,68,68,0.45)' : '0 4px 16px rgba(168,85,247,0.45)',
+              transition: 'all 0.2s'
+            }">{{ confirmModal.confirmText }}</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+        <!-- Main App Body -->
     <div class="app-body">
       <!-- Sidebar -->
       <aside class="sidebar">
@@ -861,7 +900,7 @@
             <template #item="{ item: img }">
               <div 
                 class="image-card" 
-                @click="openDetails(img)"
+                @click="openDetails(img, filteredImages)"
               >
                 <div class="card-img-wrapper">
                   <img :src="img.src" class="card-img" loading="lazy" />
@@ -912,7 +951,7 @@
               v-for="img in albumBackupImages" 
               :key="img.path" 
               class="image-card" 
-              @click="openDetails(img)"
+              @click="openDetails(img, albumBackupImages)"
             >
               <div class="card-img-wrapper">
                 <img :src="img.src" class="card-img" loading="lazy" />
@@ -1053,7 +1092,7 @@
                 <div style="width: 76px; height: 76px; border-radius: 50%; overflow: hidden; background: #0f172a; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
                   :style="{ border: selectedPersonId === person.id ? '3px solid #10b981' : '3px solid rgba(255,255,255,0.1)', boxShadow: selectedPersonId === person.id ? '0 0 16px rgba(16, 185, 129, 0.4)' : '0 4px 10px rgba(0,0,0,0.3)' }"
                 >
-                  <img v-if="person.cover_path" :src="`local:///${person.cover_path.replace(/\\/g, '/')}`" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <img v-if="person.cover_path" :src="getPersonCoverUrl(person)" style="width: 100%; height: 100%; object-fit: cover;" />
                   <span v-else style="font-size: 32px;">🧑</span>
                 </div>
                 <!-- Dark Pill Badge beneath Avatar -->
@@ -1075,17 +1114,78 @@
                     ✏️ 重命名
                   </button>
                 </div>
+                <div style="display: flex; gap: 8px;">
+                  <button 
+                    class="btn" 
+                    @click="handleRecalculateFaces" 
+                    :disabled="isClusteringPeople"
+                    style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 12px; font-weight: 600; border-radius: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: var(--text-primary); cursor: pointer;"
+                  >
+                    <span v-if="isClusteringPeople" class="spinner" style="width: 12px; height: 12px; border-color: var(--text-primary); border-top-color: transparent;"></span>
+                    <span v-else>♻️</span>
+                    <span>强制重新提取人脸</span>
+                  </button>
+                  <button 
+                    class="btn btn-primary" 
+                    @click="handleReclusterPeople" 
+                    :disabled="isClusteringPeople"
+                    style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 12px; font-weight: 600; border-radius: 10px; background: linear-gradient(135deg, #a855f7, #7c3aed); cursor: pointer;"
+                  >
+                    <span v-if="isClusteringPeople" class="spinner" style="width: 12px; height: 12px;"></span>
+                    <span v-else>🔄</span>
+                    <span>{{ isClusteringPeople ? (faceScanProgress.total > 0 && faceScanProgress.done < faceScanProgress.total ? '提取人脸中 (' + faceScanProgress.done + '/' + faceScanProgress.total + ')' : '计算聚类中...') : '刷新聚类' }}</span>
+                  </button>
+                </div>
+              </div>
 
-                <button 
-                  class="btn btn-primary" 
-                  @click="handleReclusterPeople" 
-                  :disabled="isClusteringPeople"
-                  style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 12px; font-weight: 600; border-radius: 10px; background: linear-gradient(135deg, #a855f7, #7c3aed); cursor: pointer;"
-                >
-                  <span v-if="isClusteringPeople" class="spinner" style="width: 12px; height: 12px;"></span>
-                  <span v-else>🔄</span>
-                  <span>{{ isClusteringPeople ? (faceScanProgress.total > 0 && faceScanProgress.done < faceScanProgress.total ? '提取人脸中 (' + faceScanProgress.done + '/' + faceScanProgress.total + ')' : '计算聚类中...') : '刷新聚类' }}</span>
-                </button>
+              <!-- Real-time Face Extraction Progress Banner with Per-Image Timing (Anti-jitter Layout) -->
+              <div 
+                v-if="isClusteringPeople && faceScanProgress.total > 0" 
+                style="display: flex; flex-direction: column; justify-content: space-between; min-height: 88px; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); box-sizing: border-box; overflow: hidden;"
+              >
+                <!-- Top Row: Status Text on Left (Nowrap) + Timing Badges on Right (Nowrap) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-width: 0;">
+                  <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <span class="spinner" style="width: 14px; height: 14px; border: 2px solid #a855f7; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite; flex-shrink: 0;"></span>
+                    <span style="font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap;">
+                      {{ faceScanProgress.done < faceScanProgress.total ? '正在逐张提取人脸特征...' : '正在进行生物特征聚类...' }}
+                    </span>
+                    <span style="font-size: 12px; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0;">
+                      ({{ faceScanProgress.done }} / {{ faceScanProgress.total }})
+                    </span>
+                  </div>
+                  
+                  <!-- Timing Badges (Fixed Single Line, No Wrapping) -->
+                  <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; flex-shrink: 0; white-space: nowrap;">
+                    <span v-if="faceScanDurationMs > 0 || (faceScanProgress && faceScanProgress.durationMs > 0)" style="font-size: 11px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.25); white-space: nowrap;">
+                      ⚡ 单张: {{ faceScanDurationMs || faceScanProgress.durationMs }} ms
+                    </span>
+                    <span v-if="faceScanAvgMs > 0 || (faceScanProgress && faceScanProgress.avgDurationMs > 0)" style="font-size: 11px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.25); white-space: nowrap;">
+                      ⏱️ 平均: {{ faceScanAvgMs || faceScanProgress.avgDurationMs }} ms/张
+                    </span>
+                    <span v-if="faceScanRemainingTime" style="font-size: 11px; font-weight: 700; color: #f59e0b; background: rgba(245, 158, 11, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.25); white-space: nowrap;">
+                      ⏳ 剩余: {{ faceScanRemainingTime }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Middle Row: Progress Bar Track -->
+                <div style="width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 4px; overflow: hidden; position: relative; margin: 6px 0;">
+                  <div 
+                    style="height: 100%; background: linear-gradient(90deg, #a855f7, #38bdf8); transition: width 0.1s linear; border-radius: 4px;"
+                    :style="{ width: `${Math.min(100, Math.round((faceScanProgress.done / faceScanProgress.total) * 100))}%` }"
+                  ></div>
+                </div>
+
+                <!-- Bottom Row: Current File Path + Percentage -->
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary); min-height: 16px;">
+                  <span style="max-width: 80%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ faceScanProgress.currentName ? `当前处理: ${faceScanProgress.currentName}` : '准备中...' }}
+                  </span>
+                  <span style="font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; margin-left: 8px;">
+                    {{ Math.min(100, Math.round((faceScanProgress.done / faceScanProgress.total) * 100)) }}%
+                  </span>
+                </div>
               </div>
 
               <!-- Date Grouped Timeline Photo Grids -->
@@ -1104,7 +1204,7 @@
                       :key="img.path" 
                       class="image-card" 
                       style="border-radius: 12px; overflow: hidden; aspect-ratio: 1; cursor: pointer;"
-                      @click="openDetails(img)"
+                      @click="openDetails(img, selectedPersonPhotos)"
                     >
                       <div class="card-img-wrapper" style="width: 100%; height: 100%;">
                         <img :src="img.src" class="card-img" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;" />
@@ -1249,16 +1349,9 @@
         </div>
 
         <!-- 5.5 SIMILAR IMAGES TAB -->
-        <div v-else-if="currentTab === 'similar'" style="width: 100%; box-sizing: border-box; text-align: left;">
-          <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-            {{ t.sidebar.tabSimilar }}
-          </h2>
-          <p style="color: var(--text-secondary); font-size: 13px; margin: 0 0 24px 0;">
-            利用 MobileCLIP 本地 AI 提取的 512 维特征向量，计算图片之间的余弦相似度并自动归类。
-          </p>
-
-          <!-- Control Bar -->
-          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px; display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; flex-wrap: wrap;">
+        <div v-else-if="currentTab === 'similar'" style="width: 100%; box-sizing: border-box; text-align: left; position: relative;">
+          <!-- Sticky Control Bar (不随滚动移出视野) -->
+          <div style="position: sticky; top: -32px; z-index: 30; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); transition: all 0.25s ease;">
             
             <!-- Threshold Slider -->
             <div style="display: flex; align-items: center; gap: 16px;">
@@ -1293,7 +1386,22 @@
                 class="btn btn-danger" 
                 @click="deleteSelectedDuplicates"
                 :disabled="selectedDuplicateIds.size === 0 || isDeletingDuplicates"
-                style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 13px; border-radius: 12px; font-weight: 700; cursor: pointer;"
+                :style="{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 20px',
+                  fontSize: '13px',
+                  borderRadius: '12px',
+                  fontWeight: '700',
+                  cursor: selectedDuplicateIds.size > 0 ? 'pointer' : 'not-allowed',
+                  background: selectedDuplicateIds.size > 0 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'rgba(239, 68, 68, 0.25)',
+                  border: selectedDuplicateIds.size > 0 ? 'none' : '1px solid rgba(239, 68, 68, 0.3)',
+                  color: selectedDuplicateIds.size > 0 ? '#ffffff' : 'rgba(255, 255, 255, 0.5)',
+                  boxShadow: selectedDuplicateIds.size > 0 ? '0 4px 16px rgba(239, 68, 68, 0.45)' : 'none',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transform: selectedDuplicateIds.size > 0 ? 'scale(1.02)' : 'scale(1)'
+                }"
               >
                 <span>🗑️</span>
                 {{ isDeletingDuplicates ? '删除中...' : `删除选中的重复图 (${selectedDuplicateIds.size})` }}
@@ -1301,33 +1409,121 @@
             </div>
           </div>
 
-          <!-- Loading State -->
-          <div v-if="isAnalyzingSimilar" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--glass-border); border-radius: 20px; gap: 18px; box-sizing: border-box; width: 100%;">
-            <span class="spinner" style="width: 36px; height: 36px; border-width: 3px; border-top-color: #a855f7;"></span>
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
-              <span style="font-size: 15px; color: var(--text-primary); font-weight: 700;">正在进行图像 AI 特征比对与聚类...</span>
-              <span style="font-size: 12px; color: var(--text-muted); text-align: center; max-width: 400px;">当前正在处理: {{ similarAnalysisProgress.currentName || '等待中' }}</span>
+          <!-- Floating Bottom Sticky Action Bar (有选中时悬浮吸底快速删除) -->
+          <transition name="modal-fade">
+            <div 
+              v-if="selectedDuplicateIds.size > 0" 
+              style="position: fixed; bottom: 36px; left: 58%; transform: translateX(-50%); z-index: 60; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(239, 68, 68, 0.35); box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 20px rgba(239, 68, 68, 0.2); border-radius: 99px; padding: 10px 24px; display: flex; align-items: center; gap: 20px; animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);"
+            >
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 16px;">🖼️</span>
+                <span style="font-size: 13px; font-weight: 700; color: #fff;">已选中 <span style="color: #f87171; font-size: 15px; font-weight: 800;">{{ selectedDuplicateIds.size }}</span> 张重复图片</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button 
+                  class="btn btn-secondary" 
+                  @click="selectedDuplicateIds.clear(); selectedDuplicateIds = new Set();"
+                  style="padding: 7px 16px; font-size: 12px; border-radius: 20px; font-weight: 600; cursor: pointer;"
+                >
+                  取消选择
+                </button>
+                <button 
+                  class="btn btn-danger" 
+                  @click="deleteSelectedDuplicates"
+                  :disabled="isDeletingDuplicates"
+                  style="display: flex; align-items: center; gap: 6px; padding: 8px 22px; font-size: 13px; border-radius: 20px; font-weight: 700; background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4); cursor: pointer;"
+                >
+                  <span>🗑️</span>
+                  <span>{{ isDeletingDuplicates ? '删除中...' : `立即删除 (${selectedDuplicateIds.size})` }}</span>
+                </button>
+              </div>
             </div>
+          </transition>
 
-            <!-- Real-time Stats Grid -->
-            <div style="display: grid; grid-template-columns: repeat(3, 120px); gap: 16px; margin-top: 8px;">
-              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); padding: 10px; border-radius: 10px;">
-                <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">已处理</span>
-                <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-top: 4px;">{{ similarAnalysisProgress.done }} / {{ similarAnalysisProgress.total }}</span>
-              </div>
-              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); padding: 10px; border-radius: 10px;">
-                <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">已用时间</span>
-                <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-top: 4px;">{{ similarElapsedTime }}</span>
-              </div>
-              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); padding: 10px; border-radius: 10px;">
-                <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">剩余估算</span>
-                <span style="font-size: 14px; font-weight: 700; color: #a855f7; margin-top: 4px;">{{ similarRemainingTime }}</span>
+          <!-- Sci-Fi Cyber AI Transparent Modal with Backdrop Mask for Analysis -->
+          <transition name="modal-fade">
+            <div 
+              v-if="isAnalyzingSimilar" 
+              style="position: fixed; inset: 0; z-index: 999; display: flex; align-items: center; justify-content: center; background: rgba(8, 12, 24, 0.75); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);"
+            >
+              <div 
+                style="width: 480px; max-width: 90vw; background: linear-gradient(145deg, rgba(26, 32, 54, 0.85) 0%, rgba(13, 17, 34, 0.95) 100%); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 24px; padding: 36px 30px; box-shadow: 0 28px 70px rgba(0, 0, 0, 0.8), 0 0 45px rgba(168, 85, 247, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.2); display: flex; flex-direction: column; align-items: center; gap: 22px; position: relative; overflow: hidden; animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);"
+              >
+                <!-- Glowing Ambient Light in Background -->
+                <div style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 220px; height: 120px; background: radial-gradient(ellipse, rgba(168, 85, 247, 0.35), transparent 70%); pointer-events: none; filter: blur(20px);"></div>
+
+                <!-- Sci-Fi Orbital Spinner & Radar Pulse -->
+                <div style="position: relative; width: 76px; height: 76px; display: flex; align-items: center; justify-content: center; margin-top: 4px;">
+                  <!-- Outer dashed spinning ring -->
+                  <div style="position: absolute; inset: 0; border: 2px dashed rgba(168, 85, 247, 0.55); border-radius: 50%; animation: spin 10s linear infinite;"></div>
+                  <!-- Inner counter-spinning gradient glow ring -->
+                  <div style="position: absolute; inset: 6px; border: 2.5px solid transparent; border-top-color: #38bdf8; border-bottom-color: #c084fc; border-radius: 50%; animation: spin 2s linear infinite reverse; box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);"></div>
+                  <!-- Core AI Pulse Icon -->
+                  <span style="font-size: 26px; filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.85)); animation: pulse-glow 2s infinite ease-in-out;">🧠</span>
+                </div>
+
+                <!-- Modal Title & Subtitle -->
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;">
+                  <span style="font-size: 10px; font-weight: 800; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); padding: 3px 12px; border-radius: 99px; letter-spacing: 1.2px; text-transform: uppercase;">
+                    MobileCLIP · AI 聚类引擎
+                  </span>
+                  <h3 style="font-size: 18px; font-weight: 800; color: #fff; margin: 4px 0 0 0; background: linear-gradient(135deg, #ffffff 30%, #c084fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    正在进行图像特征比对与聚类
+                  </h3>
+                </div>
+
+                <!-- Futuristic Progress Bar Track -->
+                <div style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
+                  <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.06); border-radius: 99px; overflow: hidden; position: relative; border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div 
+                      style="height: 100%; background: linear-gradient(90deg, #a855f7, #38bdf8); border-radius: 99px; transition: width 0.3s ease; box-shadow: 0 0 14px rgba(56, 189, 248, 0.6);"
+                      :style="{ width: (similarAnalysisProgress.total > 0 ? Math.round((similarAnalysisProgress.done / similarAnalysisProgress.total) * 100) : 5) + '%' }"
+                    ></div>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600; padding: 0 2px;">
+                    <span>512-D 向量空间余弦计算</span>
+                    <span style="color: #38bdf8; font-weight: 700;">
+                      {{ similarAnalysisProgress.total > 0 ? Math.round((similarAnalysisProgress.done / similarAnalysisProgress.total) * 100) : 0 }}%
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Current Processing Target Pill -->
+                <div style="width: 100%; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; box-sizing: border-box; overflow: hidden;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; flex-shrink: 0; animation: pulse-glow 1.5s infinite;"></span>
+                  <span style="font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">
+                    {{ similarAnalysisProgress.currentName ? `处理中: ${similarAnalysisProgress.currentName}` : '正在准备多核特征聚类池...' }}
+                  </span>
+                </div>
+
+                <!-- Real-time Sci-Fi Stats Grid -->
+                <div style="width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                  <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); padding: 10px 8px; border-radius: 12px;">
+                    <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px;">已比对</span>
+                    <span style="font-size: 14px; font-weight: 800; color: #38bdf8; margin-top: 3px;">
+                      {{ similarAnalysisProgress.done }} <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">/ {{ similarAnalysisProgress.total }}</span>
+                    </span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); padding: 10px 8px; border-radius: 12px;">
+                    <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px;">已用时间</span>
+                    <span style="font-size: 14px; font-weight: 800; color: #f8fafc; margin-top: 3px;">
+                      {{ similarElapsedTime }}
+                    </span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); padding: 10px 8px; border-radius: 12px;">
+                    <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px;">预估剩余</span>
+                    <span style="font-size: 14px; font-weight: 800; color: #c084fc; margin-top: 3px;">
+                      {{ similarRemainingTime }}
+                    </span>
+                  </div>
+                </div>
+
               </div>
             </div>
-          </div>
+          </transition>
 
           <!-- Empty State / No Analysis Done -->
-          <div v-else-if="similarGroups.length === 0" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--glass-border); border-radius: 20px; gap: 16px;">
+          <div v-if="similarGroups.length === 0" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--glass-border); border-radius: 20px; gap: 16px;">
             <span style="font-size: 64px; filter: drop-shadow(0 0 12px rgba(168,85,247,0.25));">🔍</span>
             <span style="font-size: 15px; color: var(--text-primary); font-weight: 700;">未检测到相似图片分组</span>
             <span style="font-size: 12px; color: var(--text-muted); max-width: 380px; text-align: center; line-height: 1.6;">
@@ -1393,7 +1589,7 @@
                     <img 
                       :src="img.src" 
                       style="width: 100%; height: 100%; object-fit: contain; cursor: pointer;"
-                      @click="openDetails(img)" 
+                      @click="openDetails(img, group.images)" 
                     />
                     <!-- Max similarity marker within group -->
                     <span 
@@ -1414,9 +1610,6 @@
                       <span v-if="img.predictions && img.predictions[0]" style="color: #a855f7;">
                         {{ getShortCategory(img.predictions[0].category) }}
                       </span>
-                    </span>
-                    <span style="font-size: 9px; color: var(--text-muted); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" :title="img.path">
-                      路径: {{ img.path }}
                     </span>
                   </div>
                 </div>
@@ -1654,171 +1847,283 @@
       </section>
     </main>
 
-    <!-- Update Confirmation Modal -->
-    <div class="modal-backdrop" v-if="showUpdateConfirmModal" @click.self="showUpdateConfirmModal = false">
-      <div class="modal-content update-modal">
-        <button class="modal-close" @click="showUpdateConfirmModal = false">✕</button>
-        <div class="update-modal-header">
-          <span class="update-icon">🚀</span>
-          <h3>发现软件新版本</h3>
-        </div>
-        <div class="update-modal-body">
-          <p class="update-ver-title">最新版本: <strong class="ver-tag">v{{ latestVersion }}</strong> （当前版本: v{{ currentVersion || '1.2.0' }}）</p>
 
-          <!-- Explicit Differential Upgrade Notice -->
-          <div style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.25); padding: 12px; border-radius: 10px; margin: 12px 0; display: flex; align-items: flex-start; gap: 10px; text-align: left;">
-            <span style="font-size: 20px;">⚡</span>
-            <div style="display: flex; flex-direction: column;">
-              <span style="font-size: 13px; font-weight: 700; color: #c084fc;">升级方式：智能差分增量升级 (Blockmap Patch)</span>
-              <span style="font-size: 11px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4;">
-                系统将优先通过 Blockmap 比对新旧二进制数据块，<strong>仅下载几 MB 的变动补丁包</strong>（比全量包节省 90%+ 流量）。若差分不匹配将自动降级为全量下载。
+    <!-- Update Confirmation Modal -->
+    <transition name="modal-fade">
+    <div class="modal-backdrop" v-if="showUpdateConfirmModal" @click.self="showUpdateConfirmModal = false">
+      <div class="update-card">
+        <button class="update-card-close" @click="showUpdateConfirmModal = false">&#x2715;</button>
+        <div class="update-card-header">
+          <div class="update-card-icon-wrap">
+            <span class="update-card-icon">&#x1F680;</span>
+          </div>
+          <div>
+            <div class="update-card-title">发现新版本</div>
+            <div class="update-card-subtitle">v{{ currentVersion }} &#x2192; <span class="update-new-ver">v{{ latestVersion }}</span></div>
+          </div>
+        </div>
+        <div class="update-diff-badge">
+          <span class="update-diff-icon">&#x26A1;</span>
+          <div>
+            <div class="update-diff-title">智能差分增量升级</div>
+            <div class="update-diff-desc">仅下载变动的数据块，节省 90%+ 流量</div>
+          </div>
+        </div>
+        <div class="update-notes" v-if="updateNotes">
+          <div class="update-notes-label">更新说明</div>
+          <pre class="update-notes-text">{{ updateNotes }}</pre>
+        </div>
+        <div class="update-card-actions">
+          <button class="update-btn-cancel" @click="showUpdateConfirmModal = false">稍后再说</button>
+          <button class="update-btn-confirm" @click="confirmAndStartUpdate">立即升级</button>
+        </div>
+      </div>
+    </div>
+    </transition>
+
+    <!-- Update Downloaded & Ready Modal -->
+    <transition name="modal-fade">
+    <div class="modal-backdrop" v-if="updateReadyToInstall && showUpdateCompleteModal" @click.self="showUpdateCompleteModal = false">
+      <div class="update-card">
+        <button class="update-card-close" @click="showUpdateCompleteModal = false">&#x2715;</button>
+        <div class="update-card-header">
+          <div class="update-card-icon-wrap success">
+            <span class="update-card-icon">&#x2705;</span>
+          </div>
+          <div>
+            <div class="update-card-title">下载完成，准备升级</div>
+            <div class="update-card-subtitle">目标版本 <span class="update-new-ver">v{{ latestVersion }}</span></div>
+          </div>
+        </div>
+        <div class="update-ready-stats">
+          <div class="update-stat-item">
+            <span class="update-stat-label">升级方式</span>
+            <span class="update-stat-val" :class="updateType === 'differential' ? 'diff' : ''">
+              {{ updateType === 'differential' ? '差分增量' : '全量安装包' }}
+            </span>
+          </div>
+          <div class="update-stat-item">
+            <span class="update-stat-label">下载大小</span>
+            <span class="update-stat-val">
+              {{ updateTransferredMB }} MB
+              <span v-if="updateType === 'differential'" class="update-saved-tag">节省 90%+</span>
+            </span>
+          </div>
+        </div>
+        <p class="update-restart-hint">重启后将自动完成安装，数据不会丢失。</p>
+        <div class="update-card-actions">
+          <button class="update-btn-cancel" @click="showUpdateCompleteModal = false">稍后重启</button>
+          <button class="update-btn-confirm" @click="installUpdate">立即重启</button>
+        </div>
+      </div>
+    </div>
+    </transition>
+
+    <!-- Toast Notification -->
+    <transition name="toast-slide">
+    <div class="app-toast" :class="toastType" v-if="toastVisible">
+      <span class="toast-msg">{{ toastMessage }}</span>
+      <button class="toast-close" @click="toastVisible = false">&#x2715;</button>
+    </div>
+    </transition>
+
+    <!-- ==================== IMMERSIVE FULL-SCREEN LIGHTBOX GALLERY VIEWER ==================== -->
+    <transition name="modal-fade">
+      <div 
+        class="lightbox-backdrop" 
+        v-if="selectedImage" 
+        @click.self="closeDetails"
+        tabindex="0"
+        style="position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; background: rgba(4, 7, 16, 0.95); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); user-select: none; outline: none;"
+      >
+        <!-- Top Floating Header -->
+        <div style="height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; z-index: 20; background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%);">
+          <!-- Left: Title & High-Res Status Badge -->
+          <div style="display: flex; align-items: center; gap: 14px; max-width: 60%;">
+            <div style="display: flex; flex-direction: column; text-align: left; overflow: hidden;">
+              <span style="font-size: 15px; font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" :title="selectedImage.name">
+                {{ selectedImage.name }}
+              </span>
+              <span v-if="selectedImage.path" style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.75;" :title="selectedImage.path">
+                {{ selectedImage.path }}
+              </span>
+            </div>
+
+            <!-- Quality Badge -->
+            <div v-if="selectedItemType === 'image'" style="display: flex; align-items: center; gap: 6px;">
+              <!-- Case A: Loading from phone -->
+              <span 
+                v-if="isFetchingHighRes" 
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); padding: 4px 10px; border-radius: 99px; animation: pulse-glow 1.5s infinite;"
+              >
+                <span class="spinner" style="width: 10px; height: 10px; border-color: #38bdf8; border-top-color: transparent;"></span>
+                正在从手机拉取超清原图...
+              </span>
+
+              <!-- Case B: 4K Original Photo Ready -->
+              <span 
+                v-else-if="isHighResLoaded || selectedImage.type === 'album_photo' || (selectedImage.name && selectedImage.name.startsWith('album_'))" 
+                style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 99px;"
+              >
+                <span>✨</span> 超清原图
+              </span>
+
+              <!-- Case C: Local file -->
+              <span 
+                v-else-if="!selectedImage.name || !selectedImage.name.startsWith('thumb_')" 
+                style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #a855f7; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.3); padding: 4px 10px; border-radius: 99px;"
+              >
+                <span>📁</span> 本地图片
+              </span>
+
+              <!-- Case D: Thumbnail only (Phone offline) -->
+              <span 
+                v-else 
+                style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #f59e0b; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 10px; border-radius: 99px;"
+              >
+                <span>⚡</span> 缩略图预览 (手机未连接)
               </span>
             </div>
           </div>
 
-          <div class="update-notes-box" v-if="updateNotes">
-            <div class="notes-header">📝 更新说明：</div>
-            <pre class="notes-body">{{ updateNotes }}</pre>
+          <!-- Right: Counter & Close Button -->
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <span v-if="currentViewingList.length > 0" style="font-size: 13px; font-weight: 700; color: var(--text-secondary); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); padding: 4px 14px; border-radius: 99px;">
+              {{ currentViewingIndex + 1 }} / {{ currentViewingList.length }}
+            </span>
+            <button 
+              @click="closeDetails" 
+              style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
+              onmouseover="this.style.background='rgba(239,68,68,0.2)'; this.style.borderColor='rgba(239,68,68,0.4)'; this.style.transform='scale(1.08)'"
+              onmouseout="this.style.background='rgba(255,255,255,0.08)'; this.style.borderColor='rgba(255,255,255,0.15)'; this.style.transform='scale(1)'"
+            >
+              ✕
+            </button>
           </div>
-          <p class="update-hint">点击“确认开始升级”后将进行手动确认并开启后台下载。</p>
         </div>
-        <div class="update-modal-footer">
-          <button class="dp-btn" @click="showUpdateConfirmModal = false">暂不升级</button>
-          <button class="dp-btn dp-open" @click="confirmAndStartUpdate">🚀 确认开始升级</button>
-        </div>
-      </div>
-    </div>
 
-    <!-- Update Downloaded & Ready Modal -->
-    <div class="modal-backdrop" v-if="updateReadyToInstall && showUpdateCompleteModal" @click.self="showUpdateCompleteModal = false">
-      <div class="modal-content update-modal">
-        <button class="modal-close" @click="showUpdateCompleteModal = false">✕</button>
-        <div class="update-modal-header">
-          <span class="update-icon">🎉</span>
-          <h3>升级包下载完成</h3>
-        </div>
-        <div class="update-modal-body">
-          <div class="update-type-badge" :class="updateType">
-            <span v-if="updateType === 'differential'">⚡ 差分增量升级模式 (Blockmap Differential)</span>
-            <span v-else>📦 全量完整升级模式 (Full Setup)</span>
-          </div>
+        <!-- Center Viewport Area with Left & Right Nav Chevrons -->
+        <div style="flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 10px 80px; box-sizing: border-box;">
+          
+          <!-- Previous Button (Left) -->
+          <button 
+            v-if="currentViewingList.length > 1"
+            class="lightbox-nav-btn" 
+            @click.stop="prevImage"
+            title="上一张 (← 键盘左键)"
+            style="position: absolute; left: 24px; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; border-radius: 50%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); z-index: 30; box-shadow: 0 8px 24px rgba(0,0,0,0.5);"
+            onmouseover="this.style.background='rgba(168,85,247,0.3)'; this.style.borderColor='rgba(168,85,247,0.6)'; this.style.transform='translateY(-50%) scale(1.1)';"
+            onmouseout="this.style.background='rgba(15, 23, 42, 0.7)'; this.style.borderColor='rgba(255, 255, 255, 0.15)'; this.style.transform='translateY(-50%) scale(1)';"
+          >
+            ‹
+          </button>
 
-          <div class="update-stats-card">
-            <div class="stat-row" v-if="updateType === 'differential'">
-              <span class="stat-label">本次升级下载流量:</span>
-              <span class="stat-val highlight">⚡ 已下载差分包 {{ updateTransferredMB }} MB (比全量包节省 90%+ 流量)</span>
-            </div>
-            <div class="stat-row" v-else>
-              <span class="stat-label">本次升级下载流量:</span>
-              <span class="stat-val">📦 已下载完整安装包 {{ updateTransferredMB }} MB</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">目标版本号:</span>
-              <span class="stat-val">v{{ latestVersion || '1.2.49' }}</span>
-            </div>
-          </div>
-
-          <p class="update-ready-desc">软件将在重启后自动完成应用升级，是否立即重启？</p>
-        </div>
-        <div class="update-modal-footer">
-          <button class="dp-btn" @click="showUpdateCompleteModal = false">稍后应用</button>
-          <button class="dp-btn dp-open" @click="installUpdate">🔄 立即重启并应用升级</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Detailed Modal -->
-    <div class="modal-backdrop" v-if="selectedImage" @click.self="closeDetails">
-      <div class="modal-content">
-        <button class="modal-close" @click="closeDetails">✕</button>
-        
-        <!-- Preview Side (Left) -->
-        <div class="modal-preview-side">
-          <img v-if="selectedItemType === 'image'" :src="selectedImage.src" class="modal-preview-img" />
-          
-          <video 
-            v-else-if="selectedItemType === 'video'" 
-            :src="selectedImage.src" 
-            controls 
-            autoplay 
-            style="width: 100%; height: 100%; object-fit: contain; max-height: 75vh;"
-          ></video>
-          
-          <div v-else-if="selectedItemType === 'audio'" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; width: 100%; padding: 40px;">
-            <span style="font-size: 80px; animation: float 4s ease-in-out infinite;">🎵</span>
-            <audio :src="selectedImage.src" controls autoplay style="width: 100%; max-width: 400px;"></audio>
-          </div>
-          
-          <div v-else style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; width: 100%; padding: 40px;">
-            <span style="font-size: 80px;">📄</span>
-            <span style="color: var(--text-secondary); font-size: 14px;">Preview not supported</span>
-          </div>
-        </div>
-        
-        <!-- Info Side (Right) -->
-        <div class="modal-info-side">
-          <h2 class="modal-info-title">{{ selectedImage.name }}</h2>
-          <p class="modal-info-meta">{{ t.details.imagePath }}: {{ selectedImage.path }}</p>
-          
-          <!-- AI Predictions only for Images -->
-          <div v-if="selectedItemType === 'image'">
-            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 20px; letter-spacing: 0.5px;">
-              {{ t.details.predictionsTitle }}
-            </h3>
+          <!-- Main Image / Video / Audio Container -->
+          <div style="max-width: 100%; max-height: 100%; display: flex; align-items: center; justify-content: center; position: relative;">
+            <img 
+              v-if="selectedItemType === 'image'" 
+              :src="selectedImage.src" 
+              :style="{
+                maxWidth: '85vw',
+                maxHeight: '78vh',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                boxShadow: '0 24px 60px rgba(0,0,0,0.7)',
+                transform: `scale(${currentImageScale}) rotate(${currentImageRotation}deg)`,
+                transition: 'transform 0.25s ease, opacity 0.3s ease',
+                cursor: currentImageScale > 1 ? 'grab' : 'zoom-in'
+              }"
+              @dblclick="currentImageScale = currentImageScale === 1 ? 2 : 1"
+            />
             
-            <!-- Similarity Charts -->
-            <div class="prediction-section" v-if="selectedImage.status === 'completed' && selectedImage.predictions.length > 0">
-              <!-- Search Match Score inside Modal -->
-              <div v-if="isSearchActive && selectedImage.searchScore !== undefined && getMatchPercentage(selectedImage.searchScore) > 0" style="margin-bottom: 20px; padding: 12px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px;">
-                <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; margin-bottom: 4px;">
-                  <span style="color: var(--accent-primary);">🔍 {{ t.images.matchScore }}</span>
-                  <span style="color: var(--accent-primary);">{{ getMatchPercentage(selectedImage.searchScore) }}%</span>
-                </div>
-                <div style="font-size: 11px; color: var(--text-secondary);">
-                  Query: "{{ searchQuery }}"
-                </div>
-              </div>
-
-              <div 
-                v-for="(pred, index) in selectedImage.predictions" 
-                :key="pred.category" 
-                class="prediction-bar-container"
-              >
-                <div class="prediction-label-row">
-                  <span class="prediction-label-name">{{ pred.category }}</span>
-                  <span class="prediction-label-score">{{ (pred.score * 100).toFixed(1) }}%</span>
-                </div>
-                <div class="prediction-bar-bg">
-                  <div 
-                    class="prediction-bar-fill" 
-                    :style="{ width: (pred.score * 100) + '%', transitionDelay: (index * 100) + 'ms' }"
-                  ></div>
-                </div>
-              </div>
+            <video 
+              v-else-if="selectedItemType === 'video'" 
+              :src="selectedImage.src" 
+              controls 
+              autoplay 
+              style="max-width: 85vw; max-height: 78vh; object-fit: contain; border-radius: 8px; box-shadow: 0 24px 60px rgba(0,0,0,0.7);"
+            ></video>
+            
+            <div v-else-if="selectedItemType === 'audio'" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; width: 100%; padding: 40px;">
+              <span style="font-size: 80px; animation: float 4s ease-in-out infinite;">🎵</span>
+              <span style="color: #fff; font-size: 16px; font-weight: 700;">{{ selectedImage.name }}</span>
+              <audio :src="selectedImage.src" controls autoplay style="width: 100%; max-width: 450px;"></audio>
             </div>
-
-            <div v-else-if="selectedImage.status === 'processing'" style="text-align: center; padding: 40px 0; color: var(--text-secondary);">
-              <span class="spinner" style="width: 24px; height: 24px; margin-bottom: 12px;"></span>
-              <p>{{ t.images.aiAnalyzing }}</p>
-            </div>
-
-            <div v-else style="text-align: center; padding: 40px 0; color: var(--text-muted);">
-              <p>{{ t.images.waitingQueue }}</p>
+            
+            <div v-else style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; width: 100%; padding: 40px;">
+              <span style="font-size: 80px;">📄</span>
+              <span style="color: var(--text-secondary); font-size: 14px;">{{ selectedImage.name }}</span>
             </div>
           </div>
-          
-          <!-- General file description for Non-Images -->
-          <div v-else style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
-            <h3 style="font-size: 15px; font-weight: 600;">Metadata</h3>
-            <div style="font-size: 13px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px;">
-              <div>{{ t.details.imageName }}: <code>{{ selectedImage.name }}</code></div>
-              <div>Format: <code>{{ getExtensionName(selectedImage.name).toUpperCase() }}</code></div>
-              <div>Category: <span class="badge badge-classified" style="margin-left: 6px;">{{ selectedItemType.toUpperCase() }}</span></div>
-            </div>
+
+          <!-- Next Button (Right) -->
+          <button 
+            v-if="currentViewingList.length > 1"
+            class="lightbox-nav-btn" 
+            @click.stop="nextImage"
+            title="下一张 (→ 键盘右键)"
+            style="position: absolute; right: 24px; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; border-radius: 50%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); z-index: 30; box-shadow: 0 8px 24px rgba(0,0,0,0.5);"
+            onmouseover="this.style.background='rgba(168,85,247,0.3)'; this.style.borderColor='rgba(168,85,247,0.6)'; this.style.transform='translateY(-50%) scale(1.1)';"
+            onmouseout="this.style.background='rgba(15, 23, 42, 0.7)'; this.style.borderColor='rgba(255, 255, 255, 0.15)'; this.style.transform='translateY(-50%) scale(1)';"
+          >
+            ›
+          </button>
+        </div>
+
+        <!-- Bottom Floating Action Toolbar -->
+        <div style="height: 64px; display: flex; align-items: center; justify-content: center; z-index: 20; background: linear-gradient(0deg, rgba(0,0,0,0.6) 0%, transparent 100%);">
+          <div style="display: flex; align-items: center; gap: 8px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 6px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
+            <!-- Zoom In -->
+            <button 
+              @click="currentImageScale = Math.min(currentImageScale + 0.25, 4)" 
+              class="btn-icon-subtle" 
+              title="放大"
+              style="padding: 6px 10px; font-size: 13px; color: #e2e8f0; background: transparent; border: none; cursor: pointer; border-radius: 8px;"
+            >
+              🔍+ 放大
+            </button>
+            <!-- Zoom Out -->
+            <button 
+              @click="currentImageScale = Math.max(currentImageScale - 0.25, 0.5)" 
+              class="btn-icon-subtle" 
+              title="缩小"
+              style="padding: 6px 10px; font-size: 13px; color: #e2e8f0; background: transparent; border: none; cursor: pointer; border-radius: 8px;"
+            >
+              🔍- 缩小
+            </button>
+            <!-- Reset 1:1 -->
+            <button 
+              @click="currentImageScale = 1; currentImageRotation = 0" 
+              class="btn-icon-subtle" 
+              title="重置"
+              style="padding: 6px 10px; font-size: 13px; color: #e2e8f0; background: transparent; border: none; cursor: pointer; border-radius: 8px;"
+            >
+              ⟲ 1:1
+            </button>
+            <div style="width: 1px; height: 16px; background: rgba(255,255,255,0.15); margin: 0 4px;"></div>
+            <!-- Rotate -->
+            <button 
+              @click="currentImageRotation = (currentImageRotation + 90) % 360" 
+              class="btn-icon-subtle" 
+              title="旋转"
+              style="padding: 6px 10px; font-size: 13px; color: #e2e8f0; background: transparent; border: none; cursor: pointer; border-radius: 8px;"
+            >
+              ↻ 旋转
+            </button>
+            <!-- Open File Location -->
+            <button 
+              v-if="selectedImage.path"
+              @click="openFileLocation(selectedImage.path)" 
+              class="btn-icon-subtle" 
+              title="在系统资源管理器中定位文件"
+              style="padding: 6px 12px; font-size: 13px; color: #c084fc; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); cursor: pointer; border-radius: 20px; font-weight: 600;"
+            >
+              📁 定位文件
+            </button>
           </div>
         </div>
       </div>
-    </div>
+    </transition>
 
     <!-- Incoming Request Modal -->
     <div class="modal-backdrop" v-if="incomingConnectionRequest" @click.self="handleRespondToRequest(false)">
@@ -1892,7 +2197,7 @@
             v-for="img in selectedPersonPhotos" 
             :key="img.path" 
             class="image-card" 
-            @click="openDetails(img)"
+            @click="openDetails(img, selectedPersonPhotos)"
           >
             <div class="card-img-wrapper">
               <img :src="img.src" class="card-img" loading="lazy" />
@@ -1947,6 +2252,7 @@ import { useVirtualList, useElementSize } from '@vueuse/core';
 import VirtualGrid from './components/VirtualGrid.vue';
 import QRCode from 'qrcode';
 import { locales, languages } from './locales.js';
+import { initAnalytics, trackEvent, trackFeatureUse, identifyUser, setTelemetryOptOut, isTelemetryEnabled } from './analytics.js';
 
 // Localization state
 const currentLocale = ref('en'); // Defaults to English!
@@ -1985,6 +2291,12 @@ function selectCategory(cat) {
   });
 }
 const selectedImage = ref(null);
+const currentViewingList = ref([]);
+const currentViewingIndex = ref(0);
+const isFetchingHighRes = ref(false);
+const isHighResLoaded = ref(false);
+const currentImageScale = ref(1);
+const currentImageRotation = ref(0);
 const currentTab = ref('images'); // 'link' | 'images' | 'album' | 'similar' | 'map' | 'people' | 'videos' | 'audios' | 'files' | 'yt-dlp'
 
 // Person Clusters & Face Recognition State
@@ -1993,12 +2305,37 @@ const selectedPersonPhotos = ref([]);
 const selectedPersonName = ref('');
 const showPersonModal = ref(false);
 const isClusteringPeople = ref(false);
+const confirmModal = ref({ visible: false, icon: '⚠️', title: '', message: '', confirmText: '确定', danger: false, onConfirm: null, onCancel: null });
+
+function showConfirm({ icon, title, message, confirmText, danger, onConfirm, onCancel } = {}) {
+  confirmModal.value = { visible: true, icon: icon || '⚠️', title: title || '确认', message, confirmText: confirmText || '确定', danger: !!danger, onConfirm: onConfirm || null, onCancel: onCancel || null };
+}
 const faceScanProgress = ref({ done: 0, total: 0 });
+const faceScanDurationMs = ref(0);
+const faceScanAvgMs = ref(0);
+const faceScanRemainingTime = ref('');
+let faceScanStartTime = null;
+let lastFaceScanDone = 0;
+let lastFaceScanTimestamp = 0;
 const selectedPersonId = ref(null);
 
 const currentSelectedPerson = computed(() => 
   personClusters.value.find(p => p.id === selectedPersonId.value) || personClusters.value[0]
 );
+
+function getPersonCoverUrl(person) {
+  if (!person || !person.cover_path) return '';
+  const cleanPath = person.cover_path.replace(/\\/g, '/');
+  if (person.cover_bbox) {
+    try {
+      const bbox = typeof person.cover_bbox === 'string' ? JSON.parse(person.cover_bbox) : person.cover_bbox;
+      if (Array.isArray(bbox) && bbox.length === 4) {
+        return `local:///${cleanPath}?crop=${bbox.join(',')}`;
+      }
+    } catch (_) {}
+  }
+  return `local:///${cleanPath}`;
+}
 
 async function selectPerson(person) {
   if (!person) return;
@@ -2046,10 +2383,50 @@ async function loadPersonClusters() {
   }
 }
 
+async function handleRecalculateFaces() {
+  if (!hasApi || !window.api.recalculateAllFaces) return;
+  showConfirm({
+    icon: '♻️',
+    title: '强制重新提取人脸',
+    message: '确定要清空所有人脸识别记录，并对全部图片重新进行人脸提取吗？\n如果图片较多，可能需要几分钟时间。',
+    confirmText: '开始重新提取',
+    danger: false,
+    onConfirm: async () => {
+      isClusteringPeople.value = true;
+      faceScanProgress.value = { done: 0, total: 0 };
+      faceScanStartTime = Date.now();
+      lastFaceScanDone = 0;
+      lastFaceScanTimestamp = Date.now();
+      faceScanDurationMs.value = 0;
+      faceScanAvgMs.value = 0;
+      faceScanRemainingTime.value = '';
+      try {
+        const clusters = await window.api.recalculateAllFaces();
+        personClusters.value = clusters;
+        if (clusters.length > 0) {
+          selectPerson(clusters[0]);
+        } else {
+          selectedPerson.value = null;
+        }
+      } catch (e) {
+        console.error('[People] Failed to recalculate faces:', e);
+      } finally {
+        isClusteringPeople.value = false;
+      }
+    }
+  });
+}
+
 async function handleReclusterPeople() {
   if (!hasApi || !window.api.reclusterFaces) return;
   isClusteringPeople.value = true;
   faceScanProgress.value = { done: 0, total: 0 };
+  faceScanStartTime = Date.now();
+  lastFaceScanDone = 0;
+  lastFaceScanTimestamp = Date.now();
+  faceScanDurationMs.value = 0;
+  faceScanAvgMs.value = 0;
+  faceScanRemainingTime.value = '';
   try {
     const clusters = await window.api.reclusterFaces();
     personClusters.value = clusters;
@@ -2394,6 +2771,19 @@ const updateType = ref('full'); // 'differential' | 'full'
 const updateTransferredMB = ref('0.00');
 const updateTotalMB = ref('0.00');
 
+// Toast notification
+const toastVisible = ref(false);
+const toastMessage = ref('');
+const toastType = ref('info');
+let toastTimer = null;
+function showAppToast(msg, type = 'info', duration = 3500) {
+  if (toastTimer) clearTimeout(toastTimer);
+  toastMessage.value = msg;
+  toastType.value = type;
+  toastVisible.value = true;
+  toastTimer = setTimeout(() => { toastVisible.value = false; }, duration);
+}
+
 async function checkAppUpdates(showToast = false) {
   if (updateStatus.value === 'checking') return;
   updateStatus.value = 'checking';
@@ -2413,19 +2803,19 @@ async function checkAppUpdates(showToast = false) {
     if (result.error) {
       updateStatus.value = 'failed';
       updateError.value = result.error;
-      if (showToast) alert('检查更新失败: ' + result.error);
+      if (showToast) showAppToast('检查更新失败: ' + result.error, 'error');
     } else if (result.available) {
       updateStatus.value = 'new-available';
       // Prompt user with interactive modal asking whether to upgrade!
       showUpdateConfirmModal.value = true;
     } else {
       updateStatus.value = 'up-to-date';
-      if (showToast) alert('已是最新版本 (v' + currentVersion.value + ')');
+      if (showToast) showAppToast('已是最新版本 v' + currentVersion.value, 'success');
     }
   } catch (err) {
     updateStatus.value = 'failed';
     updateError.value = err.message || err;
-    if (showToast) alert('检查更新失败: ' + (err.message || err));
+    if (showToast) showAppToast('检查更新失败: ' + (err.message || err), 'error');
   }
 }
 
@@ -2591,62 +2981,72 @@ async function handleImportLocalFolder() {
 }
 
 async function handleClearAndResync() {
-  const confirmMsg = syncStatus.value === 'connected' 
-    ? "确定要清空本地同步数据库及已下载的图片缓存，并请求手机重新传输全部图片重新计算吗？" 
-    : "手机当前未连接。确定要清空本地已同步缓存记录吗？清空后，下次手机连接时将重新传输全部图片进行运算。";
+  const isConnected = syncStatus.value === 'connected';
+  const confirmMsg = isConnected
+    ? "确定要清空本地同步数据库及已下载的图片缓存，并请求手机重新传输全部图片重新计算吗？\n\n此操作将重置本地所有相册索引与 AI 特征缓存。" 
+    : "手机当前未连接。确定要清空本地已同步缓存记录吗？\n\n清空后，下次手机连接时将重新传输全部图片进行运算。";
 
-  if (!confirm(confirmMsg)) return;
+  showConfirm({
+    icon: '🗑️',
+    title: '清空本地数据与缓存',
+    message: confirmMsg,
+    confirmText: '清空并重置',
+    danger: true,
+    onConfirm: async () => {
+      logSyncEvent("🗑️ 正在清空本地数据库及图片缓存...");
+      try {
+        const success = await window.api.clearDeviceDatabase();
+        if (success) {
+          // 1. Reset frontend states
+          images.value = [];
+          thumbnailImages.value = [];
+          chatMessages.value = [];
+          queue.value = [];
+          processedCount.value = 0;
+          totalCount.value = 0;
+          activeCount.value = 0;
+          similarGroups.value = [];
+          selectedDuplicateIds.value.clear();
+          
+          logSyncEvent("🗑️ 本地已清空。");
 
-  logSyncEvent("🗑️ 正在清空本地数据库及图片缓存...");
-  try {
-    const success = await window.api.clearDeviceDatabase();
-    if (success) {
-      // 1. Reset frontend states
-      images.value = [];
-      thumbnailImages.value = [];
-      chatMessages.value = [];
-      queue.value = [];
-      processedCount.value = 0;
-      totalCount.value = 0;
-      activeCount.value = 0;
-      
-      logSyncEvent("🗑️ 本地已清空。");
+          // 2. If connected, notify phone to re-sync
+          if (syncStatus.value === 'connected' && dataChannel) {
+            logSyncEvent("📤 正在向手机发送重置指令，请求重新同步图片...");
+            
+            // Send type = -4 (handshake response) with empty synced_ids to update phone's synced list
+            const responseStr = JSON.stringify({ synced_ids: [] });
+            const encoder = new TextEncoder();
+            const responseBytes = encoder.encode(responseStr);
+            const responseBuffer = new ArrayBuffer(16 + responseBytes.byteLength);
+            const responseView = new DataView(responseBuffer);
+            responseView.setInt32(0, -4, false); // Response type = -4
+            responseView.setInt32(4, 0, false);
+            responseView.setInt32(8, 0, false);
+            responseView.setInt32(12, responseBytes.byteLength, false);
+            const responseBytesArr = new Uint8Array(responseBuffer);
+            responseBytesArr.set(responseBytes, 16);
+            dataChannel.send(responseBuffer);
 
-      // 2. If connected, notify phone to re-sync
-      if (syncStatus.value === 'connected' && dataChannel) {
-        logSyncEvent("📤 正在向手机发送重置指令，请求重新同步图片...");
-        
-        // Send type = -4 (handshake response) with empty synced_ids to update phone's synced list
-        const responseStr = JSON.stringify({ synced_ids: [] });
-        const encoder = new TextEncoder();
-        const responseBytes = encoder.encode(responseStr);
-        const responseBuffer = new ArrayBuffer(16 + responseBytes.byteLength);
-        const responseView = new DataView(responseBuffer);
-        responseView.setInt32(0, -4, false); // Response type = -4
-        responseView.setInt32(4, 0, false);
-        responseView.setInt32(8, 0, false);
-        responseView.setInt32(12, responseBytes.byteLength, false);
-        const responseBytesArr = new Uint8Array(responseBuffer);
-        responseBytesArr.set(responseBytes, 16);
-        dataChannel.send(responseBuffer);
+            // Send type = -6 (request thumbnail sync to AI) to trigger phone auto sync
+            const syncRequestBuffer = new ArrayBuffer(16);
+            const syncRequestView = new DataView(syncRequestBuffer);
+            syncRequestView.setInt32(0, -6, false); // request type = -6
+            syncRequestView.setInt32(4, 0, false);
+            syncRequestView.setInt32(8, 0, false);
+            syncRequestView.setInt32(12, 0, false);
+            dataChannel.send(syncRequestBuffer);
 
-        // Send type = -6 (request thumbnail sync to AI) to trigger phone auto sync
-        const syncRequestBuffer = new ArrayBuffer(16);
-        const syncRequestView = new DataView(syncRequestBuffer);
-        syncRequestView.setInt32(0, -6, false); // request type = -6
-        syncRequestView.setInt32(4, 0, false);
-        syncRequestView.setInt32(8, 0, false);
-        syncRequestView.setInt32(12, 0, false);
-        dataChannel.send(syncRequestBuffer);
-
-        logSyncEvent("🟢 已成功请求手机重新发送图片进行运算。");
+            logSyncEvent("🟢 已成功请求手机重新发送图片进行运算。");
+          }
+        } else {
+          logSyncEvent("❌ 清空本地数据库失败，请检查数据库连接。");
+        }
+      } catch (err) {
+        logSyncEvent(`❌ 清空并重置失败: ${err.message}`);
       }
-    } else {
-      logSyncEvent("❌ 清空本地数据库失败，请检查数据库连接。");
     }
-  } catch (err) {
-    logSyncEvent(`❌ 清空并重置失败: ${err.message}`);
-  }
+  });
 }
 
 const similarityThreshold = ref(85);
@@ -2753,53 +3153,103 @@ function deselectGroupAll(group) {
 
 async function deleteSelectedDuplicates() {
   if (selectedDuplicateIds.value.size === 0 || isDeletingDuplicates.value) return;
-  
-  if (!confirm(`确定要删除选中的 ${selectedDuplicateIds.value.size} 张重复图片吗？此操作将物理删除文件且不可撤销。`)) {
-    return;
-  }
+  const count = selectedDuplicateIds.value.size;
+  const isConnected = syncStatus.value === 'connected';
 
-  isDeletingDuplicates.value = true;
-  
-  try {
-    const filesToDelete = [];
-    selectedDuplicateIds.value.forEach(id => {
-      const img = images.value.find(item => item.id === id || item.path === id);
-      if (img) {
-        filesToDelete.push({ id: img.id, path: img.path });
+  showConfirm({
+    icon: '🗑️',
+    title: '确认删除重复图片',
+    message: isConnected 
+      ? `确定要删除选中的 ${count} 张重复图片吗？\n\n此操作将同时从电脑磁盘和【手机相册】中物理删除原始文件，且不可撤销。`
+      : `确定要删除选中的 ${count} 张重复图片吗？\n\n此操作将从电脑磁盘中物理删除文件，并同步更新相册索引，且不可撤销。`,
+    confirmText: `确认删除 (${count})`,
+    danger: true,
+    onConfirm: async () => {
+      isDeletingDuplicates.value = true;
+      try {
+        const filesToDelete = [];
+        const deletedIds = new Set();
+        selectedDuplicateIds.value.forEach(id => {
+          const img = images.value.find(item => item.id === id || item.path === id);
+          if (img) {
+            filesToDelete.push({ id: img.id, path: img.path });
+            deletedIds.add(img.id || img.path);
+          }
+        });
+
+        const updatedResources = await window.api.deleteFiles(filesToDelete);
+
+        // 📤 若手机在线，通过 WebRTC DataChannel 向手机发送 -12 删除请求，同步删除手机端相册原图
+        if (syncStatus.value === 'connected' && dataChannel) {
+          const mobileAssetIds = filesToDelete
+            .filter(f => f.id && !f.id.startsWith('face_') && !f.id.startsWith('synced_'))
+            .map(f => f.id);
+
+          if (mobileAssetIds.length > 0) {
+            try {
+              const payloadStr = JSON.stringify({ asset_ids: mobileAssetIds });
+              const encoder = new TextEncoder();
+              const payloadBytes = encoder.encode(payloadStr);
+              const packetBuffer = new ArrayBuffer(16 + payloadBytes.byteLength);
+              const view = new DataView(packetBuffer);
+              view.setInt32(0, -12, false); // file_id = -12 (Delete Assets Request)
+              view.setInt32(4, 0, false);
+              view.setInt32(8, 0, false);
+              view.setInt32(12, payloadBytes.byteLength, false);
+              const packetBytes = new Uint8Array(packetBuffer);
+              packetBytes.set(payloadBytes, 16);
+              dataChannel.send(packetBuffer);
+              logSyncEvent(`📤 已向手机端发送同步删除 ${mobileAssetIds.length} 张照片指令。`);
+            } catch (sendErr) {
+              console.error("[Sync] Error sending delete packet to mobile:", sendErr);
+            }
+          }
+        }
+
+        // Refresh images list
+        images.value = updatedResources.map(res => ({
+          id: res.id,
+          path: res.path,
+          name: res.name,
+          size: res.size,
+          src: `local:///${res.path.replace(/\\/g, '/')}`,
+          status: 'completed',
+          predictions: JSON.parse(res.predictions || '[]'),
+          type: res.type,
+          latitude: res.latitude,
+          longitude: res.longitude
+        }));
+
+        // Refresh count
+        totalCount.value = images.value.length;
+        
+        // Clear selection
+        selectedDuplicateIds.value.clear();
+        
+        // ⚡ 优化：局部响应式剪枝，无需重新进行数万张图片的全量比对与重绘
+        const updatedGroups = [];
+        for (const group of similarGroups.value) {
+          const remainingImages = group.images.filter(img => {
+            const id = img.id || img.path;
+            return !deletedIds.has(id);
+          });
+          // 仅保留仍然存在 2 张及以上相似图的分组
+          if (remainingImages.length >= 2) {
+            updatedGroups.push({
+              images: remainingImages
+            });
+          }
+        }
+        similarGroups.value = updatedGroups;
+        
+        logSyncEvent(`🎉 成功删除了 ${filesToDelete.length} 张重复图片，已同步清理 PC 缓存与手机相册。`);
+      } catch (err) {
+        logSyncEvent(`❌ 删除重复图片失败: ${err.message}`);
+      } finally {
+        isDeletingDuplicates.value = false;
       }
-    });
-
-    const updatedResources = await window.api.deleteFiles(filesToDelete);
-
-    // Refresh images list
-    images.value = updatedResources.map(res => ({
-      id: res.id,
-      path: res.path,
-      name: res.name,
-      size: res.size,
-      src: `local:///${res.path.replace(/\\/g, '/')}`,
-      status: 'completed',
-      predictions: JSON.parse(res.predictions || '[]'),
-      type: res.type,
-      latitude: res.latitude,
-      longitude: res.longitude
-    }));
-
-    // Refresh count
-    totalCount.value = images.value.length;
-    
-    // Clear selection
-    selectedDuplicateIds.value.clear();
-    
-    // Re-run similarity analysis on the remaining images
-    await analyzeSimilarImages();
-    
-    logSyncEvent(`🎉 成功删除了 ${filesToDelete.length} 张重复图片。`);
-  } catch (err) {
-    logSyncEvent(`❌ 删除重复图片失败: ${err.message}`);
-  } finally {
-    isDeletingDuplicates.value = false;
-  }
+    }
+  });
 }
 
 // Chat Window state & helpers
@@ -2954,6 +3404,13 @@ function cleanupWebRtc() {
   activeDeviceUuid.value = null;
   activeDeviceName.value = '';
   activeDeviceSystemInfo.value = null;
+  
+  if (typeof hasGeneratedAnswer !== 'undefined') {
+    hasGeneratedAnswer = false;
+  }
+  if (typeof pendingDirectIceCandidates !== 'undefined') {
+    pendingDirectIceCandidates.length = 0;
+  }
 }
 
 function requestThumbnailSync() {
@@ -3344,7 +3801,7 @@ async function handleRespondToRequest(accept) {
     startHandshakeTimeout();
     cleanupWebRtc();
 
-    const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    const configuration = { iceServers: [] };
     peerConnection = new RTCPeerConnection(configuration);
     setupPeerConnectionListeners(peerConnection);
 
@@ -3393,10 +3850,12 @@ async function submitConnectionCode() {
 function setupDataChannel(channel) {
   channel.binaryType = 'arraybuffer';
   
-  channel.onopen = () => {
+  const handleOpen = () => {
+    if (syncStatus.value === 'connected') return;
     logSyncEvent("🟢 WebRTC 数据通道 'photo_sync' 已开启!");
     syncStatus.value = 'connected';
     clearHandshakeTimeout();
+    trackEvent('webrtc_channel_opened', { method: 'qr_ble' });
     
     // Start heartbeat timer
     lastHeartbeatTime = Date.now();
@@ -3426,6 +3885,12 @@ function setupDataChannel(channel) {
       }
     }, 3000);
   };
+
+  if (channel.readyState === 'open') {
+    handleOpen();
+  } else {
+    channel.onopen = handleOpen;
+  }
   
   channel.onclose = () => {
     logSyncEvent("🔴 WebRTC 数据通道已关闭。");
@@ -3441,6 +3906,11 @@ function setupDataChannel(channel) {
   };
   
   channel.onmessage = (event) => {
+    if (syncStatus.value !== 'connected') {
+      logSyncEvent("⚠️ DataChannel 收到消息但未标记为 connected，强制进入已连接状态！");
+      handleOpen();
+    }
+
     // 任何数据包（无论是心跳还是真实文件）都意味着连接存活
     lastHeartbeatTime = Date.now();
     
@@ -3771,8 +4241,10 @@ const startYtDownload = async () => {
 
 // Register listeners on mount
 onMounted(() => {
+  initAnalytics();
+  window.addEventListener('keydown', handleGlobalKeydown);
   // Auto-start hotspot and BLE sync on PC startup
-  toggleHotspot();
+  // toggleHotspot();
 
   if (hasApi) {
     // Load saved download path from main process settings
@@ -3830,9 +4302,7 @@ onMounted(() => {
       cleanupWebRtc();
       
       const configuration = {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' }
-        ]
+        iceServers: []
       };
       
       peerConnection = new RTCPeerConnection(configuration);
@@ -3912,66 +4382,45 @@ onMounted(() => {
       }
     });
 
-    // 4. Direct UDP Offer SDP received over Wi-Fi Hotspot (when BLE fails)
-    window.api.onDirectSdpReceived(async (data) => {
-      const { ip, sdp, sdpType } = data;
-      if (sdpType === 'offer') {
-        logSyncEvent(`📡 [UDP/Hotspot] 收到来自 ${ip} 的 WebRTC Offer SDP!`);
-        syncStatus.value = 'handshaking';
-        startHandshakeTimeout();
-        cleanupWebRtc();
 
-        activePeerIp.value = ip;
-        activePeerType.value = 'Mobile';
-        const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-        peerConnection = new RTCPeerConnection(configuration);
-        setupPeerConnectionListeners(peerConnection);
-
-        peerConnection.onicecandidate = (event) => {
-          if (event.candidate) {
-            window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
-          }
-        };
-
-        peerConnection.ondatachannel = (event) => {
-          if (event.channel.label === 'photo_sync') {
-            logSyncEvent("📡 [UDP/Hotspot] 监听到直连数据通道 'photo_sync'");
-            dataChannel = event.channel;
-            setupDataChannel(dataChannel);
-          }
-        };
-
-        try {
-          await peerConnection.setRemoteDescription(new RTCSessionDescription({
-            type: 'offer',
-            sdp: sdp
-          }));
-          const answer = await peerConnection.createAnswer();
-          await peerConnection.setLocalDescription(answer);
-
-          logSyncEvent("📡 [UDP/Hotspot] 成功创建 Answer SDP，向手机发送回应...");
-          await window.api.sendUdpSdp(ip, answer.sdp, 'answer');
-        } catch (err) {
-          logSyncEvent(`❌ [UDP/Hotspot] WebRTC 协商失败: ${err.message || err}`);
-          syncStatus.value = 'advertising';
-        }
-      }
-    });
-
-    // 5. Direct UDP ICE Candidate received over Wi-Fi Hotspot
-    window.api.onDirectIceReceived((data) => {
-      if (peerConnection) {
-        try {
-          const cand = typeof data.candidate === 'string' ? JSON.parse(data.candidate) : data.candidate;
-          peerConnection.addIceCandidate(new RTCIceCandidate(cand)).catch(e => {});
-        } catch (_) {}
-      }
-    });
     
     window.api.onPhotoSynced((imageInfo) => {
-      const isAlbum = imageInfo.name.startsWith('album_');
+      const isAlbum = imageInfo.name.startsWith('album_') || imageInfo.type === 'album_photo';
       if (isAlbum) {
-        logSyncEvent(`🎉 相册照片已同步: ${imageInfo.name}`);
+        logSyncEvent(`🎉 相册原图已同步: ${imageInfo.name}`);
+        
+        const rawAssetId = imageInfo.assetId || imageInfo.name.replace(/^album_/, '').replace(/\.[^.]+$/, '');
+        const existingIdx = images.value.findIndex(item => item.id === rawAssetId || item.id === `album_${rawAssetId}` || item.name === imageInfo.name);
+        if (existingIdx >= 0) {
+          images.value[existingIdx].src = imageInfo.src;
+          images.value[existingIdx].path = imageInfo.path;
+          images.value[existingIdx].type = 'album_photo';
+        } else {
+          images.value.push({
+            id: rawAssetId,
+            path: imageInfo.path,
+            name: imageInfo.name,
+            src: imageInfo.src,
+            status: 'completed',
+            predictions: imageInfo.predictions || [],
+            type: 'album_photo',
+            latitude: imageInfo.latitude,
+            longitude: imageInfo.longitude
+          });
+        }
+
+        // Live upgrade open lightbox if currently viewing this exact photo
+        if (selectedImage.value) {
+          const currentViewingId = selectedImage.value.id || selectedImage.value.name?.replace(/^thumb_/, '').replace(/\.[^.]+$/, '');
+          if (currentViewingId === rawAssetId || selectedImage.value.name === imageInfo.name) {
+            selectedImage.value.src = imageInfo.src;
+            selectedImage.value.path = imageInfo.path;
+            selectedImage.value.type = 'album_photo';
+            isHighResLoaded.value = true;
+            isFetchingHighRes.value = false;
+            logSyncEvent(`✨ 正在浏览的照片已无缝呈现 4K 超清原图: ${imageInfo.name}`);
+          }
+        }
         return;
       }
       
@@ -4106,7 +4555,7 @@ onMounted(() => {
         startHandshakeTimeout();
         cleanupWebRtc();
         
-        const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        const configuration = { iceServers: [] };
         peerConnection = new RTCPeerConnection(configuration);
         setupPeerConnectionListeners(peerConnection);
         
@@ -4127,7 +4576,11 @@ onMounted(() => {
       }
     });
 
-    // 10. Direct SDP received
+    // 10. Direct SDP received (Consolidated with deduplication & candidate buffering)
+    const pendingDirectIceCandidates = [];
+    let hasGeneratedAnswer = false;
+    let isProcessingOffer = false;
+
     window.api.onDirectSdpReceived(async ({ ip, sdp, sdpType }) => {
       logSyncEvent(`📡 [UDP] 收到 WebRTC SDP ${sdpType} 自 ${ip}`);
       activePeerIp.value = ip;
@@ -4137,49 +4590,156 @@ onMounted(() => {
       }
 
       if (sdpType === 'offer') {
-        if (!peerConnection) {
-          const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-          peerConnection = new RTCPeerConnection(configuration);
-          setupPeerConnectionListeners(peerConnection);
-          peerConnection.onicecandidate = (event) => {
-            if (event.candidate) {
-              window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
-            }
-          };
-          peerConnection.ondatachannel = (event) => {
-            if (event.channel.label === 'photo_sync') {
-              dataChannel = event.channel;
-              setupDataChannel(dataChannel);
-            }
-          };
+        if (isProcessingOffer) {
+          logSyncEvent(`[WebRTC] 正在处理上一个 Offer，丢弃并发的重复 Offer`);
+          return;
         }
+        isProcessingOffer = true;
+        
+        try {
+          // If dataChannel is already open and connected, ignore duplicate offer
+          if (peerConnection && dataChannel && dataChannel.readyState === 'open') {
+            logSyncEvent(`[WebRTC] 直连通道已就绪，忽略重复 Offer`);
+            return;
+          }
 
-        await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
+          // Ignore duplicate offers if we already generated an answer for this session
+          if (hasGeneratedAnswer && peerConnection && peerConnection.signalingState !== 'closed') {
+            logSyncEvent(`[WebRTC] 已生成过 Answer，直接丢弃重复的 Offer`);
+            return;
+          }
 
-        window.api.sendUdpSdp(ip, answer.sdp, 'answer');
+          // If currently negotiating (e.g. have-remote-offer), ignore duplicate in-flight offer
+          if (peerConnection && peerConnection.signalingState !== 'stable' && peerConnection.signalingState !== 'closed') {
+            logSyncEvent(`[WebRTC] 当前状态 (${peerConnection.signalingState}) 正在处理协商，忽略重复 Offer`);
+            return;
+          }
+
+          if (!peerConnection || peerConnection.signalingState === 'closed') {
+            const configuration = { iceServers: [] };
+            peerConnection = new RTCPeerConnection(configuration);
+            setupPeerConnectionListeners(peerConnection);
+            peerConnection.onicecandidate = (event) => {
+              if (event.candidate) {
+                window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
+              }
+            };
+            peerConnection.ondatachannel = (event) => {
+              if (event.channel.label === 'photo_sync') {
+                dataChannel = event.channel;
+                setupDataChannel(dataChannel);
+              }
+            };
+          }
+
+          try {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            
+            hasGeneratedAnswer = true;
+
+            // Drain queued early ICE candidates
+            if (pendingDirectIceCandidates.length > 0) {
+              for (const cand of pendingDirectIceCandidates) {
+                try { await peerConnection.addIceCandidate(cand); } catch (_) {}
+              }
+              pendingDirectIceCandidates.length = 0;
+            }
+
+            logSyncEvent(`📡 成功生成并发送 Answer SDP 到 ${ip}`);
+            await window.api.sendUdpSdp(ip, answer.sdp, 'answer');
+          } catch (err) {
+            console.warn("[WebRTC] Error setting remote offer / answer:", err);
+          }
+        } finally {
+          isProcessingOffer = false;
+        }
       } else if (sdpType === 'answer') {
         if (peerConnection) {
-          await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
+          if (peerConnection.signalingState === 'stable') {
+            logSyncEvent(`[WebRTC] 连接已处于 Stable 状态，忽略重复 Answer`);
+            return;
+          }
+          try {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
+            if (pendingDirectIceCandidates.length > 0) {
+              for (const cand of pendingDirectIceCandidates) {
+                try { await peerConnection.addIceCandidate(cand); } catch (_) {}
+              }
+              pendingDirectIceCandidates.length = 0;
+            }
+            logSyncEvent(`📡 成功装载远端 Answer SDP`);
+          } catch (err) {
+            console.warn("[WebRTC] Error setting remote answer:", err);
+          }
         }
       }
     });
 
     // 11. Direct ICE Candidate received
     window.api.onDirectIceReceived((data) => {
-      if (peerConnection) {
-        try {
-          const candidateObj = JSON.parse(data.candidate);
-          peerConnection.addIceCandidate(new RTCIceCandidate(candidateObj)).catch(e => {});
-        } catch (_) {}
-      }
+      if (!data || !data.candidate) return;
+      logSyncEvent(`📡 [UDP] 收到 ICE Candidate 自 ${data.ip || 'unknown'}`);
+      try {
+        const candidateObj = typeof data.candidate === 'string' ? JSON.parse(data.candidate) : data.candidate;
+        const iceCandidate = new RTCIceCandidate(candidateObj);
+        if (peerConnection && peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+          peerConnection.addIceCandidate(iceCandidate).catch(() => {});
+        } else {
+          pendingDirectIceCandidates.push(iceCandidate);
+        }
+      } catch (_) {}
     });
 
-    // 12. Face Scan progress
+    // 12. Face Scan progress (Throttled via RAF for silky smooth 60fps rendering)
+    let pendingFaceProgressData = null;
+    let faceProgressRaf = null;
+
     if (window.api.onFaceScanProgress) {
       window.api.onFaceScanProgress((data) => {
-        faceScanProgress.value = data;
+        pendingFaceProgressData = data;
+        if (!faceProgressRaf) {
+          faceProgressRaf = requestAnimationFrame(() => {
+            faceProgressRaf = null;
+            if (!pendingFaceProgressData) return;
+            const curData = pendingFaceProgressData;
+            faceScanProgress.value = curData;
+
+            const now = Date.now();
+            if (curData.durationMs) {
+              faceScanDurationMs.value = curData.durationMs;
+            } else if (lastFaceScanTimestamp > 0 && curData.done > lastFaceScanDone) {
+              const deltaMs = now - lastFaceScanTimestamp;
+              const deltaCount = curData.done - lastFaceScanDone;
+              faceScanDurationMs.value = Math.round(deltaMs / (deltaCount || 1));
+            }
+            lastFaceScanDone = curData.done;
+            lastFaceScanTimestamp = now;
+
+            if (!faceScanStartTime && curData.done > 0) {
+              faceScanStartTime = now;
+            }
+            if (faceScanStartTime && curData.done > 0) {
+              const elapsedMs = now - faceScanStartTime;
+              const avg = Math.round(elapsedMs / curData.done);
+              faceScanAvgMs.value = curData.avgDurationMs || avg;
+              if (curData.total > curData.done) {
+                const remainingMs = avg * (curData.total - curData.done);
+                const remSec = Math.round(remainingMs / 1000);
+                if (remSec < 60) {
+                  faceScanRemainingTime.value = `${remSec}秒`;
+                } else {
+                  const m = Math.floor(remSec / 60);
+                  const s = remSec % 60;
+                  faceScanRemainingTime.value = `${m}分${s}秒`;
+                }
+              } else {
+                faceScanRemainingTime.value = '';
+              }
+            }
+          });
+        }
       });
     }
 
@@ -4347,6 +4907,7 @@ async function handleSendImagesToMobile() {
 }
 
 onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown);
   cleanupWebRtc();
   if (hasApi) {
     window.api.stopBleServer();
@@ -4454,6 +5015,7 @@ async function handleSearch() {
 
   isSearching.value = true;
   selectedCategory.value = null; // Reset category filter to show all search results
+  trackFeatureUse('semantic_search', { query_length: query.length });
   
   try {
     if (hasApi) {
@@ -4641,14 +5203,140 @@ async function processNextQueueItem() {
   }
 }
 
-// Modal Interaction
-function openDetails(img) {
-  selectedImage.value = img;
+// Modal Interaction & Lightbox Navigation
+function openDetails(img, contextList = null) {
+  if (!img) return;
+  selectedImage.value = { ...img };
+  currentImageScale.value = 1;
+  currentImageRotation.value = 0;
+  isHighResLoaded.value = false;
+  isFetchingHighRes.value = false;
+
+  if (Array.isArray(contextList) && contextList.length > 0) {
+    currentViewingList.value = contextList;
+  } else {
+    currentViewingList.value = images.value;
+  }
+
+  const targetId = img.id || img.path;
+  const idx = currentViewingList.value.findIndex(item => (item.id || item.path) === targetId);
+  currentViewingIndex.value = idx >= 0 ? idx : 0;
+
+  checkAndFetchHighRes(img);
 }
 
-// Clear search and close modal details
 function closeDetails() {
   selectedImage.value = null;
+  currentImageScale.value = 1;
+  currentImageRotation.value = 0;
+  isFetchingHighRes.value = false;
+}
+
+function prevImage() {
+  if (!currentViewingList.value || currentViewingList.value.length <= 1) return;
+  currentViewingIndex.value = (currentViewingIndex.value - 1 + currentViewingList.value.length) % currentViewingList.value.length;
+  const nextImg = currentViewingList.value[currentViewingIndex.value];
+  if (nextImg) {
+    selectedImage.value = { ...nextImg };
+    currentImageScale.value = 1;
+    currentImageRotation.value = 0;
+    isHighResLoaded.value = false;
+    isFetchingHighRes.value = false;
+    checkAndFetchHighRes(nextImg);
+  }
+}
+
+function nextImage() {
+  if (!currentViewingList.value || currentViewingList.value.length <= 1) return;
+  currentViewingIndex.value = (currentViewingIndex.value + 1) % currentViewingList.value.length;
+  const nextImg = currentViewingList.value[currentViewingIndex.value];
+  if (nextImg) {
+    selectedImage.value = { ...nextImg };
+    currentImageScale.value = 1;
+    currentImageRotation.value = 0;
+    isHighResLoaded.value = false;
+    isFetchingHighRes.value = false;
+    checkAndFetchHighRes(nextImg);
+  }
+}
+
+function checkAndFetchHighRes(img) {
+  if (!img) return;
+
+  const isThumb = img.type === 'thumbnail' || (img.name && img.name.startsWith('thumb_'));
+  
+  if (!isThumb) {
+    isHighResLoaded.value = true;
+    isFetchingHighRes.value = false;
+    return;
+  }
+
+  // 1. Check if PC already has the synced original photo for this assetId
+  const assetId = img.id;
+  if (assetId) {
+    const existingOriginal = images.value.find(item => 
+      item.type === 'album_photo' && (item.id === assetId || item.id === `album_${assetId}` || item.name === `album_${assetId}.jpg`)
+    );
+    if (existingOriginal && existingOriginal.src) {
+      selectedImage.value.src = existingOriginal.src;
+      selectedImage.value.path = existingOriginal.path;
+      selectedImage.value.type = 'album_photo';
+      isHighResLoaded.value = true;
+      isFetchingHighRes.value = false;
+      return;
+    }
+  }
+
+  // 2. If phone is connected, send on-demand request (-14) to phone
+  if (syncStatus.value === 'connected' && dataChannel && assetId) {
+    isFetchingHighRes.value = true;
+    isHighResLoaded.value = false;
+    try {
+      const payloadStr = JSON.stringify({ asset_id: assetId });
+      const encoder = new TextEncoder();
+      const payloadBytes = encoder.encode(payloadStr);
+      const packetBuffer = new ArrayBuffer(16 + payloadBytes.byteLength);
+      const view = new DataView(packetBuffer);
+      view.setInt32(0, -14, false); // file_id = -14 (On-Demand Single Photo Request)
+      view.setInt32(4, 0, false);
+      view.setInt32(8, 0, false);
+      view.setInt32(12, payloadBytes.byteLength, false);
+      const packetBytes = new Uint8Array(packetBuffer);
+      packetBytes.set(payloadBytes, 16);
+      dataChannel.send(packetBuffer);
+      logSyncEvent(`📥 正在向手机请求直传超清原图: ${img.name || assetId}`);
+    } catch (e) {
+      console.error("[Sync] Failed to send on-demand photo request:", e);
+      isFetchingHighRes.value = false;
+    }
+  } else {
+    isFetchingHighRes.value = false;
+  }
+}
+
+async function openFileLocation(filePath) {
+  if (!filePath) return;
+  try {
+    if (window.api && window.api.openFileLocation) {
+      await window.api.openFileLocation(filePath);
+    }
+  } catch (err) {
+    console.error("[Lightbox] Failed to open file location:", err);
+  }
+}
+
+function handleGlobalKeydown(e) {
+  if (!selectedImage.value) return;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+    e.preventDefault();
+    prevImage();
+  } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+    e.preventDefault();
+    nextImage();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    closeDetails();
+  }
 }
 
 // MOCK DATA FOR BROWSER RUNS
@@ -4720,3 +5408,12 @@ function getMockClassification(url) {
   ];
 }
 </script>
+
+<style>
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: scale(0.92) translateY(-8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.2s ease; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+</style>

@@ -170,70 +170,61 @@ parentPort.on('message', async (msg) => {
              global.scrfdLogged = true;
           }
           
-          let scoreTensors = [];
-          let bboxTensors = [];
-          
-          for (const key of Object.keys(scrfdOutputs)) {
-             const tensor = scrfdOutputs[key];
-             if (tensor.dims.length === 3 && tensor.dims[0] === 1) {
-                if (tensor.dims[2] === 1 || key.includes('score')) {
-                   scoreTensors.push(tensor);
-                } else if (tensor.dims[2] === 4 || key.includes('bbox')) {
-                   bboxTensors.push(tensor);
+          let candidates = [];
+          const anchorCounts = [12800, 3200, 800];
+          const strideMap = { 12800: 8, 3200: 16, 800: 32 };
+
+          for (const count of anchorCounts) {
+             const stride = strideMap[count];
+             let scoreTensor = null;
+             let bboxTensor = null;
+
+             for (const key of Object.keys(scrfdOutputs)) {
+                const t = scrfdOutputs[key];
+                const dims = t.dims;
+                if (dims.includes(count)) {
+                   const lastDim = dims[dims.length - 1];
+                   if (lastDim === 1) scoreTensor = t;
+                   else if (lastDim === 4) bboxTensor = t;
                 }
              }
-          }
-          
-          let candidates = [];
-          
-          // Match score and bbox tensors by their second dimension (num_anchors)
-          for (const scoreTensor of scoreTensors) {
-             const numAnchors = scoreTensor.dims[1];
-             const bboxTensor = bboxTensors.find(t => t.dims[1] === numAnchors);
-             if (!bboxTensor) continue;
-             
-             let stride = 8;
-             if (numAnchors === 3200) stride = 16;
-             if (numAnchors === 800) stride = 32;
-             
-             const anchorsPerLocation = Math.round(numAnchors / ((640/stride) * (640/stride)));
-             
+             if (!scoreTensor || !bboxTensor) continue;
+
              const scoreData = scoreTensor.data;
              const bboxData = bboxTensor.data;
-             
-             let idx = 0;
+             const anchorsPerLocation = Math.round(count / ((640 / stride) * (640 / stride)));
              const gridH = 640 / stride;
              const gridW = 640 / stride;
-             
+
+             let idx = 0;
              for (let y = 0; y < gridH; y++) {
                 for (let x = 0; x < gridW; x++) {
                    const cx = x * stride + (stride / 2);
                    const cy = y * stride + (stride / 2);
-                   
+
                    for (let a = 0; a < anchorsPerLocation; a++) {
                       const score = scoreData[idx];
-                      if (score > 0.5) {
+                      // High precision face threshold (0.68) to eliminate food, textured objects, background false positives
+                      if (score >= 0.68) {
                          const bIdx = idx * 4;
-                         let l = bboxData[bIdx];
-                         let t = bboxData[bIdx + 1];
-                         let r = bboxData[bIdx + 2];
-                         let b = bboxData[bIdx + 3];
-                         
-                         if (l < 32 && t < 32 && r < 32 && b < 32 && stride > 1) {
-                            l *= stride; t *= stride; r *= stride; b *= stride;
-                         }
+                         let l = bboxData[bIdx] * stride;
+                         let t = bboxData[bIdx + 1] * stride;
+                         let r = bboxData[bIdx + 2] * stride;
+                         let b = bboxData[bIdx + 3] * stride;
 
-                         let xmin = cx - l;
-                         let ymin = cy - t;
-                         let xmax = cx + r;
-                         let ymax = cy + b;
-                         
-                         xmin *= scaleW;
-                         ymin *= scaleH;
-                         xmax *= scaleW;
-                         ymax *= scaleH;
-                         
-                         candidates.push({ xmin, ymin, xmax, ymax, score });
+                         let xmin = (cx - l) * scaleW;
+                         let ymin = (cy - t) * scaleH;
+                         let xmax = (cx + r) * scaleW;
+                         let ymax = (cy + b) * scaleH;
+
+                         const candW = xmax - xmin;
+                         const candH = ymax - ymin;
+                         const aspect = candW / (candH || 1);
+
+                         // Human face bounding box aspect ratio constraint (0.55 ~ 1.6)
+                         if (candW > 0 && candH > 0 && aspect >= 0.55 && aspect <= 1.6) {
+                            candidates.push({ xmin, ymin, xmax, ymax, score });
+                         }
                       }
                       idx++;
                    }
@@ -263,6 +254,20 @@ parentPort.on('message', async (msg) => {
              if (keep) {
                 finalFaces.push(cand);
              }
+          }
+
+          // Quality & Crowd Filter: discard tiny low-res/background bystander faces
+          // In high density crowd photos (>8 faces), require at least 55px; otherwise at least 42px
+          const minPixelSize = finalFaces.length > 8 ? 55 : 42;
+          finalFaces = finalFaces.filter(f => {
+             const w = f.xmax - f.xmin;
+             const h = f.ymax - f.ymin;
+             return w >= minPixelSize && h >= minPixelSize;
+          });
+
+          // Cap at top 15 most prominent faces per photo to prevent background audience explosion
+          if (finalFaces.length > 15) {
+             finalFaces = finalFaces.slice(0, 15);
           }
 
           timings.scrfdNmsTime = performance.now() - (tScrfdRunStart + timings.scrfdTime);
@@ -337,6 +342,7 @@ parentPort.on('message', async (msg) => {
         } catch (err) {
            console.error("[Inference Worker] SCRFD execution error:", err);
         }
+      timings.totalTime = Math.round(performance.now() - tStart);
       parentPort.postMessage({ type: 'compute_result', reqId, success: true, faces, timings });
     } catch (err) {
       console.error(`[Inference Worker] Compute Face Error for ${imagePath}:`, err);

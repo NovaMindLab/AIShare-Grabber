@@ -91,7 +91,7 @@ class WorkerPool {
       freeWorker.callbacks.set(task.reqId, { resolve: task.resolve, reject: task.reject });
       
       // search worker uses nested payload structure in stage 1, let's keep it robust
-      if ((task.msg.type === 'cluster' || task.msg.type === 'cluster_faces') && task.msg.payload) {
+      if ((task.msg.type === 'cluster' || task.msg.type === 'cluster_faces' || task.msg.type === 'search_images') && task.msg.payload) {
          task.msg.payload.reqId = task.reqId;
       }
       

@@ -50,7 +50,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
         viewModel.chosenFiles.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF090D16), // Slate-950
+      backgroundColor: const Color(0xFF070A12), // Dark Slate
       body: SafeArea(
         child: Column(
           children: [
@@ -65,10 +65,13 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
               child: Column(
                 children: [
                   Container(
-                    color: const Color(0xFF0F172A),
+                    color: const Color(0xFF070A12),
                     child: TabBar(
                       controller: _subTabController,
-                      indicatorColor: const Color(0xFF8B5CF6),
+                      indicator: const UnderlineTabIndicator(
+                        borderSide: BorderSide(width: 3.0, color: Color(0xFF8B5CF6)),
+                        insets: EdgeInsets.symmetric(horizontal: 16.0),
+                      ),
                       labelColor: const Color(0xFF8B5CF6),
                       unselectedLabelColor: const Color(0xFF64748B),
                       labelStyle: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold),
@@ -119,67 +122,83 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
   Widget _buildTopStatusHeader(SyncViewModel viewModel) {
     return Container(
       width: double.infinity,
-      color: const Color(0xFF0F172A),
+      color: const Color(0xFF070A12), // Dark slate
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              const Text(
-                "SHARECLIP COMPANION",
-                style: TextStyle(
-                  fontSize: 11.0,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF8B5CF6), // Violet-500
-                  letterSpacing: 1.0,
-                ),
-              ),
-              const SizedBox(height: 4.0),
-              Row(
-                children: [
-                  AnimatedBuilder(
-                    animation: _pulseAnimation,
-                    builder: (context, child) {
-                      return Opacity(
-                        opacity: _pulseAnimation.value,
-                        child: Container(
-                          width: 8.0,
-                          height: 8.0,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF10B981), // Emerald
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      );
-                    },
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
                   ),
-                  const SizedBox(width: 6.0),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.bolt_rounded, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   const Text(
-                    "Connected to PC",
+                    "ShareCLIP",
                     style: TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
                       color: Colors.white,
-                      fontSize: 13.0,
-                      fontWeight: FontWeight.w600,
                     ),
+                  ),
+                  const SizedBox(height: 2.0),
+                  Row(
+                    children: [
+                      AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return Container(
+                            width: 8.0,
+                            height: 8.0,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(_pulseAnimation.value),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF10B981).withOpacity(0.5 * _pulseAnimation.value),
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 6.0),
+                      const Text(
+                        "Connected to PC",
+                        style: TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 12.0,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ],
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: () => viewModel.resetToScanner(),
+            icon: const Icon(Icons.power_settings_new, size: 16),
+            label: const Text("Disconnect", style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+              backgroundColor: const Color(0xFFEF4444).withOpacity(0.2),
+              foregroundColor: const Color(0xFFEF4444),
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
               elevation: 0,
-            ),
-            child: const Text(
-              "Disconnect",
-              style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold),
             ),
           ),
         ],

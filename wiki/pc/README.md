@@ -1,61 +1,39 @@
-# ShareCLIP PC Client Documentation
+# MobileCLIP Album AI Classifier - Project Wiki
 
-Welcome to the **ShareCLIP PC Desktop Client** documentation. This module is built using Electron + Vue 3 and runs the local AI image classification server.
-
----
-
-## 🏗️ Architectural Overview
-The PC client hosts the local BLE GATT Server for connection parameter signaling and initiates the WebRTC Answer session. Once connected, it receives photo and generic file streams from the mobile client, automatically detects and writes the correct file extensions, classifies image files using the MobileCLIP ONNX model, and allows transmitting local PC files back to the mobile companion.
-
-## 📂 Source Code Structure
-All source code files are structured in the `./cp_clip` directory:
-
-*   [main.cjs](file:///d:/AI_serach_image/image_clip_android/cp_clip/main.cjs): Main process entry point. Handles window creation, BLE child process spawning, Wi-Fi Hotspot process orchestration, file reassembly with dynamic magic-bytes lookup, and selective ONNX classification (bypassed for non-image files).
-*   [preload.cjs](file:///d:/AI_serach_image/image_clip_android/cp_clip/preload.cjs): Inter-Process Communication (IPC) bridge exposing native BLE controls, Wi-Fi Hotspot lifecycle APIs, file dialogs, and logs to the renderer.
-*   [ble_signaling_server.py](file:///d:/AI_serach_image/image_clip_android/cp_clip/ble_signaling_server.py): Python helper script running the BLE GATT server, featuring a paced asynchronous notification queue to avoid Windows BLE packet drops.
-*   [wifi_ap.ps1](file:///d:/AI_serach_image/image_clip_android/cp_clip/wifi_ap.ps1): PowerShell script automating direct Wi-Fi Hotspot creation on Windows 10/11 with automatic 3-stage fallback mechanisms (WiFiDirect AP, Tethering Manager, and netsh hostednetwork) to guarantee AP startup.
-*   [src/App.vue](file:///d:/AI_serach_image/image_clip_android/cp_clip/src/App.vue): Render view featuring a glassmorphic sidebar, QR canvas, live log console, and local gallery classification search grid. Now features a unified bottom-docked Transfer Dashboard, integrated bidirectional transfer progress bars (incoming/outgoing), connection status indicators, and a Dark/Light Mode theme switcher. Supports toggling between Scan QR pairing and Wi-Fi Hotspot direct pairing modes.
-*   [src/main.js](file:///d:/AI_serach_image/image_clip_android/cp_clip/src/main.js): Vue entry point.
-*   [extract_embeddings.py](file:///d:/AI_serach_image/image_clip_android/cp_clip/extract_embeddings.py): Standalone model exporter converting pre-trained weights to optimized single-file ONNX formats.
-
-## 🧠 AI & Packaging Guides
-For technical details on the AI model, algorithms, and installer packaging:
-*   [🧠 Core AI Algorithms & Preprocessing](file:///d:/AI_serach_image/image_clip_android/wiki/features/algorithms.md): Detailed explanation of MobileCLIP feature extraction, zero-shot label categorization, Leader clustering to prevent chaining effect, and performance optimization (4x concurrency + SQLite BLOB persistence).
-*   [Preprocessing & Normalization](file:///d:/AI_serach_image/image_clip_android/wiki/pc/preprocessing_and_normalization.md)
-*   [Model Reparameterization](file:///d:/AI_serach_image/image_clip_android/wiki/pc/model_reparameterization.md)
-*   [Packaging & Deployment](file:///d:/AI_serach_image/image_clip_android/wiki/pc/packaging_and_deployment.md)
-*   [Database & Storage Architecture](file:///d:/AI_serach_image/image_clip_android/wiki/pc/database_and_storage.md): Detailed explanation of the SQLite schema, resource isolation, vector caching for semantic search, and breakpoint resume mechanisms.
-*   [Multi-Worker Architecture](file:///d:/AI_serach_image/image_clip_android/wiki/pc/worker_architecture.md): Detailed documentation on the Node.js `worker_threads` implementation for decoupling ONNX inference and CPU-intensive math calculations from the main Electron process.
-*   [v1.2 Updates, Stability & Auto-Update Architecture](file:///d:/AI_serach_image/image_clip_android/wiki/pc/v1_2_updates_and_stability.md): Complete guide to local persistent file logging (`logs/shareclip_YYYY-MM-DD.log`), V8 heap memory optimization (OOM fix), WebRTC 16 KB DataChannel packet chunking (`-5` frame header), network priority AI queue scheduling, DirectML GPU ➔ CPU automatic fallback, zero-waste UDP discovery suppression, and interactive differential auto-updates.
+欢迎来到本项目 Wiki！本知识库详细记录了在开发和优化本地 AI 相册分类应用（基于 Electron + Vue 3 + Vite + ONNX Runtime）过程中遇到的关键技术问题、根本原因分析以及最终的解决方案。
 
 ---
 
-## 🎨 Layout Redesign & Tab Structure
+## 📂 Wiki 目录
 
-The PC client is structured as a multi-tab desktop dashboard:
-*   **连接手机 (Link Mobile)**: Displays the QR code, BLE GATT server status, and real-time logs terminal in the main view.
-*   **本地资源 (Local Resources)**:
-    *   **图片 (Pictures)**: Lists imported local images, features the search queries, and CLIP classification tags.
-    *   **视频 (Videos)**: Lists imported video files and supports native video playbacks inside the detailed preview modal.
-    *   **音频 (Audio)**: Lists audio files and embeds a standard HTML5 audio player.
-    *   **文件 (Files)**: Displays documents and files with type attributes.
-*   **Theme Switcher**: Circular button in the top-right header allowing toggling between Dark Mode and Light Mode via `:root` CSS variables.
-*   **Custom Windows Frame**: Default menu bar (`File Edit View Window Help`) is removed on Windows by calling `mainWindow.setMenu(null)` in `main.cjs` to make the window clean.
+### 1. [本地图片加载修复：协议处理器路径解析](file:///d:/AI_serach_image/image_clip/wiki/broken_image_fix.md)
+*   **内容**：分析本地图片在 Electron 中显示为“烂图”的根源，如何通过调整自定义 `local://` 协议的 URL 构造（三斜杠 `local:///`）与后端路径解析来解决 Windows 盘符丢失的问题。
 
----
+### 2. [模型重参数化与导出：解决 RepMixer 崩溃](file:///d:/AI_serach_image/image_clip/wiki/model_reparameterization.md)
+*   **内容**：探讨 Apple 官方 `ml-mobileclip` 库在重参数化过程中的 `AttributeError` 崩溃。提供通用的 `safe_reparameterize_model` 绕过方案，并说明如何将模型导出并扁平化为单一自包含的 ONNX 文件。
 
-## ⚡ Connection Heartbeats & Decoupled Lifecycle
+### 3. [图像预处理修正：移除均值/标准差标准化](file:///d:/AI_serach_image/image_clip/wiki/preprocessing_and_normalization.md)
+*   **内容**：揭示模型分类混乱的头号原因。详细说明为什么 MobileCLIP S0 模型的图像输入**不能**进行传统的 ImageNet 均值和标准差标准化，以及将输入像素缩放至 `[0, 1]` 如何将余弦相似度对齐至 `1.0`。
 
-To maintain connection stability and avoid false drops during heavy tasks (like local ONNX classification):
-1.  **Relaxed Heartbeats**: WebRTC DataChannel heartbeats run every **3 seconds** (Ping packet) and trigger timeout teardowns only after **15 seconds** of total silence.
-2.  **Decoupled BLE & WebRTC**: Once the WebRTC link transitions to `'connected'`, both clients ignore BLE status updates. Disconnection of the BLE channel (typically triggered by Android battery optimization) does not interrupt the active WebRTC direct transfer link.
+### 4. [分类优化：类别扩展与 Softmax 温度调节](file:///d:/AI_serach_image/image_clip/wiki/categories_and_temperature.md)
+*   **内容**：如何通过将零样本分类类别从 8 类扩展至 15 类（覆盖日常高频场景）以及将 Softmax 温度从 `100.0` 调低至 `60.0`，从而提升分类准确度、解决分类强行“指鹿为马”并优化概率分布。
+
+### 5. [打包与发布：构建 Standalone Portable EXE](file:///d:/AI_serach_image/image_clip/wiki/packaging_and_deployment.md)
+*   **内容**：使用 `electron-builder` 构建 Windows 绿色免安装版单文件 `.exe` 的配置说明，如何不使用 ASAR 解决原生模块 (`onnxruntime-node`、`sharp`) 以及权重文件的运行时加载问题。
 
 ---
 
-## 📶 Local Wi-Fi Hotspot Mode
+## 🏗️ 整体系统架构图
 
-For environments without standard Wi-Fi router coverage or with client isolation restrictions, the PC client can create a local Wi-Fi Hotspot:
-1.  **User-Mode UWP Wi-Fi Direct**: The primary AP mechanism runs on WinRT APIs without requiring administrative privilege elevation and operates fully offline.
-2.  **Failover Pipeline**: If Wi-Fi Direct fails, it cascades automatically to Windows Mobile Hotspot (Tethering Manager) and legacy `netsh wlan hostednetwork` commands.
-3.  **Automatic Synchronization Coexistence**: When Hotspot is enabled, the BLE signaling server is spawned concurrently to generate pairing QR codes, allowing mobile clients to connect to the Wi-Fi AP first and then scan to complete WebRTC direct channel negotiation.
+应用基于纯本地离线架构，核心逻辑运行在 Electron 主进程中，具体流程如下：
 
+```mermaid
+graph TD
+    A[用户选择相册文件夹/图片] --> B(前端渲染等待队列)
+    B --> C{主进程排队进行 AI 推理}
+    C -->|1. 用 Sharp 裁剪并缩放到 256x256| D[提取 [0, 1] Planar RGB Tensor]
+    D -->|2. 运行 ONNX Runtime 图像编码器| E[提取 512 维特征向量 Image Embedding]
+    E -->|3. L2 归一化并与 text_embeddings.json 进行矩阵乘| F[计算 15 个类别的余弦相似度]
+    F -->|4. Softmax 温度 60.0 缩放| G[生成分类概率分布并排序]
+    G --> H[返回结果渲染前端视图与分类过滤器]
+```

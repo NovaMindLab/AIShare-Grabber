@@ -1,13 +1,28 @@
 # Folders excluded from version control
 wiki/
 auto_deploy/
+scratch/
+cp_clip/thumbnail_sync/
+cp_clip/sync_storage/
+android/android/.kotlin/
+android/temp_apk/
+android/build/
+android/android/build/
+android/android/app/build/
 
 # Node modules
 node_modules/
 
-# Build outputs
+# Build outputs & Binary files
 cp_clip/dist/
 cp_clip/dist_electron/
+*.apk
+*.exe
+*.obj
+*.onnx
+*.onnx.data
+*.pt
+*.salive
 
 # Python cache
 __pycache__/
@@ -17,3 +32,14 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Environment & Secret Tokens (Never commit to GitHub)
+.env
+.env.local
+*.env.local
+.env.*.local
+*.local.env
+mixpanel_token.txt
+analytics_config.json
+secrets.json
+build_config.local.json

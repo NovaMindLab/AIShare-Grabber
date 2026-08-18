@@ -28,7 +28,7 @@ def reparameterize(self) -> None:
     if self.inference_mode:
         return
     self.mixer.reparameterize()
-    self.norm.reparameterize()markdown preview enhanced open
+    self.norm.reparameterize()
     # ... 计算权重融合 ...
     self.__delattr__("mixer")
     self.__delattr__("norm")

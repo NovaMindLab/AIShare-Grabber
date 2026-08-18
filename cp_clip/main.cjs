@@ -406,7 +406,7 @@ app.whenReady().then(async () => {
   loadSettings();
 
   // Protocol handler for loading local files
-  protocol.handle('local', (request) => {
+  protocol.handle('local', async (request) => {
     try {
       const url = new URL(request.url);
       // With local:///D:/path URLs, the full path is in url.pathname
@@ -421,6 +421,36 @@ app.whenReady().then(async () => {
       if (!fs.existsSync(filePath)) {
         console.error(`Protocol local load: File not found: ${filePath}`);
         return new Response("Not found", { status: 404 });
+      }
+
+      // Check for dynamic crop query parameter, e.g. ?crop=100,200,80,80 for face avatar close-ups
+      const cropParam = url.searchParams.get('crop');
+      if (cropParam) {
+        const s = getSharp();
+        if (s) {
+          const parts = cropParam.split(',').map(Number);
+          if (parts.length === 4 && parts.every(n => !isNaN(n) && n >= 0)) {
+            try {
+              const [cropLeft, cropTop, cropWidth, cropHeight] = parts;
+              if (cropWidth > 0 && cropHeight > 0) {
+                const croppedBuffer = await s(filePath)
+                  .extract({ left: Math.round(cropLeft), top: Math.round(cropTop), width: Math.round(cropWidth), height: Math.round(cropHeight) })
+                  .resize(160, 160, { fit: 'cover' })
+                  .jpeg({ quality: 88 })
+                  .toBuffer();
+                return new Response(croppedBuffer, {
+                  headers: {
+                    'content-type': 'image/jpeg',
+                    'access-control-allow-origin': '*'
+                  }
+                });
+              }
+            } catch (cropErr) {
+              console.warn(`[Local Protocol] Failed to crop ${filePath}:`, cropErr.message);
+              // Fallback to normal full image load
+            }
+          }
+        }
       }
 
       // Read file content
@@ -524,20 +554,27 @@ async function scanFacesOnDemand(event) {
 
   const CONCURRENCY = taskManager.maxInferenceWorkers || 4;
   let done = 0;
+  let totalDurationMs = 0;
 
   for (let batchStart = 0; batchStart < total; batchStart += CONCURRENCY) {
     const batch = rows.slice(batchStart, batchStart + CONCURRENCY);
 
     await Promise.all(batch.map(async (row) => {
+      let durationMs = 0;
+      let facesFound = 0;
       try {
         if (!fs.existsSync(row.path)) {
           await new Promise((resolve) => activeDeviceDb.run(`UPDATE resources SET face_scanned = 1 WHERE id = ?`, [row.id], resolve));
           return;
         }
 
+        const tStart = performance.now();
         const result = await taskManager.computeFace(row.path);
+        durationMs = Math.round(performance.now() - tStart);
+        totalDurationMs += durationMs;
 
         if (result && result.faces && Array.isArray(result.faces)) {
+          facesFound = result.faces.length;
           for (const face of result.faces) {
             const faceBuffer = face.embedding ? Buffer.from(face.embedding.buffer, face.embedding.byteOffset, face.embedding.byteLength) : null;
             await new Promise((resolve) => {
@@ -560,7 +597,15 @@ async function scanFacesOnDemand(event) {
       } finally {
         done++;
         if (event) {
-          event.sender.send('face-scan-progress', { done, total, currentName: row.path });
+          const avgDurationMs = done > 0 ? Math.round(totalDurationMs / done) : durationMs;
+          event.sender.send('face-scan-progress', { 
+            done, 
+            total, 
+            currentName: path.basename(row.path),
+            durationMs,
+            avgDurationMs,
+            facesFound
+          });
         }
       }
     }));
@@ -805,31 +850,43 @@ async function reclusterFacesInternal() {
     return [];
   }
 
-  // 4. Run face clustering via TaskManager Search Worker with 0.65 threshold (MobileFaceNet ArcFace verified threshold)
-  console.log(`[Face Cluster] Clustering ${validFaces.length} face crops (threshold: 0.65)...`);
-  const rawPersonClusters = await taskManager.clusterFaces(faceSabIndices, validFaces, 0.65);
+  // 4. Run face clustering via TaskManager Search Worker with 0.50 threshold (MobileFaceNet ArcFace verified threshold)
+  console.log(`[Face Cluster] Clustering ${validFaces.length} face crops (threshold: 0.50)...`);
+  const rawPersonClusters = await taskManager.clusterFaces(faceSabIndices, validFaces, 0.50);
 
   // Keep valid person clusters
   const personClusters = rawPersonClusters.filter(c => c.face_count >= 1);
 
-  // 5. Persist person_clusters into SQLite
+  // 5. Persist person_clusters into SQLite synchronously
   await new Promise(r => activeDeviceDb.run(`DELETE FROM person_clusters`, () => r()));
-  for (const cluster of personClusters) {
-    await new Promise(r => {
-      activeDeviceDb.run(
-        `INSERT INTO person_clusters (id, name, cover_face_id, face_count) VALUES (?, ?, ?, ?)`,
-        [cluster.id, cluster.name, cluster.cover_face_id, cluster.face_count],
-        () => r()
+  await new Promise(r => activeDeviceDb.run(`UPDATE faces SET person_id = NULL`, () => r()));
+
+  await new Promise((resolve) => {
+    activeDeviceDb.serialize(() => {
+      activeDeviceDb.run("BEGIN TRANSACTION");
+      const insertClusterStmt = activeDeviceDb.prepare(
+        `INSERT INTO person_clusters (id, name, cover_face_id, face_count) VALUES (?, ?, ?, ?)`
       );
+      const updateFaceStmt = activeDeviceDb.prepare(
+        `UPDATE faces SET person_id = ? WHERE id = ?`
+      );
+
+      for (const cluster of personClusters) {
+        insertClusterStmt.run(cluster.id, cluster.name, cluster.cover_face_id, cluster.face_count);
+        for (const f of cluster.faces) {
+          updateFaceStmt.run(cluster.id, f.id);
+        }
+      }
+
+      insertClusterStmt.finalize();
+      updateFaceStmt.finalize();
+      activeDeviceDb.run("COMMIT", () => resolve());
     });
-    for (const f of cluster.faces) {
-      activeDeviceDb.run(`UPDATE faces SET person_id = ? WHERE id = ?`, [cluster.id, f.id]);
-    }
-  }
+  });
 
   console.log(`[Face Cluster] Created ${personClusters.length} person clusters successfully.`);
 
-  // 6. Return populated clusters with cover_path
+  // 6. Return populated clusters with cover_path and cover_bbox
   return new Promise((resolve) => {
     activeDeviceDb.all(`
       SELECT p.id, p.name, p.cover_face_id, p.face_count, f.path as cover_path, f.bbox as cover_bbox
@@ -1963,6 +2020,14 @@ ipcMain.handle('open-download-folder', async (event) => {
   return true;
 });
 
+ipcMain.handle('open-file-location', async (event, filePath) => {
+  if (filePath && fs.existsSync(filePath)) {
+    shell.showItemInFolder(filePath);
+    return true;
+  }
+  return false;
+});
+
 // ---- Check for Updates --------------------------------------------------------
 
 function isNewVersionAvailable(current, latest) {
@@ -2563,6 +2628,8 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
   if (mainWindow) {
     mainWindow.webContents.send('photo-synced', {
       isThumbnail,
+      assetId: metadata && (metadata.assetId || metadata.asset_id) ? (metadata.assetId || metadata.asset_id) : assetId,
+      type: isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type),
       path: targetPath,
       name: filename,
       src: `local:///${targetPath.replace(/\\/g, '/')}`,
@@ -2819,6 +2886,9 @@ function startUdpDiscoveryService() {
   udpSocket.on('message', (msg, rinfo) => {
     try {
       const data = JSON.parse(msg.toString());
+      if (data.sender_uuid === getComputerUuid() || data.from_uuid === getComputerUuid()) {
+        return;
+      }
       if (data.type === 'ShareCLIP_Discovery') {
         if (data.device_uuid === getComputerUuid()) return;
 
@@ -3109,9 +3179,13 @@ ipcMain.handle('send-udp-ice', async (event, { ip, candidate }) => {
   });
   const message = Buffer.from(payload);
   return new Promise((resolve) => {
-    udpSocket.send(message, 0, message.length, 15185, ip, (err) => {
-      resolve(!err);
-    });
+    udpSocket.send(message, 0, message.length, 15185, ip, () => {});
+    setTimeout(() => {
+      if (udpSocket) {
+        udpSocket.send(message, 0, message.length, 15185, ip, () => {});
+      }
+    }, 50);
+    resolve(true);
   });
 });
 

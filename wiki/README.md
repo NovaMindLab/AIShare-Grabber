@@ -54,6 +54,7 @@ Implemented and upcoming feature specifications:
 *   [📱→🖥️ AI Thumbnail Sync](file:///d:/AI_serach_image/image_clip_android/wiki/features/thumbnail_sync_ai.md): Batch-sync compressed 400×400 JPEG thumbnails from phone to PC via WebRTC DataChannel, auto-trigger MobileCLIP ONNX classification, save to dedicated `thumbnail_sync/` directory, and display results in Link Mobile panel. **Status: ✅ Implemented**
 *   [🧠 Core AI Algorithms & Preprocessing](file:///d:/AI_serach_image/image_clip_android/wiki/features/algorithms.md): Detailed explanation of MobileCLIP features extraction, zero-shot category matching, Leader clustering to prevent chaining effect, and the memory buffer allocation bug fix. **Status: ✅ Implemented**
 *   [🗺️ 足迹地图 (GPS Image Clustering)](file:///d:/AI_serach_image/image_clip_android/wiki/features/footprint_map.md): Extract GPS EXIF coordinates from phone photos via `ACCESS_MEDIA_LOCATION`, transmit with metadata packets over WebRTC, store in SQLite database, and render on an interactive Leaflet clustered map with thumbnail markers. Includes re-download & re-classify button to reset local cache and trigger full mobile re-sync. **Status: ✅ Implemented**
+*   [👤 本地化高精度人脸识别 (Face Recognition)](file:///d:/AI_serach_image/image_clip_android/wiki/features/face_recognition.md): True biometric face detection (SCRFD) and feature extraction (MobileFaceNet) replacing legacy semantic face crops. Includes SharedArrayBuffer integration and strict 0.70 DBSCAN threshold logic. **Status: ✅ Implemented**
 
 ---
 

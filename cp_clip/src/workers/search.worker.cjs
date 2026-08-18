@@ -98,7 +98,7 @@ parentPort.on('message', async (msg) => {
       parentPort.postMessage({ type: 'cluster_result', reqId, success: false, error: err.message });
     }
   } else if (msg.type === 'cluster_faces') {
-    const { reqId, faceSabIndices, validFaces, threshold = 0.65 } = msg.payload;
+    const { reqId, faceSabIndices, validFaces, threshold = 0.50 } = msg.payload;
 
     try {
       if (!wasmInstFaces) {
@@ -108,31 +108,71 @@ parentPort.on('message', async (msg) => {
       const n = validFaces.length;
       const faceGroups = []; // [ [idx0, idx1...], [idx2...] ]
 
-      // DBSCAN / Leader clustering for faces
+      // Strict Average-Linkage with Same-Photo Exclusion and Min-Similarity Bound
       for (let i = 0; i < n; i++) {
         let bestGroupIdx = -1;
-        let bestSim = -1;
+        let bestAvgSim = -1;
+        const curPath = validFaces[i].path;
 
         for (let g = 0; g < faceGroups.length; g++) {
-          const leaderIdx = faceGroups[g][0];
-          const sim = wasmInstFaces.exports.cosine_similarity(faceSabIndices[i], faceSabIndices[leaderIdx], 512);
-          if (sim > bestSim) {
-            bestSim = sim;
+          // 1. Same-Photo Exclusion Rule: 2 faces in the same photo cannot belong to the same person!
+          let hasSamePhotoConflict = false;
+          for (const memberIdx of faceGroups[g]) {
+            if (validFaces[memberIdx].path === curPath) {
+              hasSamePhotoConflict = true;
+              break;
+            }
+          }
+          if (hasSamePhotoConflict) {
+            continue; // Skip this group
+          }
+
+          let totalSim = 0;
+          let minSim = 1.0;
+          for (const memberIdx of faceGroups[g]) {
+            const sim = wasmInstFaces.exports.cosine_similarity(faceSabIndices[i], faceSabIndices[memberIdx], 512);
+            totalSim += sim;
+            if (sim < minSim) minSim = sim;
+          }
+          const avgSim = totalSim / faceGroups[g].length;
+
+          // ArcFace MobileFaceNet optimal threshold (avgSim >= threshold ~0.50, minSim >= 0.42)
+          if (avgSim >= threshold && minSim >= 0.42 && avgSim > bestAvgSim) {
+            bestAvgSim = avgSim;
             bestGroupIdx = g;
           }
         }
 
-        if (bestSim >= threshold) {
+        if (bestGroupIdx !== -1) {
           faceGroups[bestGroupIdx].push(i);
         } else {
           faceGroups.push([i]);
         }
       }
 
-      const personClusters = faceGroups.map((group, groupIdx) => {
+      // Map to person clusters and select the highest quality / largest face as cover
+      let personClusters = faceGroups.map((group, groupIdx) => {
         const personId = `person_${String(groupIdx + 1).padStart(3, '0')}`;
         const faces = group.map(idx => validFaces[idx]);
-        const coverFace = faces[0];
+        
+        // Select face with the largest bounding box area as the best cover face portrait
+        let coverFace = faces[0];
+        let maxArea = -1;
+        for (const f of faces) {
+          if (f && f.bbox) {
+            try {
+              const bbox = typeof f.bbox === 'string' ? JSON.parse(f.bbox) : f.bbox;
+              if (Array.isArray(bbox) && bbox.length === 4) {
+                const area = (bbox[2] || 0) * (bbox[3] || 0);
+                if (area > maxArea) {
+                  maxArea = area;
+                  coverFace = f;
+                }
+              }
+            } catch (_) {}
+          }
+        }
+
         return {
           id: personId,
           name: `人物 ${groupIdx + 1}`,
@@ -142,11 +182,20 @@ parentPort.on('message', async (msg) => {
         };
       });
 
+      // Sort clusters by face_count descending (most frequent people at the top)
+      personClusters.sort((a, b) => b.face_count - a.face_count);
+      // Re-index names to match the sorted order
+      personClusters.forEach((c, idx) => {
+        c.name = `人物 ${idx + 1}`;
+      });
+
       parentPort.postMessage({ type: 'cluster_faces_result', reqId, success: true, personClusters });
     } catch (err) {
       console.error("[Search Worker] Face Cluster error:", err);
       parentPort.postMessage({ type: 'cluster_faces_result', reqId, success: false, error: err.message });
     }
+  } // <-- Added missing closing bracket for the cluster_faces block
+  
   if (msg.type === 'search_images') {
     const { reqId, validImages } = msg.payload;
     try {
@@ -163,9 +212,11 @@ parentPort.on('message', async (msg) => {
       }
       
       searchResults.sort((a, b) => b.score - a.score);
-      parentPort.postMessage({ type: 'task_result', reqId, result: { searchResults } });
+      // Use same protocol as cluster/cluster_faces: success flag at top level
+      parentPort.postMessage({ reqId, success: true, searchResults });
     } catch (err) {
-      parentPort.postMessage({ type: 'task_result', reqId, error: err.message });
+      console.error('[Search Worker] search_images error:', err);
+      parentPort.postMessage({ reqId, success: false, error: err.message });
     }
     return;
   }

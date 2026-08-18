@@ -1,23 +1,81 @@
-# 📱✈️🖥️ ShareCLIP (AIShare-Grabber)
+<div align="center">
 
-[![GitHub release](https://img.shields.io/github/v/release/NovaMindLab/AIShare-Grabber?color=7c3aed&label=Release&logo=github)](https://github.com/NovaMindLab/AIShare-Grabber/releases)
-[![Flutter Version](https://img.shields.io/badge/Flutter-%E2%89%A53.11.1-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
-[![Electron Version](https://img.shields.io/badge/Electron-30.5.1-47848F?logo=electron&logoColor=white)](https://www.electronjs.org)
-[![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-Node-005A9C?logo=onnx&logoColor=white)](https://onnxruntime.ai/)
-[![Leaflet Map](https://img.shields.io/badge/Leaflet_Map-1.9.4-B5E285?logo=leaflet&logoColor=white)](https://leafletjs.com/)
+  <img src="./docs/images/hero_banner.jpg" width="100%" alt="ShareCLIP Hero Banner" style="border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);" />
 
-> **ShareCLIP** is a premium, localized, multi-device photo synchronization and AI-powered classification ecosystem. It achieves blazing-fast **P2P cross-device file transfer** via WebRTC over local Wi-Fi, using BLE (Bluetooth Low Energy) for instant offline signaling. Once synced, a local **MobileCLIP ONNX** model automatically classifies your photos and enables semantic text search—all running **100% locally and privately** on your PC.
+  <br/><br/>
 
-🔗 **Official Landing Page**: [https://novamindlab.github.io/AIShare-Grabber/](https://novamindlab.github.io/AIShare-Grabber/)
+  # 📱 ShareCLIP (AIShare-Grabber)
+  ### Next-Gen Local AI Photo Management & P2P Cross-Device Wireless Syncing Ecosystem
+
+  <p align="center">
+    <b>Zero-Cloud • 100% Private • Local MobileCLIP AI • P2P WebRTC Direct Link • SIMD Face Clustering</b>
+  </p>
+
+  <p align="center">
+    <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases"><img src="https://img.shields.io/github/v/release/NovaMindLab/AIShare-Grabber?color=a855f7&label=Release&logo=github" alt="Release" /></a>
+    <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Flutter-%E2%89%A53.11.1-02569B?logo=flutter&logoColor=white" alt="Flutter" /></a>
+    <a href="https://www.electronjs.org"><img src="https://img.shields.io/badge/Electron-30.5.1-47848F?logo=electron&logoColor=white" alt="Electron" /></a>
+    <a href="https://onnxruntime.ai/"><img src="https://img.shields.io/badge/ONNX_Runtime-Node-005A9C?logo=onnx&logoColor=white" alt="ONNX Runtime" /></a>
+    <a href="https://webrtc.org/"><img src="https://img.shields.io/badge/WebRTC-P2P_DataChannel-333333?logo=webrtc&logoColor=white" alt="WebRTC" /></a>
+    <a href="https://leafletjs.com/"><img src="https://img.shields.io/badge/Leaflet-1.9.4-B5E285?logo=leaflet&logoColor=white" alt="Leaflet Map" /></a>
+    <a href="https://webassembly.org/"><img src="https://img.shields.io/badge/WASM_SIMD-128bit-654FF0?logo=webassembly&logoColor=white" alt="WASM SIMD" /></a>
+    <a href="https://github.com/NovaMindLab/AIShare-Grabber/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" /></a>
+  </p>
+
+  <p align="center">
+    <a href="#-key-features"><b>✨ Features</b></a> •
+    <a href="#-ai-photo-management-ecosystem"><b>🧠 AI Architecture</b></a> •
+    <a href="#-p2p-transmission-pipeline"><b>⚡ Protocol</b></a> •
+    <a href="#-product-screenshots"><b>📸 Screenshots</b></a> •
+    <a href="#-getting-started"><b>🚀 Quick Start</b></a> •
+    <a href="#-中文详细介绍"><b>🇨🇳 中文说明</b></a>
+  </p>
+
+  <p align="center">
+    🌐 <b>Official Landing Portal</b>: <a href="https://novamindlab.github.io/AIShare-Grabber/">https://novamindlab.github.io/AIShare-Grabber/</a>
+  </p>
+
+</div>
 
 ---
 
-## ⚡ Direct-Link P2P Signaling & Transmission Flow
+## 💡 What is ShareCLIP?
 
-This animated diagram shows how ShareCLIP initiates connections offline using BLE, negotiates WebRTC SDP, and transfers files in chunked packets via a high-speed Wi-Fi channel:
+**ShareCLIP (AIShare-Grabber)** is a privacy-first, lightning-fast cross-device photo management solution connecting your mobile devices and desktop workstations without cables, cloud subscriptions, or cellular data.
+
+- **Zero-Cloud & 100% Private**: Your original photos, location data, and biometric face embeddings never touch any remote cloud server.
+- **Offline Wireless Pairing**: Instant device discovery via Bluetooth Low Energy (BLE GATT) or LAN UDP broadcast, auto-negotiating high-speed **WebRTC P2P DataChannels** over local Wi-Fi.
+- **On-Device Multi-Modal AI**: Powered by **MobileCLIP-S0** and **Buffalo_SC** models running locally on CPU/GPU via ONNX Runtime and WebAssembly SIMD acceleration.
+
+---
+
+## 🧠 AI Photo Management Ecosystem
+
+<div align="center">
+  <img src="./docs/images/ai_features.jpg" width="100%" alt="ShareCLIP AI Photo Management Features" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 16px 40px rgba(0,0,0,0.5);" />
+</div>
+
+---
+
+## ✨ Key Features
+
+| Feature | Description |
+|---|---|
+| ⚡ **Offline P2P High-Speed Sync** | Zero cellular data or internet needed. Automatically coordinates WebRTC SDP packets via BLE/UDP, transmitting photos in chunked 32KB packets over local Wi-Fi at gigabit speeds with reactive backpressure control. |
+| 🔍 **Semantic Natural Language Search** | Describe what you are looking for in plain language (*e.g., "sunset at beach", "dog playing on grass", "receipt document"*). MobileCLIP extracts 512-D vector embeddings for zero-shot text-to-image semantic matching. |
+| 👥 **Biometric Face Recognition & Timeline** | Employs SCRFD face detection and MobileFaceNet 512-D feature extraction accelerated by **WASM SIMD 128-bit vectorization** and **SharedArrayBuffer zero-copy RAM sharing**, grouping thousands of photos into personal albums in seconds. |
+| 🖼️ **Immersive Full-Screen Lightbox** | Instant 0ms thumbnail preview with on-demand **4K RAW original photo streaming** from mobile. Supports previous/next navigation (`←`/`→`), zoom/rotate, and folder revealing. |
+| 🧹 **Smart Similarity & Cross-Device Deletion** | Calculates cosine similarity across your entire photo library using Leader Centroid clustering. Supports one-click duplicate cleanup with synchronized deletion from both PC cache and Android system gallery. |
+| 🗺️ **EXIF GPS Footprint Map** | Extracts GPS coordinates (`ACCESS_MEDIA_LOCATION`), plotting your life travel footprints on an interactive Leaflet world map with smooth dynamic clustering. |
+| 🚀 **Local Wi-Fi Hotspot Fallback** | Includes built-in soft-AP hotspot creation for restrictive environments (e.g., isolated public Wi-Fi or campus networks) for guaranteed direct device-to-device streaming. |
+| 🌐 **20+ Global Languages (i18n)** | Fully localized UI across Android, Desktop PC, and Web landing page for seamless international usage. |
+
+---
+
+## ⚡ Direct-Link P2P Signaling & Transmission Pipeline
 
 ```xml
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340" width="100%" height="auto" style="background:#0f172a; border-radius:12px; font-family:'Segoe UI',system-ui,sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340" width="100%" height="auto" style="background:#0f172a; border-radius:12px; font-family:'Segoe UI',system-ui,sans-serif; border: 1px solid rgba(255,255,255,0.1);">
   <!-- Styles for Animation -->
   <style>
     .node-title { fill: #f8fafc; font-size: 14px; font-weight: bold; }
@@ -142,124 +200,111 @@ This animated diagram shows how ShareCLIP initiates connections offline using BL
 
 ---
 
-## ✨ Features
-
-- **📶 Offline Connectivity (BLE + WebRTC)**: Discover, connect and coordinate directly with zero cellular data configuration. Custom chunking protocols bypass BLE MTU size limitations to deliver raw WebRTC SDP packets reliably.
-- **⚡ High-Speed Direct Transport**: Splits files into binary slices with a 16-byte custom header, sending them through WebRTC DataChannels over local Wi-Fi. Features built-in reactive backpressure monitoring to avoid device memory overflow and OOMs.
-- **🧠 Zero-Trust Local AI (MobileCLIP)**: Runs zero-shot classification on-device using quantized MobileCLIP models inside the Electron host via `onnxruntime-node`. No server APIs, no internet, total privacy.
-- **🗺️ Interactive Footprint Map**: Reads EXIF GPS tags from camera-taken photos (`ACCESS_MEDIA_LOCATION`), stores coordinates in SQLite, and displays your travel footprints on an interactive Leaflet map featuring fluid marker clustering.
-- **🔍 Semantic Similarity Clustering**: Detects duplicate or near-duplicate images locally using cosine distance threshold comparisons, enabling easy photo cleanup with one-click deletion.
-- **🔄 Seamless Auto-Updates**: PC and Android clients feature a fully native, background-downloading update mechanism. Discover new versions and upgrade instantly without ever leaving the application.
-- **🌐 20-Language i18n**: Fully localized across Android, PC, and Web portal to support global users seamlessly.
-
----
-
 ## 📸 Product Screenshots
-
-Here is a visual tour of ShareCLIP in action:
 
 <table width="100%">
   <tr>
     <td width="50%" align="center">
       <b>🗺️ Interactive Footprint Map (PC)</b><br/>
-      <img src="./docs/images/media__1783477173684.png" width="100%" alt="Footprint Map Tab"/>
+      <img src="./docs/images/media__1783477173684.png" width="100%" alt="Footprint Map Tab" style="border-radius: 8px;"/>
     </td>
     <td width="50%" align="center">
-      <b>🔍 Duplicate Image Clustering (PC)</b><br/>
-      <img src="./docs/images/media__1783479158661.png" width="100%" alt="Duplicate Image Clustering"/>
+      <b>🔍 AI Duplicate Image Deduplication (PC)</b><br/>
+      <img src="./docs/images/media__1783479158661.png" width="100%" alt="Duplicate Image Clustering" style="border-radius: 8px;"/>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center">
       <b>🖼️ Image Gallery & Auto AI Classification</b><br/>
-      <img src="./docs/images/media__1783480418697.png" width="100%" alt="Image Gallery & CLIP Predictions"/>
+      <img src="./docs/images/media__1783480418697.png" width="100%" alt="Image Gallery & CLIP Predictions" style="border-radius: 8px;"/>
     </td>
     <td width="50%" align="center">
-      <b>📱 Link Mobile Panel (PC)</b><br/>
-      <img src="./docs/images/media__1783489995368.png" width="100%" alt="Link Mobile Connection Dashboard"/>
+      <b>📱 Cross-Device Connection Dashboard</b><br/>
+      <img src="./docs/images/media__1783489995368.png" width="100%" alt="Link Mobile Connection Dashboard" style="border-radius: 8px;"/>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center">
       <b>⚙️ Custom Download Paths Settings</b><br/>
-      <img src="./docs/images/media__1783494494855.png" width="100%" alt="Custom Download Path Settings"/>
+      <img src="./docs/images/media__1783494494855.png" width="100%" alt="Custom Download Path Settings" style="border-radius: 8px;"/>
     </td>
     <td width="50%" align="center">
-      <b>🔑 Mobile Permissions Guide</b><br/>
-      <img src="./docs/images/media__1783491129806.png" width="100%" alt="Android Granular Media Permissions"/>
+      <b>🔑 Mobile Granular Permissions Guide</b><br/>
+      <img src="./docs/images/media__1783491129806.png" width="100%" alt="Android Granular Media Permissions" style="border-radius: 8px;"/>
     </td>
   </tr>
 </table>
 
 ---
 
-## 🛠️ Project Structure
+## 🛠️ Monorepo Architecture
 
-The repository is structured as a mono-repo split into native client applications:
-
-- **[`/android`](file:///d:/AI_serach_image/image_clip_android/android/)**: Companion mobile client app written in Dart/Flutter.
-- **[`/cp_clip`](file:///d:/AI_serach_image/image_clip_android/cp_clip/)**: Desktop companion host application written in Electron 30, Vue 3, Vite, SQLite, ONNX Runtime Node, and Sharp.
-- **[`/web`](file:///d:/AI_serach_image/image_clip_android/web/)**: Sources for the Vue 3 + Vite official landing portal.
-- **[`/wiki`](file:///d:/AI_serach_image/image_clip_android/wiki/)**: Central developer documentation and protocol specs database.
+```
+AIShare-Grabber/
+├── 📱 android/          # Flutter Android Companion App (BLE GATT + WebRTC DataChannel)
+├── 🖥️ cp_clip/          # Desktop Host App (Electron 30, Vue 3, ONNX Runtime, SQLite, Sharp)
+│   ├── src/workers/    # Dedicated Node Worker Pool (Search, SIMD WASM clustering, Inference)
+│   └── models/         # Quantized MobileCLIP-S0 & Buffalo_SC ONNX AI models
+├── 🌐 web/              # Official Vue 3 + Vite Landing Portal
+├── 📖 wiki/             # Architecture, protocol specs, and developer documentation
+└── 📂 docs/images/      # Product graphics, diagrams, and hero assets
+```
 
 ---
 
 ## 🚀 Getting Started
 
-### 📱 Android Client
+### 📱 1. Android Client
 
-1. **Prerequisites**: Ensure you have Flutter SDK ($\ge$ 3.11.1) and Android SDK installed.
-2. **Install dependencies**:
-   ```bash
-   cd android
-   flutter pub get
-   ```
-3. **Run the App**: Connect your Android device via USB debugging and run:
-   ```bash
-   flutter run
-   ```
+```bash
+# Prerequisites: Flutter SDK >= 3.11.1 & Android SDK
+cd android
+flutter pub get
+flutter run
+```
 
----
+### 🖥️ 2. Desktop PC Client
 
-### 🖥️ PC Desktop Client
+```bash
+# Prerequisites: Node.js >= v20, Python >= 3.10
+cd cp_clip
+npm install
 
-1. **Prerequisites**: Node.js ($\ge$ v20) and Python ($\ge$ 3.10, for building C++ dependencies like `node-gyp`).
-2. **Install dependencies**:
-   ```bash
-   cd cp_clip
-   npm install
-   ```
-3. **Run in development mode**:
-   ```bash
-   npm run dev
-   ```
-4. **Compile and package (Portable EXE)**:
-   ```bash
-   npm run dist
-   ```
+# Run in Development Mode
+npm run dev
 
----
+# Package as Portable Desktop Release
+npm run dist
+```
 
-### 🌐 Official Website
+### 🌐 3. Official Web Portal
 
-1. **Install dependencies**:
-   ```bash
-   cd web
-   npm install
-   ```
-2. **Run dev server**:
-   ```bash
-   npm run dev
-   ```
-3. **Build website**:
-   ```bash
-   npm run build
-   ```
+```bash
+cd web
+npm install
+npm run dev
+```
 
 ---
 
-## 📄 License & Privacy
+## 🇨🇳 中文详细介绍
 
-ShareCLIP runs entirely **offline**. Your images, metadata, location tags, and classification predictions never leave your local devices.
+### 🌟 核心理念
+**ShareCLIP (AIShare-Grabber)** 是一款专为重视隐私与效率的用户打造的 **跨端无网照片同步与本地 AI 智能管理系统**。无需数据线、无需公网服务器中转、不消耗手机移动流量，手机与电脑之间依靠近场蓝牙（BLE）秒速握手，并通过局域网 **WebRTC DataChannel 直连** 实现千兆级极速传输。
 
-Developed by the **NovaMindLab** team. For details on protocols, see the [Central Developer Wiki](file:///d:/AI_serach_image/image_clip_android/wiki/README.md).
+### 🚀 六大核心技术亮点
+1. **纯本地离线 AI 大脑**：集成 MobileCLIP 512 维多模态向量特征提取与 Buffalo_SC 人脸识别，支持自然语言搜图（如“海边日落”、“在草地上奔跑的金毛”）与人脸人物智能聚类，所有计算 100% 在 PC 本地运行，绝无隐私泄露风险。
+2. **渐进式全屏相册大图浏览器**：0ms 瞬间打开缩略图，手机在线时按需自动拉取 4K RAW 超清原图并平滑热替换，支持键盘左右键快速切图与自由缩放。
+3. **智能相似图去重与双端同步删除**：利用余弦相似度质心聚类算法毫秒级定位重复与相似抓拍，支持在电脑端一键勾选清理，并联动通过 WebRTC 信令同步从手机相册中安全移除。
+4. **旅行足迹地图**：自动解析 EXIF 中的 GPS 地理信息，在世界地图上动态聚类绘制您的旅行足迹轨迹。
+5. **WASM SIMD 128位与零拷贝内存加速**：采用 `SharedArrayBuffer` 物理内存共享与 WebAssembly SIMD 加速数学向量运算，数万张图片特征比对瞬时完成。
+6. **断网热点直连模式**：即使身处没有路由器的户外或隔离网络环境，电脑可一键建立直连热点，保障数据传输永不中断。
+
+---
+
+## 📄 License & Privacy Guarantee
+
+- **Privacy Guarantee**: ShareCLIP is architected under a strict **Zero-Trust & Zero-Telemetry** principle. None of your photos, geolocation tags, or face biometric vectors ever leave your local machines.
+- **License**: Released under the [Apache License 2.0](https://github.com/NovaMindLab/AIShare-Grabber/blob/main/LICENSE).
+
+Developed with ❤️ by the **NovaMindLab** team. For deep protocol specifications, check out the [Developer Wiki](file:///d:/AI_serach_image/image_clip_android/wiki/README.md).

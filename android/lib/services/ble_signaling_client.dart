@@ -89,6 +89,7 @@ class BleSignalingClient {
 
   void startScan() async {
     connectionState.value = BleState.scanning;
+    debugPrint("[BLE] Starting low-latency BLE scan... (Target MAC: $_targetMac, Target Service UUID: $_serviceUuid)");
 
     _scanSubscription?.cancel();
     _scanSubscription = FlutterBluePlus.onScanResults.listen((results) async {
@@ -112,19 +113,24 @@ class BleSignalingClient {
         }
 
         if (isTarget) {
-          debugPrint("[BLE] Target device found: ${r.device.platformName} (${r.device.remoteId.str})");
+          debugPrint("[BLE] Target device matched and found: ${r.device.platformName} (${r.device.remoteId.str})");
           stopScan();
           connectToDevice(r.device);
           break;
         }
       }
     }, onError: (e) {
+      debugPrint("[BLE Error] Scan stream error: $e");
       _setError("Scan error: $e");
     });
 
     try {
-      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
+      await FlutterBluePlus.startScan(
+        timeout: const Duration(seconds: 15),
+        androidScanMode: AndroidScanMode.lowLatency,
+      );
     } catch (e) {
+      debugPrint("[BLE Error] Failed to execute startScan: $e");
       _setError("Failed to start scan: $e");
     }
 
@@ -132,7 +138,8 @@ class BleSignalingClient {
     Future.delayed(const Duration(seconds: 15), () {
       if (connectionState.value == BleState.scanning) {
         stopScan();
-        _setError("Device scan timeout");
+        debugPrint("[BLE Timeout] Device scan timed out after 15s. Target MAC: $_targetMac");
+        _setError("Device scan timeout (Target MAC: $_targetMac)");
       }
     });
   }
@@ -300,7 +307,7 @@ class BleSignalingClient {
     final char = _targetCharacteristic;
     if (char == null) return false;
 
-    const int chunkSize = 150;
+    const int chunkSize = 250;
     final List<String> chunks = [];
     int offset = 0;
     while (offset < sdp.length) {
@@ -313,17 +320,17 @@ class BleSignalingClient {
 
     try {
       // 1. Send START
-      await char.write(utf8.encode("START:$_sessionId:${chunks.length}"), withoutResponse: false);
-      await Future.delayed(const Duration(milliseconds: 50));
+      await char.write(utf8.encode("START:$_sessionId:${chunks.length}"), withoutResponse: true);
+      await Future.delayed(const Duration(milliseconds: 30));
 
       // 2. Send CHUNKS
       for (int i = 0; i < chunks.length; i++) {
-        await char.write(utf8.encode("CHUNK:$_sessionId:$i:${chunks[i]}"), withoutResponse: false);
-        await Future.delayed(const Duration(milliseconds: 30));
+        await char.write(utf8.encode("CHUNK:$_sessionId:$i:${chunks[i]}"), withoutResponse: true);
+        await Future.delayed(const Duration(milliseconds: 10));
       }
 
       // 3. Send END
-      await char.write(utf8.encode("END:$_sessionId"), withoutResponse: false);
+      await char.write(utf8.encode("END:$_sessionId"), withoutResponse: true);
       debugPrint("[BLE] SDP transmitted successfully");
       return true;
     } catch (e) {
@@ -338,7 +345,7 @@ class BleSignalingClient {
 
     final msg = "ICE:$_sessionId:$sdpMid:$sdpMLineIndex:$candidate";
     try {
-      await char.write(utf8.encode(msg), withoutResponse: false);
+      await char.write(utf8.encode(msg), withoutResponse: true);
       return true;
     } catch (e) {
       debugPrint("[BLE] Failed to send ICE candidate over BLE: $e");

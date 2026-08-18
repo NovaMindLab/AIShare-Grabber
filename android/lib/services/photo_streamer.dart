@@ -113,14 +113,19 @@ class PhotoStreamer {
       final String extension = entity.mimeType?.split('/').last ?? 'jpg';
       final String cleanName = '${entity.title ?? 'photo'}.$extension';
 
+      // Obtain GPS coordinates asynchronously (required for Android 10+)
+      final LatLng? latLng = await entity.latlngAsync();
+      final double? lat = (latLng != null && latLng.latitude != 0.0) ? latLng.latitude : null;
+      final double? lng = (latLng != null && latLng.longitude != 0.0) ? latLng.longitude : null;
+
       // Send metadata first
       await _sendMetadataPacket(
         fileId: fileId,
         assetId: entity.id,
         name: cleanName,
         size: size,
-        latitude: entity.latitude,
-        longitude: entity.longitude,
+        latitude: lat,
+        longitude: lng,
       );
 
       return await _streamFileInternal(file: file, fileId: fileId, onProgress: onProgress);
@@ -295,13 +300,17 @@ class PhotoStreamer {
       }
 
       final String name = 'thumb_${entity.id}.jpg';
+      final LatLng? latLng = await entity.latlngAsync();
+      final double? lat = (latLng != null && latLng.latitude != 0.0) ? latLng.latitude : null;
+      final double? lng = (latLng != null && latLng.longitude != 0.0) ? latLng.longitude : null;
+
       await _sendMetadataPacket(
         fileId: fileId,
         assetId: entity.id,
         name: name,
         size: thumbData.length,
-        latitude: entity.latitude,
-        longitude: entity.longitude,
+        latitude: lat,
+        longitude: lng,
       );
 
       return await _streamBytesInternal(
@@ -345,11 +354,12 @@ class PhotoStreamer {
             ? DateTime.fromMillisecondsSinceEpoch(entity.createDateSecond! * 1000).toUtc().toIso8601String()
             : DateTime.now().toUtc().toIso8601String(),
       };
-      if (entity.latitude != null && entity.latitude != 0.0) {
-        metadataMap["latitude"] = entity.latitude;
+      final LatLng? latLng = await entity.latlngAsync();
+      if (latLng != null && latLng.latitude != 0.0) {
+        metadataMap["latitude"] = latLng.latitude;
       }
-      if (entity.longitude != null && entity.longitude != 0.0) {
-        metadataMap["longitude"] = entity.longitude;
+      if (latLng != null && latLng.longitude != 0.0) {
+        metadataMap["longitude"] = latLng.longitude;
       }
 
       final payloadStr = jsonEncode(metadataMap);
