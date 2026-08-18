@@ -84,7 +84,7 @@
 ## ⚡ Zero-Traffic Direct P2P Wireless Pipeline
 
 <div align="center">
-  <img src="./docs/images/p2p_pipeline.jpg" width="100%" alt="Direct-Link P2P Signaling & Transmission Pipeline" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 16px 48px rgba(0,0,0,0.6);" />
+  <img src="./docs/images/p2p_flow_animated.svg" width="100%" alt="ShareCLIP Real-time P2P Signaling & Transmission Animation" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 16px 48px rgba(0,0,0,0.6);" />
 </div>
 
 <br/>

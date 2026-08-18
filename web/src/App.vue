@@ -272,6 +272,11 @@
           <p class="section-subtitle">{{ t.simulator.subtitle }}</p>
         </div>
 
+        <!-- Dynamic 60fps Animated P2P Stream Banner -->
+        <div class="ai-banner-frame glass-panel" style="margin-bottom: 32px; padding: 4px; background: rgba(5,8,17,0.85); border: 1px solid rgba(56,189,248,0.25); box-shadow: 0 16px 40px rgba(0,0,0,0.6);">
+          <img src="/p2p_flow_animated.svg" alt="Direct-Link P2P Signaling & Transmission Animation" style="width: 100%; border-radius: 12px; display: block;" />
+        </div>
+
         <div class="glass-panel simulator-card">
           <!-- Stepper Headers -->
           <div class="stepper-row">
