@@ -1,32 +1,32 @@
 # 👤 本地化高精度人脸识别、聚类与人物相册体系 (Face Recognition & Clustering Wiki)
 
-本文档系统性梳理 **ShareCLIP** PC 桌面端的人脸检测、生物特征抽取、零拷贝内存共享、WASM SIMD 加速、同图排他聚类算法及持久化存储的全流程底层实现。
+本文档系统性梳理 **ShareCLIP** PC 桌面端的人脸检测、生物特征抽取、零拷贝内存共享、底层向量化加速计算、同图排他聚类算法及持久化存储的全流程底层实现。
 
 ---
 
 ## 1. 架构演进与技术背景
 
-### 1.1 早期技术路线：Node.js 端 `face-api wasm` 的架构局限
-在项目的早期版本中，我们曾在 Node.js 后端主进程/子线程中运行 **`face-api wasm`**（基于 `@vladmandic/face-api` + `@tensorflow/tfjs-backend-wasm`）进行人脸检测与特征提取。但在面对数万张真实相册的并发压力测试时，暴露出难以克服的底层架构瓶颈：
+### 1.1 早期技术路线：基于 Node.js 端早期模型的架构局限
+在项目的早期版本中，我们曾在 Node.js 后端主进程/子线程中运行早期的 JS 端人脸库进行检测与特征提取。但在面对数万张真实相册的并发压力测试时，暴露出难以克服的底层架构瓶颈：
 
-1. **WASM 内存沙盒限制与内存膨胀 (Memory Leak / Out of Bounds)**：
-   - 在 Node.js 环境下，TFJS WASM 后端分配的线性内存（Linear Memory Pages）必须通过 Canvas/ImageData 与 Node 原生 Buffer 进行频繁转换与拷贝；
-   - 在大批量连续处理成千上万张高清照片时，底层张量释放（`tf.dispose()`）无法完全及时归还给操作系统，导致 WASM 内存不断膨胀直至超出限制，频繁抛出 `RuntimeError: memory access out of bounds` 甚至导致 Node 进程崩溃。
+1. **内存沙盒限制与内存膨胀 (Memory Leak / Out of Bounds)**：
+   - 在 Node.js 环境下，早期 JS 模型分配的堆内存与 Node 原生 Buffer 无法零拷贝直通，需要频繁进行像素数组转换与拷贝；
+   - 在大批量连续处理成千上万张高清照片时，底层张量释放无法完全及时归还给操作系统，导致内存池不断膨胀，频繁引发内存溢出甚至导致 Node 进程崩溃。
 
 2. **CPU 满载与 Node 事件循环严重卡死**：
-   - 虽然采用了 WASM 字节码执行，但 TFJS WASM 在 Node.js 多线程调度中的内部锁竞争与上下文切换开销巨大，长时间批量推理时 CPU 经常持续 100% 满载，严重阻塞 Electron 主事件循环，导致前台 UI 界面严重掉帧、假死。
+   - 早期模型在 Node.js 多线程调度中存在严重的内部锁竞争与上下文切换开销，长时间批量推理时 CPU 经常持续 100% 满载，严重阻塞 Electron 主事件循环，导致前台 UI 界面严重掉帧、假死。
 
 3. **128 维模型特征区分度不足**：
-   - `face-api wasm` 沿用较早期的 SSD MobileNet + 128 维人脸特征模型（FaceRecognitionNet），在日常相册的大角度侧脸、暗光逆光、遮挡（如戴眼镜/口罩）以及表情剧烈变化的真实抓拍场景下鲁棒性较差，常导致不同人物被误判合并，或同一人的照片被割裂为多个孤立分组。
+   - 沿用较早期的 128 维人脸特征模型，在日常相册的大角度侧脸、暗光逆光、遮挡（如戴眼镜/口罩）以及表情剧烈变化的真实抓拍场景下鲁棒性较差，常导致不同人物被误判合并，或同一人的照片被割裂为多个孤立分组。
 
 ---
 
 ### 1.2 工业级重构：C++ 原生 ONNX Runtime + Buffalo_SC + 512-D
-为了彻底根治 `face-api wasm` 时代的内存溢出、UI 卡顿与特征维度瓶颈，从 **v1.2.54** 版本起，ShareCLIP 全面废弃了 `face-api wasm`，升级为基于 C++ 原生 `onnxruntime-node` 的**工业级双模型级联架构**：
+为了彻底根治早期的内存溢出、UI 卡顿与特征维度瓶颈，从 **v1.2.54** 版本起，ShareCLIP 全面升级为基于 C++ 原生 `onnxruntime-node` 的**工业级双模型级联架构**：
 
-- **阶段 1（人脸检测与精确定位）**：采用 **SCRFD 500M (`det_500m.onnx`)**，仅 **2.4 MB** 体积，内置 3 尺度多级锚点（Stride 8, 16, 32），直接基于 `sharp` C++ 裸内存流进行高效推理，彻底告别 Canvas 转换与 WASM 内存溢出；
+- **阶段 1（人脸检测与精确定位）**：采用 **SCRFD 500M (`det_500m.onnx`)**，仅 **2.4 MB** 体积，内置 3 尺度多级锚点（Stride 8, 16, 32），直接基于 `sharp` C++ 裸内存流进行高效推理，彻底告别额外内存转换与溢出；
 - **阶段 2（高维生物特征度量学习）**：采用基于 ArcFace 损失深度训练的 **MobileFaceNet (`w600k_mbf.onnx`)**，仅 **13.0 MB** 体积，特征向量维度从 128 维大幅跃升至 **512 维**，并投影到 L2 单位超球面上，实现 99.5%+ 的工业级识别准确率；
-- **阶段 3（零拷贝与 SIMD 向量加速）**：结合 `faceSharedBuffer` 物理内存与 `WASM SIMD 128-bit` 硬件指令，将向量比对耗时直接压缩至 **0.00004 ms (0.04 µs)**，CPU 占用率相比 `face-api wasm` 下降了 85% 以上。
+- **阶段 3（零拷贝与底层向量化加速）**：结合 `faceSharedBuffer` 物理内存与多线程底层优化，将向量比对耗时直接压缩至 **微秒级**，CPU 占用率大幅下降 85% 以上。
 
 ```mermaid
 flowchart TD
@@ -46,8 +46,8 @@ flowchart TD
     L2Norm --> SAB["⚡ Face SharedArrayBuffer 零拷贝写入"]
     L2Norm --> SQLiteFaces["💾 SQLite faces 表持久化 (BLOB Embedding + BBox)"]
     
-    SAB --> WASMClustering["🚀 WASM SIMD 128-bit 平均距离 + 同图排他聚类"]
-    WASMClustering --> SQLiteClusters["💾 SQLite person_clusters 表 (人物分组 & 最佳封面)"]
+    SAB --> VectorClustering["🚀 底层向量化多线程 平均距离 + 同图排他聚类"]
+    VectorClustering --> SQLiteClusters["💾 SQLite person_clusters 表 (人物分组 & 最佳封面)"]
     SQLiteClusters --> UIPeopleTab["📱 前端人物相册瀑布流展示"]
 ```
 
@@ -114,14 +114,14 @@ $$\mathbf{e} = \frac{\mathbf{v}}{\|\mathbf{v}\|_2} = \frac{\mathbf{v}}{\sqrt{\su
 > [!IMPORTANT]
 > **数学特性**：归一化后，两个特征向量 $\mathbf{e}_A$ 与 $\mathbf{e}_B$ 之间的余弦相似度（Cosine Similarity）直接等于它们的**向量点积（Dot Product）**：
 > $$\text{Cosine}(\mathbf{e}_A, \mathbf{e}_B) = \mathbf{e}_A \cdot \mathbf{e}_B = \sum_{i=1}^{512} e_{A, i} \cdot e_{B, i}$$
-> 这一特性是后续 WASM SIMD 能够达到 **0.04ms** 极致比对速度的核心基础。
+> 这一特性是后续多线程能够达到极致毫秒级比对速度的核心基础。
 
 ---
 
-## 5. 零拷贝内存模型与 WASM SIMD 极速聚类 (`search.worker.cjs`)
+## 5. 零拷贝内存模型与极速聚类 (`search.worker.cjs`)
 
 ### 5.1 共享内存架构 (`faceSharedBuffer`)
-为了避免在多进程/多线程（Main ➔ Worker ➔ WASM）间频繁序列化传递数万张人脸的 Float32Array，我们在主进程初始化时分配专属的 `faceSharedBuffer`：
+为了避免在多进程/多线程间频繁序列化传递数万张人脸的 Float32Array，我们在主进程初始化时分配专属的 `faceSharedBuffer`：
 
 ```mermaid
 flowchart LR
@@ -134,16 +134,16 @@ flowchart LR
     
     subgraph Workers ["Multi-Worker Zero-Copy Access"]
         Inference["Inference Worker (写入)"] -->|Direct FloatView.set| Slot1
-        Search["Search Worker (WASM SIMD 读取)"] -->|SIMD 128-bit DotProduct| Slot2
+        Search["Search Worker (高速向量计算引擎读取)"] -->|并行向量点积| Slot2
     end
 ```
 
 - **容量梯队**：根据硬件档位自动分配 20MB（10,000 张面容）~ 100MB（50,000 张面容）；
-- **WASM 内存挂载**：通过 `WebAssembly.Memory({ shared: true, initial: ... })` 直接将该内存块挂载至 `simd_math.wasm`，实现**零内存拷贝 (Zero-Copy)** 计算。
+- **内存映射**：通过统一的共享内存池直接进行**零内存拷贝 (Zero-Copy)** 计算。
 
 ### 5.2 独创算法：平均距离 + 同图排他聚类 (Average-Linkage with Same-Photo Exclusion)
 
-传统简单 DBSCAN 或单连通（Single-Linkage）聚类容易产生“连锁效应”（Person A 像 B，B 像 C，导致 A 和完全不相干的 C 被强行合并）。
+传统简单聚类容易产生“连锁效应”（Person A 像 B，B 像 C，导致 A 和完全不相干的 C 被强行合并）。
 
 ShareCLIP 在 `search.worker.cjs` 中实现了专为人脸相册设计的聚类器：
 
@@ -151,7 +151,7 @@ ShareCLIP 在 `search.worker.cjs` 中实现了专为人脸相册设计的聚类�
 sequenceDiagram
     participant Worker as Search Worker
     participant Cluster as 现有候选人物分组 [Group 1, Group 2...]
-    participant WASM as simd_math.wasm
+    participant Engine as 底层高性能向量计算内核
     
     Worker->>Cluster: 遍历当前待聚类人脸 Face(i), 所属照片 Path(i)
     loop 遍历已有候选组 Group(g)
@@ -160,8 +160,8 @@ sequenceDiagram
             Worker-->>Cluster: ❌ 命中同图排他原则，强制跳过该组！
         else 无同图冲突
             loop 计算与 Group(g) 各成员的相似度
-                Worker->>WASM: cosine_similarity(Face_i, Member_j)
-                WASM-->>Worker: 返回 sim
+                Worker->>Engine: cosine_similarity(Face_i, Member_j)
+                Engine-->>Worker: 返回 sim
             end
             Worker->>Worker: 计算 avgSim 与 minSim
             alt avgSim ≥ 0.50 且 minSim ≥ 0.42
@@ -269,6 +269,6 @@ CREATE INDEX IF NOT EXISTS idx_resources_face_scanned ON resources(face_scanned)
 |---|---|---|---|
 | **人脸检测 (SCRFD)** | 单张 4K 原图检测耗时 | **18.4 ms** | Sharp 缩放 + 640×640 CPU 推理 |
 | **特征提取 (MobileFaceNet)** | 单张人脸向量提取 | **7.2 ms** | 112×112 ROI 裁剪 + 512-D 提取 |
-| **SIMD 点积耗时** | 512 维向量一次比对 | **0.00004 ms (0.04 µs)** | WebAssembly SIMD 128-bit 指令加速 |
+| **高维向量比对耗时** | 512 维向量单次比对 | **微秒级** | 底层硬件向量化并行加速 |
 | **全库聚类耗时** | 2,500 张人脸全量聚类 | **142 ms** | 平均距离 + 同图排他综合计算 |
 | **总计全库扫面** | 1,000 张未扫描照片 | **~18 秒** | 极速多线程流水线完成全量人物相册构建 |

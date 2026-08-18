@@ -21,8 +21,8 @@
 ### 5. [打包与发布：构建 Standalone Portable EXE](file:///d:/AI_serach_image/image_clip_android/wiki/pc/packaging_and_deployment.md)
 *   **内容**：使用 `electron-builder` 构建 Windows 绿色免安装版单文件 `.exe` 的配置说明，如何不使用 ASAR 解决原生模块 (`onnxruntime-node`、`sharp`) 以及权重文件的运行时加载问题。
 
-### 6. [人脸识别与人物相册架构 (SCRFD + MobileFaceNet + WASM SIMD)](file:///d:/AI_serach_image/image_clip_android/wiki/features/face_recognition.md)
-*   **内容**：工业级双模型级联流水线、SCRFD 3-Scale 锚点解析与置信度过滤、512-D L2 超球面归一化、SharedArrayBuffer 零拷贝内存共享、WASM SIMD 0.04µs 极速点积、同图排他双门槛聚类算法与流式动态头像协议。
+### 6. [人脸识别与人物相册架构 (SCRFD + MobileFaceNet + 底层向量化加速)](file:///d:/AI_serach_image/image_clip_android/wiki/features/face_recognition.md)
+*   **内容**：工业级双模型级联流水线、SCRFD 3-Scale 锚点解析与置信度过滤、512-D L2 超球面归一化、SharedArrayBuffer 零拷贝内存共享、底层微秒级向量点积加速、同图排他双门槛聚类算法与流式动态头像协议。
 
 ### 7. [人脸识别技术汇报与路线对比](file:///d:/AI_serach_image/image_clip_android/wiki/pc/face_recognition_report.md)
 *   **内容**：对比 ShareCLIP 当前方案与纯 JS (face-api.js)、Dlib、OpenCV Haar、MediaPipe、RetinaFace+ResNet50 在隐私、精度、体积与算力开销上的核心权衡。
