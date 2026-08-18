@@ -1,6 +1,4 @@
 # Folders excluded from version control
-wiki/
-auto_deploy/
 scratch/
 cp_clip/thumbnail_sync/
 cp_clip/sync_storage/
