@@ -6,14 +6,14 @@
 
 ## 1. 业务痛点与技术升级
 
-### 1.1 早期技术路线：基于 `face-api.js` 的痛点
-在早期项目中，人脸识别主要基于 **`face-api.js` (TensorFlow.js)** 实现。但在真实海量相册测试中暴露出三大致命问题：
-1. **CPU 持续 100% 跑满与界面假死**：`face-api.js` 在 Node.js/Electron 的 JS 解释环境与 WebGL 运行时下，多线程调度能力极弱，张量回收（GC）开销巨大，批量扫描时导致 UI 频繁卡死、掉帧；
-2. **内存泄露与 OOM 崩溃**：长时间处理成千上万张相册大图时，底层 C++ 张量无法稳定释放，极易引发 Electron 进程 OOM (Out Of Memory) 崩溃；
-3. **128 维特征区分度受限**：模型在侧脸、暗光、表情变化大及遮挡场景下准确率较低，且无法解耦复杂合影中的多个人物。
+### 1.1 早期技术路线：Node.js 端 `face-api wasm` 的痛点
+在早期项目中，人脸识别功能曾尝试在 Node.js 后端基于 **`face-api wasm` (TFJS WASM Backend)** 实现。但在真实海量相册的长时间批量并发测试中，暴露出三大致命底层问题：
+1. **WASM 内存沙盒超限与内存膨胀**：TFJS WASM 在 Node 环境下处理大图时，张量生命周期（`tf.dispose()`）与底层 WASM Linear Memory Pages 回收存在延迟，大批量扫描时经常触发 `memory access out of bounds` 甚至进程 OOM 崩溃；
+2. **CPU 持续 100% 跑满与 Electron UI 严重卡死**：WASM 运行时的线程调度与 Node.js 单线程事件循环存在严重锁竞争，批量推理时 CPU 持续满载，导致前台界面掉帧与假死；
+3. **128 维特征区分度受限**：基于早期的 128 维 FaceRecognitionNet，在日常相册的侧脸、暗光、大表情变化下准确率受限，常产生误归类。
 
-### 1.2 工业级升级方案：`SCRFD + MobileFaceNet + WASM SIMD`
-为了彻底解决上述痛点，从 **v1.2.54** 版本起，我们全面摒弃了 `face-api.js`，重构为基于原生 C++ ONNX Runtime 的**轻量级双模型级联架构**：
+### 1.2 工业级升级方案：C++ 原生 `SCRFD + MobileFaceNet + WASM SIMD`
+为了彻底解决上述痛点，从 **v1.2.54** 版本起，我们全面摒弃了 `face-api wasm`，重构为基于原生 C++ ONNX Runtime 的**轻量级双模型级联架构**：
 - **人脸检测**：采用 **SCRFD 500M** (`det_500m.onnx`，仅 **2.4 MB**)，3-Scale 锚点毫秒级高精度定位；
 - **特征提取**：采用 **MobileFaceNet ArcFace** (`w600k_mbf.onnx`，仅 **13.0 MB**)，特征维度由 128 维跃升至 **512 维** 并进行 L2 超球面归一化，实现 99.5%+ 的工业级识别准确率；
 - **计算加速**：结合 `SharedArrayBuffer` 物理内存与 `WASM SIMD 128-bit` 向量化加速，实现 0.04µs 极速点积，CPU 占用率直降 85%，彻底杜绝卡顿与内存泄漏。
