@@ -322,140 +322,139 @@
       <section class="gallery-container" ref="galleryContainerRef">
         <!-- ==================== TABS SWITCH ==================== -->
         
-        <div v-if="currentTab === 'link'" style="display: flex; flex-direction: column; width: 100%; gap: 24px;">
+        <div v-if="currentTab === 'link'" style="display: flex; flex-direction: column; width: 100%; gap: 14px;">
 
-          <!-- Main Split Pairing Panel -->
-          <div v-if="syncStatus !== 'connected'" style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(147, 51, 234, 0.2); box-shadow: 0 8px 32px rgba(147, 51, 234, 0.05); border-radius: 16px; padding: 32px; display: flex; width: 100%; gap: 24px; box-sizing: border-box; justify-content: space-between; align-items: center; min-height: 290px; flex-shrink: 0; position: relative; overflow: hidden; backdrop-filter: blur(12px);">
+          <!-- Main Split Pairing Panel (Compact Refined) -->
+          <div v-if="syncStatus !== 'connected'" style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(147, 51, 234, 0.2); box-shadow: 0 8px 32px rgba(147, 51, 234, 0.05); border-radius: 14px; padding: 18px 24px; display: flex; width: 100%; gap: 20px; box-sizing: border-box; justify-content: space-between; align-items: center; min-height: 230px; flex-shrink: 0; position: relative; overflow: hidden; backdrop-filter: blur(12px);">
             
             <!-- Left Column: Scan QR Code -->
-            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; flex-shrink: 0;">
-              <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; min-width: 180px; flex-shrink: 0;">
+              <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
                 推荐方式：扫码连接
               </h4>
               
               <!-- QR Code Block with glow -->
-              <div style="position: relative; padding: 12px; background: white; border-radius: 12px; box-shadow: 0 0 24px rgba(168, 85, 247, 0.25); display: flex; align-items: center; justify-content: center; width: 160px; height: 160px; box-sizing: border-box; flex-shrink: 0; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
-                <canvas ref="qrCanvas" style="width: 136px; height: 136px; display: block; flex-shrink: 0;"></canvas>
+              <div style="position: relative; padding: 8px; background: white; border-radius: 10px; box-shadow: 0 0 20px rgba(168, 85, 247, 0.25); display: flex; align-items: center; justify-content: center; width: 136px; height: 136px; box-sizing: border-box; flex-shrink: 0; transition: transform 0.25s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                <canvas ref="qrCanvas" style="width: 120px; height: 120px; display: block; flex-shrink: 0;"></canvas>
               </div>
 
               <!-- SSID & Password Credentials card when Local Hotspot is active -->
-              <div v-if="isHotspotActive && hotspotStatus === 'started'" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 10px 16px; width: 100%; max-width: 280px; box-sizing: border-box; margin-top: -4px;">
-                <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">📡 已连接直连热点，请用手机加入该 Wi-Fi:</div>
-                <div style="font-size: 13px; font-weight: 600; color: #38bdf8;">SSID: {{ hotspotSsid }}</div>
-                <div style="font-size: 13px; font-weight: 600; color: #38bdf8; margin-top: 2px;">密码: {{ hotspotPassword }}</div>
+              <div v-if="isHotspotActive && hotspotStatus === 'started'" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 6px 12px; width: 100%; max-width: 240px; box-sizing: border-box;">
+                <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 2px;">📡 已开启直连热点，请用手机加入 Wi-Fi:</div>
+                <div style="font-size: 12px; font-weight: 600; color: #38bdf8;">SSID: {{ hotspotSsid }}</div>
+                <div style="font-size: 12px; font-weight: 600; color: #38bdf8; margin-top: 2px;">密码: {{ hotspotPassword }}</div>
               </div>
-              <p v-else style="color: var(--text-secondary); font-size: 12px; margin: 0; max-width: 260px;">请使用 ShareCLIP 手机 App 扫描二维码</p>
+              <p v-else style="color: var(--text-secondary); font-size: 11px; margin: 0; max-width: 220px;">请使用 ShareCLIP 手机 App 扫描二维码</p>
 
               <!-- Status Pills -->
-              <div style="display: flex; gap: 12px; width: 100%; justify-content: center; margin-top: 8px;">
+              <div style="display: flex; gap: 8px; width: 100%; justify-content: center;">
                 <!-- BLE Status Pill -->
                 <button 
                   @click="toggleSyncService"
-                  style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; border: none; font-weight: 500;"
-                  :style="isSyncActive ? 'background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.1);' : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary);'"
+                  style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; font-size: 11px; border-radius: 16px; cursor: pointer; transition: all 0.2s; border: none; font-weight: 500;"
+                  :style="isSyncActive ? 'background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981;' : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary);'"
                 >
-                  <span style="width: 6px; height: 6px; border-radius: 50%;" :style="isSyncActive ? 'background: #10b981; box-shadow: 0 0 6px #10b981;' : 'background: #94a3b8;'"></span>
+                  <span style="width: 5px; height: 5px; border-radius: 50%;" :style="isSyncActive ? 'background: #10b981; box-shadow: 0 0 6px #10b981;' : 'background: #94a3b8;'"></span>
                   蓝牙: {{ isSyncActive ? '已开启' : '已关闭' }}
                 </button>
 
                 <!-- Wi-Fi/Hotspot Status Pill -->
                 <button 
                   @click="toggleHotspot"
-                  style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; border: none; font-weight: 500;"
-                  :style="isHotspotActive ? 'background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.3); color: #38bdf8; box-shadow: 0 0 8px rgba(14, 165, 233, 0.1);' : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary);'"
+                  style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; font-size: 11px; border-radius: 16px; cursor: pointer; transition: all 0.2s; border: none; font-weight: 500;"
+                  :style="isHotspotActive ? 'background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.3); color: #38bdf8;' : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary);'"
                 >
-                  <span style="width: 6px; height: 6px; border-radius: 50%;" :style="isHotspotActive ? 'background: #38bdf8; box-shadow: 0 0 6px #38bdf8;' : 'background: #94a3b8;'"></span>
+                  <span style="width: 5px; height: 5px; border-radius: 50%;" :style="isHotspotActive ? 'background: #38bdf8; box-shadow: 0 0 6px #38bdf8;' : 'background: #94a3b8;'"></span>
                   热点: {{ isHotspotActive ? '已开启' : '已关闭' }}
                 </button>
               </div>
             </div>
 
             <!-- Middle Divider with Badge -->
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 0 20px;">
-              <div style="width: 1px; height: 100%; background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, rgba(255,255,255,0) 100%);"></div>
-              <span style="position: absolute; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text-muted); font-weight: 600;">或</span>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 0 10px;">
+              <div style="width: 1px; height: 180px; background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, rgba(255,255,255,0) 100%);"></div>
+              <span style="position: absolute; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted); font-weight: 600;">或</span>
             </div>
 
-            <!-- Right Column: Mobile Guidelines & Phone Mockup -->
-            <div style="flex: 1.2; display: flex; align-items: center; gap: 24px; box-sizing: border-box;">
+            <!-- Right Column: Mobile Guidelines & Local Folder & Phone Mockup -->
+            <div style="flex: 1.2; display: flex; align-items: center; gap: 16px; box-sizing: border-box;">
               
               <!-- Steps info -->
-              <div style="flex: 1; display: flex; flex-direction: column; gap: 14px;">
-                <h4 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                <h4 style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
                   📱 手机端连接指引
                 </h4>
                 
-                <!-- Steps List -->
-                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
-                  <div style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary);">
-                    <span style="width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-primary); font-weight: bold;">1</span>
-                    打开 ShareCLIP 手机 App
+                <!-- Steps List (2x2 Grid) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px;">
+                  <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
+                    <span style="width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text-primary); font-weight: bold; flex-shrink: 0;">1</span>
+                    打开手机 App
                   </div>
-                  <div style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary);">
-                    <span style="width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-primary); font-weight: bold;">2</span>
+                  <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
+                    <span style="width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text-primary); font-weight: bold; flex-shrink: 0;">2</span>
                     点击「扫一扫」
                   </div>
-                  <div style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary);">
-                    <span style="width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-primary); font-weight: bold;">3</span>
+                  <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
+                    <span style="width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text-primary); font-weight: bold; flex-shrink: 0;">3</span>
                     扫描左侧二维码
                   </div>
-                  <div style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary);">
-                    <span style="width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-primary); font-weight: bold;">4</span>
+                  <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
+                    <span style="width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text-primary); font-weight: bold; flex-shrink: 0;">4</span>
                     等待连接完成
                   </div>
                 </div>
 
                 <!-- Tip Card -->
-                <div style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: 8px; padding: 10px 12px; display: flex; gap: 8px; align-items: flex-start; margin-top: 4px;">
-                  <span style="font-size: 15px; margin-top: -2px;">💡</span>
-                  <div style="display: flex; flex-direction: column; gap: 2px;">
-                    <span style="font-size: 11px; font-weight: bold; color: #f59e0b;">小贴士</span>
-                    <span style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">请确保手机和电脑处于同一 Wi-Fi 网络或已开启蓝牙</span>
-                  </div>
+                <div style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: 6px; padding: 6px 10px; display: flex; gap: 6px; align-items: center;">
+                  <span style="font-size: 13px;">💡</span>
+                  <span style="font-size: 10.5px; color: var(--text-secondary); line-height: 1.3;">请确保手机和电脑处于同一 Wi-Fi 或已开启蓝牙</span>
                 </div>
 
-                <!-- Local Folder Import Card -->
-                <div style="background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
-                  <div style="display: flex; align-items: center; gap: 6px;">
-                    <span style="font-size: 14px;">📂</span>
-                    <span style="font-size: 11px; font-weight: 700; color: #60a5fa;">没有手机？直接导入本地文件夹</span>
+                <!-- Local Folder Import Mini Banner -->
+                <div style="background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <span style="font-size: 12px;">📂</span>
+                      <span style="font-size: 11px; font-weight: 700; color: #60a5fa;">无手机？直接导入本地照片</span>
+                    </div>
+                    <span style="font-size: 9.5px; color: var(--text-muted);">递归扫描子文件夹，快速运行 AI 分类</span>
                   </div>
-                  <span style="font-size: 10px; color: var(--text-secondary); line-height: 1.5;">支持递归扫描子文件夹，导入后可立即运行 AI 分类与人脸识别</span>
                   <button
                     id="import-local-folder-btn"
                     @click="handleImportLocalFolder"
                     :disabled="isImportingFolder"
-                    style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; font-size: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; border: 1px solid rgba(59,130,246,0.4); background: rgba(59,130,246,0.12); color: #93c5fd; transition: background 0.2s;"
-                    onmouseover="this.style.background='rgba(59,130,246,0.22)'"
-                    onmouseout="this.style.background='rgba(59,130,246,0.12)'"
+                    style="display: flex; align-items: center; gap: 4px; padding: 5px 10px; font-size: 11px; border-radius: 6px; font-weight: 700; cursor: pointer; border: 1px solid rgba(59,130,246,0.4); background: rgba(59,130,246,0.15); color: #93c5fd; transition: background 0.2s; white-space: nowrap; flex-shrink: 0;"
+                    onmouseover="this.style.background='rgba(59,130,246,0.25)'"
+                    onmouseout="this.style.background='rgba(59,130,246,0.15)'"
                   >
                     <span>{{ isImportingFolder ? '⏳' : '📂' }}</span>
-                    <span>{{ isImportingFolder ? '正在扫描文件夹...' : '选择文件夹并导入' }}</span>
+                    <span>{{ isImportingFolder ? '扫描中...' : '选择文件夹' }}</span>
                   </button>
                 </div>
               </div>
 
-              <!-- Phone Mockup Container -->
+              <!-- Phone Mockup Container (Compact) -->
               <div style="display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <div style="width: 105px; height: 215px; border-radius: 20px; border: 4px solid #334155; background: #0f172a; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.5); box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 12px 6px; flex-shrink: 0;">
-                  <!-- Phone Notch / Dynamic Island -->
-                  <div style="width: 32px; height: 7px; background: #334155; border-radius: 10px; position: absolute; top: 5px;"></div>
+                <div style="width: 88px; height: 180px; border-radius: 16px; border: 3px solid #334155; background: #0f172a; position: relative; box-shadow: 0 8px 20px rgba(0,0,0,0.45); box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 8px 4px; flex-shrink: 0;">
+                  <!-- Phone Notch -->
+                  <div style="width: 26px; height: 5px; background: #334155; border-radius: 6px; position: absolute; top: 4px;"></div>
                   
                   <!-- Phone screen header -->
-                  <div style="font-size: 7px; color: var(--text-muted); margin-top: 4px; font-weight: bold; width: 100%; text-align: center;">ShareCLIP</div>
+                  <div style="font-size: 6px; color: var(--text-muted); margin-top: 2px; font-weight: bold; width: 100%; text-align: center;">ShareCLIP</div>
                   
                   <!-- Phone content mockup -->
-                  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; margin: auto 0;">
-                    <div style="font-size: 24px; animation: bounce 3s infinite;">💻</div>
-                    <div style="font-size: 7px; color: var(--text-primary); font-weight: 600; text-align: center; line-height: 1.2;">
+                  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; margin: auto 0;">
+                    <div style="font-size: 20px; animation: bounce 3s infinite;">💻</div>
+                    <div style="font-size: 6.5px; color: var(--text-primary); font-weight: 600; text-align: center; line-height: 1.2;">
                       扫描连接电脑<br/>
-                      <span style="color: var(--text-muted); font-size: 5px;">打开 ShareCLIP 手机 App</span>
+                      <span style="color: var(--text-muted); font-size: 5px;">打开手机 App</span>
                     </div>
                   </div>
 
                   <!-- Phone Scan Button -->
-                  <div style="width: 80%; background: #7c3aed; color: white; font-size: 8px; font-weight: bold; padding: 4px 0; border-radius: 10px; text-align: center; cursor: default; box-shadow: 0 2px 5px rgba(124,58,237,0.3);">
+                  <div style="width: 85%; background: #7c3aed; color: white; font-size: 7px; font-weight: bold; padding: 3px 0; border-radius: 8px; text-align: center; cursor: default; box-shadow: 0 2px 4px rgba(124,58,237,0.3);">
                     扫一扫
                   </div>
                 </div>
@@ -792,16 +791,16 @@
             </div>
           </div>
 
-          <!-- Lower P2P Discovery Container -->
-          <div v-if="syncStatus !== 'connected'" style="background: rgba(30, 41, 59, 0.2); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; gap: 16px;">
+          <!-- Lower P2P Discovery Container (Compact Refined) -->
+          <div v-if="syncStatus !== 'connected'" style="background: rgba(30, 41, 59, 0.2); border: 1px solid var(--glass-border); border-radius: 14px; padding: 14px 20px; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; gap: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-              <h4 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                <span class="spinner" style="width: 14px; height: 14px; border-width: 2px; border-color: rgba(255,255,255,0.2); border-top-color: #a855f7;"></span>
+              <h4 style="margin: 0; font-size: 13.5px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                <span class="spinner" style="width: 12px; height: 12px; border-width: 2px; border-color: rgba(255,255,255,0.2); border-top-color: #a855f7;"></span>
                 正在自动搜索附近设备...
               </h4>
               <button 
                 @click="refreshDevices" 
-                style="background: transparent; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-primary); padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;"
+                style="background: transparent; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--text-primary); padding: 4px 10px; font-size: 11px; display: flex; align-items: center; gap: 4px; cursor: pointer; transition: all 0.2s;"
                 onmouseover="this.style.background='rgba(255,255,255,0.05)'"
                 onmouseout="this.style.background='transparent'"
               >
@@ -810,44 +809,44 @@
             </div>
 
             <!-- Device list stacked -->
-            <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+            <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
               <div 
                 v-for="device in displayDevices" 
                 :key="device.uuid"
-                style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s; box-sizing: border-box;"
+                style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s; box-sizing: border-box;"
                 onmouseover="this.style.background='rgba(15, 23, 42, 0.6)'; this.style.borderColor='rgba(168, 85, 247, 0.2)';"
                 onmouseout="this.style.background='rgba(15, 23, 42, 0.4)'; this.style.borderColor='rgba(255,255,255,0.05)';"
               >
                 <!-- Info Section -->
-                <div style="display: flex; align-items: center; gap: 16px;">
-                  <div style="font-size: 24px; color: #a855f7;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="font-size: 20px; color: #a855f7;">
                     {{ device.type === 'PC' ? '💻' : '📱' }}
                   </div>
-                  <div style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">{{ device.name }}</span>
-                      <span style="font-size: 10px; font-weight: 600; color: #a855f7; background: rgba(168, 85, 247, 0.1); padding: 2px 6px; border-radius: 4px;">{{ device.type === 'PC' ? '电脑' : '手机' }}</span>
+                  <div style="display: flex; flex-direction: column; gap: 2px; text-align: left;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ device.name }}</span>
+                      <span style="font-size: 9.5px; font-weight: 600; color: #a855f7; background: rgba(168, 85, 247, 0.1); padding: 1px 5px; border-radius: 4px;">{{ device.type === 'PC' ? '电脑' : '手机' }}</span>
                     </div>
-                    <span style="font-size: 12px; color: var(--text-muted);">{{ device.ip }} · Wi-Fi</span>
+                    <span style="font-size: 11px; color: var(--text-muted);">{{ device.ip }} · Wi-Fi</span>
                   </div>
                 </div>
 
                 <!-- Actions Section -->
-                <div style="display: flex; align-items: center; gap: 20px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
                   <!-- Signal Bars -->
-                  <div style="display: flex; align-items: flex-end; gap: 2px; height: 14px;">
-                    <span style="width: 3px; height: 4px; border-radius: 1px; background: #22c55e;"></span>
-                    <span style="width: 3px; height: 7px; border-radius: 1px; background: #22c55e;"></span>
-                    <span style="width: 3px; height: 10px; border-radius: 1px; background: #22c55e;"></span>
-                    <span style="width: 3px; height: 14px; border-radius: 1px; background: #22c55e;"></span>
+                  <div style="display: flex; align-items: flex-end; gap: 2px; height: 12px;">
+                    <span style="width: 2.5px; height: 3px; border-radius: 1px; background: #22c55e;"></span>
+                    <span style="width: 2.5px; height: 6px; border-radius: 1px; background: #22c55e;"></span>
+                    <span style="width: 2.5px; height: 9px; border-radius: 1px; background: #22c55e;"></span>
+                    <span style="width: 2.5px; height: 12px; border-radius: 1px; background: #22c55e;"></span>
                   </div>
                   
                   <button 
                     @click="device.isMock ? logSyncEvent(`🔌 [Mock] 连接至虚拟测试设备 ${device.name}...`) : connectToDevice(device.ip)"
                     :disabled="connectingIp === device.ip"
-                    style="background: #7c3aed; border: none; border-radius: 8px; color: white; padding: 8px 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(124,58,237,0.2);"
-                    onmouseover="this.style.background='#8b5cf6'; this.style.boxShadow='0 4px 14px rgba(124,58,237,0.3)';"
-                    onmouseout="this.style.background='#7c3aed'; this.style.boxShadow='0 4px 10px rgba(124,58,237,0.2)';"
+                    style="background: #7c3aed; border: none; border-radius: 6px; color: white; padding: 6px 16px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 3px 8px rgba(124,58,237,0.2);"
+                    onmouseover="this.style.background='#8b5cf6'; this.style.boxShadow='0 4px 12px rgba(124,58,237,0.3)';"
+                    onmouseout="this.style.background='#7c3aed'; this.style.boxShadow='0 3px 8px rgba(124,58,237,0.2)';"
                   >
                     {{ connectingIp === device.ip ? '等待同意...' : '连接' }}
                   </button>
@@ -856,7 +855,7 @@
             </div>
 
             <!-- Footer hint -->
-            <div style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <div style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 4px;">
               <span>ℹ️</span>
               未找到设备？请确保手机已打开 ShareCLIP 并开启蓝牙和 Wi-Fi
             </div>
