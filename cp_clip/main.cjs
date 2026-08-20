@@ -345,8 +345,11 @@ async function extractImageGPS(imagePath) {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 850,
+    width: 1080,
+    height: 700,
+    minWidth: 900,
+    minHeight: 580,
+    center: true,
     title: "ShareCLIP",
     icon: path.join(__dirname, fs.existsSync(path.join(__dirname, 'icon.ico')) ? 'icon.ico' : 'icon.png'),
     backgroundColor: '#0b0f19', // Dark theme background matching CSS --bg-primary
