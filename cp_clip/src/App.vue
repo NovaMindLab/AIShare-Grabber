@@ -2018,42 +2018,49 @@
             ‹
           </button>
 
-          <!-- Main Image / Video / Audio Container -->
-          <div style="max-width: 100%; max-height: 100%; display: flex; align-items: center; justify-content: center; position: relative;">
-            <img 
-              v-if="selectedItemType === 'image'" 
-              :src="selectedImage.src" 
-              :style="{
-                maxWidth: '85vw',
-                maxHeight: '78vh',
-                objectFit: 'contain',
-                borderRadius: '8px',
-                boxShadow: '0 24px 60px rgba(0,0,0,0.7)',
-                transform: `scale(${currentImageScale}) rotate(${currentImageRotation}deg)`,
-                transition: 'transform 0.25s ease, opacity 0.3s ease',
-                cursor: currentImageScale > 1 ? 'grab' : 'zoom-in'
-              }"
-              @dblclick="currentImageScale = currentImageScale === 1 ? 2 : 1"
-            />
-            
-            <video 
-              v-else-if="selectedItemType === 'video'" 
-              :src="selectedImage.src" 
-              controls 
-              autoplay 
-              style="max-width: 85vw; max-height: 78vh; object-fit: contain; border-radius: 8px; box-shadow: 0 24px 60px rgba(0,0,0,0.7);"
-            ></video>
-            
-            <div v-else-if="selectedItemType === 'audio'" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; width: 100%; padding: 40px;">
-              <span style="font-size: 80px; animation: float 4s ease-in-out infinite;">🎵</span>
-              <span style="color: #fff; font-size: 16px; font-weight: 700;">{{ selectedImage.name }}</span>
-              <audio :src="selectedImage.src" controls autoplay style="width: 100%; max-width: 450px;"></audio>
-            </div>
-            
-            <div v-else style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; width: 100%; padding: 40px;">
-              <span style="font-size: 80px;">📄</span>
-              <span style="color: var(--text-secondary); font-size: 14px;">{{ selectedImage.name }}</span>
-            </div>
+          <!-- Main Image / Video / Audio Container with Directional Transition -->
+          <div style="max-width: 100%; max-height: 100%; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+            <transition :name="`lightbox-slide-${lightboxDirection}`" mode="out-in">
+              <div 
+                :key="selectedImage.id || selectedImage.path || selectedImage.src" 
+                style="display: flex; align-items: center; justify-content: center; max-width: 100%; max-height: 100%; will-change: transform, opacity;"
+              >
+                <img 
+                  v-if="selectedItemType === 'image'" 
+                  :src="selectedImage.src" 
+                  :style="{
+                    maxWidth: '85vw',
+                    maxHeight: '74vh',
+                    objectFit: 'contain',
+                    borderRadius: '10px',
+                    boxShadow: '0 24px 60px rgba(0,0,0,0.75)',
+                    transform: `scale(${currentImageScale}) rotate(${currentImageRotation}deg)`,
+                    transition: 'transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1)',
+                    cursor: currentImageScale > 1 ? 'grab' : 'zoom-in'
+                  }"
+                  @dblclick="currentImageScale = currentImageScale === 1 ? 2 : 1"
+                />
+                
+                <video 
+                  v-else-if="selectedItemType === 'video'" 
+                  :src="selectedImage.src" 
+                  controls 
+                  autoplay 
+                  style="max-width: 85vw; max-height: 74vh; object-fit: contain; border-radius: 10px; box-shadow: 0 24px 60px rgba(0,0,0,0.75);"
+                ></video>
+                
+                <div v-else-if="selectedItemType === 'audio'" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; width: 100%; padding: 40px;">
+                  <span style="font-size: 80px; animation: float 4s ease-in-out infinite;">🎵</span>
+                  <span style="color: #fff; font-size: 16px; font-weight: 700;">{{ selectedImage.name }}</span>
+                  <audio :src="selectedImage.src" controls autoplay style="width: 100%; max-width: 450px;"></audio>
+                </div>
+                
+                <div v-else style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; width: 100%; padding: 40px;">
+                  <span style="font-size: 80px;">📄</span>
+                  <span style="color: var(--text-secondary); font-size: 14px;">{{ selectedImage.name }}</span>
+                </div>
+              </div>
+            </transition>
           </div>
 
           <!-- Next Button (Right) -->
@@ -2070,9 +2077,44 @@
           </button>
         </div>
 
+        <!-- Bottom Floating Thumbnails Filmstrip (When viewing multiple assets) -->
+        <div 
+          v-if="currentViewingList.length > 1" 
+          ref="filmstripContainerRef"
+          style="max-width: 85vw; margin: 0 auto 4px auto; display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 6px 14px; z-index: 20; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; scrollbar-width: none; -ms-overflow-style: none;"
+        >
+          <div
+            v-for="(thumb, tIdx) in currentViewingList"
+            :key="thumb.id || thumb.path || tIdx"
+            :class="['filmstrip-thumb-item', tIdx === currentViewingIndex ? 'filmstrip-item-active' : '']"
+            @click.stop="selectLightboxImageByIndex(tIdx)"
+            :style="{
+              width: '44px',
+              height: '44px',
+              minWidth: '44px',
+              borderRadius: '6px',
+              overflow: 'hidden',
+              cursor: 'pointer',
+              border: tIdx === currentViewingIndex ? '2px solid #a855f7' : '1.5px solid rgba(255,255,255,0.15)',
+              opacity: tIdx === currentViewingIndex ? '1' : '0.45',
+              transform: tIdx === currentViewingIndex ? 'scale(1.08)' : 'scale(1)',
+              transition: 'all 0.25s cubic-bezier(0.2, 0.9, 0.3, 1)',
+              boxShadow: tIdx === currentViewingIndex ? '0 0 14px rgba(168,85,247,0.6)' : 'none',
+              background: '#1e293b'
+            }"
+            :title="thumb.name || `第 ${tIdx + 1} 张`"
+          >
+            <img 
+              :src="thumb.src || thumb.url" 
+              style="width: 100%; height: 100%; object-fit: cover;"
+              loading="lazy"
+            />
+          </div>
+        </div>
+
         <!-- Bottom Floating Action Toolbar -->
-        <div style="height: 64px; display: flex; align-items: center; justify-content: center; z-index: 20; background: linear-gradient(0deg, rgba(0,0,0,0.6) 0%, transparent 100%);">
-          <div style="display: flex; align-items: center; gap: 8px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 6px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
+        <div style="height: 56px; display: flex; align-items: center; justify-content: center; z-index: 20; background: linear-gradient(0deg, rgba(0,0,0,0.6) 0%, transparent 100%); margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 5px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
             <!-- Zoom In -->
             <button 
               @click="currentImageScale = Math.min(currentImageScale + 0.25, 4)" 
@@ -2293,6 +2335,8 @@ function selectCategory(cat) {
 const selectedImage = ref(null);
 const currentViewingList = ref([]);
 const currentViewingIndex = ref(0);
+const lightboxDirection = ref('next');
+const filmstripContainerRef = ref(null);
 const isFetchingHighRes = ref(false);
 const isHighResLoaded = ref(false);
 const currentImageScale = ref(1);
@@ -5204,6 +5248,35 @@ async function processNextQueueItem() {
 }
 
 // Modal Interaction & Lightbox Navigation
+function preloadAdjacentImages() {
+  if (!currentViewingList.value || currentViewingList.value.length <= 1) return;
+  const len = currentViewingList.value.length;
+  const nextIdx = (currentViewingIndex.value + 1) % len;
+  const prevIdx = (currentViewingIndex.value - 1 + len) % len;
+
+  const nextItem = currentViewingList.value[nextIdx];
+  const prevItem = currentViewingList.value[prevIdx];
+
+  if (nextItem && nextItem.src) {
+    const img1 = new Image();
+    img1.src = nextItem.src;
+  }
+  if (prevItem && prevItem.src) {
+    const img2 = new Image();
+    img2.src = prevItem.src;
+  }
+}
+
+function scrollFilmstripToActive() {
+  nextTick(() => {
+    if (!filmstripContainerRef.value) return;
+    const activeEl = filmstripContainerRef.value.querySelector('.filmstrip-item-active');
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  });
+}
+
 function openDetails(img, contextList = null) {
   if (!img) return;
   selectedImage.value = { ...img };
@@ -5211,6 +5284,7 @@ function openDetails(img, contextList = null) {
   currentImageRotation.value = 0;
   isHighResLoaded.value = false;
   isFetchingHighRes.value = false;
+  lightboxDirection.value = 'next';
 
   if (Array.isArray(contextList) && contextList.length > 0) {
     currentViewingList.value = contextList;
@@ -5223,6 +5297,8 @@ function openDetails(img, contextList = null) {
   currentViewingIndex.value = idx >= 0 ? idx : 0;
 
   checkAndFetchHighRes(img);
+  preloadAdjacentImages();
+  scrollFilmstripToActive();
 }
 
 function closeDetails() {
@@ -5234,6 +5310,7 @@ function closeDetails() {
 
 function prevImage() {
   if (!currentViewingList.value || currentViewingList.value.length <= 1) return;
+  lightboxDirection.value = 'prev';
   currentViewingIndex.value = (currentViewingIndex.value - 1 + currentViewingList.value.length) % currentViewingList.value.length;
   const nextImg = currentViewingList.value[currentViewingIndex.value];
   if (nextImg) {
@@ -5243,11 +5320,14 @@ function prevImage() {
     isHighResLoaded.value = false;
     isFetchingHighRes.value = false;
     checkAndFetchHighRes(nextImg);
+    preloadAdjacentImages();
+    scrollFilmstripToActive();
   }
 }
 
 function nextImage() {
   if (!currentViewingList.value || currentViewingList.value.length <= 1) return;
+  lightboxDirection.value = 'next';
   currentViewingIndex.value = (currentViewingIndex.value + 1) % currentViewingList.value.length;
   const nextImg = currentViewingList.value[currentViewingIndex.value];
   if (nextImg) {
@@ -5257,6 +5337,26 @@ function nextImage() {
     isHighResLoaded.value = false;
     isFetchingHighRes.value = false;
     checkAndFetchHighRes(nextImg);
+    preloadAdjacentImages();
+    scrollFilmstripToActive();
+  }
+}
+
+function selectLightboxImageByIndex(idx) {
+  if (!currentViewingList.value || idx < 0 || idx >= currentViewingList.value.length) return;
+  if (idx === currentViewingIndex.value) return;
+  lightboxDirection.value = idx > currentViewingIndex.value ? 'next' : 'prev';
+  currentViewingIndex.value = idx;
+  const nextImg = currentViewingList.value[idx];
+  if (nextImg) {
+    selectedImage.value = { ...nextImg };
+    currentImageScale.value = 1;
+    currentImageRotation.value = 0;
+    isHighResLoaded.value = false;
+    isFetchingHighRes.value = false;
+    checkAndFetchHighRes(nextImg);
+    preloadAdjacentImages();
+    scrollFilmstripToActive();
   }
 }
 
@@ -5414,6 +5514,50 @@ function getMockClassification(url) {
   from { opacity: 0; transform: scale(0.92) translateY(-8px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.2s ease; }
+.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.22s ease; }
 .modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+
+/* Lightbox Smooth Directional Slide & Crossfade */
+.lightbox-slide-next-enter-active,
+.lightbox-slide-next-leave-active,
+.lightbox-slide-prev-enter-active,
+.lightbox-slide-prev-leave-active {
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), 
+              opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              filter 0.22s ease;
+  will-change: transform, opacity, filter;
+}
+
+/* Next (向后切图): 新图从右侧滑入，旧图向左滑出 */
+.lightbox-slide-next-enter-from {
+  opacity: 0;
+  transform: translateX(42px) scale(0.96);
+  filter: blur(4px);
+}
+.lightbox-slide-next-leave-to {
+  opacity: 0;
+  transform: translateX(-42px) scale(0.96);
+  filter: blur(4px);
+}
+
+/* Prev (向前切图): 新图从左侧滑入，旧图向右滑出 */
+.lightbox-slide-prev-enter-from {
+  opacity: 0;
+  transform: translateX(-42px) scale(0.96);
+  filter: blur(4px);
+}
+.lightbox-slide-prev-leave-to {
+  opacity: 0;
+  transform: translateX(42px) scale(0.96);
+  filter: blur(4px);
+}
+
+/* Filmstrip Custom Scrollbar */
+.filmstrip-thumb-item:hover {
+  opacity: 0.85 !important;
+  transform: scale(1.05) !important;
+}
+.filmstrip-thumb-item:active {
+  transform: scale(0.98) !important;
+}
 </style>

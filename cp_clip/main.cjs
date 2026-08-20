@@ -1507,9 +1507,17 @@ ipcMain.handle('delete-files', async (event, files) => {
 ipcMain.handle('start-ble-server', async (event) => {
   if (bleProcess) {
     console.log("[Main] BLE process already running, killing first.");
-    bleProcess.kill();
+    try { bleProcess.kill(); } catch (_) {}
     bleProcess = null;
   }
+
+  // Forcefully cleanup any orphan ble_signaling_server.exe processes from previous crashes
+  try {
+    const { execSync } = require('child_process');
+    if (process.platform === 'win32') {
+      execSync('taskkill /f /im ble_signaling_server.exe 2>nul || exit 0', { stdio: 'ignore' });
+    }
+  } catch (_) {}
   
   const service_uuid = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
   const char_uuid = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
@@ -2983,6 +2991,10 @@ function isVirtualAdapter(name) {
     lower.includes('wsl') ||
     lower.includes('docker') ||
     lower.includes('tap') ||
+    lower.includes('tun') ||
+    lower.includes('wintun') ||
+    lower.includes('wireguard') ||
+    lower.includes('wg') ||
     lower.includes('zerotier') ||
     lower.includes('tailscale') ||
     lower.includes('vpn') ||
