@@ -33,8 +33,6 @@ android {
             storePassword = "shareclip123"
             keyAlias = "shareclip"
             keyPassword = "shareclip123"
-            v1SigningEnabled = true
-            v2SigningEnabled = true
         }
     }
 
