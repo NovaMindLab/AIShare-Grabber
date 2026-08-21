@@ -47,6 +47,37 @@
           <div v-if="detectedIps.length" class="ip-tag">
             局域网 IP: <code>{{ detectedIps.join(', ') }}</code>
           </div>
+
+          <!-- Network Settings Toggle -->
+          <div class="net-settings-toggle" @click="isSettingsOpen = !isSettingsOpen">
+            <span>⚙️ 局域网 IP 与信令配置</span>
+            <span class="toggle-arrow">{{ isSettingsOpen ? '▲' : '▼' }}</span>
+          </div>
+
+          <div v-if="isSettingsOpen" class="net-settings-panel">
+            <div class="setting-item">
+              <label>🖥️ 电脑局域网 IP (用于手机 Wi-Fi 直连):</label>
+              <input 
+                v-model="customLanIp" 
+                type="text" 
+                placeholder="例如: 192.168.1.100" 
+                class="setting-input"
+                @input="handleIpChange"
+              />
+            </div>
+            <div class="setting-item">
+              <label>📡 WebSocket 信令服务器:</label>
+              <input 
+                v-model="customSignalingUrl" 
+                type="text" 
+                placeholder="wss://..." 
+                class="setting-input"
+              />
+            </div>
+            <button class="btn-primary btn-apply-net" @click="applyNetworkSettings">
+              ✓ 应用并刷新二维码
+            </button>
+          </div>
         </div>
 
         <div class="qr-hero-right">
@@ -476,7 +507,7 @@ import {
   clearDatabase, 
   computeSHA256 
 } from './services/indexeddb.js';
-import { SignalingClient } from './services/signaling.js';
+import { SignalingClient, getDefaultSignalingUrl } from './services/signaling.js';
 import { WebRtcReceiver } from './services/webrtc.js';
 
 // Reactive States
@@ -489,6 +520,10 @@ const aiProvider = ref('webgpu');
 const isAiProcessing = ref(false);
 const isDragging = ref(false);
 const searchQuery = ref('');
+
+const customLanIp = ref('');
+const customSignalingUrl = ref(getDefaultSignalingUrl());
+const isSettingsOpen = ref(false);
 
 const receivedCount = ref(0);
 const currentSpeedKbps = ref(0);
@@ -929,6 +964,24 @@ async function generateQrCode() {
   }
 }
 
+function handleIpChange() {
+  if (customLanIp.value && customLanIp.value.trim()) {
+    detectedIps.value = [customLanIp.value.trim()];
+    generateQrCode();
+  }
+}
+
+function applyNetworkSettings() {
+  if (customLanIp.value && customLanIp.value.trim()) {
+    detectedIps.value = [customLanIp.value.trim()];
+  }
+  generateQrCode();
+  if (signaling) {
+    signaling.connect(sessionId.value, customSignalingUrl.value);
+  }
+  addLog(`⚙️ 已更新网络配置: IP=[${detectedIps.value.join(', ')}], 信令=[${customSignalingUrl.value}]`);
+}
+
 function initSignalingAndWebRtc() {
   signaling = new SignalingClient();
   webrtc = new WebRtcReceiver();
@@ -939,6 +992,9 @@ function initSignalingAndWebRtc() {
   signaling.onServerInfo = (info) => {
     if (info.localIps && info.localIps.length) {
       detectedIps.value = info.localIps;
+      if (!customLanIp.value) {
+        customLanIp.value = info.localIps[0];
+      }
       generateQrCode();
     }
   };
@@ -976,7 +1032,7 @@ function initSignalingAndWebRtc() {
     await processIncomingPhoto(fileData);
   };
 
-  signaling.connect(sessionId.value);
+  signaling.connect(sessionId.value, customSignalingUrl.value);
 
   // High-performance batch flush timer: commits buffered arrivals once every 120ms
   batchFlushTimer = setInterval(flushIncomingBuffer, 120);
@@ -1411,6 +1467,70 @@ function formatBytes(bytes) {
   border-radius: 6px;
   font-family: var(--font-mono);
   font-weight: 700;
+}
+
+.net-settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--accent-cyan);
+  cursor: pointer;
+  margin-top: 4px;
+  user-select: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.net-settings-toggle:hover {
+  background: rgba(6, 182, 212, 0.15);
+}
+
+.net-settings-panel {
+  width: 100%;
+  max-width: 280px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-item label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.setting-input {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #e2e8f0;
+  outline: none;
+  font-family: var(--font-mono);
+}
+
+.setting-input:focus {
+  border-color: var(--accent-cyan);
+}
+
+.btn-apply-net {
+  padding: 6px 12px;
+  font-size: 11px;
+  border-radius: 8px;
+  align-self: flex-end;
 }
 
 .qr-hero-right h2 {
