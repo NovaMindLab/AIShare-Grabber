@@ -13,7 +13,7 @@ import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 import 'services/analytics_service.dart';
 
-const String appVersion = '1.2.90';
+const String appVersion = '1.2.91';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -168,37 +168,65 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(lang.get('updateTitle')),
-          content: Text(lang.get('updateMessage').replaceAll('{version}', latestVersion)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(lang.get('updateMessage').replaceAll('{version}', latestVersion)),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  '💡 支持应用内高速直连下载与自动安装，或使用外部浏览器下载。',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                ),
+              ),
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(lang.get('laterBtn')),
             ),
-            ElevatedButton(
+            OutlinedButton.icon(
+              icon: const Icon(Icons.open_in_browser, size: 16),
+              label: const Text('浏览器下载'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                const platform = MethodChannel('com.shareclip/system_info');
+                platform.invokeMethod('openUrl', {'url': apkUrl});
+              },
+            ),
+            ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF7C3AED),
                 foregroundColor: Colors.white,
               ),
-              onPressed: () async {
+              icon: const Icon(Icons.download, size: 16),
+              label: Text(lang.get('updateBtn')),
+              onPressed: () {
                 Navigator.of(dialogContext).pop();
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('已转入后台下载，可在系统通知栏查看进度。下载完成后将自动提示安装。'),
-                    duration: Duration(seconds: 4),
-                  ),
-                );
-
-                const platform = MethodChannel('com.shareclip/system_info');
-                try {
-                  await platform.invokeMethod('downloadAndInstallApk', {'url': apkUrl});
-                } catch (e) {
-                  debugPrint('[Update] Error downloading update: $e');
-                }
+                _startInAppDownload(latestVersion, apkUrl);
               },
-              child: Text(lang.get('updateBtn')),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void _startInAppDownload(String latestVersion, String apkUrl) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (downloadContext) {
+        return _DownloadProgressDialog(
+          latestVersion: latestVersion,
+          apkUrl: apkUrl,
         );
       },
     );
@@ -424,6 +452,222 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DownloadProgressDialog extends StatefulWidget {
+  final String latestVersion;
+  final String apkUrl;
+
+  const _DownloadProgressDialog({
+    required this.latestVersion,
+    required this.apkUrl,
+  });
+
+  @override
+  State<_DownloadProgressDialog> createState() => _DownloadProgressDialogState();
+}
+
+class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
+  double _progress = 0.0;
+  String _statusText = '正在连接下载服务器...';
+  int _downloaded = 0;
+  int _total = 0;
+  bool _isFailed = false;
+  String _errorMessage = '';
+  HttpClient? _client;
+
+  @override
+  void initState() {
+    super.initState();
+    _startDownload();
+  }
+
+  @override
+  void dispose() {
+    _client?.close(force: true);
+    super.dispose();
+  }
+
+  Future<void> _startDownload() async {
+    setState(() {
+      _progress = 0.0;
+      _isFailed = false;
+      _statusText = '准备下载安装包...';
+    });
+
+    try {
+      const platform = MethodChannel('com.shareclip/system_info');
+      final cacheDirPath = await platform.invokeMethod<String>('getAppCacheDir') ?? '';
+      if (cacheDirPath.isEmpty) {
+        throw Exception('无法获取应用存储目录');
+      }
+
+      final targetFile = File('$cacheDirPath/ShareCLIP_Update.apk');
+      if (await targetFile.exists()) {
+        await targetFile.delete();
+      }
+
+      // Download candidates: high-speed mirrors first, then direct GitHub URL
+      final candidateUrls = [
+        'https://ghfast.top/${widget.apkUrl}',
+        'https://ghproxy.net/${widget.apkUrl}',
+        widget.apkUrl,
+      ];
+
+      bool success = false;
+      for (final url in candidateUrls) {
+        try {
+          if (!mounted) return;
+          setState(() {
+            _statusText = '正在建立高速直连通道...';
+          });
+
+          _client = HttpClient();
+          _client!.badCertificateCallback = (cert, host, port) => true;
+          _client!.connectionTimeout = const Duration(seconds: 15);
+
+          final request = await _client!.getUrl(Uri.parse(url));
+          request.followRedirects = true;
+          request.maxRedirects = 5;
+
+          final response = await request.close();
+          if (response.statusCode != 200) {
+            continue;
+          }
+
+          final contentLength = response.contentLength;
+          _total = contentLength > 0 ? contentLength : 70 * 1024 * 1024;
+          _downloaded = 0;
+
+          final sink = targetFile.openWrite();
+          await for (final chunk in response) {
+            sink.add(chunk);
+            _downloaded += chunk.length;
+            if (mounted) {
+              setState(() {
+                _progress = (_downloaded / _total).clamp(0.0, 1.0);
+                final mbDownloaded = (_downloaded / 1024 / 1024).toStringAsFixed(1);
+                final mbTotal = (_total / 1024 / 1024).toStringAsFixed(1);
+                _statusText = '正在下载: $mbDownloaded MB / $mbTotal MB (${(_progress * 100).toInt()}%)';
+              });
+            }
+          }
+          await sink.flush();
+          await sink.close();
+
+          // Verify magic bytes (0x50, 0x4B, 0x03, 0x04) and size
+          final fileSize = await targetFile.length();
+          if (fileSize > 5 * 1024 * 1024) {
+            final header = await targetFile.openRead(0, 4).first;
+            if (header.length >= 4 &&
+                header[0] == 0x50 &&
+                header[1] == 0x4B &&
+                header[2] == 0x03 &&
+                header[3] == 0x04) {
+              success = true;
+              break;
+            }
+          }
+          if (await targetFile.exists()) {
+            await targetFile.delete();
+          }
+        } catch (e) {
+          debugPrint('[Download] Mirror $url failed: $e');
+        }
+      }
+
+      if (success) {
+        if (!mounted) return;
+        setState(() {
+          _progress = 1.0;
+          _statusText = '下载完成，正在启动安装...';
+        });
+
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+        await platform.invokeMethod('installApk', {'path': targetFile.path});
+      } else {
+        throw Exception('所有下载镜像均未成功，请使用浏览器下载');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isFailed = true;
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(_isFailed ? '⚠️ 下载未完成' : '🚀 正在高速下载 ShareCLIP ${widget.latestVersion}'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!_isFailed) ...[
+            Text(
+              _statusText,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: _progress > 0 ? _progress : null,
+                minHeight: 10,
+                backgroundColor: const Color(0xFFE2E8F0),
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF7C3AED)),
+              ),
+            ),
+          ] else ...[
+            Text(
+              _errorMessage,
+              style: const TextStyle(fontSize: 13, color: Colors.redAccent),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '建议使用手机自带浏览器直接下载安装包。',
+              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        if (_isFailed) ...[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7C3AED),
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.language, size: 16),
+            label: const Text('使用手机浏览器下载'),
+            onPressed: () {
+              Navigator.of(context).pop();
+              const platform = MethodChannel('com.shareclip/system_info');
+              platform.invokeMethod('openUrl', {'url': widget.apkUrl});
+            },
+          ),
+        ] else ...[
+          TextButton(
+            onPressed: () {
+              _client?.close(force: true);
+              Navigator.of(context).pop();
+            },
+            child: const Text('取消'),
+          ),
+        ],
+      ],
     );
   }
 }

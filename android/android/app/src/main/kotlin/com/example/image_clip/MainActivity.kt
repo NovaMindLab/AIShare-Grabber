@@ -26,9 +26,8 @@ import java.io.File
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.shareclip/system_info"
-    private var downloadId: Long = -1
 
-    private fun installApkFile(context: Context): Boolean {
+    private fun installApkAtPath(filePath: String): Boolean {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (!context.packageManager.canRequestPackageInstalls()) {
@@ -40,7 +39,7 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
-            val apkFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "ShareCLIP_Update.apk")
+            val apkFile = File(filePath)
             if (apkFile.exists() && apkFile.length() > 0) {
                 val contentUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", apkFile)
                 val installIntent = Intent(Intent.ACTION_VIEW).apply {
@@ -51,37 +50,11 @@ class MainActivity : FlutterActivity() {
                 context.startActivity(installIntent)
                 true
             } else {
-                val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                val uri = downloadManager.getUriForDownloadedFile(downloadId)
-                if (uri != null) {
-                    val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, "application/vnd.android.package-archive")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-                    context.startActivity(installIntent)
-                    true
-                } else {
-                    false
-                }
+                false
             }
         } catch (e: Exception) {
             e.printStackTrace()
             false
-        }
-    }
-
-    private val downloadReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-            if (id == downloadId) {
-                installApkFile(context)
-                try {
-                    context.unregisterReceiver(this)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
         }
     }
 
@@ -123,74 +96,25 @@ class MainActivity : FlutterActivity() {
                 } else {
                     result.error("BAD_ARGS", "Missing url parameter", null)
                 }
-            } else if (call.method == "downloadAndInstallApk") {
-                val url = call.argument<String>("url")
-                if (url != null) {
-                    try {
-                        // Clean up previous APK file if exists
-                        val oldApk = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "ShareCLIP_Update.apk")
-                        if (oldApk.exists()) {
-                            oldApk.delete()
-                        }
-
-                        val downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                        val request = DownloadManager.Request(Uri.parse(url))
-                        request.setTitle("ShareCLIP Update")
-                        request.setDescription("Downloading latest version...")
-                        request.setMimeType("application/vnd.android.package-archive")
-                        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "ShareCLIP_Update.apk")
-                        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                        
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            registerReceiver(downloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), Context.RECEIVER_EXPORTED)
-                        } else {
-                            registerReceiver(downloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-                        }
-                        
-                        downloadId = downloadManager.enqueue(request)
+            } else if (call.method == "getAppCacheDir") {
+                val dir = context.externalCacheDir ?: context.cacheDir
+                result.success(dir.absolutePath)
+            } else if (call.method == "installApk") {
+                val path = call.argument<String>("path")
+                if (path != null) {
+                    val success = installApkAtPath(path)
+                    if (success) {
                         result.success(true)
-                    } catch (e: Exception) {
-                        result.error("ERROR", e.message, null)
-                    }
-                } else {
-                    result.error("BAD_ARGS", "Missing url parameter", null)
-                }
-            } else if (call.method == "getDownloadProgress") {
-                if (downloadId != -1L) {
-                    val downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                    val query = DownloadManager.Query().setFilterById(downloadId)
-                    val cursor = downloadManager.query(query)
-                    if (cursor != null && cursor.moveToFirst()) {
-                        val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                        val status = cursor.getInt(statusIndex)
-                        if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                            result.success(1.0)
-                        } else if (status == DownloadManager.STATUS_FAILED) {
-                            result.success(-1.0)
-                        } else {
-                            val bytesDownloadedIndex = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                            val bytesTotalIndex = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                            if (bytesDownloadedIndex != -1 && bytesTotalIndex != -1) {
-                                val bytesDownloaded = cursor.getInt(bytesDownloadedIndex)
-                                val bytesTotal = cursor.getInt(bytesTotalIndex)
-                                if (bytesTotal > 0) {
-                                    result.success(bytesDownloaded.toDouble() / bytesTotal.toDouble())
-                                } else {
-                                    result.success(0.0)
-                                }
-                            } else {
-                                result.success(0.0)
-                            }
-                        }
-                        cursor.close()
                     } else {
-                        result.success(-1.0)
+                        result.error("ERROR", "Failed to start install activity", null)
                     }
                 } else {
-                    result.success(-1.0)
+                    result.error("BAD_ARGS", "Missing path parameter", null)
                 }
             } else if (call.method == "installDownloadedApk") {
-                val success = installApkFile(context)
+                val targetDir = context.externalCacheDir ?: context.cacheDir
+                val apkFile = File(targetDir, "ShareCLIP_Update.apk")
+                val success = installApkAtPath(apkFile.absolutePath)
                 if (success) {
                     result.success(true)
                 } else {
