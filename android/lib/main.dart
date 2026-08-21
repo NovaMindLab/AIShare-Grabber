@@ -13,7 +13,7 @@ import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 import 'services/analytics_service.dart';
 
-const String appVersion = '1.2.91';
+const String appVersion = '1.2.92';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

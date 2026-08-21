@@ -28,17 +28,17 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file("shareclip.keystore")
-            storePassword = "shareclip123"
-            keyAlias = "shareclip"
-            keyPassword = "shareclip123"
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             isShrinkResources = false
         }
