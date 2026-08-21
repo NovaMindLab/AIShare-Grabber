@@ -2201,19 +2201,15 @@ import QRCode from 'qrcode';
 import { locales, languages } from './locales.js';
 import { initAnalytics, trackEvent, trackFeatureUse, identifyUser, setTelemetryOptOut, isTelemetryEnabled } from './analytics.js';
 
-// Localization state (Intelligent Auto-detection + Persistence)
+// Localization state (Defaults to English)
 function getInitialLocale() {
   const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('shareclip_locale') : null;
   if (saved && locales[saved]) return saved;
-  const sysLang = (typeof navigator !== 'undefined' && (navigator.language || navigator.userLanguage)) || 'zh';
-  if (sysLang.toLowerCase().startsWith('zh')) return 'zh';
-  if (sysLang.toLowerCase().startsWith('ja')) return 'ja';
-  if (sysLang.toLowerCase().startsWith('ko')) return 'ko';
-  return 'zh'; // Default to Chinese
+  return 'en'; // Default to English
 }
 
 const currentLocale = ref(getInitialLocale());
-const t = computed(() => locales[currentLocale.value] || locales.zh || locales.en);
+const t = computed(() => locales[currentLocale.value] || locales.en);
 
 watch(currentLocale, (newLoc) => {
   if (typeof localStorage !== 'undefined') {
