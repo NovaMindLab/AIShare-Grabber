@@ -21,6 +21,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import androidx.core.content.FileProvider
+import android.provider.Settings
 import java.io.File
 
 class MainActivity : FlutterActivity() {
@@ -29,28 +30,40 @@ class MainActivity : FlutterActivity() {
 
     private fun installApkFile(context: Context): Boolean {
         return try {
-            val apkFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "ShareCLIP_Update.apk")
-            val uri = if (apkFile.exists() && apkFile.length() > 0) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", apkFile)
-                } else {
-                    Uri.fromFile(apkFile)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!context.packageManager.canRequestPackageInstalls()) {
+                    val permIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(permIntent)
+                    return false
                 }
-            } else {
-                val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                downloadManager.getUriForDownloadedFile(downloadId)
             }
 
-            if (uri != null) {
+            val apkFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "ShareCLIP_Update.apk")
+            if (apkFile.exists() && apkFile.length() > 0) {
+                val contentUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", apkFile)
                 val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, "application/vnd.android.package-archive")
+                    setDataAndType(contentUri, "application/vnd.android.package-archive")
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 context.startActivity(installIntent)
                 true
             } else {
-                false
+                val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                val uri = downloadManager.getUriForDownloadedFile(downloadId)
+                if (uri != null) {
+                    val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, "application/vnd.android.package-archive")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(installIntent)
+                    true
+                } else {
+                    false
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()

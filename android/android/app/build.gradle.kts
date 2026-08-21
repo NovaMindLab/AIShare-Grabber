@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.image_clip"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = "28.2.13676358"
 
     compileOptions {
@@ -20,20 +20,29 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.image_clip"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 24
+        targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("shareclip.keystore")
+            storePassword = "shareclip123"
+            keyAlias = "shareclip"
+            keyPassword = "shareclip123"
+            v1SigningEnabled = true
+            v2SigningEnabled = true
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
