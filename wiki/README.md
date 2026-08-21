@@ -37,6 +37,16 @@ Details the structure, styling, and design system of the official ShareCLIP prod
 
 ---
 
+## ⚡ [WebShare 纯网页端跨端互联与 WebGPU AI](file:///d:/AI_serach_image/image_clip_android/wiki/webshare/README.md)
+Complete technical documentation and architecture specs for the zero-backend, client-side WebShare application.
+*   [01. 系统架构与 WebRTC P2P 通信协议](file:///d:/AI_serach_image/image_clip_android/wiki/webshare/01_architecture_and_p2p_protocol.md): WebRTC DataChannel, UDP 15185 discovery, binary framing (`fileId` -1 to -7), and signaling.
+*   [02. WebGPU 端侧 AI 引擎与模型适配](file:///d:/AI_serach_image/image_clip_android/wiki/webshare/02_webgpu_mobileclip_ai_engine.md): MobileCLIP2-S0 ONNX WebGPU runtime, 15-category latent space alignment, and CacheStorage.
+*   [03. 本地存储与 60fps 极限性能优化](file:///d:/AI_serach_image/image_clip_android/wiki/webshare/03_storage_and_performance_optimizations.md): IndexedDB schema, SHA-256 deduplication, EXIF multi-timestamp sorting, and virtual windowing.
+*   [04. Google Photos 风格画廊与全屏沉浸式查看器](file:///d:/AI_serach_image/image_clip_android/wiki/webshare/04_google_photos_gallery_and_ui.md): Justified Flex gallery, 1:1 Google Photos full-screen lightbox, keyboard shortcuts, and info drawer.
+*   [05. 全静态化部署与 CI/CD 自动化流水线](file:///d:/AI_serach_image/image_clip_android/wiki/webshare/05_deployment_and_ci_cd.md): GitHub Pages subpath hosting, Cloudflare Worker signaling, and `auto_deploy/deploy.ps1` release automation.
+
+---
+
 ## 🌍 [Internationalization (i18n)](file:///d:/AI_serach_image/image_clip_android/wiki/i18n.md)
 Documents the 20-language support added in **v1.0.1** across all three platforms.
 *   [i18n Architecture & String Keys](file:///d:/AI_serach_image/image_clip_android/wiki/i18n.md): Language list, locale files, persistence strategy, Flutter `LocalizationService`, and Vue computed locale binding.
