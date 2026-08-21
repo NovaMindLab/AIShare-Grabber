@@ -211,18 +211,21 @@ if ($VersionOnly -match "\.(\d+)$") {
     $CalcBuildNumber = 100 + [int]$Matches[1]
 }
 Set-Location "android"
+# Clean previous APK outputs
+Remove-Item -Path "build/app/outputs/flutter-apk/*.apk" -Force -ErrorAction SilentlyContinue
+
 if (-not [string]::IsNullOrWhiteSpace($MixpanelToken)) {
     Write-Host "🔒 Injected Mixpanel Token into Android build" -ForegroundColor Gray
-    & $FlutterCmd build apk --release --target-platform android-arm64 --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=$MixpanelToken
+    & $FlutterCmd build apk --release --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=$MixpanelToken
 } else {
-    & $FlutterCmd build apk --release --target-platform android-arm64 --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons
+    & $FlutterCmd build apk --release --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons
 }
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Android compilation failed!"
     exit 1
 }
 
-# Rename output APK for crystal-clear Release naming (e.g. ShareCLIP-Android-1.2.80.apk)
+# Rename output APK for crystal-clear Release naming (e.g. ShareCLIP-Android-1.2.87.apk)
 $RawApk = "build/app/outputs/flutter-apk/app-release.apk"
 $NamedApk = "build/app/outputs/flutter-apk/ShareCLIP-Android-$VersionOnly.apk"
 if (Test-Path $RawApk) {
@@ -252,15 +255,15 @@ if (Test-Path $WebDist) {
 # 5. Create GitHub Release and Upload Assets
 Write-Host "`n📁 Step 5: Creating GitHub Release & Uploading Artifacts..." -ForegroundColor Green
 
-# Find builds
-$ApkPathList = Get-ChildItem -Path "android/build/app/outputs/flutter-apk/ShareCLIP-Android*.apk"
-if ($ApkPathList.Count -eq 0) {
-    $ApkPathList = Get-ChildItem -Path "android/build/app/outputs/flutter-apk/*.apk" | Where-Object { $_.Name -like "*release*" }
+# Find builds - strictly match current version
+$TargetApkPath = "android/build/app/outputs/flutter-apk/ShareCLIP-Android-$VersionOnly.apk"
+if (-not (Test-Path $TargetApkPath)) {
+    $TargetApkPath = "android/build/app/outputs/flutter-apk/app-release.apk"
 }
 $PcPathList = Get-ChildItem -Path "cp_clip/dist_electron/ShareCLIP*.exe" | Sort-Object LastWriteTime -Descending
 
-if ($ApkPathList.Count -eq 0) {
-    Write-Error "APK files not found!"
+if (-not (Test-Path $TargetApkPath)) {
+    Write-Error "APK file for version $VersionOnly not found!"
     exit 1
 }
 
@@ -270,9 +273,7 @@ if ($PcPathList.Count -eq 0) {
 }
 
 $AssetsToUpload = @()
-foreach ($Apk in $ApkPathList) {
-    $AssetsToUpload += $Apk.FullName
-}
+$AssetsToUpload += (Get-Item $TargetApkPath).FullName
 foreach ($File in $PcPathList) {
     # Only upload files that match the exact current version string
     if ($File.Name -match [regex]::Escape($VersionOnly)) {

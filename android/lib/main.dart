@@ -13,7 +13,7 @@ import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 import 'services/analytics_service.dart';
 
-const String appVersion = '1.2.86';
+const String appVersion = '1.2.87';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -112,11 +112,23 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
           String apkUrl = '';
           if (release['assets'] != null) {
             final assets = release['assets'] as List;
+            final cleanTag = latestTag.replaceAll('v', '').trim();
+            // 1. Prefer exact version match APK
             for (var asset in assets) {
               final assetName = asset['name'].toString().toLowerCase();
-              if (assetName.endsWith('.apk')) {
+              if (assetName.endsWith('.apk') && assetName.contains(cleanTag.toLowerCase())) {
                 apkUrl = asset['browser_download_url'] as String;
                 break;
+              }
+            }
+            // 2. Fallback to any APK if exact tag match not found
+            if (apkUrl.isEmpty) {
+              for (var asset in assets) {
+                final assetName = asset['name'].toString().toLowerCase();
+                if (assetName.endsWith('.apk')) {
+                  apkUrl = asset['browser_download_url'] as String;
+                  break;
+                }
               }
             }
           }

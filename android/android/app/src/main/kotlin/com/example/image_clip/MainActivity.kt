@@ -20,28 +20,49 @@ import android.os.StatFs
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import androidx.core.content.FileProvider
+import java.io.File
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.shareclip/system_info"
     private var downloadId: Long = -1
 
+    private fun installApkFile(context: Context): Boolean {
+        return try {
+            val apkFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "ShareCLIP_Update.apk")
+            val uri = if (apkFile.exists() && apkFile.length() > 0) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", apkFile)
+                } else {
+                    Uri.fromFile(apkFile)
+                }
+            } else {
+                val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                downloadManager.getUriForDownloadedFile(downloadId)
+            }
+
+            if (uri != null) {
+                val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "application/vnd.android.package-archive")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(installIntent)
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
     private val downloadReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
             if (id == downloadId) {
-                val downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                val uri = downloadManager.getUriForDownloadedFile(downloadId)
-                if (uri != null) {
-                    val installIntent = Intent(Intent.ACTION_VIEW)
-                    installIntent.setDataAndType(uri, "application/vnd.android.package-archive")
-                    installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    try {
-                        context.startActivity(installIntent)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
+                installApkFile(context)
                 try {
                     context.unregisterReceiver(this)
                 } catch (e: Exception) {
@@ -93,6 +114,12 @@ class MainActivity : FlutterActivity() {
                 val url = call.argument<String>("url")
                 if (url != null) {
                     try {
+                        // Clean up previous APK file if exists
+                        val oldApk = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "ShareCLIP_Update.apk")
+                        if (oldApk.exists()) {
+                            oldApk.delete()
+                        }
+
                         val downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
                         val request = DownloadManager.Request(Uri.parse(url))
                         request.setTitle("ShareCLIP Update")
@@ -150,25 +177,11 @@ class MainActivity : FlutterActivity() {
                     result.success(-1.0)
                 }
             } else if (call.method == "installDownloadedApk") {
-                if (downloadId != -1L) {
-                    val downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                    val uri = downloadManager.getUriForDownloadedFile(downloadId)
-                    if (uri != null) {
-                        val installIntent = Intent(Intent.ACTION_VIEW)
-                        installIntent.setDataAndType(uri, "application/vnd.android.package-archive")
-                        installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        try {
-                            context.startActivity(installIntent)
-                            result.success(true)
-                        } catch (e: Exception) {
-                            result.error("ERROR", "Failed to start install activity: ${e.message}", null)
-                        }
-                    } else {
-                        result.error("ERROR", "Downloaded file URI is null", null)
-                    }
+                val success = installApkFile(context)
+                if (success) {
+                    result.success(true)
                 } else {
-                    result.error("ERROR", "No active download", null)
+                    result.error("ERROR", "Failed to start APK installation", null)
                 }
             } else if (call.method == "connectWifiSilent") {
                 val ssid = call.argument<String>("ssid")
