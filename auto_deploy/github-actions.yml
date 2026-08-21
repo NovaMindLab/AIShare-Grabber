@@ -1,0 +1,92 @@
+# ShareCLIP Automated GitHub Release and Pages Deployment Workflow
+# Place this file in .github/workflows/deploy.yml inside your repository
+
+name: ShareCLIP Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger build on version tags like v1.0.0
+
+permissions:
+  contents: write # Required to create releases and upload assets
+  pages: write    # Required to deploy pages
+  id-token: write # Required for deployment auth
+
+jobs:
+  # Job 1: Build and Deploy Website to GitHub Pages
+  deploy-website:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Website
+        run: |
+          cd web
+          npm install
+          npx vite build --base=/AIShare-Grabber/
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Job 2: Build PC Electron App and Android APK
+  build-and-release:
+    runs-on: windows-latest
+    needs: deploy-website
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Java (for Android Build)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Build Android Release APK
+        run: |
+          cd android
+          flutter pub get
+          flutter build apk --release --no-tree-shake-icons
+
+      - name: Build Electron Desktop Executable
+        run: |
+          cd cp_clip
+          npm install
+          npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ShareCLIP ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            android/build/app/outputs/flutter-apk/app-release.apk
+            cp_clip/dist_electron/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
