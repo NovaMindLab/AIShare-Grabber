@@ -21,6 +21,16 @@
           <a href="#ai-ecosystem" class="nav-link">AI 智能引擎</a>
           <a href="#simulator" class="nav-link">{{ t.nav.simulator }}</a>
           <a href="#comparison" class="nav-link">方案对比</a>
+          
+          <!-- WebShare Online Entry in Navbar -->
+          <a 
+            href="./webshare/" 
+            class="btn btn-webshare nav-btn" 
+            title="免安装，纯浏览器端极速扫码相册互联与WebGPU AI分析"
+          >
+            🌐 网页互联 (WebShare)
+          </a>
+
           <a href="#download" class="btn btn-primary nav-btn">{{ t.nav.download }}</a>
           
           <!-- GitHub Stars Button -->
@@ -65,6 +75,14 @@
 
           <!-- CTA Buttons -->
           <div class="hero-actions-row">
+            <!-- WebShare Hero Online Entry -->
+            <a 
+              href="./webshare/" 
+              class="btn btn-webshare-hero btn-lg"
+              title="免安装，纯网页端秒级扫码互联与WebGPU AI分析"
+            >
+              <span>🌐</span> 在线体验 WebShare 网页版 (免安装)
+            </a>
             <a 
               href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v1.2.80/ShareCLIP-Setup-1.2.80.exe" 
               class="btn btn-primary btn-lg"

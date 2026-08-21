@@ -14,6 +14,7 @@ param (
 
 $PkgJsonPath = "cp_clip/package.json"
 $WebPkgPath = "web/package.json"
+$WebSharePkgPath = "webshare/package.json"
 $PubspecPath = "android/pubspec.yaml"
 
 if ([string]::IsNullOrEmpty($Tag)) {
@@ -94,6 +95,13 @@ if (Test-Path $WebPkgPath) {
     [System.IO.File]::WriteAllText((Resolve-Path $WebPkgPath), ($WebPkg | ConvertTo-Json -Depth 10))
 }
 
+if (Test-Path $WebSharePkgPath) {
+    Write-Host "Updating version in $WebSharePkgPath to $VersionOnly" -ForegroundColor Gray
+    $WebSharePkg = Get-Content $WebSharePkgPath -Raw -Encoding utf8 | ConvertFrom-Json
+    $WebSharePkg.version = $VersionOnly
+    [System.IO.File]::WriteAllText((Resolve-Path $WebSharePkgPath), ($WebSharePkg | ConvertTo-Json -Depth 10))
+}
+
 $CalcBuildNumber = 100
 if ($VersionOnly -match "\.(\d+)$") {
     $CalcBuildNumber = 100 + [int]$Matches[1]
@@ -120,16 +128,30 @@ if (Get-Command "git" -ErrorAction SilentlyContinue) {
     if ($Diff) {
         Write-Host "Committing updates to Git..." -ForegroundColor Yellow
         git add .
-        git commit -m "feat: release $VersionOnly - Lightbox gallery viewer, on-demand high-res sync, and web portal redesign"
+        git commit -m "feat: release $VersionOnly - Integrated WebShare, Google Photos viewer, WebGPU MobileCLIP2, and GitHub Pages pipeline"
         Write-Host "Pushing updates to Gitee (origin) and GitHub (github)..." -ForegroundColor Yellow
         git push origin master
         git push github master:main
     }
 }
 
-# 1. Clean and build Web site (web/dist) with dynamic repository base path
-Write-Host "`n📁 Step 1: Building Static Web Page..." -ForegroundColor Green
+# 1. Clean and build Web site (web/dist) & WebShare (webshare/dist)
+Write-Host "`n📁 Step 1: Building Static Website and WebShare App..." -ForegroundColor Green
 $ProjName = $Repo.Split('/')[1]
+
+# 1a. Build WebShare
+Write-Host "🔨 Building WebShare App..." -ForegroundColor Cyan
+Set-Location "webshare"
+npm install
+npx vite build --base=/$ProjName/webshare/
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "WebShare build failed!"
+    exit 1
+}
+Set-Location ".."
+
+# 1b. Build Official Website
+Write-Host "🔨 Building Official Website..." -ForegroundColor Cyan
 Set-Location "web"
 npm install
 npx vite build --base=/$ProjName/
@@ -138,6 +160,16 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 Set-Location ".."
+
+# 1c. Merge WebShare into web/dist/webshare
+Write-Host "📦 Merging WebShare into web/dist/webshare..." -ForegroundColor Cyan
+if (Test-Path "web/dist") {
+    $WebShareTarget = "web/dist/webshare"
+    if (-not (Test-Path $WebShareTarget)) {
+        New-Item -ItemType Directory -Path $WebShareTarget -Force | Out-Null
+    }
+    Copy-Item -Path "webshare/dist/*" -Destination $WebShareTarget -Recurse -Force
+}
 
 # Resolve local Mixpanel token if available
 $MixpanelToken = ""

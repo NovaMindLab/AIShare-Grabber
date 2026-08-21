@@ -226,6 +226,31 @@ body {
   transform: translateY(-2px);
 }
 
+.btn-webshare {
+  background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 15px rgba(6, 182, 212, 0.35);
+  font-weight: 700;
+}
+.btn-webshare:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #22d3ee 0%, #a855f7 100%);
+  box-shadow: 0 8px 25px rgba(6, 182, 212, 0.55);
+}
+
+.btn-webshare-hero {
+  background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);
+  color: white;
+  box-shadow: 0 4px 25px rgba(6, 182, 212, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-weight: 700;
+}
+.btn-webshare-hero:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 35px rgba(139, 92, 246, 0.65);
+}
+
 .btn-github {
   background: rgba(15, 23, 42, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.15);

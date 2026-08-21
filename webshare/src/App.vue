@@ -824,10 +824,13 @@ function initAiWorker() {
       }
     };
 
+    const modelUrl = new URL('models/mobileclip2_s0_image_encoder.onnx', window.location.href).href;
+    const textEmbUrl = new URL('models/text_embeddings.json', window.location.href).href;
+
     aiWorker.postMessage({
       type: 'init',
-      modelUrl: '/models/mobileclip2_s0_image_encoder.onnx',
-      textEmbUrl: '/models/text_embeddings.json'
+      modelUrl,
+      textEmbUrl
     });
   } catch (err) {
     addLog(`❌ 创建 AI Worker 失败: ${err.message}`);

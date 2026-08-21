@@ -8,9 +8,11 @@ let providerInUse = 'unknown';
 ort.env.wasm.numThreads = 1;
 ort.env.wasm.proxy = false;
 
-// Use absolute origin URL to prevent Vite dev server from intercepting dynamic public module imports
+// Dynamically compute WASM paths based on current worker location (supports subpath deployments on GitHub Pages)
 const baseOrigin = (typeof self !== 'undefined' && self.location && self.location.origin) ? self.location.origin : '';
-ort.env.wasm.wasmPaths = baseOrigin ? `${baseOrigin}/ort-wasm/` : 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
+const pathname = (typeof self !== 'undefined' && self.location && self.location.pathname) ? self.location.pathname : '';
+const appRootPath = pathname.replace(/\/assets\/[^/]+$/, '').replace(/\/+$/, '');
+ort.env.wasm.wasmPaths = baseOrigin ? `${baseOrigin}${appRootPath}/ort-wasm/` : './ort-wasm/';
 
 /**
  * Fetch model with CacheStorage caching (Version 2 for MobileCLIP2-S0)
