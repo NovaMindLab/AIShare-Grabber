@@ -177,7 +177,7 @@
             :class="{ active: currentTab === 'yt-dlp' }"
             @click="currentTab = 'yt-dlp'"
           >
-            <span>📺 视频下载</span>
+            <span>{{ t.sidebar.tabYtDlp || '📺 视频下载' }}</span>
           </div>
         </div>
       </div>
@@ -219,9 +219,9 @@
             <div style="display: flex; flex-direction: column; text-align: left;">
               <h2 style="font-size: 17px; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
                 <span>📱</span>
-                <span style="background: linear-gradient(135deg, #ffffff, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">连接您的手机</span>
+                <span style="background: linear-gradient(135deg, #ffffff, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{{ t.link.linkTitle }}</span>
               </h2>
-              <span style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">快速建立连接，开始无缝跨端传输</span>
+              <span style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">{{ t.link.linkSub }}</span>
             </div>
 
             <!-- Connected Badge in Top Header -->
@@ -231,7 +231,7 @@
               </span>
               <span style="font-size: 9px; font-weight: 600; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 2px 6px; border-radius: 20px; display: inline-flex; align-items: center; gap: 3px;">
                 <span style="width: 5px; height: 5px; border-radius: 50%; background: #10b981; animation: pulse-glow 1.5s infinite;"></span>
-                已连接
+                {{ t.link.statusConnected }}
               </span>
               <div style="width: 1px; height: 10px; background: rgba(255,255,255,0.15); margin: 0 4px;"></div>
               <button 
@@ -240,7 +240,7 @@
                 onmouseover="this.style.color='#f87171'"
                 onmouseout="this.style.color='#ef4444'"
               >
-                🔴 断开
+                🔴 {{ t.link.disconnectBtn }}
               </button>
             </div>
           </div>
@@ -258,14 +258,14 @@
               @click="showHowToConnectModal = true" 
               class="top-nav-btn top-btn-glass"
             >
-              ❓ 如何连接
+              ❓ {{ t.link.howToConnect }}
             </button>
 
             <button 
               @click="showEnterCodeModal = true" 
               class="top-nav-btn top-btn-outline"
             >
-              ⌨️ 输入连接码
+              ⌨️ {{ t.link.enterCodeBtn }}
             </button>
           </div>
         </div>
@@ -331,7 +331,7 @@
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; min-width: 180px; flex-shrink: 0;">
               <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
                 <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
-                推荐方式：扫码连接
+                {{ t.link.qrTitle }}
               </h4>
               
               <!-- QR Code Block with glow -->
@@ -341,11 +341,11 @@
 
               <!-- SSID & Password Credentials card when Local Hotspot is active -->
               <div v-if="isHotspotActive && hotspotStatus === 'started'" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 6px 12px; width: 100%; max-width: 240px; box-sizing: border-box;">
-                <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 2px;">📡 已开启直连热点，请用手机加入 Wi-Fi:</div>
+                <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 2px;">📡 {{ t.link.hotspotRunning }}:</div>
                 <div style="font-size: 12px; font-weight: 600; color: #38bdf8;">SSID: {{ hotspotSsid }}</div>
                 <div style="font-size: 12px; font-weight: 600; color: #38bdf8; margin-top: 2px;">密码: {{ hotspotPassword }}</div>
               </div>
-              <p v-else style="color: var(--text-secondary); font-size: 11px; margin: 0; max-width: 220px;">请使用 ShareCLIP 手机 App 扫描二维码</p>
+              <p v-else style="color: var(--text-secondary); font-size: 11px; margin: 0; max-width: 220px;">{{ t.link.qrSub }}</p>
 
               <!-- Status Pills -->
               <div style="display: flex; gap: 8px; width: 100%; justify-content: center;">
@@ -356,7 +356,7 @@
                   :style="isSyncActive ? 'background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981;' : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary);'"
                 >
                   <span style="width: 5px; height: 5px; border-radius: 50%;" :style="isSyncActive ? 'background: #10b981; box-shadow: 0 0 6px #10b981;' : 'background: #94a3b8;'"></span>
-                  蓝牙: {{ isSyncActive ? '已开启' : '已关闭' }}
+                  {{ t.link.bleLabel }}: {{ isSyncActive ? t.link.enabled : t.link.disabled }}
                 </button>
 
                 <!-- Wi-Fi/Hotspot Status Pill -->
@@ -366,7 +366,7 @@
                   :style="isHotspotActive ? 'background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.3); color: #38bdf8;' : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary);'"
                 >
                   <span style="width: 5px; height: 5px; border-radius: 50%;" :style="isHotspotActive ? 'background: #38bdf8; box-shadow: 0 0 6px #38bdf8;' : 'background: #94a3b8;'"></span>
-                  热点: {{ isHotspotActive ? '已开启' : '已关闭' }}
+                  {{ t.link.hotspotLabel }}: {{ isHotspotActive ? t.link.enabled : t.link.disabled }}
                 </button>
               </div>
             </div>
@@ -374,7 +374,7 @@
             <!-- Middle Divider with Badge -->
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 0 10px;">
               <div style="width: 1px; height: 180px; background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, rgba(255,255,255,0) 100%);"></div>
-              <span style="position: absolute; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted); font-weight: 600;">或</span>
+              <span style="position: absolute; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted); font-weight: 600;">{{ t.link.orText }}</span>
             </div>
 
             <!-- Right Column: Mobile Guidelines & Local Folder & Phone Mockup -->
@@ -383,33 +383,33 @@
               <!-- Steps info -->
               <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
                 <h4 style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-                  📱 手机端连接指引
+                  📱 {{ t.link.instructionsHeader }}
                 </h4>
                 
                 <!-- Steps List (2x2 Grid) -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px;">
                   <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
                     <span style="width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text-primary); font-weight: bold; flex-shrink: 0;">1</span>
-                    打开手机 App
+                    {{ t.link.instr1 }}
                   </div>
                   <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
                     <span style="width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text-primary); font-weight: bold; flex-shrink: 0;">2</span>
-                    点击「扫一扫」
+                    {{ t.link.instr2 }}
                   </div>
                   <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
                     <span style="width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text-primary); font-weight: bold; flex-shrink: 0;">3</span>
-                    扫描左侧二维码
+                    {{ t.link.instr3 }}
                   </div>
                   <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
                     <span style="width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text-primary); font-weight: bold; flex-shrink: 0;">4</span>
-                    等待连接完成
+                    {{ t.link.instr4 }}
                   </div>
                 </div>
 
                 <!-- Tip Card -->
                 <div style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: 6px; padding: 6px 10px; display: flex; gap: 6px; align-items: center;">
                   <span style="font-size: 13px;">💡</span>
-                  <span style="font-size: 10.5px; color: var(--text-secondary); line-height: 1.3;">请确保手机和电脑处于同一 Wi-Fi 或已开启蓝牙</span>
+                  <span style="font-size: 10.5px; color: var(--text-secondary); line-height: 1.3;">{{ t.link.tipText }}</span>
                 </div>
 
                 <!-- Local Folder Import Mini Banner -->
@@ -417,9 +417,9 @@
                   <div style="display: flex; flex-direction: column; gap: 2px;">
                     <div style="display: flex; align-items: center; gap: 4px;">
                       <span style="font-size: 12px;">📂</span>
-                      <span style="font-size: 11px; font-weight: 700; color: #60a5fa;">无手机？直接导入本地照片</span>
+                      <span style="font-size: 11px; font-weight: 700; color: #60a5fa;">{{ t.link.noPhoneImportTitle }}</span>
                     </div>
-                    <span style="font-size: 9.5px; color: var(--text-muted);">递归扫描子文件夹，快速运行 AI 分类</span>
+                    <span style="font-size: 9.5px; color: var(--text-muted);">{{ t.link.noPhoneImportDesc }}</span>
                   </div>
                   <button
                     id="import-local-folder-btn"
@@ -430,7 +430,7 @@
                     onmouseout="this.style.background='rgba(59,130,246,0.15)'"
                   >
                     <span>{{ isImportingFolder ? '⏳' : '📂' }}</span>
-                    <span>{{ isImportingFolder ? '扫描中...' : '选择文件夹' }}</span>
+                    <span>{{ isImportingFolder ? t.images.scanning : t.images.selectFolderBtn }}</span>
                   </button>
                 </div>
               </div>
@@ -848,7 +848,7 @@
                     onmouseover="this.style.background='#8b5cf6'; this.style.boxShadow='0 4px 12px rgba(124,58,237,0.3)';"
                     onmouseout="this.style.background='#7c3aed'; this.style.boxShadow='0 3px 8px rgba(124,58,237,0.2)';"
                   >
-                    {{ connectingIp === device.ip ? '等待同意...' : '连接' }}
+                    {{ connectingIp === device.ip ? t.link.waitingAccept : t.link.connectBtn }}
                   </button>
                 </div>
               </div>
@@ -857,7 +857,7 @@
             <!-- Footer hint -->
             <div style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 4px;">
               <span>ℹ️</span>
-              未找到设备？请确保手机已打开 ShareCLIP 并开启蓝牙和 Wi-Fi
+              {{ t.link.noDevicesFooter }}
             </div>
           </div>
 
@@ -2295,9 +2295,25 @@ import QRCode from 'qrcode';
 import { locales, languages } from './locales.js';
 import { initAnalytics, trackEvent, trackFeatureUse, identifyUser, setTelemetryOptOut, isTelemetryEnabled } from './analytics.js';
 
-// Localization state
-const currentLocale = ref('en'); // Defaults to English!
-const t = computed(() => locales[currentLocale.value] || locales.en);
+// Localization state (Intelligent Auto-detection + Persistence)
+function getInitialLocale() {
+  const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('shareclip_locale') : null;
+  if (saved && locales[saved]) return saved;
+  const sysLang = (typeof navigator !== 'undefined' && (navigator.language || navigator.userLanguage)) || 'zh';
+  if (sysLang.toLowerCase().startsWith('zh')) return 'zh';
+  if (sysLang.toLowerCase().startsWith('ja')) return 'ja';
+  if (sysLang.toLowerCase().startsWith('ko')) return 'ko';
+  return 'zh'; // Default to Chinese
+}
+
+const currentLocale = ref(getInitialLocale());
+const t = computed(() => locales[currentLocale.value] || locales.zh || locales.en);
+
+watch(currentLocale, (newLoc) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('shareclip_locale', newLoc);
+  }
+});
 
 // Define double mode: Electron or Web Demo
 const hasApi = typeof window !== 'undefined' && window.api !== undefined;
