@@ -12,6 +12,7 @@ Contains mobile architecture details, camera scanners, local media database quer
 *   [WebRTC Channel Protocol](file:///d:/AI_serach_image/image_clip_android/wiki/android/WebRTC_Protocol.md): Direct data links, 16-byte binary packet structures, and flow control.
 *   [Permissions Configuration](file:///d:/AI_serach_image/image_clip_android/wiki/android/Permissions.md): Two-stage runtime permission flow, AndroidManifest declarations, Android 13+ granular media permissions, `ACCESS_MEDIA_LOCATION` for GPS EXIF reading, and troubleshooting guide.
 *   [Transfer Console Dashboard UI](file:///d:/AI_serach_image/image_clip_android/wiki/android/UI_Dashboard.md): 4-tab sliding dashboard design (Media, Music, Docs, Queue), widget map, design tokens, and interaction model.
+*   [APK Update, Scoped Storage & Signature Fix](file:///d:/AI_serach_image/image_clip_android/wiki/android/APK_Update_and_Signature_Fix.md): Complete architecture for in-app updates, Scoped Storage FileProvider integration, real-time download progress modal, multi-mirror acceleration, and debug.keystore certificate consistency fix.
 
 ---
 
@@ -21,6 +22,7 @@ Details the Electron main lifecycle process, ONNX AI classification model integr
 *   [Model Reparameterization](file:///d:/AI_serach_image/image_clip_android/wiki/pc/model_reparameterization.md): Reparameterizing and exporting MobileCLIP to a single ONNX file.
 *   [Packaging & Deployment](file:///d:/AI_serach_image/image_clip_android/wiki/pc/packaging_and_deployment.md): Building the Electron installer with self-contained assets.
 *   [Bundle Size Optimization](file:///d:/AI_serach_image/image_clip_android/wiki/pc/bundle_size_optimization.md): Structure breakdown of the Electron package, DirectML GPU binary exclusions, SQLite source/build dependencies removal, and size reduction history.
+*   [UI Simplification & Global i18n Architecture](file:///d:/AI_serach_image/image_clip_android/wiki/pc/ui_simplification_and_i18n.md): Overhaul of the pairing tab to a clean centered card, elimination of cluttered guides/mockups, default English locale initialization, and unified translation key architecture.
 *   [v1.2 Updates, Stability & Auto-Update Architecture](file:///d:/AI_serach_image/image_clip_android/wiki/pc/v1_2_updates_and_stability.md): Complete guide to persistent logging (`shareclip_YYYY-MM-DD.log`), V8 heap memory optimization (OOM fix), WebRTC 16 KB DataChannel packet chunking (`-5` frame header), network priority AI queue scheduling, DirectML GPU ➔ CPU automatic fallback, zero-waste UDP discovery suppression, and interactive differential auto-updates.
 
 ---
@@ -72,6 +74,11 @@ Implemented and upcoming feature specifications:
 
 | Version | Date | Highlights |
 |---|---|---|
+| **v1.2.92** | 2026-08-21 | 彻底修复 Android 覆盖升级签名冲突问题，锁定原始证书指纹（SHA-256: `90:C5:76:21:...`），支持免卸载无缝热升级。 |
+| **v1.2.91** | 2026-08-21 | 重构 Android 应用内下载流，引入多镜像 CDN 加速（`ghfast.top` / `ghproxy.net`）、实时百分比弹窗与 ZIP 魔数完整性校验。 |
+| **v1.2.90** | 2026-08-21 | 集成 `FileProvider` 解决 Android 11+ 沙盒安装拦截，支持未知应用安装授权引导。 |
+| **v1.2.89** | 2026-08-21 | 桌面端配对页面极简化重构（居中单卡片，移除右侧冗余指引/模型），全组件默认英文与严谨 i18n 规范化。 |
+| **v1.2.88** | 2026-08-21 | 纯网页版 WebShare 体系上线：WebGPU 端侧 MobileCLIP2 AI 推理、Google Photos 沉浸式画廊与全静态自动化发布。 |
 | **v1.2.50** | 2026-07-22 | 连接成功后彻底关闭 UDP 广播搜机（0 资源浪费）；自动升级交互弹窗发布与差分 MB 流量统计上线。 |
 | **v1.2.49** | 2026-07-22 | 传输优先 AI 队列避让（传输照片时 AI 让出 200ms CPU）& 180 秒传输期心跳保护屏障。 |
 | **v1.2.48** | 2026-07-22 | DirectML GPU ➔ CPU 自动降级，解决特定显卡驱动报错 `80070057` 导致的 AI 初始化失败。 |
