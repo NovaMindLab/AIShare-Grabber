@@ -1,8 +1,5 @@
 <template>
   <div ref="outerRef" class="virtual-grid-outer">
-    <div style="position: absolute; top: 0; left: 0; background: rgba(0,0,0,0.8); color: lime; z-index: 9999; padding: 4px;">
-      Debug: W={{ containerWidth }}, Cols={{ columns }}, ItemW={{ itemWidth }}, ItemH={{ itemHeight }}
-    </div>
     <div v-bind="containerProps" class="virtual-grid-container">
     <div v-bind="wrapperProps" class="virtual-grid-wrapper">
       <div 

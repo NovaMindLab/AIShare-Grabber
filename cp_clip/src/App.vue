@@ -829,7 +829,7 @@
         </div>
 
         <!-- 2.5 ALBUM BACKUP TAB -->
-        <div v-else-if="currentTab === 'album'" style="width: 100%;">
+        <div v-else-if="currentTab === 'album'" style="width: 100%; height: 100%; display: flex; flex-direction: column;">
           <!-- Empty State -->
           <div class="empty-state" v-if="albumBackupImages.length === 0">
             <div class="empty-state-icon">📸</div>
@@ -839,29 +839,29 @@
             </p>
           </div>
 
-          <!-- Grid display -->
-          <div class="image-grid" v-else>
-            <div 
-              v-for="img in albumBackupImages" 
-              :key="img.path" 
-              class="image-card" 
-              @click="openDetails(img, albumBackupImages)"
-            >
-              <div class="card-img-wrapper">
-                <img :src="img.src" class="card-img" loading="lazy" />
+          <!-- Virtual Grid display for Album -->
+          <VirtualGrid v-else :items="albumBackupImages" :itemMinWidth="220" :gap="24" style="flex: 1;">
+            <template #item="{ item: img }">
+              <div 
+                class="image-card" 
+                @click="openDetails(img, albumBackupImages)"
+              >
+                <div class="card-img-wrapper">
+                  <img :src="img.src" class="card-img" loading="lazy" />
+                </div>
+                
+                <div class="card-overlay">
+                  <span class="card-title">{{ img.name }}</span>
+                  <span class="badge badge-classified" style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3);">
+                    📸 相册备份
+                  </span>
+                </div>
               </div>
-              
-              <div class="card-overlay">
-                <span class="card-title">{{ img.name }}</span>
-                <span class="badge badge-classified" style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3);">
-                  📸 相册备份
-                </span>
-              </div>
-            </div>
-          </div>
+            </template>
+          </VirtualGrid>
         </div>
 
-        <!-- 3. VIDEOS TAB (Remote Video Sync & Date Grouped Timeline) -->
+        <!-- 3. VIDEOS TAB (Remote Video Sync & Date Grouped Timeline with Virtual Scrolling) -->
         <div v-else-if="currentTab === 'videos'" class="videos-tab-container">
           <!-- Top Video Control Action Banner -->
           <div class="glass-panel video-control-banner">
@@ -990,129 +990,27 @@
             </p>
           </div>
 
-          <!-- Date-Grouped Timeline Display -->
-          <div v-else class="video-timeline-wrapper">
-            <div 
-              v-for="group in filteredVideoGroupsByDate" 
-              :key="group.rawDate" 
-              class="video-date-group"
-            >
-              <!-- Group Date Header -->
-              <div class="video-date-header">
-                <div class="video-date-title-wrap">
-                  <span class="video-date-icon">📅</span>
-                  <h4 class="video-date-title">{{ group.dateKey }}</h4>
-                  <span class="video-date-meta">{{ t.videos?.dateVideosMeta ? t.videos.dateVideosMeta.replace('{count}', group.filteredCount).replace('{size}', formatBytes(group.filteredBytes)) : `(${group.filteredCount} 个视频 • ${formatBytes(group.filteredBytes)})` }}</span>
-                </div>
-
-                <!-- Date-level Actions -->
-                <div class="video-date-actions" v-if="syncStatus === 'connected' && group.hasUnsynced">
-                  <button 
-                    class="btn btn-secondary btn-xs"
-                    @click="toggleDateSelection(group)"
-                    :title="isDateAllSelected(group) ? '取消勾选此日期的所有待同步视频' : '勾选此日期的所有待同步视频'"
-                  >
-                    {{ isDateAllSelected(group) ? (t.videos?.clearDate || '⬜ 取消勾选此日期') : (t.videos?.selectDate ? t.videos.selectDate.replace('{count}', group.unsyncedCount) : `☑️ 勾选此日期 (${group.unsyncedCount})`) }}
-                  </button>
-                  <button 
-                    class="btn btn-primary btn-xs"
-                    :disabled="isVideoSyncing"
-                    @click="requestVideoSync({ targetDate: group.rawDate, targetIds: group.unsyncedIds })"
-                    title="仅下载此拍摄日期的全部视频"
-                  >
-                    <span>⚡</span> {{ t.videos?.syncDateBtn ? t.videos.syncDateBtn.replace('{count}', group.unsyncedCount) : `同步此日期 (${group.unsyncedCount})` }}
-                  </button>
-                </div>
-                <div class="video-date-actions" v-else-if="!group.hasUnsynced">
-                  <span class="video-all-synced-badge">{{ t.videos?.allDateSynced || '✅ 全部已备份' }}</span>
-                </div>
-              </div>
-
-              <!-- Video Cards Grid -->
-              <div class="video-cards-grid">
-                <div 
-                  v-for="item in group.items" 
-                  :key="item.id || item.path" 
-                  class="video-card glass-panel-hover"
-                  :class="{ 
-                    'card-unsynced': item.isRemoteOnly,
-                    'card-selected': isVideoSelected(item)
-                  }"
-                  @click="item.isSynced ? openVideoPlayer(item) : toggleVideoSelection(item)"
-                >
-                  <!-- Thumbnail / Poster Area -->
-                  <div class="video-poster-box">
-                    <!-- Real Thumbnail Cover (Base64 from mobile or local video canvas frame capture) -->
-                    <img 
-                      v-if="getVideoPoster(item)" 
-                      :src="getVideoPoster(item)" 
-                      class="video-poster-media" 
-                      loading="lazy" 
-                    />
-                    <video 
-                      v-else-if="item.src || item.path" 
-                      :src="(item.src || `local:///${item.path.replace(/\\/g, '/')}`) + '#t=0.5'" 
-                      class="video-poster-media" 
-                      preload="metadata" 
-                      muted 
-                      playsinline
-                    ></video>
-                    <div v-else class="video-poster-placeholder">
-                      <span class="video-poster-icon">🎬</span>
-                    </div>
-
-                    <!-- Top-Left Status Pill -->
-                    <span 
-                      class="video-status-tag"
-                      :class="item.isSynced ? 'tag-synced' : 'tag-unsynced'"
-                    >
-                      {{ item.isSynced ? (t.videos?.tagSynced || '🟢 已备份') : (t.videos?.tagUnsynced || '⏳ 待下载') }}
-                    </span>
-
-                    <!-- Top-Right Custom Checkbox for Multi-Select -->
-                    <div 
-                      v-if="!item.isSynced" 
-                      class="video-select-checkbox" 
-                      :class="{ 'is-checked': isVideoSelected(item) }"
-                      @click.stop="toggleVideoSelection(item)"
-                      title="勾选/取消勾选该视频"
-                    >
-                      <span v-if="isVideoSelected(item)" class="check-icon">✓</span>
-                    </div>
-
-                    <!-- Center Hover Play Overlay for Synced Videos -->
-                    <div v-if="item.isSynced" class="video-play-center-btn">
-                      <span>▶</span>
-                    </div>
-
-                    <!-- Bottom-Right Duration Badge -->
-                    <span v-if="item.duration" class="video-duration-pill">
-                      {{ formatVideoDuration(item.duration) }}
-                    </span>
-                  </div>
-
-                  <!-- Video Info Footer -->
-                  <div class="video-card-footer">
-                    <div class="video-card-name" :title="item.name">{{ item.name }}</div>
-                    <div class="video-card-sub">
-                      <span>{{ formatBytes(item.size) }}</span>
-                      <span v-if="item.isSynced" class="video-play-hint">{{ t.videos?.playHint || '▶️ 点击播放' }}</span>
-                      <div v-else style="display: flex; align-items: center; gap: 6px;">
-                        <button 
-                          class="btn-video-quick-download" 
-                          @click.stop="downloadSingleVideo(item)"
-                          :disabled="isVideoSyncing"
-                          title="直接下载此视频"
-                        >
-                          ⬇️ {{ t.videos?.quickDownload || '下载' }}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- High-Performance Virtual Timeline Display -->
+          <VirtualTimeline
+            ref="virtualTimelineRef"
+            v-else
+            :groups="filteredVideoGroupsByDate"
+            :minItemWidth="220"
+            :gap="14"
+            :syncStatus="syncStatus"
+            :selectedVideoIds="selectedVideoIds"
+            :isVideoSyncing="isVideoSyncing"
+            :t="t"
+            :getVideoPoster="getVideoPoster"
+            :formatBytes="formatBytes"
+            :formatVideoDuration="formatVideoDuration"
+            @toggle-selection="toggleVideoSelection"
+            @toggle-date-selection="toggleDateSelection"
+            @sync-date="group => requestVideoSync({ targetDate: group.rawDate, targetIds: group.unsyncedIds })"
+            @play-video="openVideoPlayer"
+            @download-video="downloadSingleVideo"
+            style="flex: 1;"
+          />
 
           <!-- Floating Bottom Sticky Bar for Multi-Select Download -->
           <transition name="modal-fade">
@@ -2504,6 +2402,7 @@
 import { ref, computed, nextTick, onMounted, onUnmounted, watch, reactive } from 'vue';
 import { useVirtualList, useElementSize } from '@vueuse/core';
 import VirtualGrid from './components/VirtualGrid.vue';
+import VirtualTimeline from './components/VirtualTimeline.vue';
 import QRCode from 'qrcode';
 import { locales, languages } from './locales.js';
 import { initAnalytics, trackEvent, trackFeatureUse, identifyUser, setTelemetryOptOut, isTelemetryEnabled } from './analytics.js';
@@ -2560,6 +2459,7 @@ const currentFolderPath = ref('');
 const selectedCategory = ref(null);
 const galleryContainerRef = ref(null);
 const virtualGridRef = ref(null);
+const virtualTimelineRef = ref(null);
 
 function selectCategory(cat) {
   selectedCategory.value = cat;
@@ -6419,9 +6319,13 @@ function getMockClassification(url) {
 /* ==================== VIDEOS TAB STYLES ==================== */
 .videos-tab-container {
   width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow: hidden;
 }
 
 .video-control-banner {
