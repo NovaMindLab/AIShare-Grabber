@@ -261,7 +261,12 @@ int main(int argc, char* argv[]) {
         auto adapter = BluetoothAdapter::GetDefaultAsync().get();
         if (!adapter) {
             std::cout << "ERROR:NO_ADAPTER" << std::endl << std::flush;
+            std::cerr << "No Bluetooth adapter detected." << std::endl;
             return 1;
+        }
+        
+        if (!adapter.IsLowEnergySupported()) {
+            std::cerr << "Warning: Adapter reports IsLowEnergySupported = false." << std::endl;
         }
         
         uint64_t mac_address = adapter.BluetoothAddress();
@@ -273,32 +278,71 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "MAC:" << mac_stream.str() << std::endl << std::flush;
         
-        // 2. Setup BLE GATT Service Provider
+        // 2. Setup BLE GATT Service Provider with Retry Mechanism (handles transient resource locks)
         winrt::guid service_guid = parse_uuid(target_service_uuid);
-        auto serviceResult = GattServiceProvider::CreateAsync(service_guid).get();
-        if (serviceResult.Error() != BluetoothError::Success) {
-            std::cerr << "Failed to create service provider" << std::endl;
+        GattServiceProviderResult serviceResult{ nullptr };
+        for (int attempt = 1; attempt <= 3; ++attempt) {
+            try {
+                serviceResult = GattServiceProvider::CreateAsync(service_guid).get();
+                if (serviceResult && serviceResult.Error() == BluetoothError::Success) {
+                    break;
+                }
+                std::cerr << "GattServiceProvider::CreateAsync attempt " << attempt << " returned error. Retrying in 500ms..." << std::endl;
+            }
+            catch (winrt::hresult_error const& ex) {
+                std::cerr << "GattServiceProvider::CreateAsync attempt " << attempt << " exception: " << winrt::to_string(ex.message()) << ". Retrying in 500ms..." << std::endl;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+        
+        if (!serviceResult || serviceResult.Error() != BluetoothError::Success) {
+            std::cout << "ERROR:SERVICE_PROVIDER_FAILED" << std::endl << std::flush;
+            std::cerr << "Failed to create service provider after multiple attempts." << std::endl;
             return 1;
         }
         
         auto provider = serviceResult.ServiceProvider();
         auto service = provider.Service();
         
-        // 3. Setup BLE GATT Characteristic
+        // 3. Setup BLE GATT Characteristic with Property Fallbacks (handles driver restrictions)
         winrt::guid char_guid = parse_uuid(target_char_uuid);
-        GattLocalCharacteristicParameters charParams;
-        charParams.CharacteristicProperties(
-            GattCharacteristicProperties::Read |
-            GattCharacteristicProperties::Write |
-            GattCharacteristicProperties::WriteWithoutResponse |
-            GattCharacteristicProperties::Notify
-        );
-        charParams.WriteProtectionLevel(GattProtectionLevel::Plain);
-        charParams.ReadProtectionLevel(GattProtectionLevel::Plain);
+        GattLocalCharacteristicResult charResult{ nullptr };
         
-        auto charResult = service.CreateCharacteristicAsync(char_guid, charParams).get();
-        if (charResult.Error() != BluetoothError::Success) {
-            std::cerr << "Failed to create characteristic" << std::endl;
+        // Attempt 1: Full properties (Read | Write | WriteWithoutResponse | Notify)
+        try {
+            GattLocalCharacteristicParameters charParams;
+            charParams.CharacteristicProperties(
+                GattCharacteristicProperties::Read |
+                GattCharacteristicProperties::Write |
+                GattCharacteristicProperties::WriteWithoutResponse |
+                GattCharacteristicProperties::Notify
+            );
+            charParams.WriteProtectionLevel(GattProtectionLevel::Plain);
+            charParams.ReadProtectionLevel(GattProtectionLevel::Plain);
+            charResult = service.CreateCharacteristicAsync(char_guid, charParams).get();
+        }
+        catch (...) {}
+        
+        // Attempt 2 Fallback: If failed, try classic properties (Read | Write | Notify) without WriteWithoutResponse
+        if (!charResult || charResult.Error() != BluetoothError::Success) {
+            try {
+                std::cerr << "Notice: Falling back to standard GattCharacteristicProperties (Read | Write | Notify)..." << std::endl;
+                GattLocalCharacteristicParameters charParams;
+                charParams.CharacteristicProperties(
+                    GattCharacteristicProperties::Read |
+                    GattCharacteristicProperties::Write |
+                    GattCharacteristicProperties::Notify
+                );
+                charParams.WriteProtectionLevel(GattProtectionLevel::Plain);
+                charParams.ReadProtectionLevel(GattProtectionLevel::Plain);
+                charResult = service.CreateCharacteristicAsync(char_guid, charParams).get();
+            }
+            catch (...) {}
+        }
+        
+        if (!charResult || charResult.Error() != BluetoothError::Success) {
+            std::cout << "ERROR:CHARACTERISTIC_FAILED" << std::endl << std::flush;
+            std::cerr << "Failed to create characteristic after fallback." << std::endl;
             return 1;
         }
         
@@ -346,11 +390,30 @@ int main(int argc, char* argv[]) {
             deferral.Complete();
         });
         
-        // 4. Start Advertising
-        GattServiceProviderAdvertisingParameters advParams;
-        advParams.IsDiscoverable(true);
-        advParams.IsConnectable(true);
-        provider.StartAdvertising(advParams);
+        // 4. Start Advertising with Fallback
+        bool advStarted = false;
+        try {
+            GattServiceProviderAdvertisingParameters advParams;
+            advParams.IsDiscoverable(true);
+            advParams.IsConnectable(true);
+            provider.StartAdvertising(advParams);
+            advStarted = true;
+        }
+        catch (winrt::hresult_error const& ex) {
+            std::cerr << "Notice: StartAdvertising with parameters failed: " << winrt::to_string(ex.message()) << ". Trying default StartAdvertising..." << std::endl;
+        }
+        
+        if (!advStarted) {
+            try {
+                provider.StartAdvertising();
+                advStarted = true;
+            }
+            catch (winrt::hresult_error const& ex) {
+                std::cout << "ERROR:ADVERTISING_FAILED" << std::endl << std::flush;
+                std::cerr << "Failed to start BLE advertising: " << winrt::to_string(ex.message()) << std::endl;
+                return 1;
+            }
+        }
         
         std::cout << "STATUS:ADVERTISING" << std::endl << std::flush;
         

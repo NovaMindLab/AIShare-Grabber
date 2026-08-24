@@ -1543,11 +1543,12 @@ ipcMain.handle('start-ble-server', async (event) => {
     
     let resolved = false;
     let macAddress = null;
+    let lastBleError = null;
     
     const timeout = setTimeout(() => {
       if (!resolved) {
         resolved = true;
-        reject(new Error("BLE GATT Server startup timeout"));
+        reject(new Error("BLE GATT Server startup timeout (10s)"));
       }
     }, 10000);
     
@@ -1571,7 +1572,9 @@ ipcMain.handle('start-ble-server', async (event) => {
         }
       }
 
-      if (line.startsWith("MAC:")) {
+      if (line.startsWith("ERROR:")) {
+        lastBleError = line.substring(6).trim();
+      } else if (line.startsWith("MAC:")) {
         macAddress = line.substring(4).trim();
       } else if (line.startsWith("STATUS:ADVERTISING")) {
         if (!resolved) {
@@ -1615,6 +1618,7 @@ ipcMain.handle('start-ble-server', async (event) => {
     bleProcess.stderr.on('data', (data) => {
       const msg = data.toString().trim();
       console.error(`[BLE Helper Stderr]: ${msg}`);
+      if (msg) lastBleError = msg;
       if (mainWindow && msg) {
         // Filter out debug/warning noise if needed, or send everything
         mainWindow.webContents.send('sync-log', `[BLE Debug/Err] ${msg}`);
@@ -1630,7 +1634,8 @@ ipcMain.handle('start-ble-server', async (event) => {
       if (!resolved) {
         resolved = true;
         clearTimeout(timeout);
-        reject(new Error(`BLE Helper process exited with code ${code}`));
+        const errDetail = lastBleError ? `${lastBleError} (exit code ${code})` : `BLE Helper process exited with code ${code}`;
+        reject(new Error(errDetail));
       }
     });
     

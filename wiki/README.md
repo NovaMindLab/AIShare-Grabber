@@ -24,6 +24,7 @@ Details the Electron main lifecycle process, ONNX AI classification model integr
 *   [Bundle Size Optimization](file:///d:/AI_serach_image/image_clip_android/wiki/pc/bundle_size_optimization.md): Structure breakdown of the Electron package, DirectML GPU binary exclusions, SQLite source/build dependencies removal, and size reduction history.
 *   [UI Simplification & Global i18n Architecture](file:///d:/AI_serach_image/image_clip_android/wiki/pc/ui_simplification_and_i18n.md): Overhaul of the pairing tab to a clean centered card, elimination of cluttered guides/mockups, default English locale initialization, and unified translation key architecture.
 *   [v1.2 Updates, Stability & Auto-Update Architecture](file:///d:/AI_serach_image/image_clip_android/wiki/pc/v1_2_updates_and_stability.md): Complete guide to persistent logging (`shareclip_YYYY-MM-DD.log`), V8 heap memory optimization (OOM fix), WebRTC 16 KB DataChannel packet chunking (`-5` frame header), network priority AI queue scheduling, DirectML GPU ➔ CPU automatic fallback, zero-waste UDP discovery suppression, and interactive differential auto-updates.
+*   [BLE GATT Compatibility & Fallback Architecture](file:///d:/AI_serach_image/image_clip_android/wiki/pc/ble_gatt_compatibility_and_fallback.md): Deep-dive into Windows heterogenous Bluetooth driver fixes — 2-tier Characteristic properties fallback, 3x GATT Provider retry loops, `/MT` static CRT linking, and seamless UI auto-fallback to LAN Wi-Fi Direct UDP QR codes without user flow interruption.
 
 ---
 
@@ -74,6 +75,7 @@ Implemented and upcoming feature specifications:
 
 | Version | Date | Highlights |
 |---|---|---|
+| **v1.2.93** | 2026-08-24 | 修复异构 Windows 蓝牙适配器 GATT 启动失败问题：C++/WinRT 两级属性回退（解决部分驱动对 WriteWithoutResponse 拦截）、GATT 端口释放 3 次平滑重试、/MT 纯静态编译，并在前端实现蓝牙受限时“无缝自动降级 Wi-Fi 直连二维码”（0 阻断配对）。 |
 | **v1.2.92** | 2026-08-21 | 彻底修复 Android 覆盖升级签名冲突问题，锁定原始证书指纹（SHA-256: `90:C5:76:21:...`），支持免卸载无缝热升级。 |
 | **v1.2.91** | 2026-08-21 | 重构 Android 应用内下载流，引入多镜像 CDN 加速（`ghfast.top` / `ghproxy.net`）、实时百分比弹窗与 ZIP 魔数完整性校验。 |
 | **v1.2.90** | 2026-08-21 | 集成 `FileProvider` 解决 Android 11+ 沙盒安装拦截，支持未知应用安装授权引导。 |

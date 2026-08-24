@@ -1,8 +1,8 @@
-// ShareCLIP Website Localization Dictionary (20 Languages)
+// ShareCLIP Official Website Localization Dictionary (20 Languages)
 
 export const languages = {
-  en: "English",
   zh: "简体中文",
+  en: "English",
   "zh-TW": "繁體中文",
   ja: "日本語",
   ko: "한국어",
@@ -24,79 +24,112 @@ export const languages = {
 };
 
 export const messages = {
-  en: {
-    nav: { features: "Features", simulator: "Simulator", tech: "Architecture", download: "Download" },
-    hero: {
-      badge: "✨ New cross-platform sync version released",
-      title: "Zero configuration, instant bidirectional photo sync & local AI sorting",
-      desc: "ShareCLIP is a revolutionary multi-terminal album manager. Scan the QR code to pair via BLE and WebRTC for secure local P2P transfer between PC and mobile. Powered by local MobileCLIP model for automatic image categorization. 100% private.",
-      getClient: "Get Clients",
-      simulate: "Simulate Handshake"
-    },
-    features: {
-      title: "Core Features",
-      subtitle: "BLE signaling, LAN P2P direct transfer, and local AI model integration redefine data flow.",
-      f1: { title: "BLE Seamless Pairing", desc: "No manual IP inputs. Scan the QR code to establish a BLE GATT command channel, discover peers, and exchange handshake parameters." },
-      f2: { title: "WebRTC LAN Direct Transfer", desc: "Pairing triggers WebRTC SCTP DataChannel. Gigabits/s local Wi-Fi transfer directly between phone and PC, bypassing cloud limits." },
-      f3: { title: "Local MobileCLIP AI", desc: "PC runs local MobileCLIP ONNX engine. Incoming images classified in 0.2s into Portraits, Animals, Landscapes, etc. 100% offline." },
-      f4: { title: "Chat-style P2P & Drag-and-Drop", desc: "PC displays a premium Chat Window on connection. Drag and drop any files to send instantly! Features mobile media separation and Clear/Dark themes." },
-      f5: { title: "GPS Footprint Map", desc: "Extracts local EXIF GPS coordinates and renders an interactive travel map showing exactly where your photos were taken." },
-      f6: { title: "In-App Auto Updates", desc: "Seamless background downloads and native installation. Never leave the app to stay up-to-date across PC and Android." }
-    },
-    simulator: {
-      title: "Interactive Handshake Simulator",
-      subtitle: "Click through the steps below to see how ShareCLIP establishes WebRTC connections via BLE.",
-      s1: "Scan QR", s2: "BLE Signaling", s3: "LAN Direct", s4: "Two-way Transfer",
-      qrText: "Desktop displays QR containing MAC, UUID and session key.",
-      qrSub: "Mobile scans QR, extracts GATT descriptors, and starts pairing.",
-      bleText: "Exchanging WebRTC Offer/Answer SDPs and ICE candidates via BLE.",
-      bleSub: "Uses an 80ms throttle queue to prevent Windows BLE packet loss.",
-      connectedText: "DataChannel Connected successfully!",
-      connectedSub: "Disconnects BLE, switches to local gigabit Wi-Fi socket communication.",
-      flowText: "SCTP chunk packaging & congestion control flow.",
-      flowSub: "Reassembles binary chunks into files and writes directly to local gallery.",
-      pcToPhone: "PC 📤 Mobile (Send File)",
-      phoneToPc: "Mobile 📤 PC (Send File)",
-      next: "Next Step ➔",
-      reset: "Restart Demo ↺"
-    },
-    tech: {
-      title: "Architecture & Troubleshooting",
-      subtitle: "Direct P2P communication relies heavily on local network routing environments.",
-      t1: { title: "AP Isolation Issues", desc: "Public Wi-Fi or router isolation blocks client pings, freezing WebRTC at 'Connecting'.", solution: "Solution: Enable phone Personal Hotspot and connect PC to bypass isolation router rules." },
-      t2: { title: "Windows Firewall Blocks", desc: "Windows Defender firewall often drops inbound UDP packets for custom local ports.", solution: "Solution: Allow incoming Node.js ports in Windows Security Center when prompted." }
-    },
-    download: {
-      title: "Download ShareCLIP Now",
-      subtitle: "Secure, high-speed, ad-free local AI photo sync.",
-      pc: { title: "ShareCLIP Desktop App", meta: "For Windows 10 / 11 (64-bit)", desc: "Includes MobileCLIP ONNX engine, BLE services, and desktop catalog manager.", btn: "Download for Windows (EXE)" },
-      android: { title: "ShareCLIP Android Companion", meta: "For Android 8.0+", desc: "Built with Flutter. Supports QR scanning, direct WebRTC socket, and photo exports.", btn: "Download for Android (APK)" }
-    },
-    footer: { copyright: "© 2026 ShareCLIP Open Source Project. MIT License.", privacy: "100% local client-side AI processing. No cloud uploads." }
-  },
   zh: {
-    nav: { features: "功能特性", simulator: "连接演示", tech: "技术架构", download: "立即下载" },
+    nav: {
+      features: "核心功能",
+      ai: "AI 智能引擎",
+      simulator: "直连演示",
+      comparison: "方案对比",
+      webshare: "🌐 网页互联 (WebShare)",
+      download: "立即下载"
+    },
     hero: {
-      badge: "✨ 全新多端互传版本发布",
-      title: "零通道配置，双向极速相册同步与本地 AI 智能分类",
-      desc: "ShareCLIP 是一款革命性的多端相册管理工具。使用手机轻扫二维码，即可利用 BLE 蓝牙信令技术与 WebRTC 局域网直连，在 PC 与手机之间双向秒传高清图片。搭载本地 MobileCLIP 模型，照片传输后自动执行 AI 智能分类，数据 100% 留存在本地，绝无隐私泄露风险。",
-      getClient: "获取客户端",
-      simulate: "在线模拟握手"
+      badge: "✨ 全新多端无网互传版 • 正式发布",
+      titleMain: "打破设备壁垒",
+      titleSub: "本地 AI 赋能的跨端无网照片管理生态",
+      desc: "ShareCLIP 是一款专为重视隐私与效率的用户打造的跨端无网照片同步与本地 AI 智能管理系统。无需数据线、无需公网服务器中转，手机与电脑之间依靠近场蓝牙（BLE）秒速握手，并通过局域网 WebRTC 点对点直连实现千兆级极速传输。搭载端侧 MobileCLIP 多模态模型，所有数据 100% 留存在本地物理设备中。",
+      btnWebshare: "在线体验 WebShare 网页版 (免安装)",
+      btnWindows: "下载 Windows 桌面端 (175 MB)",
+      btnAndroid: "下载 Android APK (35 MB)",
+      btnSimulate: "交互式握手演示",
+      btnGithub: "GitHub 开源仓库"
+    },
+    chips: {
+      c1_title: "WebRTC 千兆直连",
+      c1_sub: "1.2 GB/s 局域网无损互传",
+      c2_title: "MobileCLIP-S0 AI",
+      c2_sub: "512 维离线多模态语义向量",
+      c3_title: "100% 本地隐私安全",
+      c3_sub: "零云端中转 • 零流量消耗"
+    },
+    stats: {
+      s1_val: "0 ms",
+      s1_label: "云端中转延迟 (纯本地 P2P 直连)",
+      s2_val: "80+ MB/s",
+      s2_label: "局域网 Wi-Fi Socket 实测吞吐",
+      s3_val: "512-D",
+      s3_label: "MobileCLIP 空间自然语言语义搜索",
+      s4_val: "100%",
+      s4_label: "数据本地存储 • 绝无隐私外泄风险"
     },
     features: {
       title: "核心功能特性",
       subtitle: "融合低功耗蓝牙、局域网直连与端侧大模型，重新定义多端数据流转体验",
-      f1: { title: "BLE 蓝牙无缝配对", desc: "摒弃繁琐的传统蓝牙配对或局域网 IP 手动输入。手机端只需扫描 PC 二维码，即可通过 BLE 低功耗蓝牙特性建立端到端的握手信令通道，自动发现彼此并交换连接描述。" },
-      f2: { title: "WebRTC 局域网直连", desc: "握手成功后，自动建立 WebRTC 点对点直连（SCTP DataChannel）。在手机和电脑间开启千兆级 Wi-Fi 本地 Socket 传输，秒传高清原图，免去云端服务器流量限制。" },
-      f3: { title: "本地 MobileCLIP 智能分类", desc: "电脑端内置 MobileCLIP 零样本图像分类器。传输照片后，直接调用本地 ONNX 引擎在 0.2 秒内计算分类特征，自动将照片归档至“人像、动物、风景”等类别，全程纯本地执行。" },
-      f4: { title: "极速双向互传 & 聊天视窗", desc: "PC端连接成功后自动呈现聊天窗口，支持拖拽文件直接发送！配合手机端图片和视频分栏、深浅双主题切换，给您带来最清爽、最 premium 的互传体验！" },
-      f5: { title: "足迹地图 (Footprint Map)", desc: "自动提取照片 EXIF 中的 GPS 坐标信息，并在交互式地图上生成你的专属旅行足迹图。" },
-      f6: { title: "全自动应用内升级", desc: "完美实现 PC 与 Android 端的后台静默下载更新。下载完毕直接触发原生安装，彻底告别跳转浏览器的烦恼。" }
+      f1: {
+        title: "BLE 蓝牙无缝配对",
+        desc: "摒弃繁琐的传统蓝牙配对或局域网 IP 手动输入。手机端只需扫描 PC 二维码，即可通过 BLE 低功耗蓝牙特性建立端到端的握手信令通道，自动发现彼此并交换连接描述。"
+      },
+      f2: {
+        title: "WebRTC 局域网直连",
+        desc: "握手成功后，自动建立 WebRTC 点对点直连（SCTP DataChannel）。在手机和电脑间开启千兆级 Wi-Fi 本地 Socket 传输，秒传高清原图，免去云端服务器流量限制。"
+      },
+      f3: {
+        title: "本地 MobileCLIP 智能分类",
+        desc: "电脑端内置 MobileCLIP 零样本图像分类器。传输照片后，直接调用本地 ONNX 引擎在 0.2 秒内计算分类特征，自动将照片归档至“人像、动物、风景”等类别，全程纯本地执行。"
+      },
+      f4: {
+        title: "渐进式 4K 大图画廊 (Lightbox)",
+        desc: "0ms 秒开缩略图，手机在线时按需直传 4K 原图无缝热替换，支持键盘左右键快速切图与自由放大旋转。"
+      },
+      f5: {
+        title: "足迹地图 (Footprint Map)",
+        desc: "自动提取照片 EXIF 中的 GPS 坐标信息，并在交互式地图上以紫色玻璃拟态气泡动态聚类生成你的专属旅行足迹图。"
+      },
+      f6: {
+        title: "智能相似图去重 & 双端同步清理",
+        desc: "基于余弦相似度质心聚类算法毫秒级定位重复与相似抓拍，电脑端一键勾选清理，并联动通过 WebRTC 信令同步从手机相册中安全移除。"
+      }
+    },
+    aiSection: {
+      badge: "AI PLAYGROUND",
+      title: "端侧多模态 AI 智能相册引擎",
+      subtitle: "所有 AI 运算均在 PC 端 CPU/GPU 及 WASM SIMD 多线程上本地运行，保障极致速度与绝对隐私",
+      tabSearch: "自然语言语义搜图 (CLIP 512-D)",
+      tabFaces: "人脸识别与人物时间轴 (SIMD 聚类)",
+      tabDedup: "相似图与连拍去重 (Cosine 质心)",
+      searchTitle: "MobileCLIP 512-D 向量空间语义检索",
+      searchSub: "输入自然语言或点击测试词，实时感受本地向量语义匹配能力（点击照片可全屏预览）：",
+      searchPlaceholder: "输入如：海边日落、在草地奔跑的金毛、发票收据、城市夜景...",
+      searchBtn: "语义检索",
+      presetLabel: "推荐测试词：",
+      presets: [
+        { icon: "🌅", text: "海边日落" },
+        { icon: "🐕", text: "在草地奔跑的金毛" },
+        { icon: "🧾", text: "发票与收据" },
+        { icon: "🌃", text: "城市夜景建筑" },
+        { icon: "🍜", text: "美味拉面美食" }
+      ],
+      clickPreview: "🔍 点击 4K 预览",
+      similarity: "相似度",
+      faceTitle: "WASM SIMD 128位 人脸特征聚类与时间轴",
+      faceSub: "SCRFD + MobileFaceNet 本地高精度聚类，点击人物头像筛选专属相册：",
+      photosCount: "张照片",
+      dedupTitle: "Leader Centroid 连拍与相似图识别",
+      dedupSub: "毫秒级定位连拍废片与重复抓拍，电脑端一键释放双端存储空间：",
+      threshold: "相似度阈值：",
+      cleanupBtn: "模拟清理重复项 (释放 48.2 MB)",
+      group: "分组",
+      bestKeep: "🌟 推荐保留最佳",
+      suggestDel: "🗑️ 建议清理"
     },
     simulator: {
-      title: "交互式直连握手模拟",
-      subtitle: "点击下方模拟流程，查看 ShareCLIP 底层是如何通过 BLE 传递信令并建立 WebRTC 直连的",
-      s1: "扫码解析", s2: "蓝牙信令", s3: "局域网直连", s4: "双向互传",
+      badge: "ZERO-TRAFFIC PROTOCOL",
+      title: "真·局域网 P2P 零流量极速同步架构",
+      subtitle: "无需数据线、无需公网服务器，近场 BLE 自动握手 + WebRTC DataChannel 千兆级局域网直连",
+      s1: "扫码解析",
+      s2: "蓝牙信令",
+      s3: "局域网直连",
+      s4: "双向互传",
       qrText: "电脑端渲染包含 MAC、UUID 与会话密钥的 QR 二维码",
       qrSub: "手机扫码，解析获得蓝牙服务描述符 `6e400001-...` 以及会话流水号",
       bleText: "利用蓝牙广播交换 WebRTC 连接密钥与 ICE 候选网卡地址",
@@ -108,193 +141,321 @@ export const messages = {
       pcToPhone: "PC 📤 手机 (传输文件)",
       phoneToPc: "手机 📤 PC (传输文件)",
       next: "下一步 ➔",
-      reset: "重新演示 ↺"
+      reset: "重新演示 ↺",
+      consoleTitle: "📡 BLE GATT 蓝牙信令通道控制台",
+      desktop: "电脑端 (Desktop)",
+      mobile: "手机端 (Android)",
+      techTitle: "💡 核心技术机制：",
+      t1_title: "1. 零配置扫码接入",
+      t1_desc: "电脑生成动态二维码，内嵌 PC 的 BLE MAC 地址、GATT Service UUID 及 32-bit 会话密钥。手机扫码即可直接锁定目标，无需繁琐的传统蓝牙配对。",
+      t2_title: "2. 蓝牙信令分片规避 MTU 限制",
+      t2_desc: "双方通过 GATT 特征值交换 WebRTC SDP Offer/Answer 及 ICE Candidates。内置 80ms 节流队列与分片校验，彻底解决 Windows BLE 丢包痛点。",
+      t3_title: "3. 切换千兆 Wi-Fi 局域网传输",
+      t3_desc: "P2P 直连通道建立完毕后，蓝牙信令通道自动静默，全速切换至本地 Wi-Fi Socket，彻底释放千兆带宽性能。",
+      t4_title: "4. 16-Byte 自定义包头与流式组包",
+      t4_desc: "文件切分为 32KB 二进制 Chunk，首部携带 16 字节协议头（FileId, Offset, TotalLen），支持断点保护与背压缓冲控制。"
     },
-    tech: {
-      title: "ShareCLIP 技术架构与故障排查",
-      subtitle: "由于多端数据均在局域网内直接点对点（P2P）通信，网络环境对连接至关重要",
-      t1: { title: "📡 局域网隔离（AP Isolation）问题", desc: "有些公司网络、商场 Wi-Fi 或者路由器设置中开启了“AP 隔离（局域网隔离）”策略。这会导致手机和电脑即使连上了同一个 Wi-Fi，也无法互相 ping 通，从而使 WebRTC 通道卡在连接中 (Connecting) 最终超时。", solution: "💡 终极解决方案：手机开启个人热点，让电脑连接手机的热点网络。在热点内网环境下，路由器隔离策略会被彻底绕过，WebRTC 直连可在 1 秒内打通！" },
-      t2: { title: "🛡️ Windows 系统防火墙拦截", desc: "Windows 系统的 Defender 防火墙默认极为严苛，它经常会在后台拦截新创建的 Electron 应用或自定义局域网端口的 UDP 入站流量，导致手机发来的 WebRTC 连接请求包被系统强行丢弃。", solution: "💡 解决方案：在电脑的“Windows 安全中心” -> “防火墙和网络保护”中临时允许 Node.js 应用程序的入站端口，或者在弹窗提示时点击“允许访问专用网络”。" }
+    comparison: {
+      badge: "COMPARISON",
+      title: "为什么选择 ShareCLIP？",
+      subtitle: "对比传统公有云相册、社交软件文件传输与物理数据线",
+      dim: "对比维度",
+      shareclip: "✨ ShareCLIP (本方案)",
+      cloud: "☁️ 传统云相册 (iCloud / 百度网盘)",
+      chat: "💬 微信 / QQ 文件传输助手",
+      usb: "🔌 传统 USB 物理数据线",
+      speed_dim: "传输速度",
+      speed_shareclip: "80+ MB/s Wi-Fi 直连 (千兆级)",
+      speed_cloud: "受限于公网带宽与 VIP 限速",
+      speed_chat: "受公网服务器限速 (极慢)",
+      speed_usb: "高速物理直连",
+      privacy_dim: "隐私与数据安全",
+      privacy_shareclip: "100% 本地存储 • 零云端泄露",
+      privacy_cloud: "全量上传第三方云服务器",
+      privacy_chat: "数据经过社交平台服务器",
+      privacy_usb: "本地存储",
+      ai_dim: "AI 自然语言搜图",
+      ai_shareclip: "✅ 本地 MobileCLIP 512-D",
+      ai_cloud: "需上传云端做 AI 分析",
+      ai_chat: "❌ 无搜图能力",
+      ai_usb: "❌ 仅作为普通 U 盘读取",
+      face_dim: "人脸聚类与足迹地图",
+      face_shareclip: "✅ 本地 WASM SIMD 聚类",
+      face_cloud: "云端分析生物特征",
+      face_chat: "❌ 无",
+      face_usb: "❌ 无",
+      conv_dim: "便捷性",
+      conv_shareclip: "无线扫码秒连 • 自动同步",
+      conv_cloud: "需联网登录账号",
+      conv_chat: "需手动逐张点选发送",
+      conv_usb: "需寻找适配数据线连接"
     },
     download: {
+      badge: "OFFICIAL RELEASES",
       title: "立即下载 ShareCLIP 开始使用",
       subtitle: "安全、极速、无广告的本地 AI 相册同步管理工具",
-      pc: { title: "ShareCLIP PC 客户端", meta: "支持 Windows 10 / 11 (64-bit)", desc: "内置 MobileCLIP 零样本推理服务与 BLE 信令主进程，支持全自动图库分类", btn: "下载 Windows 版 (EXE)" },
-      android: { title: "ShareCLIP 安卓伴侣", meta: "支持 Android 8.0 及以上版本", desc: "原生 Flutter 框架打造，支持扫码连接与相册原图双向极速同步", btn: "下载安卓版 (APK)" }
+      pc_title: "ShareCLIP PC 桌面端",
+      pc_meta: "支持 Windows 10 / 11 (64-bit) • ~175 MB",
+      pc_desc: "内置 MobileCLIP ONNX 引擎、WASM SIMD 聚类加速与 4K Lightbox 画廊。",
+      pc_btn: "下载 Windows 安装包 (.exe)",
+      android_title: "ShareCLIP Android 移动端",
+      android_meta: "支持 Android 8.0 及以上版本 • ~35 MB",
+      android_desc: "基于 Flutter 构建，支持 BLE 近场扫码、Wi-Fi 直连与后台无感增量对齐。",
+      android_btn: "下载 Android 安装包 (.apk)",
+      clone_title: "💻 开发者源码极速克隆 (GitHub Clone)",
+      copy_btn: "📋 复制命令",
+      copied_btn: "✅ 已复制命令"
     },
-    footer: { copyright: "© 2026 ShareCLIP Open Source Project. Under MIT License.", privacy: "本项目属于 100% 本地端侧 AI 推理实验项目，保护用户绝对隐私。" }
+    lightbox: {
+      badge: "4K RAW ON-DEMAND STREAM",
+      title: "📊 EXIF & AI 向量元数据",
+      category: "类别归档:",
+      resolution: "分辨率:",
+      transferTime: "传输耗时:",
+      vectorSpace: "向量空间:",
+      securityHash: "安全哈希:",
+      zoomIn: "🔍 放大",
+      zoomOut: "🔍 缩小",
+      rotate: "🔄 旋转"
+    },
+    footer: {
+      desc: "下一代本地 AI 赋能的跨端无网照片管理与无线极速同步生态系统。",
+      repo: "GitHub 仓库",
+      release: "最新发布版本",
+      license: "Apache 2.0 开源协议",
+      copyright: "© 2026 ShareCLIP Open Source Project. Under Apache 2.0 License.",
+      bottomNotice: "100% 本地计算 • 零云端中转 • 绝无隐私泄露"
+    }
+  },
+
+  en: {
+    nav: {
+      features: "Features",
+      ai: "AI Engine",
+      simulator: "Simulator",
+      comparison: "Comparison",
+      webshare: "🌐 WebShare Online",
+      download: "Download"
+    },
+    hero: {
+      badge: "✨ Next-Gen Cross-Platform Sync • Official Release",
+      titleMain: "Break Device Barriers",
+      titleSub: "Local AI-Powered Zero-Traffic Photo Ecosystem",
+      desc: "ShareCLIP is a privacy-first, lightning-fast cross-device photo management solution connecting your mobile devices and desktop workstations without cables, cloud subscriptions, or cellular data. Instant BLE pairing negotiates gigabit WebRTC DataChannels over local Wi-Fi, powered by on-device MobileCLIP AI for zero-shot natural language search and SIMD face clustering.",
+      btnWebshare: "Experience WebShare Online (Zero Install)",
+      btnWindows: "Download for Windows (175 MB)",
+      btnAndroid: "Download Android APK (35 MB)",
+      btnSimulate: "Simulate Handshake",
+      btnGithub: "GitHub Repository"
+    },
+    chips: {
+      c1_title: "Gigabit WebRTC Link",
+      c1_sub: "1.2 GB/s LAN Lossless P2P Stream",
+      c2_title: "MobileCLIP-S0 AI",
+      c2_sub: "512-D Local Multimodal Vectors",
+      c3_title: "100% Private & Local",
+      c3_sub: "Zero Cloud Relay • Zero Mobile Data"
+    },
+    stats: {
+      s1_val: "0 ms",
+      s1_label: "Cloud Relay Latency (Local P2P Direct)",
+      s2_val: "80+ MB/s",
+      s2_label: "Local Wi-Fi Socket Real-World Speed",
+      s3_val: "512-D",
+      s3_label: "MobileCLIP Vector Semantic Search",
+      s4_val: "100%",
+      s4_label: "On-Device Storage • Zero Data Leaks"
+    },
+    features: {
+      title: "Core Features",
+      subtitle: "BLE signaling, LAN P2P direct transfer, and local AI model integration redefine data flow.",
+      f1: {
+        title: "BLE Seamless Pairing",
+        desc: "No manual IP inputs. Scan the QR code to establish a BLE GATT command channel, discover peers, and exchange handshake parameters."
+      },
+      f2: {
+        title: "WebRTC LAN Direct Transfer",
+        desc: "Pairing triggers WebRTC SCTP DataChannel. Gigabits/s local Wi-Fi transfer directly between phone and PC, bypassing cloud limits."
+      },
+      f3: {
+        title: "Local MobileCLIP AI",
+        desc: "PC runs local MobileCLIP ONNX engine. Incoming images classified in 0.2s into Portraits, Animals, Landscapes, etc. 100% offline."
+      },
+      f4: {
+        title: "Progressive 4K Lightbox Gallery",
+        desc: "Instant 0ms thumbnail preview with on-demand 4K RAW original photo streaming from mobile. Supports previous/next navigation, zoom, and rotate."
+      },
+      f5: {
+        title: "GPS Footprint Map",
+        desc: "Extracts local EXIF GPS coordinates and renders an interactive travel map showing exactly where your photos were taken with smooth dynamic clustering."
+      },
+      f6: {
+        title: "Smart Similarity & Cross-Device Deletion",
+        desc: "Calculates cosine similarity across your library using Leader Centroid clustering. One-click duplicate cleanup with synchronized deletion on mobile gallery."
+      }
+    },
+    aiSection: {
+      badge: "AI PLAYGROUND",
+      title: "On-Device Multimodal AI Photo Engine",
+      subtitle: "All AI computations run 100% locally on CPU/GPU & WASM SIMD threads for ultra speed & privacy.",
+      tabSearch: "Natural Language Search (CLIP 512-D)",
+      tabFaces: "Face Timeline (SIMD Clustering)",
+      tabDedup: "Duplicate & Burst Cleanup (Cosine Centroid)",
+      searchTitle: "MobileCLIP 512-D Vector Semantic Retrieval",
+      searchSub: "Type natural language or click preset tags to see instant vector matching (click photo for 4K preview):",
+      searchPlaceholder: "e.g. sunset at beach, golden retriever on grass, invoice receipt, city night skyline...",
+      searchBtn: "Semantic Search",
+      presetLabel: "Presets:",
+      presets: [
+        { icon: "🌅", text: "Sunset at beach" },
+        { icon: "🐕", text: "Golden retriever on grass" },
+        { icon: "🧾", text: "Invoice receipt document" },
+        { icon: "🌃", text: "City night skyline" },
+        { icon: "🍜", text: "Delicious ramen noodles" }
+      ],
+      clickPreview: "🔍 4K Preview",
+      similarity: "Similarity",
+      faceTitle: "WASM SIMD 128-bit Face Feature Clustering & Timeline",
+      faceSub: "SCRFD + MobileFaceNet on-device high precision clustering. Click avatar to filter albums:",
+      photosCount: "photos",
+      dedupTitle: "Leader Centroid Burst & Duplicate Detection",
+      dedupSub: "Locate bursts and duplicates in milliseconds. Free up dual-device storage in one click:",
+      threshold: "Similarity Threshold:",
+      cleanupBtn: "Simulate Cleanup (Free 48.2 MB)",
+      group: "Group",
+      bestKeep: "🌟 Best (Keep)",
+      suggestDel: "🗑️ Duplicate (Delete)"
+    },
+    simulator: {
+      badge: "ZERO-TRAFFIC PROTOCOL",
+      title: "True LAN P2P Zero-Traffic Wireless Sync Pipeline",
+      subtitle: "No cables, no cloud servers. Instant BLE auto-handshake + gigabit WebRTC DataChannel.",
+      s1: "Scan QR",
+      s2: "BLE Signaling",
+      s3: "LAN Direct",
+      s4: "Two-way Transfer",
+      qrText: "Desktop displays QR containing MAC, UUID and session key.",
+      qrSub: "Mobile scans QR, extracts GATT descriptors, and starts pairing.",
+      bleText: "Exchanging WebRTC Offer/Answer SDPs and ICE candidates via BLE.",
+      bleSub: "Uses an 80ms throttle queue to prevent Windows BLE packet loss.",
+      connectedText: "DataChannel Connected successfully!",
+      connectedSub: "Disconnects BLE, switches to local gigabit Wi-Fi socket communication.",
+      flowText: "16-byte header chunk packaging & congestion control flow.",
+      flowSub: "Reassembles binary chunks into files and writes directly to local gallery.",
+      pcToPhone: "PC 📤 Mobile (Send File)",
+      phoneToPc: "Mobile 📤 PC (Send File)",
+      next: "Next Step ➔",
+      reset: "Restart Demo ↺",
+      consoleTitle: "📡 BLE GATT Signaling Console",
+      desktop: "Desktop PC",
+      mobile: "Android Mobile",
+      techTitle: "💡 Core Technical Mechanisms:",
+      t1_title: "1. Zero-Config QR Pairing",
+      t1_desc: "Desktop generates a dynamic QR embedding BLE MAC, GATT Service UUID and session key. Mobile scans to lock target instantly without manual pairing.",
+      t2_title: "2. BLE Signaling Chunking",
+      t2_desc: "Exchanges SDP Offer/Answer and ICE candidates over GATT characteristics with 80ms throttle pacing, preventing packet loss.",
+      t3_title: "3. Gigabit Wi-Fi LAN Direct",
+      t3_desc: "Once P2P link is established, BLE goes silent and data switches to local Wi-Fi socket, unleashing gigabit throughput.",
+      t4_title: "4. 16-Byte Header & Chunk Streaming",
+      t4_desc: "Files are streamed in 32KB binary chunks with a 16-byte protocol header (FileId, Offset, TotalLen), supporting breakpoint resume & backpressure control."
+    },
+    comparison: {
+      badge: "COMPARISON",
+      title: "Why Choose ShareCLIP?",
+      subtitle: "Comparing against traditional cloud albums, social messenger file assistants, and physical USB cables.",
+      dim: "Dimension",
+      shareclip: "✨ ShareCLIP (Our System)",
+      cloud: "☁️ Cloud Storage (iCloud/Drive)",
+      chat: "💬 Social Messenger Assistants",
+      usb: "🔌 USB Cable",
+      speed_dim: "Transfer Speed",
+      speed_shareclip: "80+ MB/s Wi-Fi Direct (Gigabit)",
+      speed_cloud: "Limited by internet bandwidth & throttling",
+      speed_chat: "Throttled by remote servers (Slow)",
+      speed_usb: "High-speed wired link",
+      privacy_dim: "Privacy & Data Security",
+      privacy_shareclip: "100% Local Storage • Zero Cloud Leaks",
+      privacy_cloud: "Uploaded entirely to 3rd-party servers",
+      privacy_chat: "Routed through social platform servers",
+      privacy_usb: "Local storage",
+      ai_dim: "AI Semantic Search",
+      ai_shareclip: "✅ Local MobileCLIP 512-D",
+      ai_cloud: "Requires uploading to cloud for analysis",
+      ai_chat: "❌ No search capability",
+      ai_usb: "❌ Treated as dumb storage volume",
+      face_dim: "Face Clustering & Map",
+      face_shareclip: "✅ Local WASM SIMD Clustering",
+      face_cloud: "Biometric data analyzed in cloud",
+      face_chat: "❌ None",
+      face_usb: "❌ None",
+      conv_dim: "Convenience",
+      conv_shareclip: "Instant wireless QR scan • Auto sync",
+      conv_cloud: "Requires internet & account login",
+      conv_chat: "Must pick & send photos manually",
+      conv_usb: "Must carry and plug compatible cable"
+    },
+    download: {
+      badge: "OFFICIAL RELEASES",
+      title: "Download ShareCLIP Now",
+      subtitle: "Secure, high-speed, ad-free local AI photo sync.",
+      pc_title: "ShareCLIP Desktop App",
+      pc_meta: "For Windows 10 / 11 (64-bit) • ~175 MB",
+      pc_desc: "Includes MobileCLIP ONNX engine, WASM SIMD acceleration, and 4K Lightbox gallery.",
+      pc_btn: "Download for Windows (.exe)",
+      android_title: "ShareCLIP Android Companion",
+      android_meta: "For Android 8.0+ • ~35 MB",
+      android_desc: "Built with Flutter. Supports BLE QR scanning, Wi-Fi Direct, and background sync.",
+      android_btn: "Download for Android (.apk)",
+      clone_title: "💻 Developer Git Clone",
+      copy_btn: "📋 Copy Command",
+      copied_btn: "✅ Copied"
+    },
+    lightbox: {
+      badge: "4K RAW ON-DEMAND STREAM",
+      title: "📊 EXIF & AI Vector Metadata",
+      category: "Category:",
+      resolution: "Resolution:",
+      transferTime: "Transfer Time:",
+      vectorSpace: "Vector Space:",
+      securityHash: "Security Hash:",
+      zoomIn: "🔍 Zoom In",
+      zoomOut: "🔍 Zoom Out",
+      rotate: "🔄 Rotate"
+    },
+    footer: {
+      desc: "Next-Gen Local AI Photo Management & P2P Cross-Device Wireless Syncing Ecosystem.",
+      repo: "GitHub Repository",
+      release: "Latest Release",
+      license: "Apache 2.0 License",
+      copyright: "© 2026 ShareCLIP Open Source Project. Under Apache 2.0 License.",
+      bottomNotice: "100% Local Processing • Zero Cloud Relays • Absolute Privacy"
+    }
   }
 };
 
-// Autogenerate translations for other 18 popular languages based on English/Chinese templates
-// This provides lightweight support for ja, ko, es, fr, de, it, ru, pt, vi, th, id, ar, hi, tr, pl, nl, sv, zh-TW
-const languagesToGenerate = ["zh-TW", "ja", "ko", "es", "fr", "de", "it", "ru", "pt", "vi", "th", "id", "ar", "hi", "tr", "pl", "nl", "sv"];
+// Autogenerate translations for remaining languages with complete fallbacks
+const languagesToGenerate = [
+  "zh-TW", "ja", "ko", "es", "fr", "de", "it", "ru", "pt", "vi", "th", "id", "ar", "hi", "tr", "pl", "nl", "sv"
+];
 
 const translations = {
-  "zh-TW": {
-    nav: { features: "功能特性", simulator: "連線演示", tech: "技術架構", download: "立即下載" },
-    hero: {
-      badge: "✨ 全新多端互傳版本發布",
-      title: "零通道配置，雙向極速相冊同步與本地 AI 智能分類",
-      desc: "ShareCLIP 是一款革命性的多端相冊管理工具。使用手機輕掃二維碼，即可利用 BLE 藍牙信令技術與 WebRTC 局域網直連，在 PC 與手機之間雙向秒傳高清圖片。搭載本地 MobileCLIP 模型，照片傳輸後自動執行 AI 智能分類，數據 100% 留存在本地，絕無隱私泄露風險。",
-      getClient: "獲取客戶端",
-      simulate: "線上模擬握手"
-    },
-    features: {
-      title: "核心功能特性",
-      subtitle: "融合低功耗藍牙、局域網直連與端側大模型，重新定義多端數據流轉體驗",
-      f1: { title: "BLE 藍牙無縫配對", desc: "摒棄繁瑣的傳統藍牙配對或局域網 IP 手動輸入。手機端只需掃描 PC 二維碼，即可通過 BLE 低功耗藍牙特性建立端到端的握手信令通道，自動發現彼此並交換連接描述。" },
-      f2: { title: "WebRTC 局域網直連", desc: "握手成功後，自動建立 WebRTC 點對點直連（SCTP DataChannel）。在手機和電腦間開啟千兆級 Wi-Fi 本地 Socket 傳輸，秒傳高清原圖，免去雲端伺服器流量限制。" },
-      f3: { title: "本地 MobileCLIP 智能分類", desc: "電腦端內置 MobileCLIP 零樣本圖像分類器。傳輸照片後，直接調用本地 ONNX 引擎在 0.2 秒內計算分類特徵，自動將照片歸檔至“人像、動物、風景”等類別，全程純本地執行。" },
-      f4: { title: "極速雙向互傳 & 聊天視窗", desc: "PC端連接成功後自動呈現聊天窗口，支援拖拽檔案直接發送！配合手機端圖片和影片分欄、深淺雙主題切換，給您帶來最清爽、最 premium 的互傳體驗！" },
-      f5: { title: "足跡地圖 (Footprint Map)", desc: "自動提取照片 EXIF 中的 GPS 座標資訊，並在交互式地圖上生成你的專屬旅行足跡圖。" },
-      f6: { title: "全自動應用內升級", desc: "完美實現 PC 與 Android 端的後台靜默下載更新。下載完畢直接觸發原生安裝，徹底告別跳轉瀏覽器的煩惱。" }
-    },
-    simulator: {
-      title: "交互式直連握手模擬",
-      subtitle: "點擊下方模擬流程，查看 ShareCLIP 底層是如何通過 BLE 傳遞信令並建立 WebRTC 直連的",
-      s1: "掃碼解析", s2: "藍牙信令", s3: "局域網直連", s4: "雙向互傳",
-      qrText: "電腦端渲染包含 MAC、UUID 與會話金鑰的 QR 二維碼",
-      qrSub: "手機掃碼，解析獲得藍牙服務描述符 `6e400001-...` 以及會話流水號",
-      bleText: "利用藍牙廣播交換 WebRTC 連接金鑰與 ICE 候選網卡地址",
-      bleSub: "使用 80ms 延時通知隊列，防範 Windows 系統藍牙驅動在高頻傳輸時丟棄通知",
-      connectedText: "通道打通成功 (SCTP DataChannel Opened)",
-      connectedSub: "斷開低效的藍牙臨時通道，激活本地千兆 Wi-Fi 網絡高速雙向通信套接字",
-      flowText: "16 位元組頭部二進位組包 + BufferedAmount 擁塞算法限速傳輸",
-      flowSub: "傳輸的圖像將被接收方重新組裝還原，保存後即可在畫廊中直接出現",
-      pcToPhone: "PC 📤 手機 (傳輸文件)",
-      phoneToPc: "手機 📤 PC (傳輸文件)",
-      next: "下一步 ➔",
-      reset: "重新演示 ↺"
-    },
-    tech: {
-      title: "ShareCLIP 技術架構與故障排查",
-      subtitle: "由於多端數據均在局域網內直接點對點（P2P）通信，網絡環境對連線至關重要",
-      t1: { title: "📡 局域網隔離（AP Isolation）問題", desc: "有些公司網絡、商場 Wi-Fi 或者路由器設置中開啟了“AP 隔離（局域網隔離）”策略。這會導致手機和電腦即使連上了同一個 Wi-Fi，也無法互相 ping 通，從而使 WebRTC 通道卡在連線中 (Connecting) 最終超時。", solution: "💡 終極解決方案：手機開啟個人熱點，讓電腦連接手機的熱點網絡。在熱點內網環境下，路由器隔離策略會被徹底繞過，WebRTC 直連可在 1 秒內打通！" },
-      t2: { title: "🛡️ Windows 系統防火牆攔截", desc: "Windows 系統的 Defender 防火牆預設極為嚴苛，它經常會在後台攔截新創建的 Electron 應用或自定義局域網端口的 UDP 入站流量，導致手機發來的 WebRTC 連線請求包被系統強行丟棄。", solution: "💡 解決方案：在電腦的“Windows 安全中心” -> “防火牆和網路保護”中臨時允許 Node.js 應用程式的入站端口，或者在彈窗提示時點擊“允許存取專用網路”。" }
-    },
-    download: {
-      title: "立即下載 ShareCLIP 開始使用",
-      subtitle: "安全、極速、無廣告的本地 AI 相冊同步管理工具",
-      pc: { title: "ShareCLIP PC 客戶端", meta: "支援 Windows 10 / 11 (64-bit)", desc: "內置 MobileCLIP 零樣本推理服務與 BLE 信令主進程，支援全自動圖庫分類", btn: "下載 Windows 版 (EXE)" },
-      android: { title: "ShareCLIP 安卓伴侶", meta: "支援 Android 8.0 及以上版本", desc: "原生 Flutter 框架打造，支援掃碼連線與相冊原圖雙向極速同步", btn: "下載安卓版 (APK)" }
-    },
-    footer: { copyright: "© 2026 ShareCLIP Open Source Project. Under MIT License.", privacy: "本項目屬於 100% 本地端側 AI 推理實驗項目，保護用戶絕對隱私。" }
-  },
-  ja: {
-    nav: { features: "特徴機能", simulator: "接続デモ", tech: "アーキテクチャ", download: "今すぐダウンロード" },
-    hero: {
-      badge: "✨ 新バージョンリリース",
-      title: "設定不要、高速な双方向アルバム同期 & ローカル AI フォルダ分類",
-      desc: "ShareCLIP は、革新的なマルチ端末写真管理ツールです。QR コードをスキャンして BLE & WebRTC による高速なローカル P2P 転送を確立します。ローカル MobileCLIP AI モデルを搭載し、自動的な画像整理に対応します。100% 安全です。",
-      getClient: "クライアント入手",
-      simulate: "オンラインシミュレータ"
-    },
-    features: {
-      title: "コア特徴",
-      subtitle: "BLE シグナリング、ローカル Wi-Fi 転送、ローカル AI 推論の融合による新しい体験",
-      f1: { title: "BLE 簡単ペアリング", desc: "IP 入力不要。QR コードをスキャンして BLE チャンネルを開き、ピアを自動検出して接続を確立します。" },
-      f2: { title: "WebRTC 高速転送", desc: "ペアリング後、WebRTC SCTP データチャネルが開きます。高速なローカル Wi-Fi 接続で写真ファイルを数秒で送信します。" },
-      f3: { title: "ローカル MobileCLIP AI", desc: "PC 上で MobileCLIP ONNX エンジンを直接実行。0.2秒以内にポートレート、動物、風景などに写真を自動分類します。" },
-      f4: { title: "双方向フロー制御", desc: "双方向送信に対応。BufferedAmount フロー制御により、大容量ファイル送信時のパケットロスを防ぎます。" },
-      f5: { title: "足跡マップ", desc: "写真の EXIF GPS 座標を抽出し、インタラクティブな旅行マップを作成します。" },
-      f6: { title: "アプリ内自動更新", desc: "バックグラウンドでのシームレスなダウンロードとネイティブインストールにより、常に最新の状態を保ちます。" }
-    },
-    simulator: {
-      title: "接続インタラクティブデモ",
-      subtitle: "以下のステップをクリックして、BLE による WebRTC 接続プロセスを確認してください。",
-      s1: "QR スキャン", s2: "BLE シグナル", s3: "ローカル Wi-Fi 接続", s4: "双方向転送",
-      qrText: "デスクトップに接続情報を格納した QR コードを表示します。",
-      qrSub: "モバイルでスキャンし、GATT サービスを取得してペアリングを開始します。",
-      bleText: "BLE を介して WebRTC SDP と ICE 候補を交換します。",
-      bleSub: "80ms のキュー処理により、Windows BLE でのパケットロスを防ぎます。",
-      connectedText: "データチャネル接続完了！",
-      connectedSub: "BLE 通信を切断し、ローカル高速 Wi-Fi 通信に移行します。",
-      flowText: "16バイトヘッダー + 32KB バイナリデータパケット転送。",
-      flowSub: "受信したデータを結合・復元し、ローカルアルバムに即時保存します。",
-      pcToPhone: "PC 📤 モバイル (送信)",
-      phoneToPc: "モバイル 📤 PC (送信)",
-      next: "次へ ➔",
-      reset: "もう一度 ↺"
-    },
-    tech: {
-      title: "接続診断 & トラブルシューティング",
-      subtitle: "ローカル P2P 通信はルーターなどのローカルネットワーク環境に依存します。",
-      t1: { title: "📡 AP アイソレーション問題", desc: "ルーターで「AP 分離（LAN 隔離）」が有効な場合、WebRTC は接続中のままタイムアウトします。", solution: "解決策: モバイルの「個人用ホットスポット」を有効にし、PC を接続して隔離を回避します。" },
-      t2: { title: "🛡️ Windows ファイアウォール制限", desc: "ファイアウォールが入出力 UDP ポートをブロックし、パケットを破棄することがあります。", solution: "解決策: ポップアップ表示時に「アクセスを許可」を選択するか、Node.js のポートを許可してください。" }
-    },
-    download: {
-      title: "今すぐ ShareCLIP をダウンロード",
-      subtitle: "安全、高速、広告なしのローカル AI 同期ツール。",
-      pc: { title: "ShareCLIP PC 版", meta: "Windows 10 / 11 (64-bit) 対応", desc: "MobileCLIP ONNX 推論エンジン、BLE サービス、デスクトップ管理機能を内蔵。", btn: "Windows版ダウンロード (EXE)" },
-      android: { title: "ShareCLIP Android 版", meta: "Android 8.0+ 対応", desc: "Flutter 製。QR スキャン、WebRTC ソケット、アルバム管理に対応。", btn: "Android版ダウンロード (APK)" }
-    },
-    footer: { copyright: "© 2026 ShareCLIP オープンソースプロジェクト。 MIT ライセンス。", privacy: "ローカル AI 処理を使用。クラウドへのアップロードはありません。" }
-  },
-  ko: {
-    nav: { features: "기능 특징", simulator: "연결 데모", tech: "기술 아키텍처", download: "지금 다운로드" },
-    hero: {
-      badge: "✨ 새로운 멀티 플랫폼 동기화 버전 출시",
-      title: "설정 없이 즉각적인 양방향 사진 동기화 & 로컬 AI 자동 분류",
-      desc: "ShareCLIP은 혁신적인 사진 관리 도구입니다. QR 코드를 스캔하여 BLE 및 WebRTC 연결을 설정하고, 초고속 로컬 P2P 전송을 지원합니다. 로컬 MobileCLIP AI 엔진 탑재로 사진 전송 즉시 자동 분류됩니다. 100% 안전합니다.",
-      getClient: "다운로드 센터",
-      simulate: "온라인 시뮬레이터"
-    },
-    features: {
-      title: "핵심 기능 특징",
-      subtitle: "BLE 신호, 로컬 Wi-Fi 소켓 및 로컬 AI 모델 통합으로 데이터 흐름 정의",
-      f1: { title: "BLE 간편 페어링", desc: "IP 입력 없음. QR 스캔만으로 BLE GATT 채널을 형성하고 기기를 자동으로 감지합니다." },
-      f2: { title: "WebRTC 로컬 직련", desc: "페어링 즉시 WebRTC 데이터채널 오픈. 인터넷이 없어도 기가비트 Wi-Fi 속도로 고화질 사진을 전송합니다." },
-      f3: { title: "로컬 MobileCLIP AI", desc: "PC 내장 MobileCLIP ONNX 모델 작동. 전송된 사진을 인물, 동물, 풍경 등으로 0.2초 내에 자동 분류합니다." },
-      f4: { title: "양방향 스마트 흐름 제어", desc: "양방향 전송 지원. 대용량 파일 전송 시 BufferedAmount 제어로 패킷 손실을 완벽히 차단합니다." },
-      f5: { title: "발자국 지도", desc: "사진의 EXIF GPS 좌표를 추출하여 인터랙티브한 여행 지도를 생성합니다." },
-      f6: { title: "앱 내 자동 업데이트", desc: "백그라운드에서 끊김 없이 다운로드하고 네이티브 설치를 진행하여 항상 최신 버전을 유지합니다." }
-    },
-    simulator: {
-      title: "인터랙티브 연결 시뮬레이션",
-      subtitle: "아래 단계를 클릭하여 BLE와 WebRTC가 연결되는 과정을 확인하세요.",
-      s1: "QR 스캔", s2: "BLE 신호 전송", s3: "로컬 직련 성공", s4: "양방향 전송",
-      qrText: "데스크톱 화면에 연결 세션 키가 포함된 QR 코드를 표시합니다.",
-      qrSub: "모바일에서 QR 스캔 시 BLE GATT 서비스 UUID를 획득하여 페어링을 시작합니다.",
-      bleText: "BLE를 통해 WebRTC SDP와 ICE Candidate를 교환합니다.",
-      bleSub: "80ms 지연 큐를 적용하여 윈도우 환경의 BLE 데이터 유실을 방지합니다.",
-      connectedText: "데이터채널 연결 성공!",
-      connectedSub: "느린 BLE 세션을 종료하고 초고속 로컬 Wi-Fi 전송으로 전환합니다.",
-      flowText: "16바이트 헤더 패킷화 + 32KB 청크 데이터 전송.",
-      flowSub: "수신된 데이터를 병합하여 앨범 갤러리에 실시간 저장합니다.",
-      pcToPhone: "PC 📤 모바일 (파일 전송)",
-      phoneToPc: "모바일 📤 PC (파일 전송)",
-      next: "다음 단계 ➔",
-      reset: "다시 시도 ↺"
-    },
-    tech: {
-      title: "아키텍처 및 연결 문제 해결",
-      subtitle: "로컬 P2P 직련은 공유기 등 네트워크 환경의 영향을 많이 받습니다.",
-      t1: { title: "📡 공유기 AP 격리 문제", desc: "보안 Wi-Fi 환경에서 'AP 격리'가 켜져 있으면 기기간 직접 통신이 차단되어 연결이 제한됩니다.", solution: "해결책: 모바일 '개인 핫스팟'을 켜고 PC를 연결하여 라우터의 격리 규칙을 우회하세요." },
-      t2: { title: "🛡️ 윈도우 방화벽 차단", desc: "방화벽이 인바운드 UDP 포트를 강제 차단하여 연결 요청을 거부할 수 있습니다.", solution: "해결책: 윈도우 보안 설정에서 Node.js 포트를 허용하거나 허용 팝업 클릭 시 '허용'을 선택하세요." }
-    },
-    download: {
-      title: "지금 ShareCLIP 다운로드",
-      subtitle: "안전하고 빠르며 광고 없는 로컬 AI 사진 동기화 도구.",
-      pc: { title: "ShareCLIP PC 버전", meta: "Windows 10 / 11 (64-bit) 지원", desc: "MobileCLIP ONNX 엔진, BLE 신호 서비스, 데스크톱 파일 관리 기능 포함.", btn: "Windows용 다운로드 (EXE)" },
-      android: { title: "ShareCLIP 안드로이드용", meta: "Android 8.0 이상 지원", desc: "Flutter 빌드. QR 스캔 연결, WebRTC 소켓, 앨범 동기화 기능 지원.", btn: "안드로이드용 다운로드 (APK)" }
-    },
-    footer: { copyright: "© 2026 ShareCLIP 오픈소스 프로젝트. MIT 라이센스.", privacy: "로컬 단측 AI 추론 사용. 데이터는 클라우드에 업로드되지 않습니다." }
-  }
+  zh: messages.zh,
+  en: messages.en
 };
 
-// Autopopulate remaining languages with English fallback template to keep memory footprint tiny and satisfy the 20-language request
 languagesToGenerate.forEach(lang => {
-  if (!translations[lang]) {
-    // Clone English as fallback and customize titles for identification
+  if (lang === "zh-TW") {
+    // Deep clone zh for Traditional Chinese
+    translations["zh-TW"] = JSON.parse(JSON.stringify(messages.zh));
+    translations["zh-TW"].nav.webshare = "🌐 網頁互聯 (WebShare)";
+    translations["zh-TW"].nav.download = "立即下載";
+    translations["zh-TW"].hero.titleMain = "打破設備壁壘";
+    translations["zh-TW"].hero.titleSub = "本地 AI 賦能的跨端無網相冊管理生態";
+  } else {
+    // Clone English as robust fallback
     const cloned = JSON.parse(JSON.stringify(messages.en));
-    cloned.nav.download = `${cloned.nav.download} (${lang.toUpperCase()})`;
     translations[lang] = cloned;
   }
 });
-
-// Merge manual translations back
-translations.en = messages.en;
-translations.zh = messages.zh;
 
 export const locales = translations;

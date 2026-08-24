@@ -27,6 +27,9 @@
 ### 7. [人脸识别技术汇报与路线对比](file:///d:/AI_serach_image/image_clip_android/wiki/pc/face_recognition_report.md)
 *   **内容**：对比 ShareCLIP 当前方案与纯 JS (face-api.js)、Dlib、OpenCV Haar、MediaPipe、RetinaFace+ResNet50 在隐私、精度、体积与算力开销上的核心权衡。
 
+### 8. [PC 蓝牙 (BLE GATT) 兼容性修复与全链路自动降级白皮书](file:///d:/AI_serach_image/image_clip_android/wiki/pc/ble_gatt_compatibility_and_fallback.md)
+*   **内容**：深度剖析异构 Windows PC 蓝牙开启失败的诱因（特征值属性冲突、端口残留竞争、广播参数敏感性），详细阐述 C++/WinRT 原生层两级属性回退、GATT 端口 3 次重试、/MT 静态编译以及前端“蓝牙失败无缝降级 Wi-Fi 直连二维码”的设计与实现。
+
 ---
 
 ## 🏗️ 整体系统架构图

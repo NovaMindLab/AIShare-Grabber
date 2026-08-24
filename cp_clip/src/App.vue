@@ -3680,28 +3680,35 @@ async function toggleSyncService() {
           });
         }
       } catch (err) {
-        logSyncEvent(`❌ BLE GATT 启动失败: ${err.message || err}`);
-        if (hotspotSsid.value && hotspotPassword.value) {
-          logSyncEvent('⚠️ 降级为纯 Wi-Fi 热点模式，生成无 BLE 的二维码...');
-          const fallbackPayload = {
-            ble_mac: '',
-            service_uuid: '',
-            char_uuid: '',
-            session_id: '',
-            hotspotSsid: hotspotSsid.value,
-            hotspotPassword: hotspotPassword.value
-          };
-          qrPayload.value = fallbackPayload;
-          syncStatus.value = 'advertising'; // Use the same status so the UI shows the QR
-          await nextTick();
-          if (qrCanvas.value) {
-            QRCode.toCanvas(qrCanvas.value, JSON.stringify(fallbackPayload), { width: 140, margin: 1 }, (error) => {
-              if (error) logSyncEvent(`⚠️ QR Code error: ${error.message}`);
-            });
-          }
-        } else {
-          isSyncActive.value = false;
-          syncStatus.value = 'idle';
+        logSyncEvent(`⚠️ BLE GATT 广播受限: ${err.message || err}`);
+        logSyncEvent('⚡ 自动降级为【局域网 Wi-Fi 直连模式】，生成直连二维码...');
+        
+        let localIps = [];
+        let sessId = '1001';
+        try {
+          localIps = await window.api.getValidPhysicalIps();
+        } catch (_) {}
+        try {
+          sessId = await window.api.getPcSessionId();
+        } catch (_) {}
+
+        const fallbackPayload = {
+          ble_mac: '',
+          service_uuid: '',
+          char_uuid: '',
+          session_id: sessId || '1001',
+          pc_ips: localIps,
+          hotspotSsid: hotspotSsid.value || '',
+          hotspotPassword: hotspotPassword.value || ''
+        };
+        qrPayload.value = fallbackPayload;
+        syncStatus.value = 'advertising'; // Keep active to render QR code for mobile scanning
+        logSyncEvent(`Wi-Fi 直连二维码已就绪! IP: ${localIps.join(', ') || '局域网自动探测'}`);
+        await nextTick();
+        if (qrCanvas.value) {
+          QRCode.toCanvas(qrCanvas.value, JSON.stringify(fallbackPayload), { width: 140, margin: 1 }, (error) => {
+            if (error) logSyncEvent(`⚠️ QR Code error: ${error.message}`);
+          });
         }
       }
     } else {
