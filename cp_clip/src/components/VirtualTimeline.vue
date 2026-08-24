@@ -69,14 +69,6 @@
                   class="video-poster-media" 
                   loading="lazy" 
                 />
-                <video 
-                  v-else-if="item.src || item.path" 
-                  :src="(item.src || `local:///${item.path.replace(/\\/g, '/')}`) + '#t=0.5'" 
-                  class="video-poster-media" 
-                  preload="metadata" 
-                  muted 
-                  playsinline
-                ></video>
                 <div v-else class="video-poster-placeholder">
                   <span class="video-poster-icon">🎬</span>
                 </div>

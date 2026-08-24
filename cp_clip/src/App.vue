@@ -756,20 +756,31 @@
             </div>
           </div>
 
-          <!-- Connection logs panel (Shared by all states) -->
-          <div v-if="syncStatus !== 'connected'" style="border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(0, 0, 0, 0.4); padding: 16px; text-align: left; width: 100%; box-sizing: border-box;">
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;">
-              <span style="font-weight: 600; display: flex; align-items: center; gap: 6px;">📝 {{ t.link.logsTitle }}</span>
-              <button 
-                style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 2px 8px; font-size: 10px; color: var(--text-secondary); cursor: pointer;"
-                @click="syncLogs = []"
-              >
-                {{ t.link.clearLogs }}
-              </button>
-            </div>
-            <div ref="logTerminalRef" style="height: 100px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #38bdf8; line-height: 1.5; white-space: pre-wrap; padding: 4px;">
-              <div v-if="syncLogs.length === 0" style="color: var(--text-muted);">{{ t.link.waitingLogs }}</div>
-              <div v-for="(log, idx) in syncLogs" :key="idx">{{ log }}</div>
+          <!-- Collapsible Connection Logs Panel Toggle (Hidden by default in release) -->
+          <div v-if="syncStatus !== 'connected'" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <button 
+              @click="showSyncLogs = !showSyncLogs"
+              style="background: transparent; border: none; font-size: 11px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 4px; transition: color 0.2s;"
+              onmouseover="this.style.color='var(--text-secondary)'"
+              onmouseout="this.style.color='var(--text-muted)'"
+            >
+              <span>{{ showSyncLogs ? '▾ 收起连接日志' : '▸ 展开连接日志' }}</span>
+            </button>
+
+            <div v-if="showSyncLogs" style="border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(0, 0, 0, 0.4); padding: 16px; text-align: left; width: 100%; box-sizing: border-box;">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;">
+                <span style="font-weight: 600; display: flex; align-items: center; gap: 6px;">📝 {{ t.link.logsTitle }}</span>
+                <button 
+                  style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 2px 8px; font-size: 10px; color: var(--text-secondary); cursor: pointer;"
+                  @click="syncLogs = []"
+                >
+                  {{ t.link.clearLogs }}
+                </button>
+              </div>
+              <div ref="logTerminalRef" style="height: 100px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #38bdf8; line-height: 1.5; white-space: pre-wrap; padding: 4px;">
+                <div v-if="syncLogs.length === 0" style="color: var(--text-muted);">{{ t.link.waitingLogs }}</div>
+                <div v-for="(log, idx) in syncLogs" :key="idx">{{ log }}</div>
+              </div>
             </div>
           </div>
 
@@ -863,74 +874,9 @@
 
         <!-- 3. VIDEOS TAB (Remote Video Sync & Date Grouped Timeline with Virtual Scrolling) -->
         <div v-else-if="currentTab === 'videos'" class="videos-tab-container">
-          <!-- Top Video Control Action Banner -->
-          <div class="glass-panel video-control-banner">
-            <div class="video-control-left">
-              <div class="video-control-title-row">
-                <h3>{{ t.videos?.title || '🎥 视频同步与管理' }}</h3>
-                <span class="badge-pill" :class="syncStatus === 'connected' ? 'badge-online' : 'badge-offline'">
-                  <span class="status-dot" :class="{ 'pulse-dot': syncStatus === 'connected' }"></span>
-                  {{ syncStatus === 'connected' ? (t.videos?.mobileConnected ? t.videos.mobileConnected.replace('{name}', activeDeviceName || '设备') : `🟢 手机已直连 [${activeDeviceName || '设备'}]`) : (t.videos?.mobileNotConnected || '⚪ 手机未连接') }}
-                </span>
-                <span v-if="totalUnsyncedVideosCount > 0" class="badge-pill badge-unsynced-pulse">
-                  {{ t.videos?.unsyncedFound ? t.videos.unsyncedFound.replace('{count}', totalUnsyncedVideosCount) : `⚡ 发现 ${totalUnsyncedVideosCount} 个新视频待同步` }}
-                </span>
-              </div>
-              <p class="video-control-subtitle">
-                {{ t.videos?.subtitle || '支持按拍摄日期浏览手机视频，勾选后一键极速传输下载。' }}
-                <span style="color: var(--text-primary); font-weight: 600;">
-                  {{ t.videos?.totalStats ? t.videos.totalStats.replace('{total}', totalAllVideosCount).replace('{synced}', localVideos.length) : `(共 ${totalAllVideosCount} 个视频 • 已备份 ${localVideos.length} 个)` }}
-                </span>
-              </p>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="video-control-actions">
-              <!-- Download Selected Videos Button (Glowing primary button when items are selected) -->
-              <button 
-                v-if="syncStatus === 'connected'"
-                class="btn btn-primary"
-                :class="{ 'btn-glow-pulse': selectedVideosCount > 0 }"
-                :disabled="isVideoSyncing || selectedVideosCount === 0"
-                @click="downloadSelectedVideos"
-                :title="selectedVideosCount > 0 ? '下载所有已勾选的视频' : '请在下方勾选要下载的视频'"
-              >
-                <span>⬇️</span> {{ selectedVideosCount > 0 ? (t.videos?.downloadSelectedBtn ? t.videos.downloadSelectedBtn.replace('{count}', selectedVideosCount) : `下载选中视频 (${selectedVideosCount})`) : (t.videos?.noSelectedBtn || '请勾选视频下载') }}
-              </button>
-
-              <!-- Select All / Clear Selection Button -->
-              <button 
-                v-if="syncStatus === 'connected' && totalUnsyncedVideosCount > 0"
-                class="btn btn-secondary btn-sm"
-                @click="selectedVideosCount === totalUnsyncedVideosCount ? clearVideoSelection() : selectAllUnsyncedVideos()"
-              >
-                {{ selectedVideosCount === totalUnsyncedVideosCount ? (t.videos?.clearSelection || '⬜ 取消全选') : (t.videos?.selectAllUnsynced ? t.videos.selectAllUnsynced.replace('{count}', totalUnsyncedVideosCount) : `☑️ 全选待同步 (${totalUnsyncedVideosCount})`) }}
-              </button>
-
-              <!-- Check / Refresh Remote Video List -->
-              <button 
-                v-if="syncStatus === 'connected'"
-                class="btn btn-secondary btn-sm"
-                :disabled="isVideoSyncing"
-                @click="queryRemoteVideoCatalog"
-              >
-                {{ t.videos?.refreshListBtn || '🔄 刷新手机列表' }}
-              </button>
-
-              <!-- Import Local Folder -->
-              <button class="btn btn-secondary btn-sm" @click="handleImportFolder">
-                {{ t.videos?.importLocalBtn || '📁 导入本地' }}
-              </button>
-
-              <!-- Open Videos Sync Folder -->
-              <button v-if="hasApi" class="btn btn-secondary btn-sm" @click="openDownloadFolder">
-                {{ t.videos?.openDirBtn || '📂 打开目录' }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Video View Filter Tabs -->
-          <div class="video-filter-bar">
+          <!-- Compact View Filter & Control Bar -->
+          <div class="video-compact-top-bar glass-panel">
+            <!-- Filter Tabs on Left -->
             <div class="video-filter-tabs">
               <button 
                 class="video-filter-btn" 
@@ -954,7 +900,87 @@
                 📱 手机待下载 <span class="filter-count">({{ totalUnsyncedVideosCount }})</span>
               </button>
             </div>
+
+            <!-- Quick Action & Collapsible Panel Toggle on Right -->
+            <div class="video-compact-actions">
+              <button 
+                v-if="syncStatus === 'connected'"
+                class="btn btn-secondary btn-xs"
+                :disabled="isVideoSyncing"
+                @click="queryRemoteVideoCatalog"
+                title="刷新手机端视频列表"
+              >
+                🔄 刷新列表
+              </button>
+              <button 
+                class="btn btn-secondary btn-xs" 
+                @click="handleImportFolder"
+                title="导入本地视频文件夹"
+              >
+                📁 导入本地
+              </button>
+              <button 
+                class="btn btn-secondary btn-xs btn-panel-toggle" 
+                @click="isVideoControlExpanded = !isVideoControlExpanded"
+                :title="isVideoControlExpanded ? '收起视频管理面板' : '展开视频管理面板与统计'"
+              >
+                <span>{{ isVideoControlExpanded ? '▴ 收起面板' : '▾ 展开面板' }}</span>
+              </button>
+            </div>
           </div>
+
+          <!-- Expandable Video Control Action Banner -->
+          <transition name="modal-fade">
+            <div v-if="isVideoControlExpanded" class="glass-panel video-control-banner">
+              <div class="video-control-left">
+                <div class="video-control-title-row">
+                  <h3>{{ t.videos?.title || '🎥 视频同步与管理' }}</h3>
+                  <span class="badge-pill" :class="syncStatus === 'connected' ? 'badge-online' : 'badge-offline'">
+                    <span class="status-dot" :class="{ 'pulse-dot': syncStatus === 'connected' }"></span>
+                    {{ syncStatus === 'connected' ? (t.videos?.mobileConnected ? t.videos.mobileConnected.replace('{name}', activeDeviceName || '设备') : `🟢 手机已直连 [${activeDeviceName || '设备'}]`) : (t.videos?.mobileNotConnected || '⚪ 手机未连接') }}
+                  </span>
+                  <span v-if="totalUnsyncedVideosCount > 0" class="badge-pill badge-unsynced-pulse">
+                    {{ t.videos?.unsyncedFound ? t.videos.unsyncedFound.replace('{count}', totalUnsyncedVideosCount) : `⚡ 发现 ${totalUnsyncedVideosCount} 个新视频待同步` }}
+                  </span>
+                </div>
+                <p class="video-control-subtitle">
+                  {{ t.videos?.subtitle || '支持按拍摄日期浏览手机视频，勾选后一键极速传输下载。' }}
+                  <span style="color: var(--text-primary); font-weight: 600;">
+                    {{ t.videos?.totalStats ? t.videos.totalStats.replace('{total}', totalAllVideosCount).replace('{synced}', localVideos.length) : `(共 ${totalAllVideosCount} 个视频 • 已备份 ${localVideos.length} 个)` }}
+                  </span>
+                </p>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="video-control-actions">
+                <!-- Download Selected Videos Button -->
+                <button 
+                  v-if="syncStatus === 'connected'"
+                  class="btn btn-primary"
+                  :class="{ 'btn-glow-pulse': selectedVideosCount > 0 }"
+                  :disabled="isVideoSyncing || selectedVideosCount === 0"
+                  @click="downloadSelectedVideos"
+                  :title="selectedVideosCount > 0 ? '下载所有已勾选的视频' : '请在下方勾选要下载的视频'"
+                >
+                  <span>⬇️</span> {{ selectedVideosCount > 0 ? (t.videos?.downloadSelectedBtn ? t.videos.downloadSelectedBtn.replace('{count}', selectedVideosCount) : `下载选中视频 (${selectedVideosCount})`) : (t.videos?.noSelectedBtn || '请勾选视频下载') }}
+                </button>
+
+                <!-- Select All / Clear Selection Button -->
+                <button 
+                  v-if="syncStatus === 'connected' && totalUnsyncedVideosCount > 0"
+                  class="btn btn-secondary btn-sm"
+                  @click="selectedVideosCount === totalUnsyncedVideosCount ? clearVideoSelection() : selectAllUnsyncedVideos()"
+                >
+                  {{ selectedVideosCount === totalUnsyncedVideosCount ? (t.videos?.clearSelection || '⬜ 取消全选') : (t.videos?.selectAllUnsynced ? t.videos.selectAllUnsynced.replace('{count}', totalUnsyncedVideosCount) : `☑️ 全选待同步 (${totalUnsyncedVideosCount})`) }}
+                </button>
+
+                <!-- Open Videos Sync Folder -->
+                <button v-if="hasApi" class="btn btn-secondary btn-sm" @click="openDownloadFolder">
+                  {{ t.videos?.openDirBtn || '📂 打开目录' }}
+                </button>
+              </div>
+            </div>
+          </transition>
 
           <!-- Video Syncing Progress Bar Banner -->
           <div v-if="isVideoSyncing" class="glass-panel video-sync-progress-banner">
@@ -986,7 +1012,7 @@
             <p class="empty-state-desc">
               <span v-if="videoTabFilter === 'synced'">请在顶部切换至「📱 手机待下载」勾选视频并点击下载。</span>
               <span v-else-if="videoTabFilter === 'unsynced'">手机中所有检测到的视频均已同步至电脑本地。</span>
-              <span v-else>{{ syncStatus === 'connected' ? (t.videos?.emptyConnectedDesc || '手机中暂未检测到视频文件，或点击上方「刷新手机列表」重新扫描。') : (t.videos?.emptyDisconnectedDesc || '请在左下角连接手机以自动发现并按日期同步视频，或点击上方「导入本地」选取电脑视频。') }}</span>
+              <span v-else>{{ syncStatus === 'connected' ? (t.videos?.emptyConnectedDesc || '手机中暂未检测到视频文件，或点击上方「刷新列表」重新扫描。') : (t.videos?.emptyDisconnectedDesc || '请在左下角连接手机以自动发现并按日期同步视频，或点击上方「导入本地」选取电脑视频。') }}</span>
             </p>
           </div>
 
@@ -1048,29 +1074,12 @@
             </div>
           </transition>
 
-          <!-- Video Fullscreen Player Lightbox Modal -->
+          <!-- Video Fullscreen Player Lightbox Modal (Clean, No Top Name, No Locate Button) -->
           <transition name="modal-fade">
             <div v-if="activePlayingVideo" class="video-player-overlay" @click.self="closeVideoPlayer">
               <div class="video-player-modal glass-panel">
-                <div class="video-player-header">
-                  <div class="video-player-title-info">
-                    <span style="font-size: 20px;">🎬</span>
-                    <div>
-                      <div class="vp-filename">{{ activePlayingVideo.name }}</div>
-                      <div class="vp-meta">{{ formatBytes(activePlayingVideo.size) }} • {{ activePlayingVideo.path }}</div>
-                    </div>
-                  </div>
-                  <div class="video-player-header-actions">
-                    <button 
-                      v-if="hasApi && activePlayingVideo.path" 
-                      class="btn btn-secondary btn-sm" 
-                      @click="window.api.openFileLocation(activePlayingVideo.path)"
-                    >
-                      {{ t.videos?.locateFileBtn || '📂 定位文件' }}
-                    </button>
-                    <button class="vp-close-btn" @click="closeVideoPlayer">✕</button>
-                  </div>
-                </div>
+                <!-- Floating Minimalist Close Button Only -->
+                <button class="vp-floating-close-btn" @click="closeVideoPlayer" title="关闭视频 (ESC)">✕</button>
 
                 <!-- Video Viewport -->
                 <div class="video-player-body">
@@ -2460,6 +2469,8 @@ const selectedCategory = ref(null);
 const galleryContainerRef = ref(null);
 const virtualGridRef = ref(null);
 const virtualTimelineRef = ref(null);
+const showSyncLogs = ref(false);
+const isVideoControlExpanded = ref(false);
 
 function selectCategory(cat) {
   selectedCategory.value = cat;
@@ -3031,8 +3042,10 @@ function downloadSingleVideo(item) {
   requestVideoSync({ targetIds: [item.id] });
 }
 
-// Video thumbnail extraction & caching for PC-side local videos
-const videoPosterCache = ref(new Map());
+// Video thumbnail extraction & caching for PC-side local videos (Lightweight Sequential Queue)
+const videoPosterCache = shallowRef(new Map());
+const posterQueue = [];
+let isGeneratingPoster = false;
 
 function getVideoPoster(item) {
   if (item.thumb) {
@@ -3043,16 +3056,33 @@ function getVideoPoster(item) {
     return videoPosterCache.value.get(key);
   }
   if (item.isSynced || item.path || item.src) {
-    generateVideoPoster(item);
+    queueVideoPosterGeneration(item);
   }
   return null;
 }
 
-function generateVideoPoster(item) {
+function queueVideoPosterGeneration(item) {
+  const key = item.path || item.id || item.name;
+  if (videoPosterCache.value.has(key) || posterQueue.some(i => (i.path || i.id || i.name) === key)) {
+    return;
+  }
+  posterQueue.push(item);
+  processPosterQueue();
+}
+
+function processPosterQueue() {
+  if (isGeneratingPoster || posterQueue.length === 0) return;
+  const item = posterQueue.shift();
+  if (!item) return;
+
   const url = item.src || (item.path ? `local:///${item.path.replace(/\\/g, '/')}` : null);
   const key = item.path || item.id || item.name;
-  if (!url || videoPosterCache.value.has(key)) return;
+  if (!url || videoPosterCache.value.has(key)) {
+    processPosterQueue();
+    return;
+  }
 
+  isGeneratingPoster = true;
   const video = document.createElement('video');
   video.crossOrigin = 'anonymous';
   video.src = url;
@@ -3060,34 +3090,52 @@ function generateVideoPoster(item) {
   video.muted = true;
   video.playsInline = true;
 
+  let timeoutId = setTimeout(() => {
+    cleanup();
+    processPosterQueue();
+  }, 2500);
+
+  function cleanup() {
+    clearTimeout(timeoutId);
+    video.onloadeddata = null;
+    video.onseeked = null;
+    video.onerror = null;
+    video.src = '';
+    video.load();
+    isGeneratingPoster = false;
+  }
+
   video.onloadeddata = () => {
-    // Seek to 0.5s or 10% of duration to get a representative non-black frame
     video.currentTime = Math.min(1.0, (video.duration || 1) * 0.1);
   };
 
   video.onseeked = () => {
     try {
       const canvas = document.createElement('canvas');
-      const w = 320;
-      const h = Math.round(w * ((video.videoHeight || 180) / (video.videoWidth || 320)));
+      const w = 240;
+      const h = Math.round(w * ((video.videoHeight || 135) / (video.videoWidth || 240)));
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(video, 0, 0, w, h);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-        videoPosterCache.value.set(key, dataUrl);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        const newMap = new Map(videoPosterCache.value);
+        newMap.set(key, dataUrl);
+        videoPosterCache.value = newMap;
       }
     } catch (e) {
       console.warn('Canvas poster capture error for', item.name, e);
     } finally {
-      video.src = '';
-      video.load();
+      cleanup();
+      // Delay 40ms to yield CPU to main thread & smooth UI scrolling
+      setTimeout(processPosterQueue, 40);
     }
   };
 
   video.onerror = () => {
-    video.src = '';
+    cleanup();
+    setTimeout(processPosterQueue, 40);
   };
 }
 
@@ -6829,75 +6877,84 @@ function getMockClassification(url) {
   gap: 10px;
 }
 
-/* Fullscreen Video Player Modal */
-.video-player-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.82);
-  backdrop-filter: blur(16px);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 30px;
-}
-
-.video-player-modal {
-  width: 100%;
-  max-width: 960px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
-}
-
-.video-player-header {
+/* Compact Video Top Bar */
+.video-compact-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 16px;
+  border-radius: var(--border-radius-md, 12px);
+  gap: 12px;
 }
 
-.video-player-title-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.vp-filename {
-  font-size: 13.5px;
-  font-weight: 800;
-  color: #fff;
-}
-.vp-meta {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.video-player-header-actions {
+.video-compact-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.vp-close-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+.btn-panel-toggle {
+  background: rgba(168, 85, 247, 0.12) !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(168, 85, 247, 0.3) !important;
+  font-weight: 700 !important;
+}
+.btn-panel-toggle:hover {
+  background: rgba(168, 85, 247, 0.25) !important;
+  color: #fff !important;
+}
+
+/* Fullscreen Video Player Modal */
+.video-player-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(16px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.video-player-modal {
+  position: relative;
+  width: 100%;
+  max-width: 1020px;
+  background: #000;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9);
+}
+
+.vp-floating-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
   color: #fff;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
 }
-.vp-close-btn:hover {
+.vp-floating-close-btn:hover {
   background: #ef4444;
+  border-color: #ef4444;
+  transform: scale(1.1);
 }
 
 .video-player-body {
@@ -6906,12 +6963,12 @@ function getMockClassification(url) {
   display: flex;
   align-items: center;
   justify-content: center;
-  max-height: 70vh;
+  max-height: 80vh;
 }
 
 .video-native-element {
   width: 100%;
-  max-height: 70vh;
+  max-height: 80vh;
   outline: none;
 }
 </style>
