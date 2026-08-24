@@ -143,6 +143,16 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('yt-progress', (event, data) => callback(data));
   },
 
+  // Video AnimeGAN Transformation APIs
+  getVideoAnimeInfo: (videoPath) => ipcRenderer.invoke('video-anime:get-info', videoPath),
+  getVideoAnimeStyles: () => ipcRenderer.invoke('video-anime:get-styles'),
+  startVideoAnime: (params) => ipcRenderer.invoke('video-anime:start', params),
+  cancelVideoAnime: () => ipcRenderer.invoke('video-anime:cancel'),
+  onVideoAnimeProgress: (callback) => {
+    ipcRenderer.removeAllListeners('video-anime:progress');
+    ipcRenderer.on('video-anime:progress', (event, data) => callback(data));
+  },
+
   // Window controls
   minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
   maximizeWindow: () => ipcRenderer.invoke('window-maximize'),

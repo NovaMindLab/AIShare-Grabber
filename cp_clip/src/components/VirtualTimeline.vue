@@ -108,7 +108,16 @@
                 <div class="video-card-name" :title="item.name">{{ item.name }}</div>
                 <div class="video-card-sub">
                   <span>{{ formatBytes(item.size) }}</span>
-                  <span v-if="item.isSynced" class="video-play-hint">{{ t?.videos?.playHint || '▶️ 点击播放' }}</span>
+                  <div v-if="item.isSynced" style="display: flex; align-items: center; gap: 6px;">
+                    <button 
+                      class="btn-video-anime-edit" 
+                      @click.stop="$emit('open-anime-studio', item)"
+                      title="一键将视频转换为二次元动漫风"
+                    >
+                      🎨 动漫化
+                    </button>
+                    <span class="video-play-hint">{{ t?.videos?.playHint || '▶️ 播放' }}</span>
+                  </div>
                   <div v-else style="display: flex; align-items: center; gap: 6px;">
                     <button 
                       class="btn-video-quick-download" 
@@ -188,7 +197,8 @@ defineEmits([
   'toggle-date-selection',
   'sync-date',
   'play-video',
-  'download-video'
+  'download-video',
+  'open-anime-studio'
 ]);
 
 const outerRef = ref(null);
@@ -530,6 +540,29 @@ defineExpose({
   color: #38bdf8;
   font-weight: 700;
   font-size: 11px;
+}
+
+.btn-video-anime-edit {
+  padding: 2.5px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 6px;
+  background: rgba(168, 85, 247, 0.18);
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  color: #c084fc;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.btn-video-anime-edit:hover {
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  color: #fff;
+  border-color: #a855f7;
+  transform: scale(1.06);
+  box-shadow: 0 2px 10px rgba(168, 85, 247, 0.4);
 }
 
 .btn-video-quick-download {

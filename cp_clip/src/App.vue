@@ -1035,6 +1035,7 @@
             @sync-date="group => requestVideoSync({ targetDate: group.rawDate, targetIds: group.unsyncedIds })"
             @play-video="openVideoPlayer"
             @download-video="downloadSingleVideo"
+            @open-anime-studio="openAnimeStudio"
             style="flex: 1;"
           />
 
@@ -1093,6 +1094,13 @@
               </div>
             </div>
           </transition>
+
+          <!-- Video AnimeGAN Studio Modal -->
+          <VideoAnimeStudioModal 
+            :video="animeStudioVideo" 
+            @close="closeAnimeStudio"
+            @play-video="openVideoPlayer"
+          />
         </div>
 
         <!-- 4. AUDIOS TAB -->
@@ -2412,6 +2420,7 @@ import { ref, computed, nextTick, onMounted, onUnmounted, watch, reactive } from
 import { useVirtualList, useElementSize } from '@vueuse/core';
 import VirtualGrid from './components/VirtualGrid.vue';
 import VirtualTimeline from './components/VirtualTimeline.vue';
+import VideoAnimeStudioModal from './components/VideoAnimeStudioModal.vue';
 import QRCode from 'qrcode';
 import { locales, languages } from './locales.js';
 import { initAnalytics, trackEvent, trackFeatureUse, identifyUser, setTelemetryOptOut, isTelemetryEnabled } from './analytics.js';
@@ -2471,6 +2480,14 @@ const virtualGridRef = ref(null);
 const virtualTimelineRef = ref(null);
 const showSyncLogs = ref(false);
 const isVideoControlExpanded = ref(false);
+const animeStudioVideo = ref(null);
+
+function openAnimeStudio(item) {
+  animeStudioVideo.value = item;
+}
+function closeAnimeStudio() {
+  animeStudioVideo.value = null;
+}
 
 function selectCategory(cat) {
   selectedCategory.value = cat;

@@ -3238,6 +3238,104 @@ ipcMain.handle('send-udp-ice', async (event, { ip, candidate }) => {
   });
 });
 
+// ==================== VIDEO ANIMEGAN TRANSFORMATION IPCS ====================
+const VideoAnimeConverter = require('./src/workers/video-anime-converter.cjs');
+let activeAnimeConverter = null;
+
+ipcMain.handle('video-anime:get-info', async (event, videoPath) => {
+  try {
+    const converter = new VideoAnimeConverter();
+    const info = await converter.probeVideo(videoPath);
+    return { success: true, data: info };
+  } catch (err) {
+    console.error('[Video Anime] Probe metadata failed:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('video-anime:get-styles', async () => {
+  return [
+    { 
+      id: 'hayao', 
+      name: '🍃 宫崎骏·吉卜力风 (Hayao)', 
+      desc: '清新手绘、自然治愈、高饱和绿意光影', 
+      icon: '🍃',
+      previewGradient: 'linear-gradient(135deg, #10b981, #059669)'
+    },
+    { 
+      id: 'shinkai', 
+      name: '✨ 新海诚·唯美光影风 (Shinkai)', 
+      desc: '秒速五厘米/天气之子浪漫蓝紫云霞光晕', 
+      icon: '✨',
+      previewGradient: 'linear-gradient(135deg, #38bdf8, #818cf8)'
+    },
+    { 
+      id: 'paprika', 
+      name: '🌸 今敏·红辣椒浓烈奇幻风 (Paprika)', 
+      desc: '浓厚色彩胶片质感、极具视觉冲击力', 
+      icon: '🌸',
+      previewGradient: 'linear-gradient(135deg, #f43f5e, #e11d48)'
+    },
+    { 
+      id: 'portrait', 
+      name: '🎨 二次元人像重绘 (Portrait V3)', 
+      desc: '人脸五官精细动漫化、适合人物特写', 
+      icon: '🎨',
+      previewGradient: 'linear-gradient(135deg, #a855f7, #ec4899)'
+    }
+  ];
+});
+
+ipcMain.handle('video-anime:start', async (event, params) => {
+  const { inputPath, outputPath, style = 'hayao', maxDimension = 1280 } = params;
+  try {
+    if (activeAnimeConverter) {
+      activeAnimeConverter.cancel();
+    }
+
+    activeAnimeConverter = new VideoAnimeConverter();
+
+    // Check model path
+    let modelPath = path.join(__dirname, `animegan_${style}.onnx`);
+    if (!fs.existsSync(modelPath)) {
+      const altPath = path.join(process.resourcesPath || __dirname, `animegan_${style}.onnx`);
+      if (fs.existsSync(altPath)) modelPath = altPath;
+    }
+
+    // If model file doesn't exist locally, we can fallback to mobileclip/det model or create a lightweight placeholder test
+    if (!fs.existsSync(modelPath)) {
+      console.warn(`[Video Anime] Model animegan_${style}.onnx not found locally at ${modelPath}`);
+    }
+
+    const result = await activeAnimeConverter.convert({
+      inputPath,
+      outputPath,
+      modelPath,
+      maxDimension
+    }, (progressData) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('video-anime:progress', progressData);
+      }
+    });
+
+    activeAnimeConverter = null;
+    return { success: true, data: result };
+  } catch (err) {
+    console.error('[Video Anime] Transform failed:', err);
+    activeAnimeConverter = null;
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('video-anime:cancel', async () => {
+  if (activeAnimeConverter) {
+    activeAnimeConverter.cancel();
+    activeAnimeConverter = null;
+    return { success: true };
+  }
+  return { success: false, message: 'No active conversion task' };
+});
+
 // Window controls
 ipcMain.handle('window-minimize', () => {
   if (mainWindow) mainWindow.minimize();

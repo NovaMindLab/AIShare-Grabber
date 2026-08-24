@@ -66,6 +66,7 @@ Guidelines for automated builds and releases:
 
 ## 🔭 Features & Roadmap
 Implemented and upcoming feature specifications:
+*   [🎨 短视频一键二次元/动漫化转换工作室 (AnimeGAN Video Studio)](file:///d:/AI_serach_image/image_clip_android/wiki/features/video_anime_studio_animegan.md): 基于 FFmpeg 裸流双向 stdio 管道的零磁盘写放大视频转换系统，集成 onnxruntime-node 神经风格迁移、纯 TypedArray 图像前后处理算法、背压流控防 OOM 机制与四大画风工作室界面。 **Status: ✅ Implemented**
 *   [🎥 远程视频同步、多选按需下载与时间线虚拟列表](file:///d:/AI_serach_image/image_clip_android/wiki/features/video_sync_and_virtual_scrolling.md): 远程视频目录轻量拉取与按拍摄日期时间线聚合、多选批量按需下载、手机端 15 路并发 Base64 缩略图提取 + PC 端离屏 Canvas 视频首帧捕获双重保障、以及 VirtualTimeline.vue 高性能时间线虚拟列表。 **Status: ✅ Implemented**
 *   [📱→🖥️ AI Thumbnail Sync](file:///d:/AI_serach_image/image_clip_android/wiki/features/thumbnail_sync_ai.md): Batch-sync compressed 400×400 JPEG thumbnails from phone to PC via WebRTC DataChannel, auto-trigger MobileCLIP ONNX classification, save to dedicated `thumbnail_sync/` directory, and display results in Link Mobile panel. **Status: ✅ Implemented**
 *   [🧠 Core AI Algorithms & Preprocessing](file:///d:/AI_serach_image/image_clip_android/wiki/features/algorithms.md): Detailed explanation of MobileCLIP features extraction, zero-shot category matching, Leader clustering to prevent chaining effect, and the memory buffer allocation bug fix. **Status: ✅ Implemented**
