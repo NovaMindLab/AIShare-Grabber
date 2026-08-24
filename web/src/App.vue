@@ -18,6 +18,7 @@
         
         <nav class="nav-links">
           <a href="#features" class="nav-link">{{ t.nav.features }}</a>
+          <a href="#video-demo" class="nav-link">{{ t.nav.videoDemo }}</a>
           <a href="#ai-ecosystem" class="nav-link">{{ t.nav.ai }}</a>
           <a href="#simulator" class="nav-link">{{ t.nav.simulator }}</a>
           <a href="#comparison" class="nav-link">{{ t.nav.comparison }}</a>
@@ -228,6 +229,86 @@
             <div class="feature-icon-box icon-emerald">🧹</div>
             <h3>{{ t.features.f6.title }}</h3>
             <p>{{ t.features.f6.desc }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PROMOTIONAL & REAL-WORLD VIDEO DEMO ==================== -->
+    <section id="video-demo" class="section-padding video-showcase-section">
+      <div class="container">
+        <div class="section-header">
+          <div class="badge-pill pulse-glow">🎬 {{ t.videoSection.badge }}</div>
+          <h2 class="section-title">{{ t.videoSection.title }}</h2>
+          <p class="section-subtitle">{{ t.videoSection.subtitle }}</p>
+        </div>
+
+        <!-- Video Player Master Showcase Card -->
+        <div class="glass-panel video-showcase-card">
+          <!-- Top Window Header Bar -->
+          <div class="video-card-topbar">
+            <div class="video-window-dots">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+            </div>
+            <div class="video-window-title">
+              <span style="margin-right: 6px;">🎥</span> {{ t.videoSection.videoTitle }}
+            </div>
+            <div class="video-hd-badge">
+              <span>HD 1080P • 60 FPS</span>
+            </div>
+          </div>
+
+          <!-- Video Player Core -->
+          <div class="video-player-wrapper">
+            <video 
+              ref="promoVideoRef"
+              class="promo-video-player"
+              controls
+              playsinline
+              preload="metadata"
+              poster="/hero_banner.jpg"
+            >
+              <source src="/promo_video.mp4" type="video/mp4" />
+              Your browser does not support HTML5 video.
+            </video>
+          </div>
+
+          <!-- Bottom Feature Matrix & Quick CTA -->
+          <div class="video-features-footer">
+            <div class="video-tag-pills">
+              <div class="v-tag-pill">
+                <span class="v-tag-icon">⚡</span>
+                <span>{{ t.videoSection.t1 }}</span>
+              </div>
+              <div class="v-tag-pill">
+                <span class="v-tag-icon">🔒</span>
+                <span>{{ t.videoSection.t2 }}</span>
+              </div>
+              <div class="v-tag-pill">
+                <span class="v-tag-icon">🧠</span>
+                <span>{{ t.videoSection.t3 }}</span>
+              </div>
+              <div class="v-tag-pill">
+                <span class="v-tag-icon">📱</span>
+                <span>{{ t.videoSection.t4 }}</span>
+              </div>
+            </div>
+
+            <div class="video-cta-row">
+              <a href="./webshare/" class="btn btn-webshare-hero" style="padding: 9px 18px; font-size: 13px;">
+                <span>🌐</span> {{ t.hero.btnWebshare }}
+              </a>
+              <a 
+                :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Setup-${appVersion.replace('v','')}.exe`" 
+                class="btn btn-primary-hero"
+                style="padding: 9px 18px; font-size: 13px;"
+                @click="showDownloadToast(`🚀 ${t.hero.btnWindows}...`)"
+              >
+                <span>🖥️</span> {{ t.hero.btnWindows }}
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -1438,6 +1519,143 @@ function simulateDedupCleanup() {
   font-size: 13.5px;
   color: var(--text-muted);
   line-height: 1.6;
+}
+
+/* Video Showcase Section */
+.video-showcase-section {
+  position: relative;
+  background: radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+}
+
+.video-showcase-card {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(139, 92, 246, 0.15);
+  background: rgba(10, 15, 30, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.video-card-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: rgba(5, 8, 20, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.video-window-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot-red { background: #ef4444; }
+.dot-yellow { background: #f59e0b; }
+.dot-green { background: #10b981; }
+
+.video-window-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #cbd5e1;
+  letter-spacing: 0.2px;
+}
+
+.video-hd-badge {
+  font-size: 11px;
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 2px 10px;
+  border-radius: 99px;
+  letter-spacing: 0.5px;
+}
+
+.video-player-wrapper {
+  position: relative;
+  width: 100%;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.promo-video-player {
+  width: 100%;
+  max-height: 580px;
+  object-fit: contain;
+  background: #000;
+  display: block;
+  outline: none;
+}
+
+.video-features-footer {
+  padding: 18px 24px;
+  background: rgba(15, 23, 42, 0.75);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.video-tag-pills {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.v-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s;
+}
+.v-tag-pill:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.video-cta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .video-features-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .video-tag-pills {
+    justify-content: center;
+  }
+  .video-cta-row {
+    justify-content: center;
+  }
 }
 
 /* AI Playground Tabs */

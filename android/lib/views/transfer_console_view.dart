@@ -100,22 +100,8 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
           ],
         ),
       ),
-      // 4. Floating Action Button for sending - only displays when items are selected
-      floatingActionButton: totalCount > 0
-          ? FloatingActionButton.extended(
-              onPressed: (viewModel.activeTransferName == null)
-                  ? () => viewModel.syncAllSelected()
-                  : null,
-              backgroundColor: const Color(0xFF8B5CF6),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.send_rounded),
-              label: Text(
-                "${t.get('send')} ($totalCount)",
-                style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
-              ),
-              elevation: 6.0,
-            )
-          : null,
+      // 4. Floating Action Button in bottom-right corner for Sync & Send
+      floatingActionButton: _buildFloatingActionWidget(context, viewModel, t, totalCount),
     );
   }
 
@@ -274,136 +260,20 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.psychology, size: 18, color: Color(0xFF8B5CF6)),
-                      const SizedBox(width: 6),
-                      Text(
-                        t.currentLocale == 'zh' ? "AI 智能同步" : "AI Sync",
-                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  viewModel.isThumbnailSyncing
-                      ? Text(
-                          t.currentLocale == 'zh' 
-                              ? "🔄 同步中 ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}" 
-                              : "🔄 Syncing ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}",
-                          style: const TextStyle(color: Color(0xFF8B5CF6), fontSize: 13, fontWeight: FontWeight.bold),
-                        )
-                      : ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF8B5CF6),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          ),
-                          onPressed: () {
-                            viewModel.syncThumbnailsToAI(
-                              targets: viewModel.selectedImages.isNotEmpty
-                                  ? viewModel.localImages.where((e) => viewModel.selectedImages.contains(e.id)).toList()
-                                  : null,
-                            );
-                          },
-                          icon: const Icon(Icons.psychology, size: 16),
-                          label: Text(
-                            viewModel.selectedImages.isNotEmpty
-                                ? (t.currentLocale == 'zh' ? "同步选中图片到AI" : "Sync Selected to AI")
-                                : (t.currentLocale == 'zh' ? "同步全部图片到AI" : "Sync All to AI"),
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.cloud_upload, size: 18, color: Color(0xFF10B981)),
-                      const SizedBox(width: 6),
-                      Text(
-                        t.currentLocale == 'zh' ? "同步相册到PC" : "Sync Album to PC",
-                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  viewModel.isAlbumSyncing
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              t.currentLocale == 'zh'
-                                  ? "同步中: ${viewModel.albumSyncDone}/${viewModel.albumSyncTotal} (余${viewModel.albumSyncTotal - viewModel.albumSyncDone}张)"
-                                  : "Syncing: ${viewModel.albumSyncDone}/${viewModel.albumSyncTotal} (${viewModel.albumSyncTotal - viewModel.albumSyncDone} left)",
-                              style: const TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(width: 8),
-                            // Pause / Resume Button
-                            IconButton(
-                              constraints: const BoxConstraints(),
-                              padding: EdgeInsets.zero,
-                              icon: Icon(
-                                viewModel.isAlbumSyncPaused ? Icons.play_arrow : Icons.pause,
-                                color: const Color(0xFF10B981),
-                                size: 18,
-                              ),
-                              onPressed: () {
-                                if (viewModel.isAlbumSyncPaused) {
-                                  viewModel.resumeAlbumSync();
-                                } else {
-                                  viewModel.pauseAlbumSync();
-                                }
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            // Stop Button
-                            IconButton(
-                              constraints: const BoxConstraints(),
-                              padding: EdgeInsets.zero,
-                              icon: const Icon(
-                                Icons.stop,
-                                color: Color(0xFFEF4444),
-                                size: 18,
-                              ),
-                              onPressed: () => viewModel.stopAlbumSync(),
-                            ),
-                          ],
-                        )
-                      : ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          ),
-                          onPressed: viewModel.isThumbnailSyncing
-                              ? null
-                              : () => viewModel.syncAlbumToPC(),
-                          icon: const Icon(Icons.cloud_upload, size: 16),
-                          label: Text(
-                            viewModel.lastAlbumSyncDate.isNotEmpty
-                                ? (t.currentLocale == 'zh' ? "继续同步相册" : "Resume Album Sync")
-                                : (t.currentLocale == 'zh' ? "同步全部相册到PC" : "Sync Album to PC"),
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                ],
-              ),
-            ],
+        // Slim, non-intrusive top indicator when sync is actively running
+        if (viewModel.isThumbnailSyncing || viewModel.isAlbumSyncing)
+          LinearProgressIndicator(
+            value: viewModel.isThumbnailSyncing
+                ? (viewModel.thumbnailSyncTotal > 0 ? viewModel.thumbnailSyncDone / viewModel.thumbnailSyncTotal : null)
+                : (viewModel.albumSyncTotal > 0 ? viewModel.albumSyncDone / viewModel.albumSyncTotal : null),
+            minHeight: 3.0,
+            backgroundColor: const Color(0xFF1E293B),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              viewModel.isThumbnailSyncing ? const Color(0xFF8B5CF6) : const Color(0xFF10B981),
+            ),
           ),
-        ),
-        const Divider(color: Color(0xFF1E293B), height: 1),
 
-        // Sub-segmented Tab: Photos vs Videos
+        // Sub-segmented Tab: Photos vs Videos (Clean & Spacious)
         Container(
           margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
           padding: const EdgeInsets.all(3),
@@ -1059,5 +929,450 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
       case TransferStatus.failed:
         return "❌";
     }
+  }
+
+  // ── Floating Action Widget: Bottom-Right Sync & Send Composite FAB ──────────
+  Widget _buildFloatingActionWidget(
+    BuildContext context,
+    SyncViewModel viewModel,
+    LocalizationService t,
+    int totalCount,
+  ) {
+    final isZh = t.currentLocale.startsWith('zh');
+
+    // Case 1: Items are actively selected in gallery -> Show Send + Sync buttons
+    if (totalCount > 0) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Quick Sync Button
+          FloatingActionButton.small(
+            heroTag: 'fab_sync_menu',
+            onPressed: () => _showSyncBottomSheet(context, viewModel, t),
+            backgroundColor: const Color(0xFF1E293B),
+            foregroundColor: const Color(0xFF8B5CF6),
+            elevation: 4.0,
+            tooltip: isZh ? "AI与相册同步" : "AI & Album Sync",
+            child: const Icon(Icons.bolt_rounded, size: 20.0),
+          ),
+          const SizedBox(width: 10.0),
+          // Primary Send Button
+          FloatingActionButton.extended(
+            heroTag: 'fab_send_selected',
+            onPressed: (viewModel.activeTransferName == null)
+                ? () => viewModel.syncAllSelected()
+                : null,
+            backgroundColor: const Color(0xFF8B5CF6),
+            foregroundColor: Colors.white,
+            icon: const Icon(Icons.send_rounded),
+            label: Text(
+              "${t.get('send')} ($totalCount)",
+              style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+            ),
+            elevation: 6.0,
+          ),
+        ],
+      );
+    }
+
+    // Case 2: Thumbnail AI Sync is in progress
+    if (viewModel.isThumbnailSyncing) {
+      return FloatingActionButton.extended(
+        heroTag: 'fab_thumbnail_syncing',
+        onPressed: () => _showSyncBottomSheet(context, viewModel, t),
+        backgroundColor: const Color(0xFF8B5CF6),
+        elevation: 6.0,
+        icon: const SizedBox(
+          width: 16.0,
+          height: 16.0,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.0,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+        ),
+        label: Text(
+          isZh
+              ? "AI同步中 ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}"
+              : "AI Syncing ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}",
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12.0,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    // Case 3: Album Backup is in progress
+    if (viewModel.isAlbumSyncing) {
+      return FloatingActionButton.extended(
+        heroTag: 'fab_album_syncing',
+        onPressed: () => _showSyncBottomSheet(context, viewModel, t),
+        backgroundColor: const Color(0xFF10B981),
+        elevation: 6.0,
+        icon: Icon(
+          viewModel.isAlbumSyncPaused ? Icons.pause_circle_outline : Icons.cloud_sync_rounded,
+          color: Colors.white,
+          size: 18.0,
+        ),
+        label: Text(
+          isZh
+              ? (viewModel.isAlbumSyncPaused
+                  ? "备份暂停 (${viewModel.albumSyncDone}/${viewModel.albumSyncTotal})"
+                  : "备份中 ${viewModel.albumSyncDone}/${viewModel.albumSyncTotal}")
+              : "Syncing ${viewModel.albumSyncDone}/${viewModel.albumSyncTotal}",
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12.0,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    // Case 4: Idle state -> Floating Action Button in bottom-right corner
+    return FloatingActionButton.extended(
+      heroTag: 'fab_sync_main',
+      onPressed: () => _showSyncBottomSheet(context, viewModel, t),
+      backgroundColor: const Color(0xFF8B5CF6),
+      foregroundColor: Colors.white,
+      elevation: 6.0,
+      icon: const Icon(Icons.bolt_rounded, size: 20.0),
+      label: Text(
+        isZh ? "AI & 相册同步" : "AI & Album Sync",
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 13.0,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+
+  // ── Bottom Sheet: Multi-option Sync Modal ─────────────────────────────────
+  void _showSyncBottomSheet(
+    BuildContext context,
+    SyncViewModel viewModel,
+    LocalizationService t,
+  ) {
+    final isZh = t.currentLocale.startsWith('zh');
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0F172A),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+        side: BorderSide(color: Color(0xFF1E293B), width: 1.0),
+      ),
+      builder: (ctx) {
+        return Consumer<SyncViewModel>(
+          builder: (context, vm, _) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Drag Pill
+                    Center(
+                      child: Container(
+                        width: 40.0,
+                        height: 4.0,
+                        margin: const EdgeInsets.only(bottom: 16.0),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF334155),
+                          borderRadius: BorderRadius.circular(2.0),
+                        ),
+                      ),
+                    ),
+
+                    // Sheet Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8.0),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              child: const Icon(Icons.bolt_rounded, color: Color(0xFF8B5CF6), size: 20.0),
+                            ),
+                            const SizedBox(width: 10.0),
+                            Text(
+                              isZh ? "多端极速数据同步" : "Cross-Device Data Sync",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Color(0xFF94A3B8), size: 20.0),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16.0),
+
+                    // Card 1: AI 智能缩略图同步 (MobileCLIP AI Sync)
+                    Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B).withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(16.0),
+                        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6.0),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                child: const Icon(Icons.psychology_rounded, color: Color(0xFFA78BFA), size: 18.0),
+                              ),
+                              const SizedBox(width: 10.0),
+                              Text(
+                                isZh ? "AI 智能相册分类 (MobileCLIP)" : "AI Album Categorization (MobileCLIP)",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8.0),
+                          Text(
+                            isZh
+                                ? "仅发送高清缩略图到 PC 本地 AI 引擎进行零样本语义分类与人脸聚类（毫秒级极速，省流省电）。"
+                                : "Sync thumbnails to PC local AI engine for zero-shot classification and face clustering.",
+                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12.0, height: 1.4),
+                          ),
+                          const SizedBox(height: 12.0),
+                          if (vm.isThumbnailSyncing) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  isZh
+                                      ? "🔄 正在同步缩略图..."
+                                      : "🔄 Syncing thumbnails...",
+                                  style: const TextStyle(color: Color(0xFFA78BFA), fontSize: 12.0, fontWeight: FontWeight.w600),
+                                ),
+                                Text(
+                                  "${vm.thumbnailSyncDone} / ${vm.thumbnailSyncTotal}",
+                                  style: const TextStyle(color: Colors.white, fontSize: 12.0, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6.0),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(3.0),
+                              child: LinearProgressIndicator(
+                                value: vm.thumbnailSyncTotal > 0
+                                    ? vm.thumbnailSyncDone / vm.thumbnailSyncTotal
+                                    : null,
+                                minHeight: 6.0,
+                                backgroundColor: const Color(0xFF0F172A),
+                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                              ),
+                            ),
+                          ] else ...[
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF8B5CF6),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 10.0),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                                  elevation: 0,
+                                ),
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  vm.syncThumbnailsToAI(
+                                    targets: vm.selectedImages.isNotEmpty
+                                        ? vm.localImages.where((e) => vm.selectedImages.contains(e.id)).toList()
+                                        : null,
+                                  );
+                                },
+                                icon: const Icon(Icons.psychology_rounded, size: 16.0),
+                                label: Text(
+                                  vm.selectedImages.isNotEmpty
+                                      ? (isZh ? "同步选中 (${vm.selectedImages.length}) 张图片到AI" : "Sync Selected (${vm.selectedImages.length}) to AI")
+                                      : (isZh ? "同步全部图片到AI进行分类" : "Sync All Images to AI"),
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 14.0),
+
+                    // Card 2: 电脑端全量相册备份 (Full Album PC Backup)
+                    Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B).withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(16.0),
+                        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6.0),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                child: const Icon(Icons.cloud_upload_rounded, color: Color(0xFF34D399), size: 18.0),
+                              ),
+                              const SizedBox(width: 10.0),
+                              Text(
+                                isZh ? "电脑端全量相册备份 (Full Backup)" : "Full Album Backup to PC",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8.0),
+                          Text(
+                            isZh
+                                ? "无损传输相册原图原片至电脑本地硬盘，自动按日期建立归档，支持断点续传与增量对齐。"
+                                : "Lossless original photo transfer to PC storage with date-based hierarchy and resume support.",
+                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12.0, height: 1.4),
+                          ),
+                          const SizedBox(height: 12.0),
+                          if (vm.isAlbumSyncing) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  isZh
+                                      ? (vm.isAlbumSyncPaused ? "⏸️ 备份已暂停" : "🔄 正在传输原图...")
+                                      : (vm.isAlbumSyncPaused ? "⏸️ Paused" : "🔄 Syncing original photos..."),
+                                  style: const TextStyle(color: Color(0xFF34D399), fontSize: 12.0, fontWeight: FontWeight.w600),
+                                ),
+                                Text(
+                                  "${vm.albumSyncDone} / ${vm.albumSyncTotal} (余${vm.albumSyncTotal - vm.albumSyncDone}张)",
+                                  style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6.0),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(3.0),
+                              child: LinearProgressIndicator(
+                                value: vm.albumSyncTotal > 0
+                                    ? vm.albumSyncDone / vm.albumSyncTotal
+                                    : null,
+                                minHeight: 6.0,
+                                backgroundColor: const Color(0xFF0F172A),
+                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+                              ),
+                            ),
+                            const SizedBox(height: 10.0),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF34D399),
+                                      side: const BorderSide(color: Color(0xFF10B981)),
+                                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                                    ),
+                                    onPressed: () {
+                                      if (vm.isAlbumSyncPaused) {
+                                        vm.resumeAlbumSync();
+                                      } else {
+                                        vm.pauseAlbumSync();
+                                      }
+                                    },
+                                    icon: Icon(vm.isAlbumSyncPaused ? Icons.play_arrow : Icons.pause, size: 16.0),
+                                    label: Text(
+                                      vm.isAlbumSyncPaused ? (isZh ? "继续备份" : "Resume") : (isZh ? "暂停备份" : "Pause"),
+                                      style: const TextStyle(fontSize: 12.0),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10.0),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFFEF4444),
+                                      side: const BorderSide(color: Color(0xFFEF4444)),
+                                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                                    ),
+                                    onPressed: () => vm.stopAlbumSync(),
+                                    icon: const Icon(Icons.stop, size: 16.0),
+                                    label: Text(
+                                      isZh ? "停止备份" : "Stop",
+                                      style: const TextStyle(fontSize: 12.0),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF10B981),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 10.0),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                                  elevation: 0,
+                                ),
+                                onPressed: vm.isThumbnailSyncing
+                                    ? null
+                                    : () {
+                                        Navigator.pop(ctx);
+                                        vm.syncAlbumToPC();
+                                      },
+                                icon: const Icon(Icons.cloud_upload_rounded, size: 16.0),
+                                label: Text(
+                                  vm.lastAlbumSyncDate.isNotEmpty
+                                      ? (isZh ? "继续同步相册" : "Resume Album Sync")
+                                      : (isZh ? "开始全量备份相册到电脑" : "Start Full Album Backup"),
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }

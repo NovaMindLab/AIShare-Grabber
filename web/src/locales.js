@@ -27,6 +27,7 @@ export const messages = {
   zh: {
     nav: {
       features: "核心功能",
+      videoDemo: "实机演示",
       ai: "AI 智能引擎",
       simulator: "直连演示",
       comparison: "方案对比",
@@ -43,6 +44,17 @@ export const messages = {
       btnAndroid: "下载 Android APK (35 MB)",
       btnSimulate: "交互式握手演示",
       btnGithub: "GitHub 开源仓库"
+    },
+    videoSection: {
+      badge: "OFFICIAL PROMO & DEMO",
+      title: "手机与 PC 秒级直连互传 • 沉浸式实机演示",
+      subtitle: "告别物理数据线与云盘限速，体验局域网千兆 WebRTC 极速直传与端侧 MobileCLIP AI 智能分类实测",
+      t1: "⚡ 40MB/s 局域网极速直传",
+      t2: "🔒 100% 纯本地端侧安全",
+      t3: "🧠 MobileCLIP 毫秒级 AI 分类",
+      t4: "📱 手机 ↔ 电脑 极简扫码互通",
+      videoTitle: "ShareCLIP 手机与电脑无线互联互传实机演示",
+      playHint: "点击播放高清演示视频 (零流量本地运行)"
     },
     chips: {
       c1_title: "WebRTC 千兆直连",
@@ -231,6 +243,7 @@ export const messages = {
   en: {
     nav: {
       features: "Features",
+      videoDemo: "Video Demo",
       ai: "AI Engine",
       simulator: "Simulator",
       comparison: "Comparison",
@@ -247,6 +260,17 @@ export const messages = {
       btnAndroid: "Download Android APK (35 MB)",
       btnSimulate: "Simulate Handshake",
       btnGithub: "GitHub Repository"
+    },
+    videoSection: {
+      badge: "OFFICIAL PROMO & DEMO",
+      title: "Mobile & PC Seamless P2P Sync • Live Video Demo",
+      subtitle: "Experience lightning-fast LAN WebRTC direct transfer and on-device MobileCLIP AI classification without cables or cloud relays.",
+      t1: "⚡ 40MB/s Gigabit LAN Stream",
+      t2: "🔒 100% On-Device Privacy",
+      t3: "🧠 Sub-Second MobileCLIP AI",
+      t4: "📱 Seamless QR Pairing",
+      videoTitle: "ShareCLIP Mobile & PC Direct Sync Real-World Demo",
+      playHint: "Click to play full HD demo video (zero cloud traffic)"
     },
     chips: {
       c1_title: "Gigabit WebRTC Link",

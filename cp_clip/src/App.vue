@@ -1839,14 +1839,14 @@
         v-if="selectedImage" 
         @click.self="closeDetails"
         tabindex="0"
-        style="position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; background: rgba(4, 7, 16, 0.95); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); user-select: none; outline: none;"
+        style="position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; background: rgba(4, 7, 16, 0.96); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); user-select: none; outline: none;"
       >
         <!-- Top Floating Header -->
-        <div style="height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; z-index: 20; background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%);">
+        <div style="height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px 0 24px; z-index: 30; background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 70%, transparent 100%); border-bottom: 1px solid rgba(255,255,255,0.06);">
           <!-- Left: Title & High-Res Status Badge -->
-          <div style="display: flex; align-items: center; gap: 14px; max-width: 60%;">
+          <div style="display: flex; align-items: center; gap: 14px; max-width: 50%; -webkit-app-region: no-drag;">
             <div style="display: flex; flex-direction: column; text-align: left; overflow: hidden;">
-              <span style="font-size: 15px; font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" :title="selectedImage.name">
+              <span style="font-size: 14px; font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" :title="selectedImage.name">
                 {{ selectedImage.name }}
               </span>
               <span v-if="selectedImage.path" style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.75;" :title="selectedImage.path">
@@ -1855,11 +1855,11 @@
             </div>
 
             <!-- Quality Badge -->
-            <div v-if="selectedItemType === 'image'" style="display: flex; align-items: center; gap: 6px;">
+            <div v-if="selectedItemType === 'image'" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
               <!-- Case A: Loading from phone -->
               <span 
                 v-if="isFetchingHighRes" 
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); padding: 4px 10px; border-radius: 99px; animation: pulse-glow 1.5s infinite;"
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); padding: 3px 10px; border-radius: 99px; animation: pulse-glow 1.5s infinite;"
               >
                 <span class="spinner" style="width: 10px; height: 10px; border-color: #38bdf8; border-top-color: transparent;"></span>
                 正在从手机拉取超清原图...
@@ -1868,7 +1868,7 @@
               <!-- Case B: 4K Original Photo Ready -->
               <span 
                 v-else-if="isHighResLoaded || selectedImage.type === 'album_photo' || (selectedImage.name && selectedImage.name.startsWith('album_'))" 
-                style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 99px;"
+                style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); padding: 3px 10px; border-radius: 99px;"
               >
                 <span>✨</span> 超清原图
               </span>
@@ -1876,7 +1876,7 @@
               <!-- Case C: Local file -->
               <span 
                 v-else-if="!selectedImage.name || !selectedImage.name.startsWith('thumb_')" 
-                style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #a855f7; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.3); padding: 4px 10px; border-radius: 99px;"
+                style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #a855f7; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.3); padding: 3px 10px; border-radius: 99px;"
               >
                 <span>📁</span> 本地图片
               </span>
@@ -1884,26 +1884,47 @@
               <!-- Case D: Thumbnail only (Phone offline) -->
               <span 
                 v-else 
-                style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #f59e0b; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 10px; border-radius: 99px;"
+                style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #f59e0b; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); padding: 3px 10px; border-radius: 99px;"
               >
                 <span>⚡</span> 缩略图预览 (手机未连接)
               </span>
             </div>
           </div>
 
-          <!-- Right: Counter & Close Button -->
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <span v-if="currentViewingList.length > 0" style="font-size: 13px; font-weight: 700; color: var(--text-secondary); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); padding: 4px 14px; border-radius: 99px;">
+          <!-- Middle: Window Drag Area -->
+          <div style="flex: 1; height: 100%; -webkit-app-region: drag;"></div>
+
+          <!-- Right: Counter, Lightbox Close & Window Controls -->
+          <div style="display: flex; align-items: center; gap: 10px; -webkit-app-region: no-drag;">
+            <span v-if="currentViewingList.length > 0" style="font-size: 12px; font-weight: 700; color: var(--text-secondary); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); padding: 3px 12px; border-radius: 99px;">
               {{ currentViewingIndex + 1 }} / {{ currentViewingList.length }}
             </span>
+            
+            <!-- Prominent Lightbox Close Button -->
             <button 
               @click="closeDetails" 
-              style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
-              onmouseover="this.style.background='rgba(239,68,68,0.2)'; this.style.borderColor='rgba(239,68,68,0.4)'; this.style.transform='scale(1.08)'"
-              onmouseout="this.style.background='rgba(255,255,255,0.08)'; this.style.borderColor='rgba(255,255,255,0.15)'; this.style.transform='scale(1)'"
+              title="退出大图浏览 (ESC)"
+              style="display: flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 99px; background: rgba(239, 68, 68, 0.16); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+              onmouseover="this.style.background='rgba(239,68,68,0.32)'; this.style.borderColor='rgba(239,68,68,0.6)'; this.style.color='#fff'; this.style.transform='scale(1.04)';"
+              onmouseout="this.style.background='rgba(239, 68, 68, 0.16)'; this.style.borderColor='rgba(239, 68, 68, 0.35)'; this.style.color='#fca5a5'; this.style.transform='scale(1)';"
             >
-              ✕
+              <span style="font-size: 14px; font-weight: 900;">✕</span>
+              <span>关闭大图</span>
+              <span style="font-size: 10px; opacity: 0.75; font-family: monospace; background: rgba(0,0,0,0.25); padding: 1px 4px; border-radius: 3px;">ESC</span>
             </button>
+
+            <!-- Window Minimise/Maximize/Close (if desktop hasApi) -->
+            <div v-if="hasApi" style="display: flex; align-items: center; margin-left: 6px; border-left: 1px solid rgba(255,255,255,0.12); padding-left: 6px;">
+              <button class="title-bar-btn minimize" @click="minimizeWindow" title="最小化" style="height: 30px; width: 34px; border-radius: 6px;">
+                <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10v1H0z" fill="currentColor"/></svg>
+              </button>
+              <button class="title-bar-btn maximize" @click="maximizeWindow" title="最大化/还原" style="height: 30px; width: 34px; border-radius: 6px;">
+                <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0v10h10V0H0zm9 9H1V1h8v8z" fill="currentColor"/></svg>
+              </button>
+              <button class="title-bar-btn close" @click="closeWindow" title="关闭软件" style="height: 30px; width: 34px; border-radius: 6px;">
+                <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+              </button>
+            </div>
           </div>
         </div>
 

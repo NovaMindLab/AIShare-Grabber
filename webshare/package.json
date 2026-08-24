@@ -1,24 +1,24 @@
 {
-  "name": "shareclip-webshare",
-  "private": true,
-  "version": "1.2.93",
-  "description": "ShareCLIP WebShare - Pure Web P2P Photo Sync & WebGPU AI Classification",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "start": "node server.cjs"
-  },
-  "dependencies": {
-    "@vueuse/core": "^10.11.1",
-    "onnxruntime-web": "^1.18.0",
-    "qrcode": "^1.5.4",
-    "vue": "^3.4.38",
-    "ws": "^8.18.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^5.1.2",
-    "vite": "^5.4.2"
-  }
+    "name":  "shareclip-webshare",
+    "private":  true,
+    "version":  "1.2.94",
+    "description":  "ShareCLIP WebShare - Pure Web P2P Photo Sync \u0026 WebGPU AI Classification",
+    "type":  "module",
+    "scripts":  {
+                    "dev":  "vite",
+                    "build":  "vite build",
+                    "preview":  "vite preview",
+                    "start":  "node server.cjs"
+                },
+    "dependencies":  {
+                         "@vueuse/core":  "^10.11.1",
+                         "onnxruntime-web":  "^1.18.0",
+                         "qrcode":  "^1.5.4",
+                         "vue":  "^3.4.38",
+                         "ws":  "^8.18.0"
+                     },
+    "devDependencies":  {
+                            "@vitejs/plugin-vue":  "^5.1.2",
+                            "vite":  "^5.4.2"
+                        }
 }

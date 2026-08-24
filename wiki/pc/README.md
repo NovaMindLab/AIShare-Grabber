@@ -30,6 +30,9 @@
 ### 8. [PC 蓝牙 (BLE GATT) 兼容性修复与全链路自动降级白皮书](file:///d:/AI_serach_image/image_clip_android/wiki/pc/ble_gatt_compatibility_and_fallback.md)
 *   **内容**：深度剖析异构 Windows PC 蓝牙开启失败的诱因（特征值属性冲突、端口残留竞争、广播参数敏感性），详细阐述 C++/WinRT 原生层两级属性回退、GATT 端口 3 次重试、/MT 静态编译以及前端“蓝牙失败无缝降级 Wi-Fi 直连二维码”的设计与实现。
 
+### 9. [全屏大图预览 (Lightbox) 层级冲突与控制栏重构](file:///d:/AI_serach_image/image_clip_android/wiki/pc/lightbox_and_window_controls.md)
+*   **内容**：分析 Electron 无边框窗口自定义标题栏（`z-index: 9999`）与全屏大图（`z-index: 1000`）的层级遮挡与点击事件拦截问题。详解 `z-index: 10000` 提升、拖拽区（`-webkit-app-region: drag`）与操作区分离、高亮药丸关闭按钮 `✕ 关闭大图 (ESC)` 及窗口控制组件的无缝融合。
+
 ---
 
 ## 🏗️ 整体系统架构图

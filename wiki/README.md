@@ -25,6 +25,7 @@ Details the Electron main lifecycle process, ONNX AI classification model integr
 *   [UI Simplification & Global i18n Architecture](file:///d:/AI_serach_image/image_clip_android/wiki/pc/ui_simplification_and_i18n.md): Overhaul of the pairing tab to a clean centered card, elimination of cluttered guides/mockups, default English locale initialization, and unified translation key architecture.
 *   [v1.2 Updates, Stability & Auto-Update Architecture](file:///d:/AI_serach_image/image_clip_android/wiki/pc/v1_2_updates_and_stability.md): Complete guide to persistent logging (`shareclip_YYYY-MM-DD.log`), V8 heap memory optimization (OOM fix), WebRTC 16 KB DataChannel packet chunking (`-5` frame header), network priority AI queue scheduling, DirectML GPU ➔ CPU automatic fallback, zero-waste UDP discovery suppression, and interactive differential auto-updates.
 *   [BLE GATT Compatibility & Fallback Architecture](file:///d:/AI_serach_image/image_clip_android/wiki/pc/ble_gatt_compatibility_and_fallback.md): Deep-dive into Windows heterogenous Bluetooth driver fixes — 2-tier Characteristic properties fallback, 3x GATT Provider retry loops, `/MT` static CRT linking, and seamless UI auto-fallback to LAN Wi-Fi Direct UDP QR codes without user flow interruption.
+*   [Lightbox Stacking Context & Window Controls Architecture](file:///d:/AI_serach_image/image_clip_android/wiki/pc/lightbox_and_window_controls.md): Detailed root cause analysis of Electron frameless window title bar collisions (`z-index: 9999` vs `z-index: 1000`), elevated `z-index: 10000` full-screen layering, dynamic quality badges, window drag surface separation, prominent close pill `✕ 关闭大图 (ESC)`, and integrated window controls.
 
 ---
 
@@ -75,6 +76,7 @@ Implemented and upcoming feature specifications:
 
 | Version | Date | Highlights |
 |---|---|---|
+| **v1.2.94** | 2026-08-24 | **① Android 端相册满屏化与悬浮同步中心**：彻底移除顶部占位大按钮，释放 100% 满屏看图空间；右下角引入智能悬浮胶囊按钮（FAB）与滑出式「多端智能同步中心」面板（集成 AI 缩略图分类与电脑端全量原图备份进度及暂停/停止控制）。<br>**② PC 桌面端大图层级与控制栏重塑**：将全屏大图（Lightbox）提权至 `z-index: 10000`，彻底解决自定义窗口标题栏覆盖导致关闭按钮被遮挡拦截问题；右上角新增高亮发光药丸「✕ 关闭大图 (ESC)」及无缝窗口最小化/关闭控件。<br>**③ 官网多语言与排版大修**：重构 20 语言字典与 Hero 3+2 CTA 栅格布局，根除中英混杂。 |
 | **v1.2.93** | 2026-08-24 | 修复异构 Windows 蓝牙适配器 GATT 启动失败问题：C++/WinRT 两级属性回退（解决部分驱动对 WriteWithoutResponse 拦截）、GATT 端口释放 3 次平滑重试、/MT 纯静态编译，并在前端实现蓝牙受限时“无缝自动降级 Wi-Fi 直连二维码”（0 阻断配对）。 |
 | **v1.2.92** | 2026-08-21 | 彻底修复 Android 覆盖升级签名冲突问题，锁定原始证书指纹（SHA-256: `90:C5:76:21:...`），支持免卸载无缝热升级。 |
 | **v1.2.91** | 2026-08-21 | 重构 Android 应用内下载流，引入多镜像 CDN 加速（`ghfast.top` / `ghproxy.net`）、实时百分比弹窗与 ZIP 魔数完整性校验。 |
