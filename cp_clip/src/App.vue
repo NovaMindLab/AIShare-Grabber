@@ -2416,7 +2416,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted, watch, reactive } from 'vue';
+import { ref, shallowRef, computed, nextTick, onMounted, onUnmounted, watch, reactive } from 'vue';
 import { useVirtualList, useElementSize } from '@vueuse/core';
 import VirtualGrid from './components/VirtualGrid.vue';
 import VirtualTimeline from './components/VirtualTimeline.vue';
