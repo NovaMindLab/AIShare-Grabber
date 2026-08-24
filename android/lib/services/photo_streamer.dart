@@ -39,11 +39,12 @@ class PhotoStreamer {
       debugPrint('[Streamer] [$type] paths found: ${paths.length}');
       if (paths.isEmpty) return [];
 
-      final int count = await paths[0].assetCountAsync;
-      debugPrint('[Streamer] [$type] count in first path: $count');
+      final AssetPathEntity allPath = paths.firstWhere((p) => p.isAll, orElse: () => paths.first);
+      final int count = await allPath.assetCountAsync;
+      debugPrint('[Streamer] [$type] count in allPath (${allPath.name}): $count');
       if (count == 0) return [];
 
-      return await paths[0].getAssetListRange(start: 0, end: count);
+      return await allPath.getAssetListRange(start: 0, end: count);
     } catch (e, stack) {
       debugPrint('[Streamer] Error loading [$type] assets: $e\n$stack');
       return [];
@@ -118,8 +119,11 @@ class PhotoStreamer {
         return false;
       }
       final int size = await file.length();
-      final String extension = entity.mimeType?.split('/').last ?? 'jpg';
-      final String cleanName = '${entity.title ?? 'photo'}.$extension';
+      String cleanName = entity.title ?? (entity.type == AssetType.video ? 'video_${entity.id}.mp4' : 'photo_${entity.id}.jpg');
+      if (!cleanName.contains('.')) {
+        final String extension = entity.mimeType?.split('/').last ?? (entity.type == AssetType.video ? 'mp4' : 'jpg');
+        cleanName = '$cleanName.$extension';
+      }
 
       // Obtain GPS coordinates asynchronously (required for Android 10+)
       final LatLng? latLng = await entity.latlngAsync();

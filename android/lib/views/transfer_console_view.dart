@@ -1362,6 +1362,32 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 8.0),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF8B5CF6),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 10.0),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                                  elevation: 0,
+                                ),
+                                onPressed: vm.isVideoSyncing
+                                    ? null
+                                    : () {
+                                        Navigator.pop(ctx);
+                                        vm.syncVideosToPC();
+                                      },
+                                icon: const Icon(Icons.video_library_rounded, size: 16.0),
+                                label: Text(
+                                  vm.lastVideoSyncDate.isNotEmpty
+                                      ? (isZh ? "继续同步视频" : "Resume Video Sync")
+                                      : (isZh ? "开始备份全部视频到电脑" : "Backup All Videos to PC"),
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
                           ],
                         ],
                       ),

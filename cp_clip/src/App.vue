@@ -3904,6 +3904,8 @@ function handleOpenAlbumSyncFolder() {
 }
 
 // ── Video Sync Functions ──────────────────────────────────────────
+let videoSyncTimeoutTimer = null;
+
 function requestVideoSync(options = {}) {
   if (!dataChannel || dataChannel.readyState !== 'open') {
     logSyncEvent('❌ WebRTC 直连通道未建立，无法发送视频同步请求');
@@ -3928,6 +3930,14 @@ function requestVideoSync(options = {}) {
   isVideoSyncPaused.value = false;
   videoSyncDone.value = 0;
   videoSyncTotal.value = targetIds ? targetIds.length : (targetDate ? 1 : 0);
+
+  if (videoSyncTimeoutTimer) clearTimeout(videoSyncTimeoutTimer);
+  videoSyncTimeoutTimer = setTimeout(() => {
+    if (isVideoSyncing.value && videoSyncTotal.value === 0 && videoSyncDone.value === 0) {
+      isVideoSyncing.value = false;
+      logSyncEvent('ℹ️ 手机端未发现需同步的新视频，或请确保手机端 ShareCLIP App 已更新到最新版本。');
+    }
+  }, 6000);
 }
 
 function queryRemoteVideoCatalog() {
@@ -4430,6 +4440,7 @@ function setupDataChannel(channel) {
 
     // fileId = -15: Phone started or resumed video sync
     if (fileId === -15) {
+      if (videoSyncTimeoutTimer) { clearTimeout(videoSyncTimeoutTimer); videoSyncTimeoutTimer = null; }
       const totalCount = view.getInt32(8, false);
       videoSyncTotal.value = totalCount;
       isVideoSyncing.value = true;
@@ -4440,6 +4451,7 @@ function setupDataChannel(channel) {
 
     // fileId = -16: Phone video sync progress or finish
     if (fileId === -16) {
+      if (videoSyncTimeoutTimer) { clearTimeout(videoSyncTimeoutTimer); videoSyncTimeoutTimer = null; }
       const done = view.getInt32(4, false);
       const total = view.getInt32(8, false);
       const isFinished = view.getInt32(12, false) === 1;
@@ -4815,6 +4827,33 @@ onMounted(() => {
 
     
     window.api.onPhotoSynced((imageInfo) => {
+      const isVideo = imageInfo.type === 'video' || /\.(mp4|mkv|mov|avi|webm)$/i.test(imageInfo.name);
+      if (isVideo) {
+        logSyncEvent(`🎉 视频已成功同步并归档: ${imageInfo.name}`);
+        const existingIdx = images.value.findIndex(item => item.id === imageInfo.id || item.path === imageInfo.path || item.name === imageInfo.name);
+        if (existingIdx >= 0) {
+          images.value[existingIdx] = {
+            ...images.value[existingIdx],
+            ...imageInfo,
+            status: 'completed',
+            type: 'video'
+          };
+        } else {
+          images.value.push({
+            id: imageInfo.id || imageInfo.assetId,
+            path: imageInfo.path,
+            name: imageInfo.name,
+            size: imageInfo.size,
+            duration: imageInfo.duration,
+            create_date: imageInfo.create_date,
+            src: imageInfo.src,
+            status: 'completed',
+            type: 'video'
+          });
+        }
+        return;
+      }
+
       const isAlbum = imageInfo.name.startsWith('album_') || imageInfo.type === 'album_photo';
       if (isAlbum) {
         logSyncEvent(`🎉 相册原图已同步: ${imageInfo.name}`);

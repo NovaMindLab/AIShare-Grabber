@@ -93,7 +93,6 @@ class SyncViewModel extends ChangeNotifier {
   int videoSyncDone = 0;
   String lastVideoSyncDate = '';
   bool isVideoSyncPaused = false;
-  List<AssetEntity> localVideos = [];
 
   int _fileIdCounter = 100;
   Timer? _heartbeatTimer;
