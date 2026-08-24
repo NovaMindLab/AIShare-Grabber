@@ -48,6 +48,7 @@ Complete technical documentation and architecture specs for the zero-backend, cl
 *   [03. 本地存储与 60fps 极限性能优化](file:///d:/AI_serach_image/image_clip_android/wiki/webshare/03_storage_and_performance_optimizations.md): IndexedDB schema, SHA-256 deduplication, EXIF multi-timestamp sorting, and virtual windowing.
 *   [04. Google Photos 风格画廊与全屏沉浸式查看器](file:///d:/AI_serach_image/image_clip_android/wiki/webshare/04_google_photos_gallery_and_ui.md): Justified Flex gallery, 1:1 Google Photos full-screen lightbox, keyboard shortcuts, and info drawer.
 *   [05. 全静态化部署与 CI/CD 自动化流水线](file:///d:/AI_serach_image/image_clip_android/wiki/webshare/05_deployment_and_ci_cd.md): GitHub Pages subpath hosting, Cloudflare Worker signaling, and `auto_deploy/deploy.ps1` release automation.
+*   [06. iOS 专属移动端控制台 (mshare.html)](file:///d:/AI_serach_image/image_clip_android/wiki/webshare/06_ios_mshare_mobile_console.md): 专为 iPhone/移动端触屏定制的独立轻量控制台页面，支持相册直选拖拽、WebRTC P2P 直连与 Safe Area 视网膜适配。
 
 ---
 
@@ -65,6 +66,7 @@ Guidelines for automated builds and releases:
 
 ## 🔭 Features & Roadmap
 Implemented and upcoming feature specifications:
+*   [🎥 远程视频同步、多选按需下载与时间线虚拟列表](file:///d:/AI_serach_image/image_clip_android/wiki/features/video_sync_and_virtual_scrolling.md): 远程视频目录轻量拉取与按拍摄日期时间线聚合、多选批量按需下载、手机端 15 路并发 Base64 缩略图提取 + PC 端离屏 Canvas 视频首帧捕获双重保障、以及 VirtualTimeline.vue 高性能时间线虚拟列表。 **Status: ✅ Implemented**
 *   [📱→🖥️ AI Thumbnail Sync](file:///d:/AI_serach_image/image_clip_android/wiki/features/thumbnail_sync_ai.md): Batch-sync compressed 400×400 JPEG thumbnails from phone to PC via WebRTC DataChannel, auto-trigger MobileCLIP ONNX classification, save to dedicated `thumbnail_sync/` directory, and display results in Link Mobile panel. **Status: ✅ Implemented**
 *   [🧠 Core AI Algorithms & Preprocessing](file:///d:/AI_serach_image/image_clip_android/wiki/features/algorithms.md): Detailed explanation of MobileCLIP features extraction, zero-shot category matching, Leader clustering to prevent chaining effect, and the memory buffer allocation bug fix. **Status: ✅ Implemented**
 *   [🗺️ 足迹地图 (GPS Image Clustering)](file:///d:/AI_serach_image/image_clip_android/wiki/features/footprint_map.md): Extract GPS EXIF coordinates from phone photos via `ACCESS_MEDIA_LOCATION`, transmit with metadata packets over WebRTC, store in SQLite database, and render on an interactive Leaflet clustered map with thumbnail markers. Includes re-download & re-classify button to reset local cache and trigger full mobile re-sync. **Status: ✅ Implemented**
@@ -76,6 +78,10 @@ Implemented and upcoming feature specifications:
 
 | Version | Date | Highlights |
 |---|---|---|
+| **v1.2.98** | 2026-08-24 | **全模块虚拟滚动架构重构（Virtual Scrolling）**：<br>① 全新自研时间线虚拟滚动引擎 `VirtualTimeline.vue`：按日期分组与视频栅格扁平化转换，视口仅挂载可见的 ~8-12 行 DOM 节点，DOM 占用恒定为 \(O(1)\)，解决千级视频滑动掉帧卡顿；<br>② 相册备份页（Album Tab）接入 `VirtualGrid.vue` 虚拟网格，消除内存激增；<br>③ 移除原组件残留的调试日志与悬浮视窗，提升渲染纯净度。 |
+| **v1.2.97** | 2026-08-24 | **视频封面双重保障与并发提取引擎**：<br>① 手机端（Android）加入 15 路并发批处理（`Future.wait`）提取底层 MediaStore 16:9 高清视频缩略图；<br>② PC 端引入离屏 HTML5 Canvas 视频帧抓取（`0.5s ~ 1.0s` 精彩画面）与 Base64 内存缓存引擎，彻底告别无封面黑块；<br>③ 修复 `sync_viewmodel.dart` 中 WebRTC 与 PhotoManager 的 `ThumbnailSize` 符号冲突。 |
+| **v1.2.96** | 2026-08-24 | **视频按需多选下载与三大专属视图分栏**：<br>① 拒绝全量强制同步，先秒级拉取远程视频目录与元数据；<br>② 支持单卡片勾选、日期组一键全选、全局一键全选与悬浮吸底操作条（显示已选个数与容量，一键批量高速下载）；<br>③ 引入三大视图过滤分栏（`全部视频` / `电脑已备份` / `手机待下载`），并在深浅色模式下全面重构高对比度画廊卡片与状态药丸（`🟢 已备份` / `⏳ 待下载`）。 |
+| **v1.2.95** | 2026-08-24 | **WebShare iOS 专属移动端控制台（mshare.html）**：为移动端触屏量身定制独立的纯网页版交互界面，支持大卡片流、底部三段式导航、文件拖放上传及 iPhone 灵动岛 / Safe Area 视网膜适配。 |
 | **v1.2.94** | 2026-08-24 | **① Android 端相册满屏化与悬浮同步中心**：彻底移除顶部占位大按钮，释放 100% 满屏看图空间；右下角引入智能悬浮胶囊按钮（FAB）与滑出式「多端智能同步中心」面板（集成 AI 缩略图分类与电脑端全量原图备份进度及暂停/停止控制）。<br>**② PC 桌面端大图层级与控制栏重塑**：将全屏大图（Lightbox）提权至 `z-index: 10000`，彻底解决自定义窗口标题栏覆盖导致关闭按钮被遮挡拦截问题；右上角新增高亮发光药丸「✕ 关闭大图 (ESC)」及无缝窗口最小化/关闭控件。<br>**③ 官网多语言与排版大修**：重构 20 语言字典与 Hero 3+2 CTA 栅格布局，根除中英混杂。 |
 | **v1.2.93** | 2026-08-24 | 修复异构 Windows 蓝牙适配器 GATT 启动失败问题：C++/WinRT 两级属性回退（解决部分驱动对 WriteWithoutResponse 拦截）、GATT 端口释放 3 次平滑重试、/MT 纯静态编译，并在前端实现蓝牙受限时“无缝自动降级 Wi-Fi 直连二维码”（0 阻断配对）。 |
 | **v1.2.92** | 2026-08-21 | 彻底修复 Android 覆盖升级签名冲突问题，锁定原始证书指纹（SHA-256: `90:C5:76:21:...`），支持免卸载无缝热升级。 |
