@@ -9,6 +9,9 @@ export default defineConfig({
     include: ['vue', '@vueuse/core', 'qrcode']
   },
   server: {
+    port: 5173,
+    strictPort: true,
+    host: '127.0.0.1',
     hmr: {
       overlay: false
     }

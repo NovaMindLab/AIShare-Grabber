@@ -384,7 +384,13 @@ function createWindow() {
   });
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
+    const devUrl = 'http://127.0.0.1:5173';
+    mainWindow.loadURL(devUrl).catch(err => {
+      console.warn(`[Window] Failed to load ${devUrl}, falling back to built dist/index.html:`, err.message);
+      if (fs.existsSync(path.join(__dirname, 'dist', 'index.html'))) {
+        mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
+      }
+    });
     // Open DevTools in detached mode only after initial paint has settled
     mainWindow.webContents.once('did-finish-load', () => {
       setTimeout(() => {
@@ -392,6 +398,12 @@ function createWindow() {
           mainWindow.webContents.openDevTools({ mode: 'detach' });
         }
       }, 800);
+    });
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+      console.warn(`[Window] did-fail-load: ${errorCode} - ${errorDescription} (${validatedURL})`);
+      if (fs.existsSync(path.join(__dirname, 'dist', 'index.html'))) {
+        mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
+      }
     });
   } else {
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
