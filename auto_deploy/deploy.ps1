@@ -128,7 +128,7 @@ if (Get-Command "git" -ErrorAction SilentlyContinue) {
     if ($Diff) {
         Write-Host "Committing updates to Git..." -ForegroundColor Yellow
         git add .
-        git commit -m "feat: release $VersionOnly - Remote video sync by date grouping, manual incremental sync, full-screen video player, and iOS MShare mobile console"
+        git commit -m "feat: release $VersionOnly - Video on-demand multi-select download, parallel thumbnail extraction, PC canvas poster capture, and video category views"
         Write-Host "Pushing updates to Gitee (origin) and GitHub (github)..." -ForegroundColor Yellow
         git push origin master
         git push github master:main

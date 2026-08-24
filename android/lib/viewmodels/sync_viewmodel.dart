@@ -812,22 +812,38 @@ class SyncViewModel extends ChangeNotifier {
                 final streamer = PhotoStreamer.standalone();
                 localVideos = await streamer.loadLocalVideos();
                 final List<Map<String, dynamic>> catalog = [];
-                for (var v in localVideos) {
-                  final int? createSec = v.createDateSecond;
-                  String? createDateStr;
-                  if (createSec != null && createSec > 0) {
-                    createDateStr = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true).toIso8601String();
-                  }
-                  final file = await v.originFile;
-                  final int size = file != null ? await file.length() : 0;
-                  catalog.add({
-                    "id": v.id,
-                    "name": v.title ?? "video_${v.id}.mp4",
-                    "size": size,
-                    "duration": v.duration,
-                    "create_date": createDateStr ?? "",
-                    "timestamp": (createSec ?? 0) * 1000,
-                  });
+                // Process in concurrent batches of 15 for fast thumbnail generation
+                for (int i = 0; i < localVideos.length; i += 15) {
+                  final end = (i + 15 < localVideos.length) ? i + 15 : localVideos.length;
+                  final chunk = localVideos.sublist(i, end);
+                  final chunkResults = await Future.wait(chunk.map((v) async {
+                    final int? createSec = v.createDateSecond;
+                    String? createDateStr;
+                    if (createSec != null && createSec > 0) {
+                      createDateStr = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true).toIso8601String();
+                    }
+                    final file = await v.originFile;
+                    final int size = file != null ? await file.length() : 0;
+
+                    String thumbBase64 = "";
+                    try {
+                      final thumbBytes = await v.thumbnailDataWithSize(const ThumbnailSize(200, 120), quality: 50);
+                      if (thumbBytes != null && thumbBytes.isNotEmpty) {
+                        thumbBase64 = base64Encode(thumbBytes);
+                      }
+                    } catch (_) {}
+
+                    return {
+                      "id": v.id,
+                      "name": v.title ?? "video_${v.id}.mp4",
+                      "size": size,
+                      "duration": v.duration,
+                      "create_date": createDateStr ?? "",
+                      "timestamp": (createSec ?? 0) * 1000,
+                      "thumb": thumbBase64,
+                    };
+                  }));
+                  catalog.addAll(chunkResults);
                 }
                 
                 final respStr = jsonEncode({ "videos": catalog });

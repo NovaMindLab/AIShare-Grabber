@@ -25,6 +25,18 @@ export const languages = {
 
 export const locales = {
   en: {
+    titlebar: {
+      title: "ShareCLIP",
+      settings: "Settings",
+      settingsTitle: "App Settings",
+      minimize: "Minimize",
+      maximize: "Maximize/Restore",
+      close: "Close"
+    },
+    confirm: {
+      cancel: "Cancel",
+      confirm: "Confirm"
+    },
     sidebar: {
       importFolder: "Import Directory",
       importFiles: "Import Files",
@@ -53,6 +65,10 @@ export const locales = {
       searchPlaceholder: "Enter search query in English, e.g. 'a dog', 'sunset'...",
       searchBtn: "Search",
       themeBtn: "Toggle Theme"
+    },
+    aiQueue: {
+      processingTitle: "AI Photo Feature Recognition in Progress",
+      remaining: "({count} remaining)"
     },
     link: {
       linkTitle: "Link Your Phone",
@@ -149,6 +165,47 @@ export const locales = {
       matchScore: "Match score",
       waitingQueue: "Wait in queue"
     },
+    videos: {
+      title: "🎥 Video Sync & Management",
+      subtitle: "Browse videos from mobile by date, select items, and download on demand.",
+      mobileConnected: "🟢 Mobile Connected [{name}]",
+      mobileNotConnected: "⚪ Mobile Disconnected",
+      unsyncedFound: "⚡ {count} new unsynced video(s) detected",
+      totalStats: "(Total {total} video(s) • {synced} backed up)",
+      downloadSelectedBtn: "Download Selected ({count})",
+      noSelectedBtn: "Select Videos to Download",
+      selectAllUnsynced: "Select All Unsynced ({count})",
+      clearSelection: "Deselect All",
+      selectDate: "Select Date ({count})",
+      clearDate: "Deselect Date",
+      quickDownload: "Download",
+      floatingSelected: "Selected {count} video(s)",
+      floatingTotalSize: "Total {size}",
+      floatingClear: "✕ Deselect",
+      floatingDownload: "Download Now ({count})",
+      syncNewBtn: "Sync New Videos ({count})",
+      syncAllBtn: "Sync Mobile Videos",
+      refreshListBtn: "🔄 Refresh List",
+      recheckAllBtn: "🔁 Full Scan",
+      importLocalBtn: "📁 Import Local",
+      openDirBtn: "📂 Open Folder",
+      syncingTitle: "Downloading selected videos... ({done} / {total})",
+      pauseBtn: "⏸️ Pause",
+      resumeBtn: "▶️ Resume",
+      cancelBtn: "⏹️ Cancel",
+      emptyVideos: "No video resources",
+      emptyConnectedDesc: "No videos found on mobile. Click 'Refresh List' above to scan again.",
+      emptyDisconnectedDesc: "Connect your phone on the left to auto-discover and select videos by date, or click 'Import Local' above.",
+      dateVideosMeta: "({count} video(s) • {size})",
+      syncDateBtn: "⚡ Sync This Date ({count})",
+      allDateSynced: "✅ All Synced",
+      tagSynced: "✅ Synced",
+      tagUnsynced: "📥 Unsynced (Click to select/download)",
+      playHint: "Click to play ➔",
+      syncHint: "Click to download ➔",
+      locateFileBtn: "📂 Locate File",
+      closePlayerBtn: "✕"
+    },
     media: {
       emptyVideos: "No video resources",
       emptyVideosDesc: "Videos synced from phone or imported locally can be played and managed here.",
@@ -159,6 +216,42 @@ export const locales = {
       fileDoc: "Document File",
       fileVideo: "Video File",
       fileAudio: "Audio File"
+    },
+    people: {
+      title: "👥 People AI Clustering",
+      subtitle: "Local InsightFace facial embedding extraction and cosine similarity clustering.",
+      clusterCount: "{count} People",
+      photoCount: "{count} photos",
+      reclusterBtn: "🔄 Re-cluster",
+      recalculateBtn: "⚡ Recalculate All Faces",
+      unnamed: "Unnamed Person",
+      renameHint: "Click to rename",
+      emptyPeople: "No people detected",
+      emptyPeopleDesc: "Import photos with clear faces or sync albums to automatically extract and cluster faces."
+    },
+    map: {
+      title: "🗺️ Photo Footprint Map",
+      subtitle: "Interactive map visualization based on EXIF GPS coordinates embedded in photos.",
+      gpsPhotosCount: "Found {count} photo(s) with GPS coordinates",
+      emptyMap: "No GPS photos found",
+      emptyMapDesc: "Photos do not contain GPS coordinates. Ensure 'Save location' is enabled in camera settings."
+    },
+    similar: {
+      title: "🔍 Similar / Duplicate Photo Detection",
+      subtitle: "Find burst shots, similar and duplicate photos in seconds using MobileCLIP cosine similarity.",
+      similarityThreshold: "Similarity Threshold",
+      groupCount: "Found {count} group(s) of similar photos",
+      emptySimilar: "No similar photos found",
+      emptySimilarDesc: "No duplicate photos found above this similarity threshold. Your gallery is clean!"
+    },
+    ytDlp: {
+      title: "📺 Web Video Downloader (yt-dlp)",
+      subtitle: "Download HD videos from YouTube, Bilibili, TikTok, Twitter/X, and 1000+ platforms.",
+      linkMode: "🔗 Paste Link",
+      browserMode: "🌐 Built-in Browser",
+      urlPlaceholder: "Paste video URL (e.g. https://www.youtube.com/watch?...)",
+      parseBtn: "⚡ Parse Video",
+      downloadBtn: "🚀 Start Download"
     },
     details: {
       detailsTitle: "Resource Details",
@@ -198,6 +291,18 @@ export const locales = {
     }
   },
   zh: {
+    titlebar: {
+      title: "ShareCLIP",
+      settings: "设置",
+      settingsTitle: "软件设置",
+      minimize: "最小化",
+      maximize: "最大化/还原",
+      close: "关闭"
+    },
+    confirm: {
+      cancel: "取消",
+      confirm: "确定"
+    },
     sidebar: {
       importFolder: "导入本地目录",
       importFiles: "导入选定文件",
@@ -226,6 +331,10 @@ export const locales = {
       searchPlaceholder: "输入英文搜索, 如 'a dog', 'sunset'...",
       searchBtn: "搜索",
       themeBtn: "切换主题"
+    },
+    aiQueue: {
+      processingTitle: "AI 照片特征识别中",
+      remaining: "(剩余 {count} 张)"
     },
     link: {
       linkTitle: "连接您的手机",
@@ -320,6 +429,47 @@ export const locales = {
       matchScore: "匹配度",
       waitingQueue: "等待队列"
     },
+    videos: {
+      title: "🎥 视频同步与管理",
+      subtitle: "支持按拍摄日期浏览手机视频，勾选后一键极速传输下载。",
+      mobileConnected: "🟢 手机已直连 [{name}]",
+      mobileNotConnected: "⚪ 手机未连接",
+      unsyncedFound: "⚡ 发现 {count} 个新视频待同步",
+      totalStats: "(共 {total} 个视频 • 已备份 {synced} 个)",
+      downloadSelectedBtn: "下载选中视频 ({count})",
+      noSelectedBtn: "请勾选视频下载",
+      selectAllUnsynced: "全选待同步 ({count})",
+      clearSelection: "取消全选",
+      selectDate: "勾选此日期 ({count})",
+      clearDate: "取消勾选此日期",
+      quickDownload: "下载",
+      floatingSelected: "已勾选 {count} 个视频",
+      floatingTotalSize: "共 {size}",
+      floatingClear: "✕ 取消勾选",
+      floatingDownload: "立即下载 ({count})",
+      syncNewBtn: "同步新增视频 ({count})",
+      syncAllBtn: "同步手机视频",
+      refreshListBtn: "🔄 刷新手机列表",
+      recheckAllBtn: "🔁 全量重检",
+      importLocalBtn: "📁 导入本地",
+      openDirBtn: "📂 打开目录",
+      syncingTitle: "正在高速同步视频... ({done} / {total})",
+      pauseBtn: "⏸️ 暂停",
+      resumeBtn: "▶️ 继续",
+      cancelBtn: "⏹️ 取消",
+      emptyVideos: "暂无本地视频资源",
+      emptyConnectedDesc: "手机中暂未检测到视频文件，或点击上方「刷新手机列表」重新扫描。",
+      emptyDisconnectedDesc: "请在左下角连接手机以自动发现并按日期同步视频，或点击上方「导入本地」选取电脑视频。",
+      dateVideosMeta: "({count} 个视频 • {size})",
+      syncDateBtn: "⚡ 同步此日期 ({count})",
+      allDateSynced: "✅ 全部已同步",
+      tagSynced: "✅ 已同步",
+      tagUnsynced: "📥 待同步 (点击勾选/下载)",
+      playHint: "点击播放 ➔",
+      syncHint: "点击勾选/下载 ➔",
+      locateFileBtn: "📂 定位文件",
+      closePlayerBtn: "✕"
+    },
     media: {
       emptyVideos: "暂无本地视频资源",
       emptyVideosDesc: "导入视频文件或从手机传输视频后，可以在这里直接播放与预览。",
@@ -330,6 +480,42 @@ export const locales = {
       fileDoc: "文件资源",
       fileVideo: "视频文件",
       fileAudio: "音频文件"
+    },
+    people: {
+      title: "👥 人物智能聚类",
+      subtitle: "本地运行 InsightFace 嵌入向量抽取与余弦相似度聚类。",
+      clusterCount: "{count} 个人物",
+      photoCount: "{count} 张照片",
+      reclusterBtn: "🔄 重新聚类",
+      recalculateBtn: "⚡ 深度重算所有人脸特征",
+      unnamed: "未命名人物",
+      renameHint: "点击修改名称",
+      emptyPeople: "暂无识别到的人物",
+      emptyPeopleDesc: "导入含有清晰人脸的照片或同步相册后，系统将自动进行面部提取与归类。"
+    },
+    map: {
+      title: "🗺️ 照片足迹地图",
+      subtitle: "根据照片拍摄时内嵌的 GPS 经纬度地理信息自动在交互地图上标记展现。",
+      gpsPhotosCount: "共检索到 {count} 张带 GPS 坐标的照片",
+      emptyMap: "暂无带 GPS 位置的照片",
+      emptyMapDesc: "照片中不包含 GPS 经纬度地理信息。请确保手机相机拍照时开启了「保存地理位置」权限。"
+    },
+    similar: {
+      title: "🔍 相似/重复照片查重",
+      subtitle: "基于 MobileCLIP 特征向量余弦相似度，秒级找出连拍、相似及完全重复的照片。",
+      similarityThreshold: "相似度阈值",
+      groupCount: "共发现 {count} 组相似照片",
+      emptySimilar: "未发现相似或重复照片",
+      emptySimilarDesc: "当前相册中没有高于此相似度阈值的重复照片，相册非常整洁！"
+    },
+    ytDlp: {
+      title: "📺 网页视频解析与下载 (yt-dlp)",
+      subtitle: "支持 YouTube, Bilibili, 抖音, 快手, Twitter/X 等全球 1000+ 视频平台的无水印高清解析与下载。",
+      linkMode: "🔗 粘贴链接解析",
+      browserMode: "🌐 内嵌浏览器嗅探",
+      urlPlaceholder: "粘贴视频链接 (如 https://www.bilibili.com/video/...)",
+      parseBtn: "⚡ 快速解析",
+      downloadBtn: "🚀 开始极速下载"
     },
     details: {
       detailsTitle: "资源详情",
@@ -376,6 +562,18 @@ langList.forEach(lang => {
   if (lang === "zh-TW") {
     // Traditional Chinese custom translations
     locales["zh-TW"] = {
+      titlebar: {
+        title: "ShareCLIP",
+        settings: "設定",
+        settingsTitle: "軟體設定",
+        minimize: "最小化",
+        maximize: "最大化/還原",
+        close: "關閉"
+      },
+      confirm: {
+        cancel: "取消",
+        confirm: "確定"
+      },
       sidebar: {
         importFolder: "匯入本地目錄",
         importFiles: "匯入選定檔案",
@@ -385,10 +583,12 @@ langList.forEach(lang => {
         tabImages: "🖼️ 圖片",
         tabAlbum: "📸 備份相冊",
         tabSimilar: "🔍 相似圖片",
+        tabMap: "🗺️ 足跡地圖",
         tabPeople: "👥 人物相冊",
         tabVideos: "🎥 影片",
         tabAudios: "🎵 音訊",
         tabFiles: "📄 檔案",
+        tabYtDlp: "📺 影片下載",
         aiFilter: "智能分類篩選",
         allImages: "全部圖片",
         archTitle: "💡 架構說明",
@@ -403,6 +603,10 @@ langList.forEach(lang => {
         searchBtn: "搜尋",
         themeBtn: "切換主題"
       },
+      aiQueue: {
+        processingTitle: "AI 照片特徵識別中",
+        remaining: "(剩餘 {count} 張)"
+      },
       link: {
         linkTitle: "連線行動裝置",
         linkDesc: "開啟同步服務後，本地將啟動 BLE 廣播。使用 ShareCLIP 手機端 App 掃描配對二維碼，即可建立極速 P2P Wi-Fi 直連通道，實現跨裝置雙向檔案傳輸。",
@@ -415,7 +619,7 @@ langList.forEach(lang => {
         connectedTitle: "🟢 已建立極速 P2P 直連通道",
         connectedDesc: "手機已成功連線。您現在可以從手機傳送照片或在下方管理傳輸。",
         disconnectBtn: "斷開連線",
-        logsTitle: "📝 即時連線日誌 (Live Logs)",
+        logsTitle: "連線日誌",
         clearLogs: "清空",
         waitingLogs: "等待同步日誌...",
         hotspotTab: "本地熱點模式",
@@ -441,6 +645,47 @@ langList.forEach(lang => {
         matchScore: "匹配度",
         waitingQueue: "等待隊列"
       },
+      videos: {
+        title: "🎥 影片同步與管理",
+        subtitle: "支援按拍攝日期瀏覽手機影片，勾選後一鍵極速傳輸下載。",
+        mobileConnected: "🟢 手機已直連 [{name}]",
+        mobileNotConnected: "⚪ 手機未連線",
+        unsyncedFound: "⚡ 發現 {count} 個新影片待同步",
+        totalStats: "(共 {total} 個影片 • 已備份 {synced} 個)",
+        downloadSelectedBtn: "下載選中影片 ({count})",
+        noSelectedBtn: "請勾選影片下載",
+        selectAllUnsynced: "全選待同步 ({count})",
+        clearSelection: "取消全選",
+        selectDate: "勾選此日期 ({count})",
+        clearDate: "取消勾選此日期",
+        quickDownload: "下載",
+        floatingSelected: "已勾選 {count} 個影片",
+        floatingTotalSize: "共 {size}",
+        floatingClear: "✕ 取消勾選",
+        floatingDownload: "立即下載 ({count})",
+        syncNewBtn: "同步新增影片 ({count})",
+        syncAllBtn: "同步手機影片",
+        refreshListBtn: "🔄 重新整理手機清單",
+        recheckAllBtn: "🔁 全量重檢",
+        importLocalBtn: "📁 匯入本地",
+        openDirBtn: "📂 開啟目錄",
+        syncingTitle: "正在高速下載影片... ({done} / {total})",
+        pauseBtn: "⏸️ 暫停",
+        resumeBtn: "▶️ 繼續",
+        cancelBtn: "⏹️ 取消",
+        emptyVideos: "暫無本地影片資源",
+        emptyConnectedDesc: "手機中暫未檢測到影片檔案，或點擊上方「重新整理手機清單」重新掃描。",
+        emptyDisconnectedDesc: "請在左下角連線手機以自動發現並按日期同步影片，或點擊上方「匯入本地」選取電腦影片。",
+        dateVideosMeta: "({count} 個影片 • {size})",
+        syncDateBtn: "⚡ 同步此日期 ({count})",
+        allDateSynced: "✅ 全部已同步",
+        tagSynced: "✅ 已同步",
+        tagUnsynced: "📥 待同步 (點擊勾選/下載)",
+        playHint: "點擊播放 ➔",
+        syncHint: "點擊勾選/下載 ➔",
+        locateFileBtn: "📂 定位檔案",
+        closePlayerBtn: "✕"
+      },
       media: {
         emptyVideos: "暫無本地影片資源",
         emptyVideosDesc: "匯入影片檔案或從手機傳輸影片後，可以在這裡直接播放與預覽。",
@@ -451,6 +696,42 @@ langList.forEach(lang => {
         fileDoc: "檔案資源",
         fileVideo: "影片檔案",
         fileAudio: "音訊檔案"
+      },
+      people: {
+        title: "👥 人物智慧聚類",
+        subtitle: "本地執行 InsightFace 嵌入向量抽取與餘弦相似度聚類。",
+        clusterCount: "{count} 個人物",
+        photoCount: "{count} 張照片",
+        reclusterBtn: "🔄 重新聚類",
+        recalculateBtn: "⚡ 深度重算所有人臉特徵",
+        unnamed: "未命名人物",
+        renameHint: "點擊修改名稱",
+        emptyPeople: "暫無識別到的人物",
+        emptyPeopleDesc: "匯入含有清晰人臉的照片或同步相簿後，系統將自動進行面部提取與歸類。"
+      },
+      map: {
+        title: "🗺️ 照片足跡地圖",
+        subtitle: "根據照片拍攝時內嵌的 GPS 經緯度地理資訊自動在互動地圖上標記展現。",
+        gpsPhotosCount: "共檢索到 {count} 張帶 GPS 座標的照片",
+        emptyMap: "暫無帶 GPS 位置的照片",
+        emptyMapDesc: "照片中不包含 GPS 經緯度地理資訊。請確保手機相機拍照時開啟了「儲存地理位置」權限。"
+      },
+      similar: {
+        title: "🔍 相似/重複照片查重",
+        subtitle: "基於 MobileCLIP 特徵向量餘弦相似度，秒級找出連拍、相似及完全重複的照片。",
+        similarityThreshold: "相似度閾值",
+        groupCount: "共發現 {count} 組相似照片",
+        emptySimilar: "未發現相似或重複照片",
+        emptySimilarDesc: "目前相簿中沒有高於此相似度閾值的重複照片，相簿非常整潔！"
+      },
+      ytDlp: {
+        title: "📺 網頁影片解析與下載 (yt-dlp)",
+        subtitle: "支援 YouTube, Bilibili, 抖音, 快手, Twitter/X 等全球 1000+ 影片平台的無浮水印高清解析與下載。",
+        linkMode: "🔗 貼上連結解析",
+        browserMode: "🌐 內建瀏覽器探測",
+        urlPlaceholder: "貼上影片連結 (如 https://www.bilibili.com/video/...)",
+        parseBtn: "⚡ 快速解析",
+        downloadBtn: "🚀 開始極速下載"
       },
       details: {
         detailsTitle: "資源詳情",
@@ -492,8 +773,6 @@ langList.forEach(lang => {
   } else if (!locales[lang]) {
     // Clone English as default fallback
     const cloned = JSON.parse(JSON.stringify(locales.en));
-    // Add prefix to button to verify it's working
-    cloned.sidebar.linkMobile = `${cloned.sidebar.linkMobile} (${lang.toUpperCase()})`;
     locales[lang] = cloned;
   }
 });

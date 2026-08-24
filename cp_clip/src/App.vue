@@ -12,18 +12,18 @@
           class="title-bar-btn settings-top-btn" 
           :class="{ active: currentTab === 'settings' }"
           @click="currentTab = 'settings'" 
-          title="软件设置"
+          :title="t.titlebar?.settingsTitle || t.sidebar?.settings"
         >
           <span style="font-size: 13px;">⚙️</span>
-          <span style="font-size: 12px; font-weight: 600; margin-left: 4px;">设置</span>
+          <span style="font-size: 12px; font-weight: 600; margin-left: 4px;">{{ t.titlebar?.settings || t.sidebar?.settings }}</span>
         </button>
-        <button class="title-bar-btn minimize" @click="minimizeWindow" title="最小化">
+        <button class="title-bar-btn minimize" @click="minimizeWindow" :title="t.titlebar?.minimize || 'Minimize'">
           <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10v1H0z" fill="currentColor"/></svg>
         </button>
-        <button class="title-bar-btn maximize" @click="maximizeWindow" title="最大化/还原">
+        <button class="title-bar-btn maximize" @click="maximizeWindow" :title="t.titlebar?.maximize || 'Maximize'">
           <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0v10h10V0H0zm9 9H1V1h8v8z" fill="currentColor"/></svg>
         </button>
-        <button class="title-bar-btn close" @click="closeWindow" title="关闭">
+        <button class="title-bar-btn close" @click="closeWindow" :title="t.titlebar?.close || 'Close'">
           <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
         </button>
       </div>
@@ -50,7 +50,7 @@
           </div>
           <p style="margin: 0 0 24px 0; font-size: 13.5px; line-height: 1.7; color: var(--text-secondary); white-space: pre-line;">{{ confirmModal.message }}</p>
           <div style="display: flex; gap: 12px; justify-content: flex-end;">
-            <button @click="confirmModal.onCancel && confirmModal.onCancel(); confirmModal.visible = false" style="padding: 9px 22px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">取消</button>
+            <button @click="confirmModal.onCancel && confirmModal.onCancel(); confirmModal.visible = false" style="padding: 9px 22px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">{{ t.confirm?.cancel || 'Cancel' }}</button>
             <button @click="confirmModal.onConfirm && confirmModal.onConfirm(); confirmModal.visible = false" :style="{
               padding: '9px 22px',
               borderRadius: '10px',
@@ -62,7 +62,7 @@
               cursor: 'pointer',
               boxShadow: confirmModal.danger ? '0 4px 16px rgba(239,68,68,0.45)' : '0 4px 16px rgba(168,85,247,0.45)',
               transition: 'all 0.2s'
-            }">{{ confirmModal.confirmText }}</button>
+            }">{{ confirmModal.confirmText || t.confirm?.confirm || 'Confirm' }}</button>
           </div>
         </div>
       </div>
@@ -867,33 +867,44 @@
           <div class="glass-panel video-control-banner">
             <div class="video-control-left">
               <div class="video-control-title-row">
-                <h3>🎥 视频同步与管理</h3>
+                <h3>{{ t.videos?.title || '🎥 视频同步与管理' }}</h3>
                 <span class="badge-pill" :class="syncStatus === 'connected' ? 'badge-online' : 'badge-offline'">
                   <span class="status-dot" :class="{ 'pulse-dot': syncStatus === 'connected' }"></span>
-                  {{ syncStatus === 'connected' ? `🟢 手机已直连 [${activeDeviceName || '设备'}]` : '⚪ 手机未连接' }}
+                  {{ syncStatus === 'connected' ? (t.videos?.mobileConnected ? t.videos.mobileConnected.replace('{name}', activeDeviceName || '设备') : `🟢 手机已直连 [${activeDeviceName || '设备'}]`) : (t.videos?.mobileNotConnected || '⚪ 手机未连接') }}
                 </span>
                 <span v-if="totalUnsyncedVideosCount > 0" class="badge-pill badge-unsynced-pulse">
-                  ⚡ 发现 {{ totalUnsyncedVideosCount }} 个新视频待同步
+                  {{ t.videos?.unsyncedFound ? t.videos.unsyncedFound.replace('{count}', totalUnsyncedVideosCount) : `⚡ 发现 ${totalUnsyncedVideosCount} 个新视频待同步` }}
                 </span>
               </div>
               <p class="video-control-subtitle">
-                支持手机端高清/4K视频 64KB 流式切片直传，按拍摄日期归档管理与离线极速播放。
-                <span style="color: var(--text-primary); font-weight: 600;">(共 {{ totalAllVideosCount }} 个视频 • 已备份 {{ localVideos.length }} 个)</span>
+                {{ t.videos?.subtitle || '支持按拍摄日期浏览手机视频，勾选后一键极速传输下载。' }}
+                <span style="color: var(--text-primary); font-weight: 600;">
+                  {{ t.videos?.totalStats ? t.videos.totalStats.replace('{total}', totalAllVideosCount).replace('{synced}', localVideos.length) : `(共 ${totalAllVideosCount} 个视频 • 已备份 ${localVideos.length} 个)` }}
+                </span>
               </p>
             </div>
 
             <!-- Action Buttons -->
             <div class="video-control-actions">
-              <!-- Sync New Videos (Glowing Primary Button when there are unsynced videos) -->
+              <!-- Download Selected Videos Button (Glowing primary button when items are selected) -->
               <button 
                 v-if="syncStatus === 'connected'"
                 class="btn btn-primary"
-                :class="{ 'btn-glow-pulse': totalUnsyncedVideosCount > 0 }"
-                :disabled="isVideoSyncing"
-                @click="requestVideoSync({ forceFullScan: false })"
-                title="一键将手机中所有新增/未同步的视频传输到电脑"
+                :class="{ 'btn-glow-pulse': selectedVideosCount > 0 }"
+                :disabled="isVideoSyncing || selectedVideosCount === 0"
+                @click="downloadSelectedVideos"
+                :title="selectedVideosCount > 0 ? '下载所有已勾选的视频' : '请在下方勾选要下载的视频'"
               >
-                <span>🚀</span> {{ totalUnsyncedVideosCount > 0 ? `同步新增视频 (${totalUnsyncedVideosCount})` : '同步手机视频' }}
+                <span>⬇️</span> {{ selectedVideosCount > 0 ? (t.videos?.downloadSelectedBtn ? t.videos.downloadSelectedBtn.replace('{count}', selectedVideosCount) : `下载选中视频 (${selectedVideosCount})`) : (t.videos?.noSelectedBtn || '请勾选视频下载') }}
+              </button>
+
+              <!-- Select All / Clear Selection Button -->
+              <button 
+                v-if="syncStatus === 'connected' && totalUnsyncedVideosCount > 0"
+                class="btn btn-secondary btn-sm"
+                @click="selectedVideosCount === totalUnsyncedVideosCount ? clearVideoSelection() : selectAllUnsyncedVideos()"
+              >
+                {{ selectedVideosCount === totalUnsyncedVideosCount ? (t.videos?.clearSelection || '⬜ 取消全选') : (t.videos?.selectAllUnsynced ? t.videos.selectAllUnsynced.replace('{count}', totalUnsyncedVideosCount) : `☑️ 全选待同步 (${totalUnsyncedVideosCount})`) }}
               </button>
 
               <!-- Check / Refresh Remote Video List -->
@@ -902,30 +913,45 @@
                 class="btn btn-secondary btn-sm"
                 :disabled="isVideoSyncing"
                 @click="queryRemoteVideoCatalog"
-                title="重新扫描手机中的视频目录与拍摄日期"
               >
-                🔄 刷新列表
-              </button>
-
-              <!-- Re-sync all (Force Full Scan) -->
-              <button 
-                v-if="syncStatus === 'connected' && localVideos.length > 0"
-                class="btn btn-secondary btn-sm"
-                :disabled="isVideoSyncing"
-                @click="requestVideoSync({ forceFullScan: true })"
-                title="重新扫描并补齐所有历史视频"
-              >
-                🔁 全量重检
+                {{ t.videos?.refreshListBtn || '🔄 刷新手机列表' }}
               </button>
 
               <!-- Import Local Folder -->
-              <button class="btn btn-secondary btn-sm" @click="handleImportFolder" title="从电脑本地导入视频文件夹">
-                📁 导入本地
+              <button class="btn btn-secondary btn-sm" @click="handleImportFolder">
+                {{ t.videos?.importLocalBtn || '📁 导入本地' }}
               </button>
 
               <!-- Open Videos Sync Folder -->
-              <button v-if="hasApi" class="btn btn-secondary btn-sm" @click="openDownloadFolder" title="在系统资源管理器中打开视频存放目录">
-                📂 打开目录
+              <button v-if="hasApi" class="btn btn-secondary btn-sm" @click="openDownloadFolder">
+                {{ t.videos?.openDirBtn || '📂 打开目录' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Video View Filter Tabs -->
+          <div class="video-filter-bar">
+            <div class="video-filter-tabs">
+              <button 
+                class="video-filter-btn" 
+                :class="{ active: videoTabFilter === 'all' }"
+                @click="videoTabFilter = 'all'"
+              >
+                🎞️ 全部视频 <span class="filter-count">({{ totalAllVideosCount }})</span>
+              </button>
+              <button 
+                class="video-filter-btn" 
+                :class="{ active: videoTabFilter === 'synced' }"
+                @click="videoTabFilter = 'synced'"
+              >
+                💾 电脑已备份 <span class="filter-count">({{ localVideos.length }})</span>
+              </button>
+              <button 
+                class="video-filter-btn" 
+                :class="{ active: videoTabFilter === 'unsynced' }"
+                @click="videoTabFilter = 'unsynced'"
+              >
+                📱 手机待下载 <span class="filter-count">({{ totalUnsyncedVideosCount }})</span>
               </button>
             </div>
           </div>
@@ -936,7 +962,7 @@
               <span class="spinner"></span>
               <div class="sync-progress-text">
                 <div class="sync-progress-title">
-                  <span>正在高速同步视频... ({{ videoSyncDone }} / {{ videoSyncTotal }})</span>
+                  <span>{{ t.videos?.syncingTitle ? t.videos.syncingTitle.replace('{done}', videoSyncDone).replace('{total}', videoSyncTotal) : `正在高速下载视频... (${videoSyncDone} / ${videoSyncTotal})` }}</span>
                   <span class="sync-percent">{{ videoSyncTotal > 0 ? Math.round((videoSyncDone / videoSyncTotal) * 100) : 0 }}%</span>
                 </div>
                 <div class="sync-progress-track">
@@ -945,25 +971,29 @@
               </div>
             </div>
             <div class="sync-progress-controls">
-              <button v-if="!isVideoSyncPaused" class="btn btn-secondary btn-xs" @click="pauseVideoSync">⏸️ 暂停</button>
-              <button v-else class="btn btn-primary btn-xs" @click="resumeVideoSync">▶️ 继续</button>
-              <button class="btn btn-secondary btn-xs" style="color: #ef4444;" @click="stopVideoSync">⏹️ 取消</button>
+              <button v-if="!isVideoSyncPaused" class="btn btn-secondary btn-xs" @click="pauseVideoSync">{{ t.videos?.pauseBtn || '⏸️ 暂停' }}</button>
+              <button v-else class="btn btn-primary btn-xs" @click="resumeVideoSync">{{ t.videos?.resumeBtn || '▶️ 继续' }}</button>
+              <button class="btn btn-secondary btn-xs" style="color: #ef4444;" @click="stopVideoSync">{{ t.videos?.cancelBtn || '⏹️ 取消' }}</button>
             </div>
           </div>
 
-          <!-- Empty State (No videos at all) -->
-          <div class="empty-state" v-if="videoGroupsByDate.length === 0">
+          <!-- Empty State -->
+          <div class="empty-state" v-if="filteredVideoGroupsByDate.length === 0">
             <div class="empty-state-icon">🎥</div>
-            <h2 class="empty-state-title">{{ t.media.emptyVideos }}</h2>
+            <h2 class="empty-state-title">
+              {{ videoTabFilter === 'synced' ? '暂无电脑已备份视频' : (videoTabFilter === 'unsynced' ? '🎉 手机视频已全部备份！' : (t.videos?.emptyVideos || '暂无视频资源')) }}
+            </h2>
             <p class="empty-state-desc">
-              {{ syncStatus === 'connected' ? '手机中暂未检测到视频文件，或点击上方「刷新列表」重新扫描。' : '请在左下角连接手机以自动发现并按日期同步视频，或点击上方「导入本地」选取电脑视频。' }}
+              <span v-if="videoTabFilter === 'synced'">请在顶部切换至「📱 手机待下载」勾选视频并点击下载。</span>
+              <span v-else-if="videoTabFilter === 'unsynced'">手机中所有检测到的视频均已同步至电脑本地。</span>
+              <span v-else>{{ syncStatus === 'connected' ? (t.videos?.emptyConnectedDesc || '手机中暂未检测到视频文件，或点击上方「刷新手机列表」重新扫描。') : (t.videos?.emptyDisconnectedDesc || '请在左下角连接手机以自动发现并按日期同步视频，或点击上方「导入本地」选取电脑视频。') }}</span>
             </p>
           </div>
 
           <!-- Date-Grouped Timeline Display -->
           <div v-else class="video-timeline-wrapper">
             <div 
-              v-for="group in videoGroupsByDate" 
+              v-for="group in filteredVideoGroupsByDate" 
               :key="group.rawDate" 
               class="video-date-group"
             >
@@ -972,22 +1002,29 @@
                 <div class="video-date-title-wrap">
                   <span class="video-date-icon">📅</span>
                   <h4 class="video-date-title">{{ group.dateKey }}</h4>
-                  <span class="video-date-meta">({{ group.totalCount }} 个视频 • {{ formatBytes(group.totalBytes) }})</span>
+                  <span class="video-date-meta">{{ t.videos?.dateVideosMeta ? t.videos.dateVideosMeta.replace('{count}', group.filteredCount).replace('{size}', formatBytes(group.filteredBytes)) : `(${group.filteredCount} 个视频 • ${formatBytes(group.filteredBytes)})` }}</span>
                 </div>
 
-                <!-- Date-level Sync Action Button -->
+                <!-- Date-level Actions -->
                 <div class="video-date-actions" v-if="syncStatus === 'connected' && group.hasUnsynced">
+                  <button 
+                    class="btn btn-secondary btn-xs"
+                    @click="toggleDateSelection(group)"
+                    :title="isDateAllSelected(group) ? '取消勾选此日期的所有待同步视频' : '勾选此日期的所有待同步视频'"
+                  >
+                    {{ isDateAllSelected(group) ? (t.videos?.clearDate || '⬜ 取消勾选此日期') : (t.videos?.selectDate ? t.videos.selectDate.replace('{count}', group.unsyncedCount) : `☑️ 勾选此日期 (${group.unsyncedCount})`) }}
+                  </button>
                   <button 
                     class="btn btn-primary btn-xs"
                     :disabled="isVideoSyncing"
                     @click="requestVideoSync({ targetDate: group.rawDate, targetIds: group.unsyncedIds })"
-                    title="仅同步此拍摄日期的全部视频"
+                    title="仅下载此拍摄日期的全部视频"
                   >
-                    <span>⚡</span> 同步此日期 ({{ group.unsyncedCount }})
+                    <span>⚡</span> {{ t.videos?.syncDateBtn ? t.videos.syncDateBtn.replace('{count}', group.unsyncedCount) : `同步此日期 (${group.unsyncedCount})` }}
                   </button>
                 </div>
                 <div class="video-date-actions" v-else-if="!group.hasUnsynced">
-                  <span class="video-all-synced-badge">✅ 全部已同步</span>
+                  <span class="video-all-synced-badge">{{ t.videos?.allDateSynced || '✅ 全部已备份' }}</span>
                 </div>
               </div>
 
@@ -997,28 +1034,60 @@
                   v-for="item in group.items" 
                   :key="item.id || item.path" 
                   class="video-card glass-panel-hover"
-                  :class="{ 'card-unsynced': item.isRemoteOnly }"
-                  @click="item.isSynced ? openVideoPlayer(item) : requestVideoSync({ targetIds: [item.id] })"
+                  :class="{ 
+                    'card-unsynced': item.isRemoteOnly,
+                    'card-selected': isVideoSelected(item)
+                  }"
+                  @click="item.isSynced ? openVideoPlayer(item) : toggleVideoSelection(item)"
                 >
                   <!-- Thumbnail / Poster Area -->
                   <div class="video-poster-box">
-                    <div class="video-poster-placeholder">
-                      <span class="video-play-btn-circle">
-                        {{ item.isSynced ? '▶️' : '📥' }}
-                      </span>
+                    <!-- Real Thumbnail Cover (Base64 from mobile or local video canvas frame capture) -->
+                    <img 
+                      v-if="getVideoPoster(item)" 
+                      :src="getVideoPoster(item)" 
+                      class="video-poster-media" 
+                      loading="lazy" 
+                    />
+                    <video 
+                      v-else-if="item.src || item.path" 
+                      :src="(item.src || `local:///${item.path.replace(/\\/g, '/')}`) + '#t=0.5'" 
+                      class="video-poster-media" 
+                      preload="metadata" 
+                      muted 
+                      playsinline
+                    ></video>
+                    <div v-else class="video-poster-placeholder">
+                      <span class="video-poster-icon">🎬</span>
                     </div>
 
-                    <!-- Duration Badge -->
-                    <span v-if="item.duration" class="video-duration-pill">
-                      {{ formatVideoDuration(item.duration) }}
-                    </span>
-
-                    <!-- Sync Status Pill -->
+                    <!-- Top-Left Status Pill -->
                     <span 
                       class="video-status-tag"
                       :class="item.isSynced ? 'tag-synced' : 'tag-unsynced'"
                     >
-                      {{ item.isSynced ? '✅ 已同步' : '📥 待同步 (点击同步)' }}
+                      {{ item.isSynced ? (t.videos?.tagSynced || '🟢 已备份') : (t.videos?.tagUnsynced || '⏳ 待下载') }}
+                    </span>
+
+                    <!-- Top-Right Custom Checkbox for Multi-Select -->
+                    <div 
+                      v-if="!item.isSynced" 
+                      class="video-select-checkbox" 
+                      :class="{ 'is-checked': isVideoSelected(item) }"
+                      @click.stop="toggleVideoSelection(item)"
+                      title="勾选/取消勾选该视频"
+                    >
+                      <span v-if="isVideoSelected(item)" class="check-icon">✓</span>
+                    </div>
+
+                    <!-- Center Hover Play Overlay for Synced Videos -->
+                    <div v-if="item.isSynced" class="video-play-center-btn">
+                      <span>▶</span>
+                    </div>
+
+                    <!-- Bottom-Right Duration Badge -->
+                    <span v-if="item.duration" class="video-duration-pill">
+                      {{ formatVideoDuration(item.duration) }}
                     </span>
                   </div>
 
@@ -1027,14 +1096,59 @@
                     <div class="video-card-name" :title="item.name">{{ item.name }}</div>
                     <div class="video-card-sub">
                       <span>{{ formatBytes(item.size) }}</span>
-                      <span v-if="item.isSynced" class="video-play-hint">点击播放 ➔</span>
-                      <span v-else class="video-sync-hint">点击立即同步 ➔</span>
+                      <span v-if="item.isSynced" class="video-play-hint">{{ t.videos?.playHint || '▶️ 点击播放' }}</span>
+                      <div v-else style="display: flex; align-items: center; gap: 6px;">
+                        <button 
+                          class="btn-video-quick-download" 
+                          @click.stop="downloadSingleVideo(item)"
+                          :disabled="isVideoSyncing"
+                          title="直接下载此视频"
+                        >
+                          ⬇️ {{ t.videos?.quickDownload || '下载' }}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- Floating Bottom Sticky Bar for Multi-Select Download -->
+          <transition name="modal-fade">
+            <div 
+              v-if="selectedVideosCount > 0" 
+              class="video-floating-bar"
+            >
+              <div class="video-floating-info">
+                <span style="font-size: 18px;">🎥</span>
+                <span>
+                  {{ t.videos?.floatingSelected ? t.videos.floatingSelected.replace('{count}', selectedVideosCount) : `已勾选 ${selectedVideosCount} 个视频` }}
+                  <span style="color: var(--text-muted); font-size: 12px; margin-left: 6px;">
+                    ({{ t.videos?.floatingTotalSize ? t.videos.floatingTotalSize.replace('{size}', formatBytes(selectedVideosTotalBytes)) : `共 ${formatBytes(selectedVideosTotalBytes)}` }})
+                  </span>
+                </span>
+              </div>
+              <div class="video-floating-actions">
+                <button 
+                  class="btn btn-secondary btn-sm" 
+                  @click="clearVideoSelection"
+                  style="border-radius: 20px; padding: 7px 18px;"
+                >
+                  {{ t.videos?.floatingClear || '✕ 取消勾选' }}
+                </button>
+                <button 
+                  class="btn btn-primary" 
+                  @click="downloadSelectedVideos"
+                  :disabled="isVideoSyncing"
+                  style="border-radius: 20px; padding: 8px 24px; font-weight: 700; box-shadow: 0 4px 16px rgba(168, 85, 247, 0.45);"
+                >
+                  <span>⬇️</span>
+                  <span>{{ isVideoSyncing ? '正在下载...' : (t.videos?.floatingDownload ? t.videos.floatingDownload.replace('{count}', selectedVideosCount) : `立即下载 (${selectedVideosCount})`) }}</span>
+                </button>
+              </div>
+            </div>
+          </transition>
 
           <!-- Video Fullscreen Player Lightbox Modal -->
           <transition name="modal-fade">
@@ -1053,11 +1167,10 @@
                       v-if="hasApi && activePlayingVideo.path" 
                       class="btn btn-secondary btn-sm" 
                       @click="window.api.openFileLocation(activePlayingVideo.path)"
-                      title="在 Windows 资源管理器中高亮显示该视频文件"
                     >
-                      📂 定位文件
+                      {{ t.videos?.locateFileBtn || '📂 定位文件' }}
                     </button>
-                    <button class="vp-close-btn" @click="closeVideoPlayer" title="关闭播放器">✕</button>
+                    <button class="vp-close-btn" @click="closeVideoPlayer">✕</button>
                   </div>
                 </div>
 
@@ -1146,12 +1259,12 @@
           <!-- Empty State -->
           <div class="empty-state" v-if="personClusters.length === 0" style="width: 100%;">
             <div class="empty-state-icon">👥</div>
-            <h2 class="empty-state-title">暂无人物相册</h2>
+            <h2 class="empty-state-title">{{ t.people?.emptyPeople || '暂无人物相册' }}</h2>
             <p class="empty-state-desc">
-              点击右上角“智能计算/刷新人物聚类”即可开始自动为相册中现有的照片做人物归纳聚类。
+              {{ t.people?.emptyPeopleDesc || '导入含有清晰人脸的照片或同步相册后，系统将自动进行面部提取与归类。' }}
             </p>
             <button class="btn btn-primary" @click="handleReclusterPeople" :disabled="isClusteringPeople" style="margin-top: 16px;">
-              🔄 智能计算/刷新人物聚类
+              {{ t.people?.reclusterBtn || '🔄 智能计算/刷新人物聚类' }}
             </button>
           </div>
 
@@ -1186,10 +1299,10 @@
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
                 <div style="display: flex; align-items: center; gap: 12px;">
                   <h2 style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin: 0;">
-                    👥 {{ currentSelectedPerson ? currentSelectedPerson.name : '选择人物' }} ({{ selectedPersonPhotos.length }} 张照片)
+                    👥 {{ currentSelectedPerson ? currentSelectedPerson.name : (t.people?.unnamed || '选择人物') }} ({{ t.people?.photoCount ? t.people.photoCount.replace('{count}', selectedPersonPhotos.length) : `${selectedPersonPhotos.length} 张照片` }})
                   </h2>
                   <button v-if="currentSelectedPerson" class="btn btn-secondary" @click="promptRenamePerson(currentSelectedPerson)" style="padding: 4px 10px; font-size: 11px; border-radius: 6px;">
-                    ✏️ 重命名
+                    ✏️ {{ t.people?.renameHint || '重命名' }}
                   </button>
                 </div>
                 <div style="display: flex; gap: 8px;">
@@ -1201,7 +1314,7 @@
                   >
                     <span v-if="isClusteringPeople" class="spinner" style="width: 12px; height: 12px; border-color: var(--text-primary); border-top-color: transparent;"></span>
                     <span v-else>♻️</span>
-                    <span>强制重新提取人脸</span>
+                    <span>{{ t.people?.recalculateBtn || '⚡ 深度重算所有人脸特征' }}</span>
                   </button>
                   <button 
                     class="btn btn-primary" 
@@ -1211,7 +1324,7 @@
                   >
                     <span v-if="isClusteringPeople" class="spinner" style="width: 12px; height: 12px;"></span>
                     <span v-else>🔄</span>
-                    <span>{{ isClusteringPeople ? (faceScanProgress.total > 0 && faceScanProgress.done < faceScanProgress.total ? '提取人脸中 (' + faceScanProgress.done + '/' + faceScanProgress.total + ')' : '计算聚类中...') : '刷新聚类' }}</span>
+                    <span>{{ isClusteringPeople ? (faceScanProgress.total > 0 && faceScanProgress.done < faceScanProgress.total ? '提取人脸中 (' + faceScanProgress.done + '/' + faceScanProgress.total + ')' : '计算聚类中...') : (t.people?.reclusterBtn || '刷新聚类') }}</span>
                   </button>
                 </div>
               </div>
@@ -1306,10 +1419,10 @@
           <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
             <div>
               <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                📺 视频解析与下载 (YT-DLP)
+                {{ t.ytDlp?.title || '📺 视频解析与下载 (YT-DLP)' }}
               </h2>
               <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">
-                基于强大的跨平台解析引擎。支持全球数百个主流视频网站的无损解析和一键下载。
+                {{ t.ytDlp?.subtitle || '基于强大的跨平台解析引擎。支持全球数百个主流视频网站的无损解析和一键下载。' }}
               </p>
             </div>
             
@@ -1319,14 +1432,14 @@
                 style="padding: 6px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s;"
                 :style="{ background: ytMode === 'link' ? 'var(--primary)' : 'transparent', color: ytMode === 'link' ? '#fff' : 'var(--text-secondary)' }"
               >
-                🔗 复制链接
+                {{ t.ytDlp?.linkMode || '🔗 粘贴链接解析' }}
               </div>
               <div 
                 @click="ytMode = 'browser'" 
                 style="padding: 6px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s;"
                 :style="{ background: ytMode === 'browser' ? 'var(--primary)' : 'transparent', color: ytMode === 'browser' ? '#fff' : 'var(--text-secondary)' }"
               >
-                🌐 浏览主站
+                {{ t.ytDlp?.browserMode || '🌐 内嵌浏览器嗅探' }}
               </div>
             </div>
           </div>
@@ -1337,7 +1450,7 @@
               <input 
                 v-model="ytUrl" 
                 type="text" 
-                placeholder="在此粘贴视频链接 (例如: https://www.youtube.com/watch?v=...)" 
+                :placeholder="t.ytDlp?.urlPlaceholder || '在此粘贴视频链接 (例如: https://www.youtube.com/watch?v=...)'" 
                 style="flex: 1; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px 16px; border-radius: var(--border-radius-sm); outline: none; font-size: 14px; transition: all 0.3s;"
                 :disabled="ytDownloading"
                 @keyup.enter="parseYtVideo"
@@ -1348,7 +1461,7 @@
                 @click="parseYtVideo"
                 :disabled="ytDownloading || !ytUrl"
               >
-                解析视频信息
+                {{ t.ytDlp?.parseBtn || '⚡ 快速解析' }}
               </button>
             </div>
 
@@ -1370,7 +1483,7 @@
                     </option>
                   </select>
                   <button class="btn btn-primary" style="padding: 6px 16px; font-size: 13px;" @click="startYtDownload" :disabled="ytDownloading">
-                    {{ ytDownloading ? '下载中...' : '确认下载' }}
+                    {{ ytDownloading ? '下载中...' : (t.ytDlp?.downloadBtn || '🚀 开始极速下载') }}
                   </button>
                 </div>
               </div>
@@ -1399,7 +1512,7 @@
             
             <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
               <button class="btn btn-secondary" @click="window.api.openDownloadFolder()">
-                📁 打开系统下载目录
+                📁 {{ t.settings?.downloadPathOpen || '打开系统下载目录' }}
               </button>
             </div>
           </div>
@@ -1414,7 +1527,7 @@
                 YouTube Mobile (内嵌)
               </div>
               <button class="btn btn-primary" style="padding: 6px 16px; font-weight: 600;" @click="parseCurrentWebview">
-                ✨ 解析当前页视频
+                ✨ {{ t.ytDlp?.parseBtn || '解析当前页视频' }}
               </button>
             </div>
             <webview 
@@ -1699,10 +1812,10 @@
         <!-- 5.6 FOOTPRINT MAP TAB -->
         <div v-else-if="currentTab === 'map'" style="width: 100%; display: flex; flex-direction: column; height: calc(100vh - 120px); text-align: left;">
           <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-            {{ t.sidebar.tabMap || '🗺️ 足迹地图' }}
+            {{ t.map?.title || t.sidebar?.tabMap || '🗺️ 足迹地图' }}
           </h2>
           <p style="color: var(--text-secondary); font-size: 13px; margin: 0 0 16px 0;">
-            根据照片拍摄地理位置（GPS EXIF 数据）在地图上聚类呈现您的足迹，点击图片可查看原图。
+            {{ t.map?.subtitle || '根据照片拍摄地理位置（GPS EXIF 数据）在地图上聚类呈现您的足迹，点击图片可查看原图。' }}
           </p>
 
           <div style="flex: 1; min-height: 400px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--glass-border); border-radius: 16px; overflow: hidden; position: relative;">
@@ -1711,18 +1824,18 @@
             <!-- Fallback banner if Leaflet is not loaded or offline -->
             <div v-if="mapLoadError" style="position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 10; padding: 24px; text-align: center;">
               <span style="font-size: 48px;">🌐</span>
-              <h3 style="color: var(--text-primary); margin: 0; font-size: 16px;">地图加载失败，请检查网络连接</h3>
+              <h3 style="color: var(--text-primary); margin: 0; font-size: 16px;">{{ t.map?.mapLoadError || '地图加载失败，请检查网络连接' }}</h3>
               <p style="color: var(--text-secondary); margin: 0; font-size: 12px; max-width: 320px; line-height: 1.6;">
-                足迹地图需要加载在线地图服务瓦片及脚本资源。请确保您的电脑处于联网状态。
+                {{ t.map?.mapLoadErrorDesc || '足迹地图需要加载在线地图服务瓦片及脚本资源。请确保您的电脑处于联网状态。' }}
               </p>
             </div>
             
             <!-- Empty state if no images have GPS -->
             <div v-if="!mapLoadError && imagesWithGps.length === 0" style="position: absolute; inset: 0; background: rgba(15, 23, 42, 0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 5; padding: 24px; text-align: center;">
               <span style="font-size: 48px;">🗺️</span>
-              <h3 style="color: var(--text-primary); margin: 0; font-size: 16px;">暂无地理位置数据</h3>
+              <h3 style="color: var(--text-primary); margin: 0; font-size: 16px;">{{ t.map?.emptyMap || '暂无地理位置数据' }}</h3>
               <p style="color: var(--text-secondary); margin: 0; font-size: 12px; max-width: 320px; line-height: 1.6;">
-                当前加载的照片中没有包含 GPS 地理坐标的图片。请尝试同步包含 GPS 信息的手机照片或导入包含相机地理信息的原图文件夹。
+                {{ t.map?.emptyMapDesc || '当前加载的照片中没有包含 GPS 地理坐标的图片。请尝试同步包含 GPS 信息的手机照片或导入包含相机地理信息的原图文件夹。' }}
               </p>
             </div>
           </div>
@@ -2395,11 +2508,27 @@ import QRCode from 'qrcode';
 import { locales, languages } from './locales.js';
 import { initAnalytics, trackEvent, trackFeatureUse, identifyUser, setTelemetryOptOut, isTelemetryEnabled } from './analytics.js';
 
-// Localization state (Defaults to English)
+// Localization state (Defaults to system language or 'zh')
 function getInitialLocale() {
   const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('shareclip_locale') : null;
   if (saved && locales[saved]) return saved;
-  return 'en'; // Default to English
+  if (typeof navigator !== 'undefined' && navigator.language) {
+    const navLang = navigator.language.toLowerCase();
+    if (navLang.startsWith('zh')) {
+      if (navLang.includes('tw') || navLang.includes('hk') || navLang.includes('hant') || navLang.includes('mo')) {
+        return 'zh-TW';
+      }
+      return 'zh';
+    }
+    if (navLang.startsWith('ja')) return 'ja';
+    if (navLang.startsWith('ko')) return 'ko';
+    if (navLang.startsWith('es')) return 'es';
+    if (navLang.startsWith('fr')) return 'fr';
+    if (navLang.startsWith('de')) return 'de';
+    if (navLang.startsWith('ru')) return 'ru';
+    if (navLang.startsWith('en')) return 'en';
+  }
+  return 'zh'; // Default to Chinese
 }
 
 const currentLocale = ref(getInitialLocale());
@@ -2868,6 +2997,7 @@ const videoGroupsByDate = computed(() => {
         size: remote.size,
         duration: remote.duration,
         create_date: remote.create_date,
+        thumb: remote.thumb || '',
         isRemoteOnly: true,
         isSynced: false
       });
@@ -2893,6 +3023,29 @@ const videoGroupsByDate = computed(() => {
   });
 });
 
+const videoTabFilter = ref('all'); // 'all' | 'synced' | 'unsynced'
+
+const filteredVideoGroupsByDate = computed(() => {
+  return videoGroupsByDate.value.map(group => {
+    let filteredItems = group.items;
+    if (videoTabFilter.value === 'synced') {
+      filteredItems = group.items.filter(i => i.isSynced);
+    } else if (videoTabFilter.value === 'unsynced') {
+      filteredItems = group.items.filter(i => !i.isSynced);
+    }
+    const unsyncedInGroup = filteredItems.filter(i => !i.isSynced);
+    return {
+      ...group,
+      items: filteredItems,
+      filteredCount: filteredItems.length,
+      filteredBytes: filteredItems.reduce((sum, i) => sum + (i.size || 0), 0),
+      hasUnsynced: unsyncedInGroup.length > 0,
+      unsyncedCount: unsyncedInGroup.length,
+      unsyncedIds: unsyncedInGroup.map(i => i.id)
+    };
+  }).filter(group => group.filteredCount > 0);
+});
+
 const totalUnsyncedVideosCount = computed(() => {
   return videoGroupsByDate.value.reduce((sum, g) => sum + g.unsyncedCount, 0);
 });
@@ -2900,6 +3053,143 @@ const totalUnsyncedVideosCount = computed(() => {
 const totalAllVideosCount = computed(() => {
   return videoGroupsByDate.value.reduce((sum, g) => sum + g.totalCount, 0);
 });
+
+// Manual Video Multi-Select & Batch Download State
+const selectedVideoIds = ref(new Set());
+
+const selectedVideosCount = computed(() => selectedVideoIds.value.size);
+
+const selectedVideosTotalBytes = computed(() => {
+  let sum = 0;
+  for (const group of videoGroupsByDate.value) {
+    for (const item of group.items) {
+      if (selectedVideoIds.value.has(item.id)) {
+        sum += item.size || 0;
+      }
+    }
+  }
+  return sum;
+});
+
+function isVideoSelected(item) {
+  return selectedVideoIds.value.has(item.id);
+}
+
+function toggleVideoSelection(item) {
+  if (item.isSynced) return;
+  const newSet = new Set(selectedVideoIds.value);
+  if (newSet.has(item.id)) {
+    newSet.delete(item.id);
+  } else {
+    newSet.add(item.id);
+  }
+  selectedVideoIds.value = newSet;
+}
+
+function toggleDateSelection(group) {
+  const unsynced = group.items.filter(i => !i.isSynced);
+  if (unsynced.length === 0) return;
+  const newSet = new Set(selectedVideoIds.value);
+  const allInGroupSelected = unsynced.every(i => newSet.has(i.id));
+  if (allInGroupSelected) {
+    unsynced.forEach(i => newSet.delete(i.id));
+  } else {
+    unsynced.forEach(i => newSet.add(i.id));
+  }
+  selectedVideoIds.value = newSet;
+}
+
+function isDateAllSelected(group) {
+  const unsynced = group.items.filter(i => !i.isSynced);
+  if (unsynced.length === 0) return false;
+  return unsynced.every(i => selectedVideoIds.value.has(i.id));
+}
+
+function selectAllUnsyncedVideos() {
+  const newSet = new Set(selectedVideoIds.value);
+  for (const group of videoGroupsByDate.value) {
+    for (const item of group.items) {
+      if (!item.isSynced) {
+        newSet.add(item.id);
+      }
+    }
+  }
+  selectedVideoIds.value = newSet;
+}
+
+function clearVideoSelection() {
+  selectedVideoIds.value = new Set();
+}
+
+function downloadSelectedVideos() {
+  if (selectedVideoIds.value.size === 0) return;
+  const ids = Array.from(selectedVideoIds.value);
+  requestVideoSync({ targetIds: ids });
+}
+
+function downloadSingleVideo(item) {
+  requestVideoSync({ targetIds: [item.id] });
+}
+
+// Video thumbnail extraction & caching for PC-side local videos
+const videoPosterCache = ref(new Map());
+
+function getVideoPoster(item) {
+  if (item.thumb) {
+    return item.thumb.startsWith('data:') ? item.thumb : `data:image/jpeg;base64,${item.thumb}`;
+  }
+  const key = item.path || item.id || item.name;
+  if (videoPosterCache.value.has(key)) {
+    return videoPosterCache.value.get(key);
+  }
+  if (item.isSynced || item.path || item.src) {
+    generateVideoPoster(item);
+  }
+  return null;
+}
+
+function generateVideoPoster(item) {
+  const url = item.src || (item.path ? `local:///${item.path.replace(/\\/g, '/')}` : null);
+  const key = item.path || item.id || item.name;
+  if (!url || videoPosterCache.value.has(key)) return;
+
+  const video = document.createElement('video');
+  video.crossOrigin = 'anonymous';
+  video.src = url;
+  video.preload = 'metadata';
+  video.muted = true;
+  video.playsInline = true;
+
+  video.onloadeddata = () => {
+    // Seek to 0.5s or 10% of duration to get a representative non-black frame
+    video.currentTime = Math.min(1.0, (video.duration || 1) * 0.1);
+  };
+
+  video.onseeked = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      const w = 320;
+      const h = Math.round(w * ((video.videoHeight || 180) / (video.videoWidth || 320)));
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        videoPosterCache.value.set(key, dataUrl);
+      }
+    } catch (e) {
+      console.warn('Canvas poster capture error for', item.name, e);
+    } finally {
+      video.src = '';
+      video.load();
+    }
+  };
+
+  video.onerror = () => {
+    video.src = '';
+  };
+}
 
 const localAudios = computed(() => {
   return images.value.filter(file => {
@@ -4236,6 +4526,11 @@ function setupDataChannel(channel) {
     clearHandshakeTimeout();
     trackEvent('webrtc_channel_opened', { method: 'qr_ble' });
     
+    // Auto-fetch remote video catalog list (metadata only, no auto download)
+    setTimeout(() => {
+      queryRemoteVideoCatalog();
+    }, 500);
+    
     // Start heartbeat timer
     lastHeartbeatTime = Date.now();
     if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -4830,6 +5125,12 @@ onMounted(() => {
       const isVideo = imageInfo.type === 'video' || /\.(mp4|mkv|mov|avi|webm)$/i.test(imageInfo.name);
       if (isVideo) {
         logSyncEvent(`🎉 视频已成功同步并归档: ${imageInfo.name}`);
+        const targetId = imageInfo.id || imageInfo.assetId;
+        if (targetId && selectedVideoIds.value.has(targetId)) {
+          const newSet = new Set(selectedVideoIds.value);
+          newSet.delete(targetId);
+          selectedVideoIds.value = newSet;
+        }
         const existingIdx = images.value.findIndex(item => item.id === imageInfo.id || item.path === imageInfo.path || item.name === imageInfo.name);
         if (existingIdx >= 0) {
           images.value[existingIdx] = {
@@ -6247,28 +6548,80 @@ function getMockClassification(url) {
   gap: 6px;
 }
 
+/* Video View Filter Tabs */
+.video-filter-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.video-filter-tabs {
+  display: inline-flex;
+  background: var(--bg-surface, rgba(15, 23, 42, 0.5));
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  gap: 4px;
+}
+
+.video-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.video-filter-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.video-filter-btn.active {
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.35);
+}
+
+.video-filter-btn .filter-count {
+  font-size: 11px;
+  opacity: 0.85;
+  font-family: var(--font-mono);
+}
+
 /* Date Timeline */
 .video-timeline-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   width: 100%;
 }
 
 .video-date-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .video-date-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  border-left: 3px solid #a855f7;
+  padding: 8px 14px;
+  background: var(--bg-surface, rgba(255, 255, 255, 0.04));
+  border-radius: 10px;
+  border-left: 3.5px solid #a855f7;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+  border-left-width: 3.5px;
+  border-left-color: #a855f7;
 }
 
 .video-date-title-wrap {
@@ -6289,117 +6642,216 @@ function getMockClassification(url) {
 }
 
 .video-date-meta {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.video-date-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .video-all-synced-badge {
-  font-size: 11px;
-  color: #34d399;
-  font-weight: 600;
+  font-size: 11.5px;
+  color: #10b981;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 /* Video Grid Cards */
 .video-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
 }
 
 .video-card {
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
-  background: rgba(15, 23, 42, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface, rgba(30, 41, 59, 0.7));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .video-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(168, 85, 247, 0.4);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  transform: translateY(-3px);
+  border-color: rgba(168, 85, 247, 0.5);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
 }
 
 .card-unsynced {
-  border-style: dashed;
-  border-color: rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.04);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.card-selected {
+  border-color: #a855f7 !important;
+  background: rgba(168, 85, 247, 0.08) !important;
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.4) !important;
 }
 
 .video-poster-box {
   position: relative;
   width: 100%;
-  aspect-ratio: 16/9;
-  background: rgba(0, 0, 0, 0.4);
+  aspect-ratio: 16 / 9.5;
+  background: #0f172a;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.video-poster-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.video-card:hover .video-poster-media {
+  transform: scale(1.05);
 }
 
 .video-poster-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
 }
 
-.video-play-btn-circle {
-  font-size: 26px;
-  transition: transform 0.2s ease;
+.video-poster-icon {
+  font-size: 32px;
+  opacity: 0.6;
 }
-.video-card:hover .video-play-btn-circle {
-  transform: scale(1.2);
+
+/* Hover Center Play Button */
+.video-play-center-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.85);
+  width: 44px;
+  height: 44px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  opacity: 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  z-index: 3;
+}
+
+.video-card:hover .video-play-center-btn {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.video-select-checkbox {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 5;
+}
+
+.video-select-checkbox:hover {
+  transform: scale(1.12);
+  border-color: #fff;
+}
+
+.video-select-checkbox.is-checked {
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  border-color: #ffffff;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
+}
+
+.check-icon {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .video-duration-pill {
   position: absolute;
-  bottom: 6px;
-  right: 6px;
+  bottom: 8px;
+  right: 8px;
   background: rgba(0, 0, 0, 0.75);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  backdrop-filter: blur(4px);
+  padding: 2px 7px;
+  border-radius: 6px;
+  backdrop-filter: blur(6px);
   font-family: var(--font-mono);
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .video-status-tag {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  font-size: 9.5px;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  backdrop-filter: blur(4px);
+  padding: 3px 8px;
+  border-radius: 6px;
+  backdrop-filter: blur(6px);
+  z-index: 2;
 }
+
 .tag-synced {
-  background: rgba(16, 185, 129, 0.25);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.85);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
 }
+
 .tag-unsynced {
-  background: rgba(245, 158, 11, 0.25);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.85);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
 }
 
 .video-card-footer {
-  padding: 8px 10px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   text-align: left;
+  background: transparent;
 }
 
 .video-card-name {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -6409,17 +6861,68 @@ function getMockClassification(url) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 10.5px;
-  color: var(--text-muted);
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
 .video-play-hint {
   color: #38bdf8;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 11px;
 }
-.video-sync-hint {
-  color: #fbbf24;
-  font-weight: 600;
+
+.btn-video-quick-download {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #f59e0b;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-video-quick-download:hover {
+  background: #f59e0b;
+  color: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+
+/* Floating Bottom Sticky Bar for Multi-Select Download */
+.video-floating-bar {
+  position: fixed;
+  bottom: 28px;
+  left: 55%;
+  transform: translateX(-50%);
+  z-index: 999;
+  background: #0f172a;
+  border: 1.5px solid rgba(168, 85, 247, 0.6);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 24px rgba(168, 85, 247, 0.3);
+  border-radius: 99px;
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #ffffff;
+}
+
+.video-floating-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.video-floating-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* Fullscreen Video Player Modal */
