@@ -88,6 +88,13 @@ class SyncViewModel extends ChangeNotifier {
   String lastAlbumSyncDate = '';
   bool isAlbumSyncPaused = false;
 
+  bool isVideoSyncing = false;
+  int videoSyncTotal = 0;
+  int videoSyncDone = 0;
+  String lastVideoSyncDate = '';
+  bool isVideoSyncPaused = false;
+  List<AssetEntity> localVideos = [];
+
   int _fileIdCounter = 100;
   Timer? _heartbeatTimer;
   DateTime _lastHeartbeatReceived = DateTime.now();
@@ -748,6 +755,99 @@ class SyncViewModel extends ChangeNotifier {
                 }
               });
             }
+            return;
+          }
+
+          if (fileId == -15) {
+            // PC requested video sync (either full, incremental, or specific target)
+            final payloadSize = byteData.getInt32(12, Endian.big);
+            bool forceFullScan = false;
+            String? targetDate;
+            List<String>? targetIds;
+
+            if (payloadSize > 0 && binaryData.length >= 16 + payloadSize) {
+              try {
+                final payloadStr = utf8.decode(binaryData.sublist(16, 16 + payloadSize));
+                final Map<String, dynamic> data = jsonDecode(payloadStr);
+                forceFullScan = data['force_full_scan'] == true;
+                targetDate = data['target_date']?.toString();
+                if (data['target_ids'] is List) {
+                  targetIds = (data['target_ids'] as List).map((e) => e.toString()).toList();
+                }
+              } catch (_) {}
+            }
+
+            if (isVideoSyncing && !isVideoSyncPaused) {
+              logMessage("Video sync is already in progress.");
+            } else if (isVideoSyncing && isVideoSyncPaused) {
+              logMessage("PC requested to resume video sync.");
+              isVideoSyncPaused = false;
+              notifyListeners();
+            } else {
+              logMessage("PC requested video sync. Starting...");
+              syncVideosToPC(forceFullScan: forceFullScan, targetDate: targetDate, targetIds: targetIds);
+            }
+            return;
+          }
+
+          if (fileId == -17) {
+            logMessage("PC requested to pause video sync.");
+            isVideoSyncPaused = true;
+            notifyListeners();
+            return;
+          }
+
+          if (fileId == -18) {
+            logMessage("PC requested to stop video sync.");
+            isVideoSyncing = false;
+            isVideoSyncPaused = false;
+            notifyListeners();
+            return;
+          }
+
+          if (fileId == -19) {
+            // PC queries video catalog
+            logMessage("PC requested remote video catalog. Scanning...");
+            Future.microtask(() async {
+              try {
+                final streamer = PhotoStreamer.standalone();
+                localVideos = await streamer.loadLocalVideos();
+                final List<Map<String, dynamic>> catalog = [];
+                for (var v in localVideos) {
+                  final int? createSec = v.createDateSecond;
+                  String? createDateStr;
+                  if (createSec != null && createSec > 0) {
+                    createDateStr = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true).toIso8601String();
+                  }
+                  final file = await v.originFile;
+                  final int size = file != null ? await file.length() : 0;
+                  catalog.add({
+                    "id": v.id,
+                    "name": v.title ?? "video_${v.id}.mp4",
+                    "size": size,
+                    "duration": v.duration,
+                    "create_date": createDateStr ?? "",
+                    "timestamp": (createSec ?? 0) * 1000,
+                  });
+                }
+                
+                final respStr = jsonEncode({ "videos": catalog });
+                final respBytes = utf8.encode(respStr);
+                final respHeader = ByteData(16);
+                respHeader.setInt32(0, -19, Endian.big);
+                respHeader.setInt32(4, 0, Endian.big);
+                respHeader.setInt32(8, catalog.length, Endian.big);
+                respHeader.setInt32(12, respBytes.length, Endian.big);
+
+                final respPacket = Uint8List(16 + respBytes.length);
+                respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
+                respPacket.setRange(16, respPacket.length, respBytes);
+                await _syncEngine?.sendBinary(respPacket);
+                logMessage("Sent video catalog with ${catalog.length} videos to PC.");
+              } catch (e) {
+                logMessage("Error scanning/sending video catalog: $e");
+              }
+            });
             return;
           }
 
@@ -1450,6 +1550,204 @@ class SyncViewModel extends ChangeNotifier {
       // Send -10 (stop command) to PC
       final header = ByteData(16);
       header.setInt32(0, -10, Endian.big);
+      header.setInt32(4, 0, Endian.big);
+      header.setInt32(8, 0, Endian.big);
+      header.setInt32(12, 0, Endian.big);
+      _syncEngine?.sendBinary(header.buffer.asUint8List());
+    }
+  }
+
+  Future<void> syncVideosToPC({bool forceFullScan = false, String? targetDate, List<String>? targetIds}) async {
+    if (isVideoSyncing && !isVideoSyncPaused) return;
+
+    if (isVideoSyncing && isVideoSyncPaused) {
+      resumeVideoSync();
+      return;
+    }
+
+    isVideoSyncing = true;
+    isVideoSyncPaused = false;
+    videoSyncDone = 0;
+    videoSyncTotal = 0;
+    notifyListeners();
+
+    logMessage("🎥 Starting video sync. Breakpoint date: ${(lastVideoSyncDate.isEmpty || forceFullScan) ? 'none (full scan)' : lastVideoSyncDate}");
+
+    try {
+      final PermissionState ps = await PhotoManager.requestPermissionExtend();
+      if (!ps.isAuth) {
+        logMessage("❌ Video sync failed: no media permission");
+        isVideoSyncing = false;
+        notifyListeners();
+        return;
+      }
+
+      if (localVideos.isEmpty) {
+        logMessage("🎥 Video sync: localVideos is empty, loading...");
+        final streamer = PhotoStreamer.standalone();
+        localVideos = await streamer.loadLocalVideos();
+      }
+      final List<AssetEntity> allVideos = List<AssetEntity>.from(localVideos);
+
+      // Chronological sort in-memory (oldest first)
+      allVideos.sort((a, b) {
+        final aTime = a.createDateSecond ?? 0;
+        final bTime = b.createDateSecond ?? 0;
+        return aTime.compareTo(bTime);
+      });
+
+      List<AssetEntity> toSync = allVideos;
+      if (targetIds != null && targetIds.isNotEmpty) {
+        toSync = allVideos.where((v) => targetIds.contains(v.id)).toList();
+      } else if (targetDate != null && targetDate.isNotEmpty) {
+        toSync = allVideos.where((v) {
+          final createMs = v.createDateSecond;
+          if (createMs == null) return false;
+          final dStr = DateTime.fromMillisecondsSinceEpoch(createMs * 1000, isUtc: true).toIso8601String().substring(0, 10);
+          return dStr == targetDate;
+        }).toList();
+      } else if (lastVideoSyncDate.isNotEmpty && !forceFullScan) {
+        DateTime? breakpoint;
+        try {
+          breakpoint = DateTime.parse(lastVideoSyncDate).toUtc();
+        } catch (_) {}
+        if (breakpoint != null) {
+          toSync = allVideos.where((v) {
+            final createMs = v.createDateSecond;
+            if (createMs == null) return false;
+            final createDt = DateTime.fromMillisecondsSinceEpoch(createMs * 1000, isUtc: true);
+            return createDt.isAfter(breakpoint!);
+          }).toList();
+        }
+      }
+
+      if (!forceFullScan && targetIds == null && targetDate == null) {
+        toSync = toSync.where((v) => !pcSyncedIds.contains('video_${v.id}') && !pcSyncedIds.contains(v.id)).toList();
+      }
+
+      videoSyncTotal = toSync.length;
+      notifyListeners();
+
+      if (toSync.isEmpty) {
+        logMessage("✅ Video sync complete: all videos already synced.");
+        final doneHeader = ByteData(16);
+        doneHeader.setInt32(0, -16, Endian.big);
+        doneHeader.setInt32(4, 0, Endian.big);
+        doneHeader.setInt32(8, 0, Endian.big);
+        doneHeader.setInt32(12, 0, Endian.big);
+        await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
+        isVideoSyncing = false;
+        notifyListeners();
+        return;
+      }
+
+      logMessage("🎥 Video sync: ${toSync.length} videos to send (out of ${allVideos.length} total).");
+
+      final startHeader = ByteData(16);
+      startHeader.setInt32(0, -15, Endian.big);
+      startHeader.setInt32(4, 0, Endian.big);
+      startHeader.setInt32(8, toSync.length, Endian.big);
+      startHeader.setInt32(12, 0, Endian.big);
+      await _syncEngine?.sendBinary(startHeader.buffer.asUint8List());
+
+      int successCount = 0;
+      final streamer = PhotoStreamer(syncEngine: _syncEngine!);
+
+      for (int i = 0; i < toSync.length; i++) {
+        if (!isVideoSyncing) {
+          logMessage("⏹️ Video sync stopped by user.");
+          break;
+        }
+
+        while (isVideoSyncPaused && isVideoSyncing) {
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+        if (!isVideoSyncing) break;
+
+        final entity = toSync[i];
+        final int fileId = _fileIdCounter++;
+        logMessage("🎥 [${i + 1}/${toSync.length}] Streaming video: ${entity.title} (${entity.duration}s)...");
+
+        final bool success = await streamer.streamImage(
+          entity: entity,
+          fileId: fileId,
+          onProgress: (chunkIndex, totalChunks, bytesSent) {
+            activeProgress = totalChunks > 0 ? chunkIndex / totalChunks : 0;
+            activeTransferName = '🎥 ${entity.title}';
+            notifyListeners();
+          },
+        );
+
+        if (success) {
+          successCount++;
+          videoSyncDone = successCount;
+          pcSyncedIds.add('video_${entity.id}');
+          pcSyncedIds.add(entity.id);
+        } else {
+          logMessage("⚠️ Failed to sync video: ${entity.title}");
+        }
+        notifyListeners();
+      }
+
+      activeTransferName = null;
+      activeProgress = 0;
+      notifyListeners();
+
+      if (isVideoSyncing) {
+        logMessage("✅ Video sync finished: $videoSyncDone/${videoSyncTotal} videos sent.");
+        final finishHeader = ByteData(16);
+        finishHeader.setInt32(0, -16, Endian.big);
+        finishHeader.setInt32(4, videoSyncDone, Endian.big);
+        finishHeader.setInt32(8, videoSyncTotal, Endian.big);
+        finishHeader.setInt32(12, 1, Endian.big);
+        await _syncEngine?.sendBinary(finishHeader.buffer.asUint8List());
+      }
+    } catch (e, stack) {
+      logMessage("❌ Video sync error: $e");
+      debugPrint("[VideoSync] Error: $e\n$stack");
+    } finally {
+      isVideoSyncing = false;
+      isVideoSyncPaused = false;
+      notifyListeners();
+    }
+  }
+
+  void pauseVideoSync() {
+    if (isVideoSyncing && !isVideoSyncPaused) {
+      isVideoSyncPaused = true;
+      logMessage("🎥 Video sync paused.");
+      notifyListeners();
+      final header = ByteData(16);
+      header.setInt32(0, -17, Endian.big);
+      header.setInt32(4, 0, Endian.big);
+      header.setInt32(8, 0, Endian.big);
+      header.setInt32(12, 0, Endian.big);
+      _syncEngine?.sendBinary(header.buffer.asUint8List());
+    }
+  }
+
+  void resumeVideoSync() {
+    if (isVideoSyncing && isVideoSyncPaused) {
+      isVideoSyncPaused = false;
+      logMessage("🎥 Video sync resumed.");
+      notifyListeners();
+      final header = ByteData(16);
+      header.setInt32(0, -15, Endian.big);
+      header.setInt32(4, 0, Endian.big);
+      header.setInt32(8, videoSyncTotal, Endian.big);
+      header.setInt32(12, 0, Endian.big);
+      _syncEngine?.sendBinary(header.buffer.asUint8List());
+    }
+  }
+
+  void stopVideoSync() {
+    if (isVideoSyncing) {
+      isVideoSyncing = false;
+      isVideoSyncPaused = false;
+      logMessage("🎥 Video sync stopped.");
+      notifyListeners();
+      final header = ByteData(16);
+      header.setInt32(0, -18, Endian.big);
       header.setInt32(4, 0, Endian.big);
       header.setInt32(8, 0, Endian.big);
       header.setInt32(12, 0, Endian.big);

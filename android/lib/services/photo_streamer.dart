@@ -66,6 +66,8 @@ class PhotoStreamer {
     required int size,
     double? latitude,
     double? longitude,
+    String? createDate,
+    double? duration,
   }) async {
     final Map<String, dynamic> metadataMap = {
       "file_id": fileId,
@@ -78,6 +80,12 @@ class PhotoStreamer {
     }
     if (longitude != null && longitude != 0.0) {
       metadataMap["longitude"] = longitude;
+    }
+    if (createDate != null && createDate.isNotEmpty) {
+      metadataMap["create_date"] = createDate;
+    }
+    if (duration != null && duration > 0) {
+      metadataMap["duration"] = duration;
     }
     final payloadStr = jsonEncode(metadataMap);
     final payloadBytes = utf8.encode(payloadStr);
@@ -118,6 +126,13 @@ class PhotoStreamer {
       final double? lat = (latLng != null && latLng.latitude != 0.0) ? latLng.latitude : null;
       final double? lng = (latLng != null && latLng.longitude != 0.0) ? latLng.longitude : null;
 
+      final int? createSec = entity.createDateSecond;
+      String? createDateStr;
+      if (createSec != null && createSec > 0) {
+        createDateStr = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true).toIso8601String();
+      }
+      final double durationSec = entity.duration.toDouble();
+
       // Send metadata first
       await _sendMetadataPacket(
         fileId: fileId,
@@ -126,6 +141,8 @@ class PhotoStreamer {
         size: size,
         latitude: lat,
         longitude: lng,
+        createDate: createDateStr,
+        duration: durationSec,
       );
 
       return await _streamFileInternal(file: file, fileId: fileId, onProgress: onProgress);

@@ -1864,6 +1864,13 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
     });
   });
 
+  // Safe schema upgrade: add duration for video files
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN duration REAL`, () => {
+      resolve(); // ignore error if already exists
+    });
+  });
+
   // Create faces table for storing face BBoxes and face Embeddings
   await new Promise((resolve) => {
     activeDeviceDb.run(`
@@ -1893,7 +1900,7 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
   
   // Read and return already synced assets
   const syncInfo = await new Promise((resolve, reject) => {
-    activeDeviceDb.all(`SELECT id, name, path, type, size, predictions, embedding, latitude, longitude, create_date FROM resources`, (err, rows) => {
+    activeDeviceDb.all(`SELECT id, name, path, type, size, predictions, embedding, latitude, longitude, create_date, duration FROM resources`, (err, rows) => {
       if (err) {
         reject(err);
       } else {
@@ -1923,8 +1930,16 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
           const sorted = albumRows.sort((a, b) => (a.create_date > b.create_date ? 1 : -1));
           lastAlbumSyncDate = sorted[sorted.length - 1].create_date;
         }
+
+        // Find the most recent create_date among video records for breakpoint resume
+        let lastVideoSyncDate = '';
+        const videoRows = rows.filter(r => r.type === 'video' && r.create_date);
+        if (videoRows.length > 0) {
+          const sorted = videoRows.sort((a, b) => (a.create_date > b.create_date ? 1 : -1));
+          lastVideoSyncDate = sorted[sorted.length - 1].create_date;
+        }
         
-        resolve({ syncedIds, resources: rows, lastAlbumSyncDate });
+        resolve({ syncedIds, resources: rows, lastAlbumSyncDate, lastVideoSyncDate });
       }
     });
   });
@@ -2563,6 +2578,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
   
   const isThumbnail = filename.startsWith('thumb_') && ext.toLowerCase() === '.jpg';
   const isAlbumPhoto = filename.startsWith('album_');
+  const isVideo = type === 'videos' || filename.startsWith('video_') || ['.mp4', '.mkv', '.mov', '.avi', '.webm'].includes(ext.toLowerCase());
   
   let targetPath = '';
   if (isThumbnail) {
@@ -2579,6 +2595,17 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     const baseDir = customDownloadPath
       ? path.join(customDownloadPath, 'album_sync', activeDeviceUuid || 'default', dateFolderName)
       : path.join(app.getPath('downloads'), 'ShareCLIP_Data', 'album_sync', activeDeviceUuid || 'default', dateFolderName);
+    if (!fs.existsSync(baseDir)) {
+      fs.mkdirSync(baseDir, { recursive: true });
+    }
+    targetPath = path.join(baseDir, filename);
+  } else if (isVideo) {
+    // Videos stored under videos_sync/<uuid>/<YYYY-MM-DD>/ for date-based organization
+    const createDateStr = metadata && metadata.create_date ? metadata.create_date : new Date().toISOString();
+    const dateFolderName = createDateStr.substring(0, 10); // 'YYYY-MM-DD'
+    const baseDir = customDownloadPath
+      ? path.join(customDownloadPath, 'videos_sync', activeDeviceUuid || 'default', dateFolderName)
+      : path.join(app.getPath('downloads'), 'ShareCLIP_Data', 'videos_sync', activeDeviceUuid || 'default', dateFolderName);
     if (!fs.existsSync(baseDir)) {
       fs.mkdirSync(baseDir, { recursive: true });
     }
@@ -2606,6 +2633,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     const size = fullBuffer.length;
     const syncTime = Date.now();
     const createDate = metadata && metadata.create_date ? metadata.create_date : null;
+    const duration = metadata && metadata.duration ? metadata.duration : null;
     
     // Get the cached embedding Buffer
     let embeddingBuffer = null;
@@ -2615,25 +2643,26 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     }
 
     activeDeviceDb.run(`
-      INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time, embedding, latitude, longitude, create_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time, embedding, latitude, longitude, create_date, duration)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       assetId, 
       filename, 
       targetPath, 
-      isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type), 
+      isVideo ? 'video' : (isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type)), 
       size, 
       '[]', 
       syncTime, 
       embeddingBuffer,
       metadata && metadata.latitude !== undefined ? metadata.latitude : null,
       metadata && metadata.longitude !== undefined ? metadata.longitude : null,
-      createDate
+      createDate,
+      duration
     ], (err) => {
       if (err) {
         console.error(`[Database] Error registering synced asset ${assetId}:`, err);
       } else {
-        console.log(`[Database] Registered synced asset: ${filename} (ID: ${assetId}, type: ${isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type)})`);
+        console.log(`[Database] Registered synced asset: ${filename} (ID: ${assetId}, type: ${isVideo ? 'video' : (isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type))})`);
       }
     });
   }

@@ -861,34 +861,218 @@
           </div>
         </div>
 
-        <!-- 3. VIDEOS TAB -->
-        <div v-else-if="currentTab === 'videos'" style="width: 100%;">
-          <!-- Empty State -->
-          <div class="empty-state" v-if="localVideos.length === 0">
+        <!-- 3. VIDEOS TAB (Remote Video Sync & Date Grouped Timeline) -->
+        <div v-else-if="currentTab === 'videos'" class="videos-tab-container">
+          <!-- Top Video Control Action Banner -->
+          <div class="glass-panel video-control-banner">
+            <div class="video-control-left">
+              <div class="video-control-title-row">
+                <h3>🎥 视频同步与管理</h3>
+                <span class="badge-pill" :class="syncStatus === 'connected' ? 'badge-online' : 'badge-offline'">
+                  <span class="status-dot" :class="{ 'pulse-dot': syncStatus === 'connected' }"></span>
+                  {{ syncStatus === 'connected' ? `🟢 手机已直连 [${activeDeviceName || '设备'}]` : '⚪ 手机未连接' }}
+                </span>
+                <span v-if="totalUnsyncedVideosCount > 0" class="badge-pill badge-unsynced-pulse">
+                  ⚡ 发现 {{ totalUnsyncedVideosCount }} 个新视频待同步
+                </span>
+              </div>
+              <p class="video-control-subtitle">
+                支持手机端高清/4K视频 64KB 流式切片直传，按拍摄日期归档管理与离线极速播放。
+                <span style="color: var(--text-primary); font-weight: 600;">(共 {{ totalAllVideosCount }} 个视频 • 已备份 {{ localVideos.length }} 个)</span>
+              </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="video-control-actions">
+              <!-- Sync New Videos (Glowing Primary Button when there are unsynced videos) -->
+              <button 
+                v-if="syncStatus === 'connected'"
+                class="btn btn-primary"
+                :class="{ 'btn-glow-pulse': totalUnsyncedVideosCount > 0 }"
+                :disabled="isVideoSyncing"
+                @click="requestVideoSync({ forceFullScan: false })"
+                title="一键将手机中所有新增/未同步的视频传输到电脑"
+              >
+                <span>🚀</span> {{ totalUnsyncedVideosCount > 0 ? `同步新增视频 (${totalUnsyncedVideosCount})` : '同步手机视频' }}
+              </button>
+
+              <!-- Check / Refresh Remote Video List -->
+              <button 
+                v-if="syncStatus === 'connected'"
+                class="btn btn-secondary btn-sm"
+                :disabled="isVideoSyncing"
+                @click="queryRemoteVideoCatalog"
+                title="重新扫描手机中的视频目录与拍摄日期"
+              >
+                🔄 刷新列表
+              </button>
+
+              <!-- Re-sync all (Force Full Scan) -->
+              <button 
+                v-if="syncStatus === 'connected' && localVideos.length > 0"
+                class="btn btn-secondary btn-sm"
+                :disabled="isVideoSyncing"
+                @click="requestVideoSync({ forceFullScan: true })"
+                title="重新扫描并补齐所有历史视频"
+              >
+                🔁 全量重检
+              </button>
+
+              <!-- Import Local Folder -->
+              <button class="btn btn-secondary btn-sm" @click="handleImportFolder" title="从电脑本地导入视频文件夹">
+                📁 导入本地
+              </button>
+
+              <!-- Open Videos Sync Folder -->
+              <button v-if="hasApi" class="btn btn-secondary btn-sm" @click="openDownloadFolder" title="在系统资源管理器中打开视频存放目录">
+                📂 打开目录
+              </button>
+            </div>
+          </div>
+
+          <!-- Video Syncing Progress Bar Banner -->
+          <div v-if="isVideoSyncing" class="glass-panel video-sync-progress-banner">
+            <div class="sync-progress-info">
+              <span class="spinner"></span>
+              <div class="sync-progress-text">
+                <div class="sync-progress-title">
+                  <span>正在高速同步视频... ({{ videoSyncDone }} / {{ videoSyncTotal }})</span>
+                  <span class="sync-percent">{{ videoSyncTotal > 0 ? Math.round((videoSyncDone / videoSyncTotal) * 100) : 0 }}%</span>
+                </div>
+                <div class="sync-progress-track">
+                  <div class="sync-progress-bar" :style="{ width: `${videoSyncTotal > 0 ? Math.round((videoSyncDone / videoSyncTotal) * 100) : 0}%` }"></div>
+                </div>
+              </div>
+            </div>
+            <div class="sync-progress-controls">
+              <button v-if="!isVideoSyncPaused" class="btn btn-secondary btn-xs" @click="pauseVideoSync">⏸️ 暂停</button>
+              <button v-else class="btn btn-primary btn-xs" @click="resumeVideoSync">▶️ 继续</button>
+              <button class="btn btn-secondary btn-xs" style="color: #ef4444;" @click="stopVideoSync">⏹️ 取消</button>
+            </div>
+          </div>
+
+          <!-- Empty State (No videos at all) -->
+          <div class="empty-state" v-if="videoGroupsByDate.length === 0">
             <div class="empty-state-icon">🎥</div>
             <h2 class="empty-state-title">{{ t.media.emptyVideos }}</h2>
             <p class="empty-state-desc">
-              {{ t.media.emptyVideosDesc }}
+              {{ syncStatus === 'connected' ? '手机中暂未检测到视频文件，或点击上方「刷新列表」重新扫描。' : '请在左下角连接手机以自动发现并按日期同步视频，或点击上方「导入本地」选取电脑视频。' }}
             </p>
           </div>
 
-          <!-- Video Grid -->
-          <div class="image-grid" v-else>
+          <!-- Date-Grouped Timeline Display -->
+          <div v-else class="video-timeline-wrapper">
             <div 
-              v-for="video in localVideos" 
-              :key="video.path" 
-              class="image-card" 
-              @click="openDetails(video)"
+              v-for="group in videoGroupsByDate" 
+              :key="group.rawDate" 
+              class="video-date-group"
             >
-              <div class="card-img-wrapper" style="display: flex; align-items: center; justify-content: center; background-color: rgba(30, 41, 59, 0.3);">
-                <span style="font-size: 48px;">🎬</span>
+              <!-- Group Date Header -->
+              <div class="video-date-header">
+                <div class="video-date-title-wrap">
+                  <span class="video-date-icon">📅</span>
+                  <h4 class="video-date-title">{{ group.dateKey }}</h4>
+                  <span class="video-date-meta">({{ group.totalCount }} 个视频 • {{ formatBytes(group.totalBytes) }})</span>
+                </div>
+
+                <!-- Date-level Sync Action Button -->
+                <div class="video-date-actions" v-if="syncStatus === 'connected' && group.hasUnsynced">
+                  <button 
+                    class="btn btn-primary btn-xs"
+                    :disabled="isVideoSyncing"
+                    @click="requestVideoSync({ targetDate: group.rawDate, targetIds: group.unsyncedIds })"
+                    title="仅同步此拍摄日期的全部视频"
+                  >
+                    <span>⚡</span> 同步此日期 ({{ group.unsyncedCount }})
+                  </button>
+                </div>
+                <div class="video-date-actions" v-else-if="!group.hasUnsynced">
+                  <span class="video-all-synced-badge">✅ 全部已同步</span>
+                </div>
               </div>
-              <div class="card-overlay">
-                <span class="card-title">{{ video.name }}</span>
-                <span class="badge" style="background-color: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.3); margin-top: 4px;">{{ t.media.fileVideo }}</span>
+
+              <!-- Video Cards Grid -->
+              <div class="video-cards-grid">
+                <div 
+                  v-for="item in group.items" 
+                  :key="item.id || item.path" 
+                  class="video-card glass-panel-hover"
+                  :class="{ 'card-unsynced': item.isRemoteOnly }"
+                  @click="item.isSynced ? openVideoPlayer(item) : requestVideoSync({ targetIds: [item.id] })"
+                >
+                  <!-- Thumbnail / Poster Area -->
+                  <div class="video-poster-box">
+                    <div class="video-poster-placeholder">
+                      <span class="video-play-btn-circle">
+                        {{ item.isSynced ? '▶️' : '📥' }}
+                      </span>
+                    </div>
+
+                    <!-- Duration Badge -->
+                    <span v-if="item.duration" class="video-duration-pill">
+                      {{ formatVideoDuration(item.duration) }}
+                    </span>
+
+                    <!-- Sync Status Pill -->
+                    <span 
+                      class="video-status-tag"
+                      :class="item.isSynced ? 'tag-synced' : 'tag-unsynced'"
+                    >
+                      {{ item.isSynced ? '✅ 已同步' : '📥 待同步 (点击同步)' }}
+                    </span>
+                  </div>
+
+                  <!-- Video Info Footer -->
+                  <div class="video-card-footer">
+                    <div class="video-card-name" :title="item.name">{{ item.name }}</div>
+                    <div class="video-card-sub">
+                      <span>{{ formatBytes(item.size) }}</span>
+                      <span v-if="item.isSynced" class="video-play-hint">点击播放 ➔</span>
+                      <span v-else class="video-sync-hint">点击立即同步 ➔</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- Video Fullscreen Player Lightbox Modal -->
+          <transition name="modal-fade">
+            <div v-if="activePlayingVideo" class="video-player-overlay" @click.self="closeVideoPlayer">
+              <div class="video-player-modal glass-panel">
+                <div class="video-player-header">
+                  <div class="video-player-title-info">
+                    <span style="font-size: 20px;">🎬</span>
+                    <div>
+                      <div class="vp-filename">{{ activePlayingVideo.name }}</div>
+                      <div class="vp-meta">{{ formatBytes(activePlayingVideo.size) }} • {{ activePlayingVideo.path }}</div>
+                    </div>
+                  </div>
+                  <div class="video-player-header-actions">
+                    <button 
+                      v-if="hasApi && activePlayingVideo.path" 
+                      class="btn btn-secondary btn-sm" 
+                      @click="window.api.openFileLocation(activePlayingVideo.path)"
+                      title="在 Windows 资源管理器中高亮显示该视频文件"
+                    >
+                      📂 定位文件
+                    </button>
+                    <button class="vp-close-btn" @click="closeVideoPlayer" title="关闭播放器">✕</button>
+                  </div>
+                </div>
+
+                <!-- Video Viewport -->
+                <div class="video-player-body">
+                  <video 
+                    :src="activePlayingVideo.src || `local:///${activePlayingVideo.path.replace(/\\/g, '/')}`" 
+                    controls 
+                    autoplay 
+                    class="video-native-element"
+                  ></video>
+                </div>
+              </div>
+            </div>
+          </transition>
         </div>
 
         <!-- 4. AUDIOS TAB -->
@@ -2590,14 +2774,131 @@ function initMap() {
 watch(currentTab, (newTab) => {
   if (newTab === 'map') {
     initMap();
+  } else if (newTab === 'videos' && syncStatus.value === 'connected') {
+    queryRemoteVideoCatalog();
   }
 });
+
+function formatVideoDuration(seconds) {
+  if (!seconds || seconds <= 0) return '00:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
 
 const localVideos = computed(() => {
   return images.value.filter(file => {
     const ext = getExtensionName(file.name);
-    return ['.mp4', '.mkv', '.mov', '.avi', '.webm'].includes(ext);
+    return ['.mp4', '.mkv', '.mov', '.avi', '.webm'].includes(ext) || file.type === 'video';
   });
+});
+
+const remoteVideoCatalog = ref([]);
+const isVideoSyncing = ref(false);
+const isVideoSyncPaused = ref(false);
+const videoSyncDone = ref(0);
+const videoSyncTotal = ref(0);
+const activePlayingVideo = ref(null);
+
+const videoGroupsByDate = computed(() => {
+  const groupsMap = {};
+
+  // 1. Process local synced/imported videos
+  for (const video of localVideos.value) {
+    let dateKey = '其他日期';
+    let rawDate = '1970-01-01';
+    if (video.create_date) {
+      rawDate = video.create_date.substring(0, 10);
+      const parts = rawDate.split('-');
+      if (parts.length === 3) {
+        dateKey = `${parts[0]}年${parts[1]}月${parts[2]}日`;
+      } else {
+        dateKey = rawDate;
+      }
+    } else if (video.sync_time) {
+      const d = new Date(video.sync_time);
+      rawDate = d.toISOString().substring(0, 10);
+      dateKey = `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
+    }
+
+    if (!groupsMap[rawDate]) {
+      groupsMap[rawDate] = {
+        dateKey,
+        rawDate,
+        items: []
+      };
+    }
+    groupsMap[rawDate].items.push({
+      ...video,
+      isRemoteOnly: false,
+      isSynced: true
+    });
+  }
+
+  // 2. Process remote videos from remoteVideoCatalog (if not already in localVideos)
+  const localIds = new Set(localVideos.value.map(v => v.id));
+  const localNames = new Set(localVideos.value.map(v => v.name));
+
+  for (const remote of remoteVideoCatalog.value) {
+    if (!localIds.has(remote.id) && !localIds.has(`video_${remote.id}`) && !localNames.has(remote.name)) {
+      let dateKey = '其他日期';
+      let rawDate = '1970-01-01';
+      if (remote.create_date) {
+        rawDate = remote.create_date.substring(0, 10);
+        const parts = rawDate.split('-');
+        if (parts.length === 3) {
+          dateKey = `${parts[0]}年${parts[1]}月${parts[2]}日`;
+        }
+      } else if (remote.timestamp) {
+        const d = new Date(remote.timestamp);
+        rawDate = d.toISOString().substring(0, 10);
+        dateKey = `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
+      }
+
+      if (!groupsMap[rawDate]) {
+        groupsMap[rawDate] = {
+          dateKey,
+          rawDate,
+          items: []
+        };
+      }
+      groupsMap[rawDate].items.push({
+        id: remote.id,
+        name: remote.name,
+        size: remote.size,
+        duration: remote.duration,
+        create_date: remote.create_date,
+        isRemoteOnly: true,
+        isSynced: false
+      });
+    }
+  }
+
+  // 3. Sort groups in descending chronological order (newest first)
+  const sortedKeys = Object.keys(groupsMap).sort((a, b) => (a < b ? 1 : -1));
+  return sortedKeys.map(key => {
+    const grp = groupsMap[key];
+    const unsyncedItems = grp.items.filter(i => i.isRemoteOnly);
+    const totalBytes = grp.items.reduce((acc, i) => acc + (i.size || 0), 0);
+    return {
+      dateKey: grp.dateKey,
+      rawDate: grp.rawDate,
+      items: grp.items,
+      totalCount: grp.items.length,
+      totalBytes,
+      unsyncedCount: unsyncedItems.length,
+      unsyncedIds: unsyncedItems.map(i => i.id),
+      hasUnsynced: unsyncedItems.length > 0
+    };
+  });
+});
+
+const totalUnsyncedVideosCount = computed(() => {
+  return videoGroupsByDate.value.reduce((sum, g) => sum + g.unsyncedCount, 0);
+});
+
+const totalAllVideosCount = computed(() => {
+  return videoGroupsByDate.value.reduce((sum, g) => sum + g.totalCount, 0);
 });
 
 const localAudios = computed(() => {
@@ -3602,6 +3903,96 @@ function handleOpenAlbumSyncFolder() {
   }
 }
 
+// ── Video Sync Functions ──────────────────────────────────────────
+function requestVideoSync(options = {}) {
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    logSyncEvent('❌ WebRTC 直连通道未建立，无法发送视频同步请求');
+    return;
+  }
+  
+  if (isVideoSyncing.value && isVideoSyncPaused.value) {
+    resumeVideoSync();
+    return;
+  }
+
+  const { forceFullScan = false, targetDate = null, targetIds = null } = options;
+  logSyncEvent(`🎥 正在向手机发送视频同步请求 (日期: ${targetDate || '全部'}, 目标数: ${targetIds ? targetIds.length : '自动增量'})...`);
+
+  sendSafeDataChannelPacket(dataChannel, -15, {
+    force_full_scan: forceFullScan,
+    target_date: targetDate,
+    target_ids: targetIds
+  });
+
+  isVideoSyncing.value = true;
+  isVideoSyncPaused.value = false;
+  videoSyncDone.value = 0;
+  videoSyncTotal.value = targetIds ? targetIds.length : (targetDate ? 1 : 0);
+}
+
+function queryRemoteVideoCatalog() {
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    logSyncEvent('❌ WebRTC 直连通道未建立，无法查询手机视频目录');
+    return;
+  }
+  logSyncEvent('🔍 正在向手机查询远程视频目录与拍摄日期...');
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -19, false); // fileId = -19: query video catalog
+  view.setInt32(4, 0, false);
+  view.setInt32(8, 0, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+}
+
+function pauseVideoSync() {
+  if (!dataChannel || dataChannel.readyState !== 'open') return;
+  logSyncEvent('⏸️ 正在向手机发送暂停视频同步指令...');
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -17, false); // fileId = -17: pause video sync
+  view.setInt32(4, 0, false);
+  view.setInt32(8, 0, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+  isVideoSyncPaused.value = true;
+}
+
+function resumeVideoSync() {
+  if (!dataChannel || dataChannel.readyState !== 'open') return;
+  logSyncEvent('▶️ 正在向手机发送恢复视频同步指令...');
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -15, false);
+  view.setInt32(4, 0, false);
+  view.setInt32(8, videoSyncTotal.value, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+  isVideoSyncPaused.value = false;
+}
+
+function stopVideoSync() {
+  if (!dataChannel || dataChannel.readyState !== 'open') return;
+  logSyncEvent('⏹️ 正在向手机发送停止视频同步指令...');
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -18, false); // fileId = -18: stop video sync
+  view.setInt32(4, 0, false);
+  view.setInt32(8, 0, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+  isVideoSyncing.value = false;
+  isVideoSyncPaused.value = false;
+}
+
+function openVideoPlayer(video) {
+  activePlayingVideo.value = video;
+}
+
+function closeVideoPlayer() {
+  activePlayingVideo.value = null;
+}
+
 
 function generateHotspotCredentials() {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -4037,6 +4428,62 @@ function setupDataChannel(channel) {
       return;
     }
 
+    // fileId = -15: Phone started or resumed video sync
+    if (fileId === -15) {
+      const totalCount = view.getInt32(8, false);
+      videoSyncTotal.value = totalCount;
+      isVideoSyncing.value = true;
+      isVideoSyncPaused.value = false;
+      logSyncEvent(`🎥 手机开始/恢复视频同步，共 ${totalCount} 个视频将传输到PC`);
+      return;
+    }
+
+    // fileId = -16: Phone video sync progress or finish
+    if (fileId === -16) {
+      const done = view.getInt32(4, false);
+      const total = view.getInt32(8, false);
+      const isFinished = view.getInt32(12, false) === 1;
+      videoSyncDone.value = done;
+      videoSyncTotal.value = total;
+      if (isFinished || (total > 0 && done >= total)) {
+        isVideoSyncing.value = false;
+        isVideoSyncPaused.value = false;
+        logSyncEvent(`✅ 视频同步完成！共同步 ${done}/${total} 个视频到PC`);
+      }
+      return;
+    }
+
+    // fileId = -17: Phone paused video sync
+    if (fileId === -17) {
+      isVideoSyncPaused.value = true;
+      logSyncEvent(`⏸️ 手机端已暂停视频同步`);
+      return;
+    }
+
+    // fileId = -18: Phone stopped video sync
+    if (fileId === -18) {
+      isVideoSyncing.value = false;
+      isVideoSyncPaused.value = false;
+      logSyncEvent(`⏹️ 手机端已停止并取消视频同步`);
+      return;
+    }
+
+    // fileId = -19: Remote video catalog response
+    if (fileId === -19) {
+      const payloadSize = view.getInt32(12, false);
+      const payloadBytes = new Uint8Array(arrayBuffer, 16, payloadSize);
+      const decoder = new TextDecoder('utf-8');
+      const payloadStr = decoder.decode(payloadBytes);
+      try {
+        const data = JSON.parse(payloadStr);
+        remoteVideoCatalog.value = data.videos || [];
+        logSyncEvent(`📋 收到手机端视频目录，共发现 ${remoteVideoCatalog.value.length} 个远程视频`);
+      } catch (err) {
+        console.error("Failed to parse video catalog:", err);
+      }
+      return;
+    }
+
     // Metadata packet containing filename and asset ID
     if (fileId === -6) {
       const totalCount = view.getInt32(8, false);
@@ -4066,13 +4513,15 @@ function setupDataChannel(channel) {
         size: metadata.size,
         latitude: metadata.latitude,
         longitude: metadata.longitude,
-        create_date: metadata.create_date || null
+        create_date: metadata.create_date || null,
+        duration: metadata.duration || null
       };
 
       // Add to chatMessages only for regular files (not thumbnails or album originals)
       const isThumb = metadata.name.startsWith('thumb_');
       const isAlbum = metadata.name.startsWith('album_');
-      if (!isThumb && !isAlbum && !chatMessages.value.some(m => m.id === metadata.file_id)) {
+      const isVid = metadata.name.startsWith('video_') || /\.(mp4|mkv|mov|avi|webm)$/i.test(metadata.name);
+      if (!isThumb && !isAlbum && !isVid && !chatMessages.value.some(m => m.id === metadata.file_id)) {
         chatMessages.value.push({
           id: metadata.file_id,
           type: 'incoming',
@@ -4090,6 +4539,9 @@ function setupDataChannel(channel) {
       // Update album sync counter when album metadata arrives
       if (isAlbum) {
         albumSyncDone.value++;
+      }
+      if (isVid && isVideoSyncing.value) {
+        videoSyncDone.value++;
       }
       
       logSyncEvent(`📝 收到文件元数据: [ID: ${metadata.file_id}] ${metadata.name} (${(metadata.size / 1024 / 1024).toFixed(2)} MB)`);
@@ -5622,5 +6074,398 @@ function getMockClassification(url) {
 .btn-device-connect:hover {
   background: #8b5cf6;
   box-shadow: 0 3px 10px rgba(124, 58, 237, 0.4);
+}
+
+/* ==================== VIDEOS TAB STYLES ==================== */
+.videos-tab-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.video-control-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: var(--border-radius-lg);
+}
+
+.video-control-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.video-control-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.video-control-title-row h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.badge-unsynced-pulse {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  animation: pulse-glow 1.8s infinite;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 rgba(245, 158, 11, 0); }
+  50% { box-shadow: 0 0 12px rgba(245, 158, 11, 0.35); }
+  100% { box-shadow: 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+.video-control-subtitle {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.video-control-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-glow-pulse {
+  background: linear-gradient(135deg, #a855f7 0%, #38bdf8 100%) !important;
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.5) !important;
+  animation: btn-pulse 1.8s infinite;
+}
+
+@keyframes btn-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+/* Video Syncing Progress Banner */
+.video-sync-progress-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.sync-progress-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 500px;
+}
+
+.sync-progress-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.sync-progress-title {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.sync-percent {
+  color: #38bdf8;
+  font-family: var(--font-mono);
+}
+
+.sync-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.sync-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #a855f7, #38bdf8);
+  border-radius: 99px;
+  transition: width 0.2s ease-out;
+}
+
+.sync-progress-controls {
+  display: flex;
+  gap: 6px;
+}
+
+/* Date Timeline */
+.video-timeline-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.video-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.video-date-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border-left: 3px solid #a855f7;
+}
+
+.video-date-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.video-date-icon {
+  font-size: 16px;
+}
+
+.video-date-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.video-date-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.video-all-synced-badge {
+  font-size: 11px;
+  color: #34d399;
+  font-weight: 600;
+}
+
+/* Video Grid Cards */
+.video-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.video-card {
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.video-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(168, 85, 247, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.card-unsynced {
+  border-style: dashed;
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.video-poster-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-poster-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-play-btn-circle {
+  font-size: 26px;
+  transition: transform 0.2s ease;
+}
+.video-card:hover .video-play-btn-circle {
+  transform: scale(1.2);
+}
+
+.video-duration-pill {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  font-family: var(--font-mono);
+}
+
+.video-status-tag {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+.tag-synced {
+  background: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.tag-unsynced {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.video-card-footer {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+}
+
+.video-card-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.video-card-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.video-play-hint {
+  color: #38bdf8;
+  font-weight: 600;
+}
+.video-sync-hint {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+/* Fullscreen Video Player Modal */
+.video-player-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(16px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+}
+
+.video-player-modal {
+  width: 100%;
+  max-width: 960px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+}
+
+.video-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.video-player-title-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vp-filename {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #fff;
+}
+.vp-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.video-player-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vp-close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.vp-close-btn:hover {
+  background: #ef4444;
+}
+
+.video-player-body {
+  width: 100%;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 70vh;
+}
+
+.video-native-element {
+  width: 100%;
+  max-height: 70vh;
+  outline: none;
 }
 </style>
