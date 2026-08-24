@@ -94,13 +94,6 @@
             </span>
             <span v-if="syncStatus === 'connected'" style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--success); display: inline-block; box-shadow: 0 0 6px var(--success);"></span>
           </div>
-          <div 
-            class="category-item" 
-            :class="{ active: currentTab === 'settings' }"
-            @click="currentTab = 'settings'"
-          >
-            <span>⚙️ {{ t.sidebar.settings }}</span>
-          </div>
         </div>
       </div>
 
