@@ -144,3 +144,183 @@ body {
 .pulse-card {
   animation: pulse-glow 3s infinite ease-in-out;
 }
+
+/* PWA Install Button */
+.btn-pwa-install {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  border: 1px solid rgba(139, 92, 246, 0.45);
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.25);
+}
+.btn-pwa-install:hover {
+  background: rgba(139, 92, 246, 0.35);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Mobile Fast Action Card */
+.mobile-fast-actions {
+  margin-top: 20px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+.mobile-fast-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+.btn-mobile-pick-act {
+  padding: 10px 20px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* iOS PWA Install Banner */
+.ios-install-banner {
+  position: fixed;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), 0 0 30px rgba(139, 92, 246, 0.3);
+  z-index: 99999;
+}
+
+.ios-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+
+.ios-app-icon img {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: block;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.ios-banner-content {
+  flex: 1;
+  text-align: left;
+}
+
+.ios-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 3px;
+}
+
+.ios-pwa-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.ios-banner-desc {
+  font-size: 11.5px;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.share-glyph {
+  display: inline-block;
+  font-size: 13px;
+  color: #38bdf8;
+  font-weight: bold;
+}
+
+.ios-banner-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.2s;
+}
+.ios-banner-close:hover {
+  color: #fff;
+}
+
+.ios-banner-arrow {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid rgba(15, 23, 42, 0.95);
+}
+
+.fade-slide-enter-active, .fade-slide-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fade-slide-enter-from, .fade-slide-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 20px);
+}
+
+/* Responsive & Mobile Layout */
+@media (max-width: 768px) {
+  .header-wrapper {
+    padding: max(12px, env(safe-area-inset-top)) 16px 12px 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .brand-logo {
+    justify-content: center;
+  }
+  .header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .mobile-fast-actions {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .mobile-fast-info {
+    justify-content: center;
+    text-align: center;
+  }
+  .btn-mobile-pick-act {
+    width: 100%;
+  }
+}
+

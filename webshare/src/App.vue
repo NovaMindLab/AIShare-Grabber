@@ -8,6 +8,16 @@
       </div>
 
       <div class="header-actions">
+        <!-- PWA Install Button (Shown on mobile/iOS when not standalone) -->
+        <button 
+          v-if="!isStandalone" 
+          class="badge-pill btn-pwa-install" 
+          @click="showIosInstallPrompt = true" 
+          title="添加到手机主屏幕 (PWA)"
+        >
+          📱 <span class="pwa-label-text">添加到桌面</span>
+        </button>
+
         <!-- AI Engine Status Badge -->
         <span class="badge-pill badge-webgpu" :class="{ 'badge-offline': !aiReady }">
           <span class="status-dot" :class="{ 'pulse-dot': aiReady }"></span>
@@ -106,6 +116,28 @@
                 <p>PC 浏览器 WebGPU 提取 512 维特征并进行 15 类场景分类，持久化存储</p>
               </div>
             </div>
+          </div>
+
+          <!-- Mobile / iPhone Fast Action Card -->
+          <div class="mobile-fast-actions glass-panel">
+            <div class="mobile-fast-info">
+              <span style="font-size: 24px;">📸</span>
+              <div>
+                <div style="font-weight: 700; color: #fff; font-size: 14px;">手机相册直传与本地 AI 分析</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">直接在手机中选择照片/视频导入，利用端侧 WebGPU 极速分类</div>
+              </div>
+            </div>
+            <input 
+              type="file" 
+              ref="mobileFileInput" 
+              multiple 
+              accept="image/*,video/*" 
+              style="display: none" 
+              @change="handleLocalFiles" 
+            />
+            <button class="btn-primary btn-mobile-pick-act" @click="$refs.mobileFileInput.click()">
+              <span>📁</span> 选取 iPhone 相册照片 / 视频
+            </button>
           </div>
         </div>
       </section>
@@ -489,6 +521,28 @@
         </div>
       </div>
     </div>
+
+    <!-- ==================== iOS / Mobile PWA Installation Guidance Banner ==================== -->
+    <transition name="fade-slide">
+      <div v-if="showIosInstallPrompt" class="ios-install-banner glass-panel">
+        <div class="ios-banner-inner">
+          <div class="ios-app-icon">
+            <img src="/logo.png" alt="App Icon" />
+          </div>
+          <div class="ios-banner-content">
+            <div class="ios-banner-title">
+              <span>安装 ShareCLIP 到桌面</span>
+              <span class="ios-pwa-badge">PWA 免证书</span>
+            </div>
+            <div class="ios-banner-desc">
+              点击 Safari 底部 <strong>分享按钮 <span class="share-glyph">⎋</span></strong> ➔ 选择 <strong>「添加到主屏幕」</strong>，即可像原生 App 一样全屏极速运行！
+            </div>
+          </div>
+          <button class="ios-banner-close" @click="dismissIosPrompt" title="关闭提示">✕</button>
+        </div>
+        <div class="ios-banner-arrow"></div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -509,6 +563,19 @@ import {
 } from './services/indexeddb.js';
 import { SignalingClient, getDefaultSignalingUrl } from './services/signaling.js';
 import { WebRtcReceiver } from './services/webrtc.js';
+
+// PWA & iOS Platform Detection States
+const isIos = ref(false);
+const isStandalone = ref(false);
+const showIosInstallPrompt = ref(false);
+const mobileFileInput = ref(null);
+
+function dismissIosPrompt() {
+  showIosInstallPrompt.value = false;
+  try {
+    localStorage.setItem('shareclip_pwa_dismissed', Date.now().toString());
+  } catch (_) {}
+}
 
 // Reactive States
 const sessionId = ref(generateSessionId());
@@ -807,6 +874,19 @@ function handleKeydown(e) {
 
 onMounted(async () => {
   addLog('🚀 WebShare 挂载完成，正在极速拉取本地 IndexedDB 历史并启动 WebGPU Worker...');
+  
+  // PWA Standalone & iOS detection
+  try {
+    isIos.value = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+    isStandalone.value = ('standalone' in window.navigator && window.navigator.standalone) || window.matchMedia('(display-mode: standalone)').matches;
+    const dismissed = localStorage.getItem('shareclip_pwa_dismissed');
+    if (isIos.value && !isStandalone.value && !dismissed) {
+      setTimeout(() => {
+        showIosInstallPrompt.value = true;
+      }, 1200);
+    }
+  } catch (_) {}
+
   generateQrCode();
   await openDB();
   await loadHistoricalPhotos();

@@ -2,5 +2,15 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import './styles/main.css';
 
+// Register PWA Service Worker
+if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then((reg) => console.log('✅ WebShare PWA Service Worker active:', reg.scope))
+      .catch((err) => console.log('ℹ️ Service Worker notice:', err));
+  });
+}
+
 const app = createApp(App);
 app.mount('#app');
+
