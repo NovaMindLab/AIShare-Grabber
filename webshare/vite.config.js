@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import dgram from 'dgram';
 import os from 'os';
+import { resolve } from 'path';
 import { WebSocketServer } from 'ws';
 
 function getLocalIps() {
@@ -163,6 +164,12 @@ export default defineConfig({
     format: 'es'
   },
   build: {
-    target: 'esnext'
+    target: 'esnext',
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        mshare: resolve(__dirname, 'mshare.html')
+      }
+    }
   }
 });

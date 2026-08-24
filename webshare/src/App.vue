@@ -8,6 +8,15 @@
       </div>
 
       <div class="header-actions">
+        <!-- Link to Dedicated MShare Mobile View -->
+        <a 
+          href="./mshare.html" 
+          class="badge-pill btn-pwa-install" 
+          title="打开专门为 iPhone / 手机定制的 MShare 扫码发送页面"
+        >
+          📱 手机端 (MShare)
+        </a>
+
         <!-- PWA Install Button (Shown on mobile/iOS when not standalone) -->
         <button 
           v-if="!isStandalone" 
@@ -15,7 +24,7 @@
           @click="showIosInstallPrompt = true" 
           title="添加到手机主屏幕 (PWA)"
         >
-          📱 <span class="pwa-label-text">添加到桌面</span>
+          📲 <span class="pwa-label-text">添加到桌面</span>
         </button>
 
         <!-- AI Engine Status Badge -->
@@ -138,6 +147,20 @@
             <button class="btn-primary btn-mobile-pick-act" @click="$refs.mobileFileInput.click()">
               <span>📁</span> 选取 iPhone 相册照片 / 视频
             </button>
+          </div>
+
+          <!-- MShare Dedicated Mobile Page Link Card -->
+          <div class="mobile-fast-actions glass-panel" style="border-color: rgba(56, 189, 248, 0.4); background: rgba(15, 23, 42, 0.9);">
+            <div class="mobile-fast-info">
+              <span style="font-size: 24px;">📲</span>
+              <div>
+                <div style="font-weight: 800; color: #38bdf8; font-size: 14px;">MShare 手机专属扫码发送控制台</div>
+                <div style="font-size: 11.5px; color: #cbd5e1; margin-top: 2px;">专为 iOS / 手机设计，支持摄像头扫码、相册多选与 4K 视频流式直传</div>
+              </div>
+            </div>
+            <a href="./mshare.html" class="btn-primary btn-mobile-pick-act" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, #0284c7, #8b5cf6);">
+              <span>📱</span> 打开 MShare ➔
+            </a>
           </div>
         </div>
       </section>

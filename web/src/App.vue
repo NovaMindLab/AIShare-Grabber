@@ -790,12 +790,28 @@
               <p class="download-meta">{{ t.download.android_meta }}</p>
               <p class="download-desc">{{ t.download.android_desc }}</p>
               <a 
-                :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/app-arm64-v8a-release.apk`" 
+                :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Android-${appVersion.replace('v','')}.apk`" 
                 class="btn btn-secondary" 
                 style="width: 100%; justify-content: center; font-size: 15px;"
                 @click="showDownloadToast(`📱 ${t.download.android_btn}...`)"
               >
                 <span>⚡</span> {{ t.download.android_btn }}
+              </a>
+            </div>
+
+            <!-- iOS MShare Companion PWA -->
+            <div class="glass-panel glass-panel-hover download-card">
+              <div class="download-badge-tag" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35);">iOS &amp; 移动端 PWA</div>
+              <div class="download-icon-circle" style="background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.35);">📲</div>
+              <h3 style="font-size: 22px; font-weight: 800; color: #fff; margin: 12px 0 6px 0;">ShareCLIP MShare (iOS)</h3>
+              <p class="download-meta">支持 iPhone / iPad • 纯浏览器免证书运行</p>
+              <p class="download-desc">专为手机触摸屏打造，内置摄像头扫码器、相册多选直传与 4K 视频流式发送。</p>
+              <a 
+                href="./webshare/mshare.html" 
+                class="btn btn-webshare-hero" 
+                style="width: 100%; justify-content: center; font-size: 15px;"
+              >
+                <span>📱</span> 打开 MShare 手机端
               </a>
             </div>
           </div>
@@ -2338,8 +2354,8 @@ function simulateDedupCleanup() {
 
 .download-cards-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
   margin-bottom: 30px;
 }
 
