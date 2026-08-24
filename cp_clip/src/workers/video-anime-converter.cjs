@@ -243,7 +243,18 @@ class VideoAnimeConverter {
     const inputName = this.session.inputNames[0];
     const outputName = this.session.outputNames[0];
 
-    // 4. Spawn FFmpeg Decode & Encode Processes
+    // 4. Determine Model Tensor Layout (NHWC vs NCHW)
+    let isNHWC = true;
+    try {
+      // Test run with dummy 32x32 frame to reliably detect input tensor layout
+      const testNHWC = new ort.Tensor('float32', new Float32Array(1 * 32 * 32 * 3), [1, 32, 32, 3]);
+      await this.session.run({ [inputName]: testNHWC });
+      isNHWC = true;
+    } catch (_) {
+      isNHWC = false;
+    }
+
+    // 5. Spawn FFmpeg Decode & Encode Processes
     // Decode: Video -> raw rgb24 via stdout
     const decodeArgs = [
       '-y',
@@ -281,7 +292,7 @@ class VideoAnimeConverter {
       this.encodeProcess.on('error', err => reject(err));
     });
 
-    // 5. Streaming Frame Pipeline with Backpressure & Flow Control
+    // 6. Streaming Frame Pipeline with Backpressure & Flow Control
     let bufferRemainder = Buffer.alloc(0);
     let processedFrames = 0;
     const startTime = Date.now();
@@ -293,6 +304,7 @@ class VideoAnimeConverter {
     // Reuse input Float32Array tensor memory to prevent GC churn
     const inputTensorData = new Float32Array(3 * framePixelCount);
     const outputUint8Buffer = Buffer.allocUnsafe(frameByteSize);
+    const planeSize = framePixelCount;
 
     for await (const chunk of this.decodeProcess.stdout) {
       if (this.isCancelled) break;
@@ -305,39 +317,44 @@ class VideoAnimeConverter {
         const rawFrame = bufferRemainder.subarray(0, frameByteSize);
         bufferRemainder = bufferRemainder.subarray(frameByteSize);
 
-        // Preprocessing: Uint8 Interleaved RGB -> NCHW Float32Array [-1.0, 1.0]
-        const planeSize = framePixelCount;
-        for (let i = 0; i < planeSize; i++) {
-          const idx = i * 3;
-          inputTensorData[i] = (rawFrame[idx] / 127.5) - 1.0;
-          inputTensorData[planeSize + i] = (rawFrame[idx + 1] / 127.5) - 1.0;
-          inputTensorData[2 * planeSize + i] = (rawFrame[idx + 2] / 127.5) - 1.0;
-        }
-
-        // ONNX Inference
-        const inputTensor = new ort.Tensor('float32', inputTensorData, [1, 3, targetHeight, targetWidth]);
-        const results = await this.session.run({ [inputName]: inputTensor });
-        const outData = results[outputName].data; // Float32Array
-
-        // Postprocessing: Float32Array [-1.0, 1.0] or [0, 255] -> Uint8 Interleaved RGB Buffer
-        // Detect output range dynamically (AnimeGAN standard is [-1, 1] or [0, 255])
-        const isNormalized = outData[0] <= 2.0 && outData[0] >= -2.0;
-
-        for (let i = 0; i < planeSize; i++) {
-          let r, g, b;
-          if (isNormalized) {
-            r = (outData[i] + 1.0) * 127.5;
-            g = (outData[planeSize + i] + 1.0) * 127.5;
-            b = (outData[2 * planeSize + i] + 1.0) * 127.5;
-          } else {
-            r = outData[i];
-            g = outData[planeSize + i];
-            b = outData[2 * planeSize + i];
+        if (isNHWC) {
+          // Preprocessing for NHWC [1, H, W, 3]
+          for (let i = 0; i < frameByteSize; i++) {
+            inputTensorData[i] = (rawFrame[i] / 127.5) - 1.0;
           }
+          const inputTensor = new ort.Tensor('float32', inputTensorData, [1, targetHeight, targetWidth, 3]);
+          const results = await this.session.run({ [inputName]: inputTensor });
+          const outData = results[outputName].data; // Float32Array
+          const isNormalized = Math.abs(outData[0]) <= 2.5;
 
-          outputUint8Buffer[i * 3] = r < 0 ? 0 : (r > 255 ? 255 : (r | 0));
-          outputUint8Buffer[i * 3 + 1] = g < 0 ? 0 : (g > 255 ? 255 : (g | 0));
-          outputUint8Buffer[i * 3 + 2] = b < 0 ? 0 : (b > 255 ? 255 : (b | 0));
+          // Postprocessing for NHWC [1, H, W, 3]
+          for (let i = 0; i < frameByteSize; i++) {
+            const val = isNormalized ? ((outData[i] + 1.0) * 127.5) : outData[i];
+            outputUint8Buffer[i] = val < 0 ? 0 : (val > 255 ? 255 : (val | 0));
+          }
+        } else {
+          // Preprocessing for NCHW [1, 3, H, W]
+          for (let i = 0; i < planeSize; i++) {
+            const idx = i * 3;
+            inputTensorData[i] = (rawFrame[idx] / 127.5) - 1.0;
+            inputTensorData[planeSize + i] = (rawFrame[idx + 1] / 127.5) - 1.0;
+            inputTensorData[2 * planeSize + i] = (rawFrame[idx + 2] / 127.5) - 1.0;
+          }
+          const inputTensor = new ort.Tensor('float32', inputTensorData, [1, 3, targetHeight, targetWidth]);
+          const results = await this.session.run({ [inputName]: inputTensor });
+          const outData = results[outputName].data;
+          const isNormalized = Math.abs(outData[0]) <= 2.5;
+
+          // Postprocessing for NCHW [1, 3, H, W]
+          for (let i = 0; i < planeSize; i++) {
+            let r = isNormalized ? (outData[i] + 1.0) * 127.5 : outData[i];
+            let g = isNormalized ? (outData[planeSize + i] + 1.0) * 127.5 : outData[planeSize + i];
+            let b = isNormalized ? (outData[2 * planeSize + i] + 1.0) * 127.5 : outData[2 * planeSize + i];
+
+            outputUint8Buffer[i * 3] = r < 0 ? 0 : (r > 255 ? 255 : (r | 0));
+            outputUint8Buffer[i * 3 + 1] = g < 0 ? 0 : (g > 255 ? 255 : (g | 0));
+            outputUint8Buffer[i * 3 + 2] = b < 0 ? 0 : (b > 255 ? 255 : (b | 0));
+          }
         }
 
         // Write to encode process with backpressure flow control
