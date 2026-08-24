@@ -714,45 +714,41 @@
               </button>
             </div>
 
-            <!-- Device list stacked -->
-            <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            <!-- Device list in compact multi-column Grid -->
+            <div class="nearby-devices-grid">
               <div 
                 v-for="device in displayDevices" 
                 :key="device.uuid"
-                style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s; box-sizing: border-box;"
-                onmouseover="this.style.background='rgba(15, 23, 42, 0.6)'; this.style.borderColor='rgba(168, 85, 247, 0.2)';"
-                onmouseout="this.style.background='rgba(15, 23, 42, 0.4)'; this.style.borderColor='rgba(255,255,255,0.05)';"
+                class="nearby-device-card"
               >
                 <!-- Info Section -->
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <div style="font-size: 20px; color: #a855f7;">
+                <div class="device-card-left">
+                  <div class="device-type-icon">
                     {{ device.type === 'PC' ? '💻' : '📱' }}
                   </div>
-                  <div style="display: flex; flex-direction: column; gap: 2px; text-align: left;">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                      <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ device.name }}</span>
-                      <span style="font-size: 9.5px; font-weight: 600; color: #a855f7; background: rgba(168, 85, 247, 0.1); padding: 1px 5px; border-radius: 4px;">{{ device.type === 'PC' ? '电脑' : '手机' }}</span>
+                  <div class="device-card-meta">
+                    <div class="device-card-title-row">
+                      <span class="device-card-name" :title="device.name">{{ device.name }}</span>
+                      <span class="device-type-badge">{{ device.type === 'PC' ? '电脑' : '手机' }}</span>
                     </div>
-                    <span style="font-size: 11px; color: var(--text-muted);">{{ device.ip }} · Wi-Fi</span>
+                    <span class="device-card-ip">{{ device.ip }} · Wi-Fi</span>
                   </div>
                 </div>
 
                 <!-- Actions Section -->
-                <div style="display: flex; align-items: center; gap: 16px;">
+                <div class="device-card-right">
                   <!-- Signal Bars -->
-                  <div style="display: flex; align-items: flex-end; gap: 2px; height: 12px;">
-                    <span style="width: 2.5px; height: 3px; border-radius: 1px; background: #22c55e;"></span>
-                    <span style="width: 2.5px; height: 6px; border-radius: 1px; background: #22c55e;"></span>
-                    <span style="width: 2.5px; height: 9px; border-radius: 1px; background: #22c55e;"></span>
-                    <span style="width: 2.5px; height: 12px; border-radius: 1px; background: #22c55e;"></span>
+                  <div class="device-signal-bars" title="局域网 Wi-Fi 信号良好">
+                    <span class="s-bar s-1"></span>
+                    <span class="s-bar s-2"></span>
+                    <span class="s-bar s-3"></span>
+                    <span class="s-bar s-4"></span>
                   </div>
                   
                   <button 
+                    class="btn-device-connect"
                     @click="device.isMock ? logSyncEvent(`🔌 [Mock] 连接至虚拟测试设备 ${device.name}...`) : connectToDevice(device.ip)"
                     :disabled="connectingIp === device.ip"
-                    style="background: #7c3aed; border: none; border-radius: 6px; color: white; padding: 6px 16px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 3px 8px rgba(124,58,237,0.2);"
-                    onmouseover="this.style.background='#8b5cf6'; this.style.boxShadow='0 4px 12px rgba(124,58,237,0.3)';"
-                    onmouseout="this.style.background='#7c3aed'; this.style.boxShadow='0 3px 8px rgba(124,58,237,0.2)';"
                   >
                     {{ connectingIp === device.ip ? t.link.waitingAccept : t.link.connectBtn }}
                   </button>
@@ -5504,5 +5500,134 @@ function getMockClassification(url) {
 }
 .filmstrip-thumb-item:active {
   transform: scale(0.98) !important;
+}
+
+/* Nearby Devices Grid Layout */
+.nearby-devices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px 10px;
+  width: 100%;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.nearby-device-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+.nearby-device-card:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(168, 85, 247, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.device-card-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.device-type-icon {
+  font-size: 18px;
+  color: #a855f7;
+  flex-shrink: 0;
+}
+
+.device-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+  min-width: 0;
+  flex: 1;
+}
+
+.device-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.device-card-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-type-badge {
+  font-size: 9px;
+  font-weight: 600;
+  color: #a855f7;
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  padding: 0 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.device-card-ip {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-card-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.device-signal-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 11px;
+}
+.s-bar {
+  width: 2px;
+  border-radius: 1px;
+  background: #22c55e;
+}
+.s-1 { height: 3px; }
+.s-2 { height: 5.5px; }
+.s-3 { height: 8px; }
+.s-4 { height: 11px; }
+
+.btn-device-connect {
+  background: #7c3aed;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.25);
+  white-space: nowrap;
+}
+.btn-device-connect:hover {
+  background: #8b5cf6;
+  box-shadow: 0 3px 10px rgba(124, 58, 237, 0.4);
 }
 </style>
