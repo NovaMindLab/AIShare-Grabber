@@ -102,9 +102,11 @@ if (Test-Path $WebSharePkgPath) {
     [System.IO.File]::WriteAllText((Resolve-Path $WebSharePkgPath), ($WebSharePkg | ConvertTo-Json -Depth 10))
 }
 
-$CalcBuildNumber = 100
-if ($VersionOnly -match "\.(\d+)$") {
-    $CalcBuildNumber = 100 + [int]$Matches[1]
+$CalcBuildNumber = 20100
+if ($VersionOnly -match "^(\d+)\.(\d+)\.(\d+)$") {
+    $CalcBuildNumber = [int]$Matches[1] * 10000 + [int]$Matches[2] * 100 + [int]$Matches[3]
+} elseif ($VersionOnly -match "\.(\d+)$") {
+    $CalcBuildNumber = 20000 + [int]$Matches[1]
 }
 
 if (Test-Path $PubspecPath) {
@@ -206,9 +208,11 @@ Set-Location ".."
 
 # 3. Build Android Mobile APK
 Write-Host "`n📁 Step 3: Compiling Android APK..." -ForegroundColor Green
-$CalcBuildNumber = 100
-if ($VersionOnly -match "\.(\d+)$") {
-    $CalcBuildNumber = 100 + [int]$Matches[1]
+$CalcBuildNumber = 20100
+if ($VersionOnly -match "^(\d+)\.(\d+)\.(\d+)$") {
+    $CalcBuildNumber = [int]$Matches[1] * 10000 + [int]$Matches[2] * 100 + [int]$Matches[3]
+} elseif ($VersionOnly -match "\.(\d+)$") {
+    $CalcBuildNumber = 20000 + [int]$Matches[1]
 }
 Set-Location "android"
 # Clean previous APK outputs
@@ -216,9 +220,9 @@ Remove-Item -Path "build/app/outputs/flutter-apk/*.apk" -Force -ErrorAction Sile
 
 if (-not [string]::IsNullOrWhiteSpace($MixpanelToken)) {
     Write-Host "🔒 Injected Mixpanel Token into Android build" -ForegroundColor Gray
-    & $FlutterCmd build apk --release --target-platform android-arm64 --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=$MixpanelToken
+    & $FlutterCmd build apk --release --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=$MixpanelToken
 } else {
-    & $FlutterCmd build apk --release --target-platform android-arm64 --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons
+    & $FlutterCmd build apk --release --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons
 }
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Android compilation failed!"
