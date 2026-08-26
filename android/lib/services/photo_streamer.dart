@@ -21,7 +21,7 @@ class PhotoStreamer {
       final PermissionState ps = await PhotoManager.requestPermissionExtend(
         requestOption: const PermissionRequestOption(
           androidPermission: AndroidPermission(
-            type: RequestType.common | RequestType.audio,
+            type: RequestType.all,
             mediaLocation: false,
           ),
         ),
