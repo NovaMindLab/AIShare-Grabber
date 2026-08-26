@@ -25,6 +25,9 @@ android {
         targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
     }
 
     signingConfigs {
@@ -43,6 +46,19 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             isShrinkResources = false
+        }
+    }
+
+    packaging {
+        jniLibs {
+            excludes += listOf(
+                "lib/armeabi-v7a/**",
+                "lib/x86/**",
+                "lib/x86_64/**",
+                "lib/armeabi/**",
+                "lib/mips/**",
+                "lib/mips64/**"
+            )
         }
     }
 }
