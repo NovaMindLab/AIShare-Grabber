@@ -220,9 +220,9 @@ Remove-Item -Path "build/app/outputs/flutter-apk/*.apk" -Force -ErrorAction Sile
 
 if (-not [string]::IsNullOrWhiteSpace($MixpanelToken)) {
     Write-Host "🔒 Injected Mixpanel Token into Android build" -ForegroundColor Gray
-    & $FlutterCmd build apk --release --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=$MixpanelToken
+    & $FlutterCmd build apk --release --target-platform android-arm64 --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=$MixpanelToken
 } else {
-    & $FlutterCmd build apk --release --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons
+    & $FlutterCmd build apk --release --target-platform android-arm64 --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons
 }
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Android compilation failed!"
