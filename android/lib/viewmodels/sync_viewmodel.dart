@@ -94,6 +94,12 @@ class SyncViewModel extends ChangeNotifier {
   String lastVideoSyncDate = '';
   bool isVideoSyncPaused = false;
 
+  bool isAudioSyncing = false;
+  int audioSyncTotal = 0;
+  int audioSyncDone = 0;
+  String lastAudioSyncDate = '';
+  bool isAudioSyncPaused = false;
+
   int _fileIdCounter = 100;
   Timer? _heartbeatTimer;
   DateTime _lastHeartbeatReceived = DateTime.now();
@@ -861,6 +867,125 @@ class SyncViewModel extends ChangeNotifier {
                 logMessage("Sent video catalog with ${catalog.length} videos to PC.");
               } catch (e) {
                 logMessage("Error scanning/sending video catalog: $e");
+              }
+            });
+            return;
+          }
+
+          if (fileId == -21) {
+            // PC requested audio/music sync (either full, incremental, or specific target)
+            final payloadSize = byteData.getInt32(12, Endian.big);
+            bool forceFullScan = false;
+            String? targetDate;
+            List<String>? targetIds;
+
+            if (payloadSize > 0 && binaryData.length >= 16 + payloadSize) {
+              try {
+                final payloadStr = utf8.decode(binaryData.sublist(16, 16 + payloadSize));
+                final Map<String, dynamic> data = jsonDecode(payloadStr);
+                forceFullScan = data['force_full_scan'] == true;
+                targetDate = data['target_date']?.toString();
+                if (data['target_ids'] is List) {
+                  targetIds = (data['target_ids'] as List).map((e) => e.toString()).toList();
+                }
+              } catch (_) {}
+            }
+
+            if (isAudioSyncing && !isAudioSyncPaused) {
+              logMessage("Audio sync is already in progress.");
+            } else if (isAudioSyncing && isAudioSyncPaused) {
+              logMessage("PC requested to resume audio sync.");
+              isAudioSyncPaused = false;
+              notifyListeners();
+            } else {
+              logMessage("PC requested audio sync. Starting...");
+              syncAudiosToPC(forceFullScan: forceFullScan, targetDate: targetDate, targetIds: targetIds);
+            }
+            return;
+          }
+
+          if (fileId == -23) {
+            logMessage("PC requested to pause audio sync.");
+            isAudioSyncPaused = true;
+            notifyListeners();
+            return;
+          }
+
+          if (fileId == -24) {
+            logMessage("PC requested to stop audio sync.");
+            isAudioSyncing = false;
+            isAudioSyncPaused = false;
+            notifyListeners();
+            return;
+          }
+
+          if (fileId == -25) {
+            // PC queries audio/music catalog
+            logMessage("🎵 PC requested remote audio catalog. Scanning...");
+            Future.microtask(() async {
+              try {
+                final streamer = PhotoStreamer.standalone();
+                localAudios = await streamer.loadLocalAudio();
+                notifyListeners();
+                logMessage("🎵 Found ${localAudios.length} audio tracks in device MediaStore.");
+
+                final List<Map<String, dynamic>> catalog = [];
+                // Process audio catalog metadata in parallel chunks of 20
+                for (int i = 0; i < localAudios.length; i += 20) {
+                  final end = (i + 20 < localAudios.length) ? i + 20 : localAudios.length;
+                  final chunk = localAudios.sublist(i, end);
+                  final chunkResults = await Future.wait(chunk.map((a) async {
+                    final int? createSec = (a.createDateSecond != null && a.createDateSecond! > 0)
+                        ? a.createDateSecond
+                        : a.modifiedDateSecond;
+                    String? createDateStr;
+                    if (createSec != null && createSec > 0) {
+                      createDateStr = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true).toIso8601String();
+                    } else {
+                      createDateStr = DateTime.now().toUtc().toIso8601String();
+                    }
+
+                    int size = 0;
+                    try {
+                      final file = await a.file.timeout(const Duration(milliseconds: 800), onTimeout: () => null);
+                      if (file != null) {
+                        size = await file.length();
+                      }
+                    } catch (_) {}
+
+                    String cleanName = a.title ?? "music_${a.id}.mp3";
+                    if (!cleanName.contains('.')) {
+                      final ext = a.mimeType?.split('/').last ?? 'mp3';
+                      cleanName = '$cleanName.$ext';
+                    }
+
+                    return {
+                      "id": a.id,
+                      "name": cleanName,
+                      "size": size,
+                      "duration": a.duration,
+                      "create_date": createDateStr,
+                      "timestamp": (createSec ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000)) * 1000,
+                    };
+                  }));
+                  catalog.addAll(chunkResults);
+                }
+
+                final respStr = jsonEncode({ "audios": catalog });
+                final respBytes = utf8.encode(respStr);
+                final respHeader = ByteData(16);
+                respHeader.setInt32(0, -25, Endian.big);
+                respHeader.setInt32(4, 0, Endian.big);
+                respHeader.setInt32(8, catalog.length, Endian.big);
+                respHeader.setInt32(12, respBytes.length, Endian.big);
+
+                final respPacket = Uint8List(16 + respBytes.length);
+                respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
+                respPacket.setRange(16, respPacket.length, respBytes);
+                await _syncEngine?.sendBinary(respPacket);
+                logMessage("✅ Sent audio catalog with ${catalog.length} tracks to PC.");
+              } catch (e) {
+                logMessage("❌ Error scanning/sending audio catalog: $e");
               }
             });
             return;
@@ -1763,6 +1888,204 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
       final header = ByteData(16);
       header.setInt32(0, -18, Endian.big);
+      header.setInt32(4, 0, Endian.big);
+      header.setInt32(8, 0, Endian.big);
+      header.setInt32(12, 0, Endian.big);
+      _syncEngine?.sendBinary(header.buffer.asUint8List());
+    }
+  }
+
+  Future<void> syncAudiosToPC({bool forceFullScan = false, String? targetDate, List<String>? targetIds}) async {
+    if (isAudioSyncing && !isAudioSyncPaused) return;
+
+    if (isAudioSyncing && isAudioSyncPaused) {
+      resumeAudioSync();
+      return;
+    }
+
+    isAudioSyncing = true;
+    isAudioSyncPaused = false;
+    audioSyncDone = 0;
+    audioSyncTotal = 0;
+    notifyListeners();
+
+    logMessage("🎵 Starting audio sync. Breakpoint date: ${(lastAudioSyncDate.isEmpty || forceFullScan) ? 'none (full scan)' : lastAudioSyncDate}");
+
+    try {
+      final PermissionState ps = await PhotoManager.requestPermissionExtend();
+      if (!ps.isAuth) {
+        logMessage("❌ Audio sync failed: no media permission");
+        isAudioSyncing = false;
+        notifyListeners();
+        return;
+      }
+
+      if (localAudios.isEmpty) {
+        logMessage("🎵 Audio sync: localAudios is empty, loading...");
+        final streamer = PhotoStreamer.standalone();
+        localAudios = await streamer.loadLocalAudio();
+      }
+      final List<AssetEntity> allAudios = List<AssetEntity>.from(localAudios);
+
+      // Chronological sort in-memory (oldest first)
+      allAudios.sort((a, b) {
+        final aTime = a.createDateSecond ?? 0;
+        final bTime = b.createDateSecond ?? 0;
+        return aTime.compareTo(bTime);
+      });
+
+      List<AssetEntity> toSync = allAudios;
+      if (targetIds != null && targetIds.isNotEmpty) {
+        toSync = allAudios.where((a) => targetIds.contains(a.id)).toList();
+      } else if (targetDate != null && targetDate.isNotEmpty) {
+        toSync = allAudios.where((a) {
+          final createMs = a.createDateSecond;
+          if (createMs == null) return false;
+          final dStr = DateTime.fromMillisecondsSinceEpoch(createMs * 1000, isUtc: true).toIso8601String().substring(0, 10);
+          return dStr == targetDate;
+        }).toList();
+      } else if (lastAudioSyncDate.isNotEmpty && !forceFullScan) {
+        DateTime? breakpoint;
+        try {
+          breakpoint = DateTime.parse(lastAudioSyncDate).toUtc();
+        } catch (_) {}
+        if (breakpoint != null) {
+          toSync = allAudios.where((a) {
+            final createMs = a.createDateSecond;
+            if (createMs == null) return false;
+            final createDt = DateTime.fromMillisecondsSinceEpoch(createMs * 1000, isUtc: true);
+            return createDt.isAfter(breakpoint!);
+          }).toList();
+        }
+      }
+
+      if (!forceFullScan && targetIds == null && targetDate == null) {
+        toSync = toSync.where((a) => !pcSyncedIds.contains('audio_${a.id}') && !pcSyncedIds.contains(a.id)).toList();
+      }
+
+      audioSyncTotal = toSync.length;
+      notifyListeners();
+
+      if (toSync.isEmpty) {
+        logMessage("✅ Audio sync complete: all audios already synced.");
+        final doneHeader = ByteData(16);
+        doneHeader.setInt32(0, -22, Endian.big);
+        doneHeader.setInt32(4, 0, Endian.big);
+        doneHeader.setInt32(8, 0, Endian.big);
+        doneHeader.setInt32(12, 0, Endian.big);
+        await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
+        isAudioSyncing = false;
+        notifyListeners();
+        return;
+      }
+
+      logMessage("🎵 Audio sync: ${toSync.length} tracks to send (out of ${allAudios.length} total).");
+
+      final startHeader = ByteData(16);
+      startHeader.setInt32(0, -21, Endian.big);
+      startHeader.setInt32(4, 0, Endian.big);
+      startHeader.setInt32(8, toSync.length, Endian.big);
+      startHeader.setInt32(12, 0, Endian.big);
+      await _syncEngine?.sendBinary(startHeader.buffer.asUint8List());
+
+      int successCount = 0;
+      final streamer = PhotoStreamer(syncEngine: _syncEngine!);
+
+      for (int i = 0; i < toSync.length; i++) {
+        if (!isAudioSyncing) {
+          logMessage("⏹️ Audio sync stopped by user.");
+          break;
+        }
+
+        while (isAudioSyncPaused && isAudioSyncing) {
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+        if (!isAudioSyncing) break;
+
+        final entity = toSync[i];
+        final int fileId = _fileIdCounter++;
+        logMessage("🎵 [${i + 1}/${toSync.length}] Streaming audio: ${entity.title} (${entity.duration}s)...");
+
+        final bool success = await streamer.streamAudio(
+          entity: entity,
+          fileId: fileId,
+          onProgress: (chunkIndex, totalChunks, bytesSent) {
+            activeProgress = totalChunks > 0 ? chunkIndex / totalChunks : 0;
+            activeTransferName = '🎵 ${entity.title}';
+            notifyListeners();
+          },
+        );
+
+        if (success) {
+          successCount++;
+          audioSyncDone = successCount;
+          pcSyncedIds.add('audio_${entity.id}');
+          pcSyncedIds.add(entity.id);
+        } else {
+          logMessage("⚠️ Failed to sync audio: ${entity.title}");
+        }
+        notifyListeners();
+      }
+
+      activeTransferName = null;
+      activeProgress = 0;
+      notifyListeners();
+
+      if (isAudioSyncing) {
+        logMessage("✅ Audio sync finished: $audioSyncDone/${audioSyncTotal} tracks sent.");
+        final finishHeader = ByteData(16);
+        finishHeader.setInt32(0, -22, Endian.big);
+        finishHeader.setInt32(4, audioSyncDone, Endian.big);
+        finishHeader.setInt32(8, audioSyncTotal, Endian.big);
+        finishHeader.setInt32(12, 1, Endian.big);
+        await _syncEngine?.sendBinary(finishHeader.buffer.asUint8List());
+      }
+    } catch (e, stack) {
+      logMessage("❌ Audio sync error: $e");
+      debugPrint("[AudioSync] Error: $e\n$stack");
+    } finally {
+      isAudioSyncing = false;
+      isAudioSyncPaused = false;
+      notifyListeners();
+    }
+  }
+
+  void pauseAudioSync() {
+    if (isAudioSyncing && !isAudioSyncPaused) {
+      isAudioSyncPaused = true;
+      logMessage("🎵 Audio sync paused.");
+      notifyListeners();
+      final header = ByteData(16);
+      header.setInt32(0, -23, Endian.big);
+      header.setInt32(4, 0, Endian.big);
+      header.setInt32(8, 0, Endian.big);
+      header.setInt32(12, 0, Endian.big);
+      _syncEngine?.sendBinary(header.buffer.asUint8List());
+    }
+  }
+
+  void resumeAudioSync() {
+    if (isAudioSyncing && isAudioSyncPaused) {
+      isAudioSyncPaused = false;
+      logMessage("🎵 Audio sync resumed.");
+      notifyListeners();
+      final header = ByteData(16);
+      header.setInt32(0, -21, Endian.big);
+      header.setInt32(4, 0, Endian.big);
+      header.setInt32(8, audioSyncTotal, Endian.big);
+      header.setInt32(12, 0, Endian.big);
+      _syncEngine?.sendBinary(header.buffer.asUint8List());
+    }
+  }
+
+  void stopAudioSync() {
+    if (isAudioSyncing) {
+      isAudioSyncing = false;
+      isAudioSyncPaused = false;
+      logMessage("🎵 Audio sync stopped.");
+      notifyListeners();
+      final header = ByteData(16);
+      header.setInt32(0, -24, Endian.big);
       header.setInt32(4, 0, Endian.big);
       header.setInt32(8, 0, Endian.big);
       header.setInt32(12, 0, Endian.big);

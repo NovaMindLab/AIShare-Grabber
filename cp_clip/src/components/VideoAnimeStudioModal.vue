@@ -84,18 +84,73 @@
               </div>
             </div>
 
-            <!-- 2. Resolution Mode Selector -->
+            <!-- 2. Anime Frame Rate Mode Selector -->
             <div class="config-section">
-              <label class="section-label">📐 2. 输出分辨率与性能优化</label>
+              <div class="section-label-row">
+                <label class="section-label">⚡ 2. 动漫帧率与速度优化</label>
+                <span class="section-tip">✨ 传统2D动漫采用定格手绘帧率，大幅提速且减少闪烁</span>
+              </div>
+              <div class="frame-rate-options">
+                <button 
+                  class="fr-btn" 
+                  :class="{ active: frameRateMode === 'anime15' }"
+                  @click="!isConverting && (frameRateMode = 'anime15')"
+                  :disabled="isConverting"
+                >
+                  <div class="fr-header">
+                    <span class="fr-title">🚀 经典动漫手绘 (15 FPS)</span>
+                    <span class="fr-badge badge-rec">2x 极速 • 推荐</span>
+                  </div>
+                  <span class="fr-sub">吉卜力/新海诚手绘定格质感，算力减半，画面最稳</span>
+                </button>
+                <button 
+                  class="fr-btn" 
+                  :class="{ active: frameRateMode === 'full' }"
+                  @click="!isConverting && (frameRateMode = 'full')"
+                  :disabled="isConverting"
+                >
+                  <div class="fr-header">
+                    <span class="fr-title">⚡ 原生全帧率 ({{ videoInfo ? `${videoInfo.fps} FPS` : '全量' }})</span>
+                    <span class="fr-badge badge-normal">1x 原速</span>
+                  </div>
+                  <span class="fr-sub">逐帧全量重绘，适合高帧率丝滑动作片段</span>
+                </button>
+                <button 
+                  class="fr-btn" 
+                  :class="{ active: frameRateMode === 'anime10' }"
+                  @click="!isConverting && (frameRateMode = 'anime10')"
+                  :disabled="isConverting"
+                >
+                  <div class="fr-header">
+                    <span class="fr-title">🏎️ 极速漫画风 (10 FPS)</span>
+                    <span class="fr-badge badge-turbo">3x 极速</span>
+                  </div>
+                  <span class="fr-sub">漫画定格风，算力削减 67%，长视频极速出片</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. Resolution Mode Selector -->
+            <div class="config-section">
+              <label class="section-label">📐 3. 输出分辨率与渲染画质</label>
               <div class="resolution-options">
+                <button 
+                  class="res-btn" 
+                  :class="{ active: resolutionMode === 480 }"
+                  @click="!isConverting && (resolutionMode = 480)"
+                  :disabled="isConverting"
+                >
+                  <span class="res-title">⚡ 480P (推荐/极速秒级)</span>
+                  <span class="res-sub">最长边 480px • 18~25 FPS 极速渲染</span>
+                </button>
                 <button 
                   class="res-btn" 
                   :class="{ active: resolutionMode === 720 }"
                   @click="!isConverting && (resolutionMode = 720)"
                   :disabled="isConverting"
                 >
-                  <span class="res-title">720P (推荐/极速)</span>
-                  <span class="res-sub">最长边 1280px • 平衡画质与 30FPS 转换速度</span>
+                  <span class="res-title">🌟 720P (高清平衡)</span>
+                  <span class="res-sub">最长边 720px • 画质与速度均衡</span>
                 </button>
                 <button 
                   class="res-btn" 
@@ -103,13 +158,18 @@
                   @click="!isConverting && (resolutionMode = 1080)"
                   :disabled="isConverting"
                 >
-                  <span class="res-title">1080P (超清画质)</span>
-                  <span class="res-sub">最长边 1920px • 细节精致·适合高配显卡</span>
+                  <span class="res-title">🎨 1080P (超清原画)</span>
+                  <span class="res-sub">最长边 1080px • 细节精致</span>
                 </button>
               </div>
             </div>
 
-            <!-- 3. Real-time Progress & Status Banner (When converting or completed) -->
+            <!-- Estimated Time Hint -->
+            <div v-if="!isConverting && !convertResult && videoInfo" class="speed-hint-banner">
+              <span>💡 预估处理速度: <strong>{{ estimatedFpsText }}</strong> · 预估总耗时: <strong>{{ estimatedTimeText }}</strong></span>
+            </div>
+
+            <!-- 4. Real-time Progress & Status Banner (When converting or completed) -->
             <div v-if="isConverting || convertResult" class="progress-status-panel">
               <div class="progress-header">
                 <span class="stage-tag" :class="isConverting ? 'stage-running' : 'stage-done'">
@@ -178,7 +238,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   video: {
@@ -192,7 +252,8 @@ const emit = defineEmits(['close', 'play-video']);
 const videoInfo = ref(null);
 const isLoadingInfo = ref(false);
 const selectedStyle = ref('hayao');
-const resolutionMode = ref(720);
+const frameRateMode = ref('anime15');
+const resolutionMode = ref(480);
 const isConverting = ref(false);
 const isError = ref(false);
 const statusMessage = ref('');
@@ -205,6 +266,40 @@ const progressData = ref({
   fps: 0,
   etaSeconds: 0,
   stage: 'idle'
+});
+
+const estimatedFpsText = computed(() => {
+  if (resolutionMode.value === 480) {
+    if (frameRateMode.value === 'anime10') return '25 ~ 35 FPS (极速)';
+    if (frameRateMode.value === 'anime15') return '18 ~ 25 FPS (秒级)';
+    return '9 ~ 12 FPS';
+  } else if (resolutionMode.value === 720) {
+    if (frameRateMode.value === 'anime10') return '10 ~ 15 FPS';
+    if (frameRateMode.value === 'anime15') return '6 ~ 10 FPS';
+    return '3 ~ 5 FPS';
+  } else {
+    if (frameRateMode.value === 'anime10') return '4 ~ 6 FPS';
+    if (frameRateMode.value === 'anime15') return '2.5 ~ 4 FPS';
+    return '1 ~ 2 FPS';
+  }
+});
+
+const estimatedTimeText = computed(() => {
+  if (!videoInfo.value?.totalFrames) return '计算中...';
+  const total = videoInfo.value.totalFrames;
+  let fpsEst = 20;
+  if (resolutionMode.value === 480) {
+    fpsEst = frameRateMode.value === 'anime10' ? 30 : (frameRateMode.value === 'anime15' ? 20 : 10);
+  } else if (resolutionMode.value === 720) {
+    fpsEst = frameRateMode.value === 'anime10' ? 12 : (frameRateMode.value === 'anime15' ? 8 : 4);
+  } else {
+    fpsEst = frameRateMode.value === 'anime10' ? 5 : (frameRateMode.value === 'anime15' ? 3 : 1.5);
+  }
+  const sec = Math.max(1, Math.round(total / fpsEst));
+  if (sec < 60) return `约 ${sec} 秒`;
+  const min = Math.floor(sec / 60);
+  const remSec = sec % 60;
+  return `约 ${min} 分 ${remSec} 秒`;
 });
 
 const styles = ref([
@@ -311,7 +406,8 @@ async function startConversion() {
       inputPath: srcPath,
       outputPath,
       style: selectedStyle.value,
-      maxDimension: resolutionMode.value
+      maxDimension: resolutionMode.value,
+      frameRateMode: frameRateMode.value
     });
 
     if (res && res.success) {
@@ -607,17 +703,98 @@ function handleClose() {
   font-weight: 900;
 }
 
+.section-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.section-tip {
+  font-size: 11px;
+  color: #c084fc;
+  font-weight: 500;
+}
+
+.frame-rate-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.fr-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fr-btn:hover {
+  border-color: rgba(168, 85, 247, 0.5);
+  transform: translateY(-2px);
+}
+.fr-btn.active {
+  border-color: #a855f7;
+  background: rgba(168, 85, 247, 0.14);
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.35);
+}
+
+.fr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fr-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.fr-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+.badge-rec {
+  background: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.badge-normal {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+.badge-turbo {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.fr-sub {
+  font-size: 10px;
+  color: var(--text-secondary, #94a3b8);
+  line-height: 1.35;
+}
+
 .resolution-options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 
 .res-btn {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 10px 14px;
+  gap: 3px;
+  padding: 10px 12px;
   background: rgba(30, 41, 59, 0.5);
   border: 1.5px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -627,6 +804,7 @@ function handleClose() {
 }
 .res-btn:hover {
   border-color: rgba(56, 189, 248, 0.5);
+  transform: translateY(-2px);
 }
 .res-btn.active {
   border-color: #38bdf8;
@@ -634,13 +812,24 @@ function handleClose() {
   box-shadow: 0 0 16px rgba(56, 189, 248, 0.3);
 }
 .res-title {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #fff;
 }
 .res-sub {
   font-size: 10px;
   color: var(--text-secondary, #94a3b8);
+}
+
+.speed-hint-banner {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 10px;
+  font-size: 11.5px;
+  color: #38bdf8;
 }
 
 .progress-status-panel {

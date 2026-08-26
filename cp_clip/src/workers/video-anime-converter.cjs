@@ -138,11 +138,12 @@ class VideoAnimeConverter {
   /**
    * Calculate 32-pixel aligned dimensions with aspect ratio preservation
    */
-  computeTargetDimensions(srcWidth, srcHeight, maxDimension = 1280) {
+  computeTargetDimensions(srcWidth, srcHeight, maxDimension = 480) {
     let w = srcWidth;
     let h = srcHeight;
+    const maxEdge = Math.max(w, h);
 
-    if (Math.max(w, h) > maxDimension) {
+    if (maxEdge > maxDimension) {
       if (w >= h) {
         h = Math.round((h * maxDimension) / w);
         w = maxDimension;
@@ -189,12 +190,19 @@ class VideoAnimeConverter {
    * @param {string} params.inputPath - Source video path
    * @param {string} params.outputPath - Result video path
    * @param {string} params.modelPath - AnimeGAN ONNX model file path
-   * @param {number} [params.maxDimension=1280] - Maximum dimension for scaling
+   * @param {number} [params.maxDimension=480] - Maximum dimension for scaling
+   * @param {string} [params.frameRateMode='anime15'] - 'anime15' | 'full' | 'anime10'
    * @param {Function} [onProgress] - Callback (progressData) => void
    */
   async convert(params, onProgress = () => {}) {
     this.isCancelled = false;
-    const { inputPath, outputPath, modelPath, maxDimension = 1280 } = params;
+    const { 
+      inputPath, 
+      outputPath, 
+      modelPath, 
+      maxDimension = 480,
+      frameRateMode = 'anime15'
+    } = params;
 
     if (!fs.existsSync(inputPath)) {
       throw new Error(`Input video not found: ${inputPath}`);
@@ -206,6 +214,16 @@ class VideoAnimeConverter {
     const fps = meta.fps;
     const totalFrames = meta.totalFrames;
     const frameByteSize = targetWidth * targetHeight * 3;
+
+    // Calculate frame stride based on anime frame rate mode
+    let stride = 1;
+    if (frameRateMode === 'anime15') {
+      stride = fps >= 20 ? Math.max(1, Math.round(fps / 15)) : 1;
+      if (stride < 2 && fps >= 20) stride = 2;
+    } else if (frameRateMode === 'anime10') {
+      stride = fps >= 18 ? Math.max(1, Math.round(fps / 10)) : 2;
+      if (stride < 3 && fps >= 24) stride = 3;
+    }
 
     // Prepare temp output paths
     const tempDir = os.tmpdir();
@@ -236,7 +254,8 @@ class VideoAnimeConverter {
       console.warn('DirectML init failed, falling back to CPU:', e.message);
       this.session = await ort.InferenceSession.create(modelPath, {
         executionProviders: ['cpu'],
-        graphOptimizationLevel: 'all'
+        graphOptimizationLevel: 'all',
+        intraOpNumThreads: Math.max(1, Math.min(os.cpus().length, 8))
       });
     }
 
@@ -276,7 +295,7 @@ class VideoAnimeConverter {
       '-i', '-',
       '-c:v', 'libx264',
       '-pix_fmt', 'yuv420p',
-      '-preset', 'medium',
+      '-preset', 'fast',
       '-crf', '20',
       tempVideoOnlyPath
     ];
@@ -292,9 +311,12 @@ class VideoAnimeConverter {
       this.encodeProcess.on('error', err => reject(err));
     });
 
-    // 6. Streaming Frame Pipeline with Backpressure & Flow Control
+    // 6. Streaming Frame Pipeline with Stride & Backpressure
     let bufferRemainder = Buffer.alloc(0);
     let processedFrames = 0;
+    let rawFrameIndex = 0;
+    let actualAiFrames = 0;
+    let hasCachedOutput = false;
     const startTime = Date.now();
     let lastFpsCalcTime = startTime;
     let lastFpsCalcFrame = 0;
@@ -317,44 +339,50 @@ class VideoAnimeConverter {
         const rawFrame = bufferRemainder.subarray(0, frameByteSize);
         bufferRemainder = bufferRemainder.subarray(frameByteSize);
 
-        if (isNHWC) {
-          // Preprocessing for NHWC [1, H, W, 3]
-          for (let i = 0; i < frameByteSize; i++) {
-            inputTensorData[i] = (rawFrame[i] / 127.5) - 1.0;
-          }
-          const inputTensor = new ort.Tensor('float32', inputTensorData, [1, targetHeight, targetWidth, 3]);
-          const results = await this.session.run({ [inputName]: inputTensor });
-          const outData = results[outputName].data; // Float32Array
-          const isNormalized = Math.abs(outData[0]) <= 2.5;
+        const shouldRunInference = (rawFrameIndex % stride === 0) || !hasCachedOutput;
 
-          // Postprocessing for NHWC [1, H, W, 3]
-          for (let i = 0; i < frameByteSize; i++) {
-            const val = isNormalized ? ((outData[i] + 1.0) * 127.5) : outData[i];
-            outputUint8Buffer[i] = val < 0 ? 0 : (val > 255 ? 255 : (val | 0));
-          }
-        } else {
-          // Preprocessing for NCHW [1, 3, H, W]
-          for (let i = 0; i < planeSize; i++) {
-            const idx = i * 3;
-            inputTensorData[i] = (rawFrame[idx] / 127.5) - 1.0;
-            inputTensorData[planeSize + i] = (rawFrame[idx + 1] / 127.5) - 1.0;
-            inputTensorData[2 * planeSize + i] = (rawFrame[idx + 2] / 127.5) - 1.0;
-          }
-          const inputTensor = new ort.Tensor('float32', inputTensorData, [1, 3, targetHeight, targetWidth]);
-          const results = await this.session.run({ [inputName]: inputTensor });
-          const outData = results[outputName].data;
-          const isNormalized = Math.abs(outData[0]) <= 2.5;
+        if (shouldRunInference) {
+          if (isNHWC) {
+            // Preprocessing for NHWC [1, H, W, 3]
+            for (let i = 0; i < frameByteSize; i++) {
+              inputTensorData[i] = (rawFrame[i] * (1.0 / 127.5)) - 1.0;
+            }
+            const inputTensor = new ort.Tensor('float32', inputTensorData, [1, targetHeight, targetWidth, 3]);
+            const results = await this.session.run({ [inputName]: inputTensor });
+            const outData = results[outputName].data; // Float32Array
+            const isNormalized = Math.abs(outData[0]) <= 2.5;
 
-          // Postprocessing for NCHW [1, 3, H, W]
-          for (let i = 0; i < planeSize; i++) {
-            let r = isNormalized ? (outData[i] + 1.0) * 127.5 : outData[i];
-            let g = isNormalized ? (outData[planeSize + i] + 1.0) * 127.5 : outData[planeSize + i];
-            let b = isNormalized ? (outData[2 * planeSize + i] + 1.0) * 127.5 : outData[2 * planeSize + i];
+            // Postprocessing for NHWC [1, H, W, 3]
+            for (let i = 0; i < frameByteSize; i++) {
+              const val = isNormalized ? ((outData[i] + 1.0) * 127.5) : outData[i];
+              outputUint8Buffer[i] = val < 0 ? 0 : (val > 255 ? 255 : (val | 0));
+            }
+          } else {
+            // Preprocessing for NCHW [1, 3, H, W]
+            for (let i = 0; i < planeSize; i++) {
+              const idx = i * 3;
+              inputTensorData[i] = (rawFrame[idx] * (1.0 / 127.5)) - 1.0;
+              inputTensorData[planeSize + i] = (rawFrame[idx + 1] * (1.0 / 127.5)) - 1.0;
+              inputTensorData[2 * planeSize + i] = (rawFrame[idx + 2] * (1.0 / 127.5)) - 1.0;
+            }
+            const inputTensor = new ort.Tensor('float32', inputTensorData, [1, 3, targetHeight, targetWidth]);
+            const results = await this.session.run({ [inputName]: inputTensor });
+            const outData = results[outputName].data;
+            const isNormalized = Math.abs(outData[0]) <= 2.5;
 
-            outputUint8Buffer[i * 3] = r < 0 ? 0 : (r > 255 ? 255 : (r | 0));
-            outputUint8Buffer[i * 3 + 1] = g < 0 ? 0 : (g > 255 ? 255 : (g | 0));
-            outputUint8Buffer[i * 3 + 2] = b < 0 ? 0 : (b > 255 ? 255 : (b | 0));
+            // Postprocessing for NCHW [1, 3, H, W]
+            for (let i = 0; i < planeSize; i++) {
+              let r = isNormalized ? (outData[i] + 1.0) * 127.5 : outData[i];
+              let g = isNormalized ? (outData[planeSize + i] + 1.0) * 127.5 : outData[planeSize + i];
+              let b = isNormalized ? (outData[2 * planeSize + i] + 1.0) * 127.5 : outData[2 * planeSize + i];
+
+              outputUint8Buffer[i * 3] = r < 0 ? 0 : (r > 255 ? 255 : (r | 0));
+              outputUint8Buffer[i * 3 + 1] = g < 0 ? 0 : (g > 255 ? 255 : (g | 0));
+              outputUint8Buffer[i * 3 + 2] = b < 0 ? 0 : (b > 255 ? 255 : (b | 0));
+            }
           }
+          hasCachedOutput = true;
+          actualAiFrames++;
         }
 
         // Write to encode process with backpressure flow control
@@ -364,6 +392,7 @@ class VideoAnimeConverter {
         }
 
         processedFrames++;
+        rawFrameIndex++;
 
         // Progress Calculation & Broadcast every 5 frames
         const now = Date.now();
@@ -385,7 +414,9 @@ class VideoAnimeConverter {
             percent,
             fps: currentFps,
             etaSeconds,
-            stage: 'transforming'
+            stage: 'transforming',
+            stride,
+            actualAiFrames
           });
         }
       }
@@ -401,13 +432,13 @@ class VideoAnimeConverter {
     }
 
     // 6. Final Muxing: Merge Video & Audio into Destination
-    onProgress({ percent: 99, stage: 'muxing', text: '正在混流音视频并输出最终 MP4...' });
+    onProgress({ percent: 99, stage: 'muxing', text: '正在混流音视频并输出最终 MP4...', currentFrame: processedFrames, totalFrames, fps: currentFps });
     await this.muxFinalOutput(tempVideoOnlyPath, meta.hasAudio ? tempAudioPath : null, outputPath);
 
     // 7. Cleanup temp files
     this.cleanup();
 
-    onProgress({ percent: 100, stage: 'completed', text: '动漫化转换完成！', outputPath });
+    onProgress({ percent: 100, stage: 'completed', text: '动漫化转换完成！', outputPath, currentFrame: processedFrames, totalFrames, fps: currentFps });
     return { outputPath, totalFrames: processedFrames };
   }
 

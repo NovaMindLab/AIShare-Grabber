@@ -1388,6 +1388,32 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 8.0),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF06B6D4),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 10.0),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                                  elevation: 0,
+                                ),
+                                onPressed: vm.isAudioSyncing
+                                    ? null
+                                    : () {
+                                        Navigator.pop(ctx);
+                                        vm.syncAudiosToPC();
+                                      },
+                                icon: const Icon(Icons.music_note_rounded, size: 16.0),
+                                label: Text(
+                                  vm.lastAudioSyncDate.isNotEmpty
+                                      ? (isZh ? "继续同步音乐" : "Resume Music Sync")
+                                      : (isZh ? "开始备份全部音乐到电脑" : "Backup All Music to PC"),
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
                           ],
                         ],
                       ),

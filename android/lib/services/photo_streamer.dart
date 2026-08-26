@@ -18,9 +18,16 @@ class PhotoStreamer {
   Future<List<AssetEntity>> _loadAssets(RequestType type) async {
     try {
       debugPrint('[Streamer] Requesting PhotoManager permissions ($type)...');
-      final PermissionState ps = await PhotoManager.requestPermissionExtend();
+      final PermissionState ps = await PhotoManager.requestPermissionExtend(
+        requestOption: const PermissionRequestOption(
+          androidPermission: AndroidPermission(
+            type: RequestType.common | RequestType.audio,
+            mediaLocation: false,
+          ),
+        ),
+      );
       debugPrint('[Streamer] Permission state: $ps');
-      if (!ps.isAuth) {
+      if (!ps.isAuth && ps != PermissionState.limited) {
         debugPrint('[Streamer] Permission rejected ($type)');
         return [];
       }
@@ -39,12 +46,30 @@ class PhotoStreamer {
       debugPrint('[Streamer] [$type] paths found: ${paths.length}');
       if (paths.isEmpty) return [];
 
-      final AssetPathEntity allPath = paths.firstWhere((p) => p.isAll, orElse: () => paths.first);
-      final int count = await allPath.assetCountAsync;
-      debugPrint('[Streamer] [$type] count in allPath (${allPath.name}): $count');
-      if (count == 0) return [];
+      // If an 'isAll' album exists and has assets, use it
+      final isAllList = paths.where((p) => p.isAll).toList();
+      if (isAllList.isNotEmpty) {
+        final allPath = isAllList.first;
+        final int count = await allPath.assetCountAsync;
+        if (count > 0) {
+          debugPrint('[Streamer] [$type] count in allPath (${allPath.name}): $count');
+          return await allPath.getAssetListRange(start: 0, end: count);
+        }
+      }
 
-      return await allPath.getAssetListRange(start: 0, end: count);
+      // Fallback: Aggregate assets across all album folders and deduplicate
+      final Map<String, AssetEntity> aggregated = {};
+      for (final path in paths) {
+        final int count = await path.assetCountAsync;
+        if (count > 0) {
+          final items = await path.getAssetListRange(start: 0, end: count);
+          for (final item in items) {
+            aggregated[item.id] = item;
+          }
+        }
+      }
+      debugPrint('[Streamer] [$type] total aggregated from ${paths.length} paths: ${aggregated.length}');
+      return aggregated.values.toList();
     } catch (e, stack) {
       debugPrint('[Streamer] Error loading [$type] assets: $e\n$stack');
       return [];
@@ -152,6 +177,50 @@ class PhotoStreamer {
       return await _streamFileInternal(file: file, fileId: fileId, onProgress: onProgress);
     } catch (e, stack) {
       debugPrint("[Streamer] Exception during gallery asset streaming: $e\n$stack");
+      return false;
+    }
+  }
+
+  /// Stream a selected audio entity chunk-by-chunk using RandomAccessFile to avoid memory OOM
+  Future<bool> streamAudio({
+    required AssetEntity entity,
+    required int fileId,
+    required void Function(int chunkIndex, int totalChunks, int bytesSent) onProgress,
+  }) async {
+    debugPrint("[Streamer] Starting transmission of audio asset: ${entity.title}, ID: $fileId");
+    try {
+      final File? file = await entity.originFile;
+      if (file == null) {
+        debugPrint("[Streamer] Error: could not obtain originFile for audio asset: ${entity.title}");
+        return false;
+      }
+      final int size = await file.length();
+      String cleanName = entity.title ?? 'audio_${entity.id}.mp3';
+      if (!cleanName.contains('.')) {
+        final String extension = entity.mimeType?.split('/').last ?? 'mp3';
+        cleanName = '$cleanName.$extension';
+      }
+
+      final int? createSec = entity.createDateSecond;
+      String? createDateStr;
+      if (createSec != null && createSec > 0) {
+        createDateStr = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true).toIso8601String();
+      }
+      final double durationSec = entity.duration.toDouble();
+
+      // Send metadata first
+      await _sendMetadataPacket(
+        fileId: fileId,
+        assetId: entity.id,
+        name: cleanName,
+        size: size,
+        createDate: createDateStr,
+        duration: durationSec,
+      );
+
+      return await _streamFileInternal(file: file, fileId: fileId, onProgress: onProgress);
+    } catch (e, stack) {
+      debugPrint("[Streamer] Exception during audio asset streaming: $e\n$stack");
       return false;
     }
   }

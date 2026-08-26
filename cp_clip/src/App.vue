@@ -1103,38 +1103,318 @@
           />
         </div>
 
-        <!-- 4. AUDIOS TAB -->
-        <div v-else-if="currentTab === 'audios'" style="width: 100%;">
-          <!-- Empty State -->
-          <div class="empty-state" v-if="localAudios.length === 0">
-            <div class="empty-state-icon">🎵</div>
-            <h2 class="empty-state-title">{{ t.media.emptyAudios }}</h2>
-            <p class="empty-state-desc">
-              {{ t.media.emptyAudiosDesc }}
-            </p>
-          </div>
+        <!-- 4. AUDIOS TAB (Remote Music Sync & Date Grouped Playlist) -->
+        <div v-else-if="currentTab === 'audios'" class="videos-tab-container audios-tab-container">
+          <!-- Compact View Filter & Control Bar -->
+          <div class="video-compact-top-bar glass-panel">
+            <!-- Filter Tabs on Left -->
+            <div class="video-filter-tabs">
+              <button 
+                class="video-filter-btn" 
+                :class="{ active: audioTabFilter === 'all' }"
+                @click="audioTabFilter = 'all'"
+              >
+                🎵 全部音乐 <span class="filter-count">({{ totalAllAudiosCount }})</span>
+              </button>
+              <button 
+                class="video-filter-btn" 
+                :class="{ active: audioTabFilter === 'synced' }"
+                @click="audioTabFilter = 'synced'"
+              >
+                💾 电脑已备份 <span class="filter-count">({{ localAudios.length }})</span>
+              </button>
+              <button 
+                class="video-filter-btn" 
+                :class="{ active: audioTabFilter === 'unsynced' }"
+                @click="audioTabFilter = 'unsynced'"
+              >
+                📱 手机待下载 <span class="filter-count">({{ totalUnsyncedAudiosCount }})</span>
+              </button>
+            </div>
 
-          <!-- Audio List -->
-          <div style="display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 800px; margin: 0 auto;" v-else>
-            <div 
-              v-for="audio in localAudios" 
-              :key="audio.path"
-              class="glass-panel"
-              style="display: flex; align-items: center; justify-content: space-between; padding: 16px; cursor: pointer; border-radius: var(--border-radius-md);"
-              @click="openDetails(audio)"
-            >
-              <div style="display: flex; align-items: center; gap: 16px;">
-                <span style="font-size: 32px;">🎵</span>
-                <div style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
-                  <span style="font-weight: 600; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 450px;">{{ audio.name }}</span>
-                  <span style="font-size: 11px; color: var(--text-muted); word-break: break-all;">{{ audio.path }}</span>
-                </div>
-              </div>
-              <button class="btn btn-secondary btn-sm" style="border-radius: 50%; width: 36px; height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: var(--accent-glow); border-color: rgba(99, 102, 241, 0.2);">
-                ▶️
+            <!-- Quick Action & Collapsible Panel Toggle on Right -->
+            <div class="video-compact-actions">
+              <button 
+                v-if="syncStatus === 'connected'"
+                class="btn btn-secondary btn-xs" 
+                :disabled="isAudioSyncing"
+                @click="queryRemoteAudioCatalog"
+                title="刷新手机端音乐列表"
+              >
+                🔄 刷新列表
+              </button>
+              <button 
+                class="btn btn-secondary btn-xs" 
+                @click="handleImportFolder"
+                title="导入本地音频文件夹"
+              >
+                📁 导入本地
+              </button>
+              <button 
+                class="btn btn-secondary btn-xs btn-panel-toggle" 
+                @click="isAudioControlExpanded = !isAudioControlExpanded"
+                :title="isAudioControlExpanded ? '收起音乐管理面板' : '展开音乐管理面板与统计'"
+              >
+                <span>{{ isAudioControlExpanded ? '▴ 收起面板' : '▾ 展开面板' }}</span>
               </button>
             </div>
           </div>
+
+          <!-- Expandable Audio Control Action Banner -->
+          <transition name="modal-fade">
+            <div v-if="isAudioControlExpanded" class="glass-panel video-control-banner">
+              <div class="video-control-left">
+                <div class="video-control-title-row">
+                  <h3>{{ t.audios?.title || '🎵 音乐同步与管理' }}</h3>
+                  <span class="badge-pill" :class="syncStatus === 'connected' ? 'badge-online' : 'badge-offline'">
+                    <span class="status-dot" :class="{ 'pulse-dot': syncStatus === 'connected' }"></span>
+                    {{ syncStatus === 'connected' ? (t.audios?.mobileConnected ? t.audios.mobileConnected.replace('{name}', activeDeviceName || '设备') : `🟢 手机已直连 [${activeDeviceName || '设备'}]`) : (t.audios?.mobileNotConnected || '⚪ 手机未连接') }}
+                  </span>
+                  <span v-if="totalUnsyncedAudiosCount > 0" class="badge-pill badge-unsynced-pulse">
+                    {{ t.audios?.unsyncedFound ? t.audios.unsyncedFound.replace('{count}', totalUnsyncedAudiosCount) : `⚡ 发现 ${totalUnsyncedAudiosCount} 首新音乐待同步` }}
+                  </span>
+                </div>
+                <p class="video-control-subtitle">
+                  {{ t.audios?.subtitle || '支持按日期与曲目浏览手机音乐，勾选后一键极速传输下载。' }}
+                  <span style="color: var(--text-primary); font-weight: 600;">
+                    {{ t.audios?.totalStats ? t.audios.totalStats.replace('{total}', totalAllAudiosCount).replace('{synced}', localAudios.length) : `(共 ${totalAllAudiosCount} 首音乐 • 已备份 ${localAudios.length} 首)` }}
+                  </span>
+                </p>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="video-control-actions">
+                <!-- Download Selected Audios Button -->
+                <button 
+                  v-if="syncStatus === 'connected'"
+                  class="btn btn-primary"
+                  :class="{ 'btn-glow-pulse': selectedAudiosCount > 0 }"
+                  :disabled="isAudioSyncing || selectedAudiosCount === 0"
+                  @click="downloadSelectedAudios"
+                  :title="selectedAudiosCount > 0 ? '下载所有已勾选的音乐' : '请在下方勾选要下载的音乐'"
+                >
+                  <span>⬇️</span> {{ selectedAudiosCount > 0 ? (t.audios?.downloadSelectedBtn ? t.audios.downloadSelectedBtn.replace('{count}', selectedAudiosCount) : `下载选中音乐 (${selectedAudiosCount})`) : (t.audios?.noSelectedBtn || '请勾选音乐下载') }}
+                </button>
+
+                <!-- Select All / Clear Selection Button -->
+                <button 
+                  v-if="syncStatus === 'connected' && totalUnsyncedAudiosCount > 0"
+                  class="btn btn-secondary btn-sm"
+                  @click="selectedAudiosCount === totalUnsyncedAudiosCount ? clearAudioSelection() : selectAllUnsyncedAudios()"
+                >
+                  {{ selectedAudiosCount === totalUnsyncedAudiosCount ? (t.audios?.clearSelection || '⬜ 取消全选') : (t.audios?.selectAllUnsynced ? t.audios.selectAllUnsynced.replace('{count}', totalUnsyncedAudiosCount) : `☑️ 全选待同步 (${totalUnsyncedAudiosCount})`) }}
+                </button>
+
+                <!-- Open Audio Sync Folder -->
+                <button v-if="hasApi" class="btn btn-secondary btn-sm" @click="openDownloadFolder">
+                  {{ t.audios?.openDirBtn || '📂 打开目录' }}
+                </button>
+              </div>
+            </div>
+          </transition>
+
+          <!-- Audio Syncing Progress Bar Banner -->
+          <div v-if="isAudioSyncing" class="glass-panel video-sync-progress-banner">
+            <div class="sync-progress-info">
+              <span class="spinner"></span>
+              <div class="sync-progress-text">
+                <div class="sync-progress-title">
+                  <span>{{ t.audios?.syncingTitle ? t.audios.syncingTitle.replace('{done}', audioSyncDone).replace('{total}', audioSyncTotal) : `正在高速下载音乐... (${audioSyncDone} / ${audioSyncTotal})` }}</span>
+                  <span class="sync-percent">{{ audioSyncTotal > 0 ? Math.round((audioSyncDone / audioSyncTotal) * 100) : 0 }}%</span>
+                </div>
+                <div class="sync-progress-track">
+                  <div class="sync-progress-bar" :style="{ width: `${audioSyncTotal > 0 ? Math.round((audioSyncDone / audioSyncTotal) * 100) : 0}%` }"></div>
+                </div>
+              </div>
+            </div>
+            <div class="sync-progress-controls">
+              <button v-if="!isAudioSyncPaused" class="btn btn-secondary btn-xs" @click="pauseAudioSync">{{ t.audios?.pauseBtn || '⏸️ 暂停' }}</button>
+              <button v-else class="btn btn-primary btn-xs" @click="resumeAudioSync">{{ t.audios?.resumeBtn || '▶️ 继续' }}</button>
+              <button class="btn btn-secondary btn-xs" style="color: #ef4444;" @click="stopAudioSync">{{ t.audios?.cancelBtn || '⏹️ 取消' }}</button>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div class="empty-state" v-if="filteredAudioGroupsByDate.length === 0">
+            <div class="empty-state-icon">🎵</div>
+            <h2 class="empty-state-title">
+              {{ audioTabFilter === 'synced' ? '暂无电脑已备份音乐' : (audioTabFilter === 'unsynced' ? '🎉 手机音乐已全部备份！' : (t.audios?.emptyAudios || '暂无音乐资源')) }}
+            </h2>
+            <p class="empty-state-desc">
+              <span v-if="audioTabFilter === 'synced'">请在顶部切换至「📱 手机待下载」勾选音乐并点击下载。</span>
+              <span v-else-if="audioTabFilter === 'unsynced'">手机中所有检测到的音乐均已同步至电脑本地。</span>
+              <span v-else>{{ syncStatus === 'connected' ? (t.audios?.emptyConnectedDesc || '手机中暂未检测到音频文件，或点击上方「刷新列表」重新扫描。') : (t.audios?.emptyDisconnectedDesc || '请在左下角连接手机以自动发现并按日期同步音乐，或点击上方「导入本地」选取电脑音频。') }}</span>
+            </p>
+          </div>
+
+          <!-- Date-Grouped Music Playlist Cards -->
+          <div v-else class="audios-scroll-container">
+            <div 
+              v-for="group in filteredAudioGroupsByDate" 
+              :key="group.rawDate"
+              class="audio-date-group"
+            >
+              <!-- Date Header -->
+              <div class="audio-date-header">
+                <div class="audio-date-title">
+                  <span class="audio-date-icon">📅</span>
+                  <span class="audio-date-text">{{ group.dateKey }}</span>
+                  <span class="audio-date-badge">{{ group.filteredCount }} 首 • {{ formatBytes(group.filteredBytes) }}</span>
+                </div>
+                <div class="audio-date-actions" v-if="group.hasUnsynced && syncStatus === 'connected'">
+                  <button 
+                    class="btn btn-secondary btn-xs"
+                    @click="toggleAudioDateSelection(group)"
+                  >
+                    {{ isAudioDateAllSelected(group) ? '⬜ 取消勾选此日期' : `☑️ 勾选此日期 (${group.unsyncedCount})` }}
+                  </button>
+                  <button 
+                    class="btn btn-primary btn-xs"
+                    :disabled="isAudioSyncing"
+                    @click="requestAudioSync({ targetDate: group.rawDate, targetIds: group.unsyncedIds })"
+                  >
+                    ⚡ 同步此日期
+                  </button>
+                </div>
+              </div>
+
+              <!-- Track List Items -->
+              <div class="audio-track-list">
+                <div 
+                  v-for="track in group.items" 
+                  :key="track.id || track.path"
+                  class="audio-track-card glass-panel"
+                  :class="{ 
+                    'track-selected': isAudioSelected(track),
+                    'track-synced': track.isSynced,
+                    'track-playing': activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path)
+                  }"
+                  @click="track.isSynced ? openAudioPlayer(track) : toggleAudioSelection(track)"
+                >
+                  <!-- Left: Checkbox (for unsynced) or Disc Icon -->
+                  <div class="audio-track-left">
+                    <div 
+                      v-if="!track.isSynced" 
+                      class="track-checkbox"
+                      :class="{ checked: isAudioSelected(track) }"
+                      @click.stop="toggleAudioSelection(track)"
+                    >
+                      <span v-if="isAudioSelected(track)">✓</span>
+                    </div>
+                    <div class="audio-disc-icon" :class="{ spinning: activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path) }">
+                      <span>🎵</span>
+                    </div>
+                    <div class="audio-track-meta">
+                      <div class="audio-track-title" :title="track.name">{{ track.name }}</div>
+                      <div class="audio-track-sub">
+                        <span v-if="track.duration" class="audio-duration-tag">⏱️ {{ formatVideoDuration(track.duration) }}</span>
+                        <span class="audio-size-tag">💾 {{ formatBytes(track.size) }}</span>
+                        <span 
+                          class="track-status-pill" 
+                          :class="track.isSynced ? 'pill-synced' : 'pill-unsynced'"
+                        >
+                          {{ track.isSynced ? '🟢 已备份' : '⏳ 待下载' }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Right: Action Buttons -->
+                  <div class="audio-track-right" @click.stop>
+                    <template v-if="track.isSynced">
+                      <button 
+                        class="btn btn-primary btn-xs btn-track-play"
+                        @click="openAudioPlayer(track)"
+                        title="播放此音频"
+                      >
+                        <span>▶️</span> 播放
+                      </button>
+                    </template>
+                    <template v-else>
+                      <button 
+                        class="btn btn-secondary btn-xs btn-track-download"
+                        :disabled="isAudioSyncing"
+                        @click="downloadSingleAudio(track)"
+                        title="单曲极速下载"
+                      >
+                        <span>⬇️</span> 下载
+                      </button>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Floating Bottom Sticky Bar for Multi-Select Download -->
+          <transition name="modal-fade">
+            <div 
+              v-if="selectedAudiosCount > 0" 
+              class="video-floating-bar"
+            >
+              <div class="video-floating-info">
+                <span style="font-size: 18px;">🎵</span>
+                <span>
+                  {{ t.audios?.floatingSelected ? t.audios.floatingSelected.replace('{count}', selectedAudiosCount) : `已勾选 ${selectedAudiosCount} 首音乐` }}
+                  <span style="color: var(--text-muted); font-size: 12px; margin-left: 6px;">
+                    ({{ t.audios?.floatingTotalSize ? t.audios.floatingTotalSize.replace('{size}', formatBytes(selectedAudiosTotalBytes)) : `共 ${formatBytes(selectedAudiosTotalBytes)}` }})
+                  </span>
+                </span>
+              </div>
+              <div class="video-floating-actions">
+                <button 
+                  class="btn btn-secondary btn-sm" 
+                  @click="clearAudioSelection"
+                  style="border-radius: 20px; padding: 7px 18px;"
+                >
+                  {{ t.audios?.floatingClear || '✕ 取消勾选' }}
+                </button>
+                <button 
+                  class="btn btn-primary" 
+                  @click="downloadSelectedAudios"
+                  :disabled="isAudioSyncing"
+                  style="border-radius: 20px; padding: 8px 24px; font-weight: 700; box-shadow: 0 4px 16px rgba(6, 182, 212, 0.45); background: linear-gradient(135deg, #06b6d4, #3b82f6);"
+                >
+                  <span>⬇️</span>
+                  <span>{{ isAudioSyncing ? '正在下载...' : (t.audios?.floatingDownload ? t.audios.floatingDownload.replace('{count}', selectedAudiosCount) : `立即下载 (${selectedAudiosCount})`) }}</span>
+                </button>
+              </div>
+            </div>
+          </transition>
+
+          <!-- Audio Player Floating Lightbox Modal -->
+          <transition name="modal-fade">
+            <div v-if="activePlayingAudio" class="video-player-overlay" @click.self="closeAudioPlayer">
+              <div class="audio-player-modal glass-panel">
+                <button class="vp-floating-close-btn" @click="closeAudioPlayer" title="关闭播放器 (ESC)">✕</button>
+
+                <div class="audio-player-content">
+                  <!-- Animated Vinyl Disc -->
+                  <div class="vinyl-record spinning">
+                    <div class="vinyl-inner">
+                      <span style="font-size: 36px;">🎵</span>
+                    </div>
+                  </div>
+
+                  <!-- Track Info -->
+                  <div class="audio-player-info">
+                    <h3 class="audio-player-title">{{ activePlayingAudio.name }}</h3>
+                    <p class="audio-player-sub" v-if="activePlayingAudio.duration">
+                      时长: {{ formatVideoDuration(activePlayingAudio.duration) }} • 容量: {{ formatBytes(activePlayingAudio.size) }}
+                    </p>
+                  </div>
+
+                  <!-- Native Audio Player -->
+                  <audio 
+                    :src="activePlayingAudio.src || `local:///${activePlayingAudio.path.replace(/\\/g, '/')}`" 
+                    controls 
+                    autoplay 
+                    class="audio-native-element"
+                  ></audio>
+                </div>
+              </div>
+            </div>
+          </transition>
         </div>
 
         <!-- 5. FILES TAB -->
@@ -2833,6 +3113,8 @@ watch(currentTab, (newTab) => {
     initMap();
   } else if (newTab === 'videos' && syncStatus.value === 'connected') {
     queryRemoteVideoCatalog();
+  } else if (newTab === 'audios' && syncStatus.value === 'connected') {
+    queryRemoteAudioCatalog();
   }
 });
 
@@ -3159,9 +3441,226 @@ function processPosterQueue() {
 const localAudios = computed(() => {
   return images.value.filter(file => {
     const ext = getExtensionName(file.name);
-    return ['.mp3', '.wav', '.m4a', '.ogg', '.flac'].includes(ext);
+    return ['.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac', '.wma'].includes(ext) || file.type === 'audios' || file.type === 'audio';
   });
 });
+
+const remoteAudioCatalog = ref([]);
+const isAudioSyncing = ref(false);
+const isAudioSyncPaused = ref(false);
+const audioSyncDone = ref(0);
+const audioSyncTotal = ref(0);
+const activePlayingAudio = ref(null);
+const isAudioControlExpanded = ref(false);
+
+const audioGroupsByDate = computed(() => {
+  const groupsMap = {};
+
+  // 1. Process local synced/imported audios
+  for (const audio of localAudios.value) {
+    let dateKey = '其他日期';
+    let rawDate = '1970-01-01';
+    if (audio.create_date) {
+      rawDate = audio.create_date.substring(0, 10);
+      const parts = rawDate.split('-');
+      if (parts.length === 3) {
+        dateKey = `${parts[0]}年${parts[1]}月${parts[2]}日`;
+      } else {
+        dateKey = rawDate;
+      }
+    } else if (audio.sync_time) {
+      const d = new Date(audio.sync_time);
+      rawDate = d.toISOString().substring(0, 10);
+      dateKey = `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
+    }
+
+    if (!groupsMap[rawDate]) {
+      groupsMap[rawDate] = {
+        dateKey,
+        rawDate,
+        items: []
+      };
+    }
+    groupsMap[rawDate].items.push({
+      ...audio,
+      isRemoteOnly: false,
+      isSynced: true
+    });
+  }
+
+  // 2. Process remote audios from remoteAudioCatalog (if not already in localAudios)
+  const localIds = new Set(localAudios.value.map(a => a.id));
+  const localNames = new Set(localAudios.value.map(a => a.name));
+
+  for (const remote of remoteAudioCatalog.value) {
+    if (!localIds.has(remote.id) && !localIds.has(`audio_${remote.id}`) && !localNames.has(remote.name)) {
+      let dateKey = '其他日期';
+      let rawDate = '1970-01-01';
+      if (remote.create_date) {
+        rawDate = remote.create_date.substring(0, 10);
+        const parts = rawDate.split('-');
+        if (parts.length === 3) {
+          dateKey = `${parts[0]}年${parts[1]}月${parts[2]}日`;
+        }
+      } else if (remote.timestamp) {
+        const d = new Date(remote.timestamp);
+        rawDate = d.toISOString().substring(0, 10);
+        dateKey = `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
+      }
+
+      if (!groupsMap[rawDate]) {
+        groupsMap[rawDate] = {
+          dateKey,
+          rawDate,
+          items: []
+        };
+      }
+      groupsMap[rawDate].items.push({
+        id: remote.id,
+        name: remote.name,
+        size: remote.size,
+        duration: remote.duration,
+        create_date: remote.create_date,
+        isRemoteOnly: true,
+        isSynced: false
+      });
+    }
+  }
+
+  // 3. Sort groups in descending chronological order (newest first)
+  const sortedKeys = Object.keys(groupsMap).sort((a, b) => (a < b ? 1 : -1));
+  return sortedKeys.map(key => {
+    const grp = groupsMap[key];
+    const unsyncedItems = grp.items.filter(i => i.isRemoteOnly);
+    const totalBytes = grp.items.reduce((acc, i) => acc + (i.size || 0), 0);
+    return {
+      dateKey: grp.dateKey,
+      rawDate: grp.rawDate,
+      items: grp.items,
+      totalCount: grp.items.length,
+      totalBytes,
+      unsyncedCount: unsyncedItems.length,
+      unsyncedIds: unsyncedItems.map(i => i.id),
+      hasUnsynced: unsyncedItems.length > 0
+    };
+  });
+});
+
+const audioTabFilter = ref('all'); // 'all' | 'synced' | 'unsynced'
+
+const filteredAudioGroupsByDate = computed(() => {
+  return audioGroupsByDate.value.map(group => {
+    let filteredItems = group.items;
+    if (audioTabFilter.value === 'synced') {
+      filteredItems = group.items.filter(i => i.isSynced);
+    } else if (audioTabFilter.value === 'unsynced') {
+      filteredItems = group.items.filter(i => !i.isSynced);
+    }
+    const unsyncedInGroup = filteredItems.filter(i => !i.isSynced);
+    return {
+      ...group,
+      items: filteredItems,
+      filteredCount: filteredItems.length,
+      filteredBytes: filteredItems.reduce((sum, i) => sum + (i.size || 0), 0),
+      hasUnsynced: unsyncedInGroup.length > 0,
+      unsyncedCount: unsyncedInGroup.length,
+      unsyncedIds: unsyncedInGroup.map(i => i.id)
+    };
+  }).filter(group => group.filteredCount > 0);
+});
+
+const totalUnsyncedAudiosCount = computed(() => {
+  return audioGroupsByDate.value.reduce((sum, g) => sum + g.unsyncedCount, 0);
+});
+
+const totalAllAudiosCount = computed(() => {
+  return audioGroupsByDate.value.reduce((sum, g) => sum + g.totalCount, 0);
+});
+
+// Manual Audio Multi-Select & Batch Download State
+const selectedAudioIds = ref(new Set());
+
+const selectedAudiosCount = computed(() => selectedAudioIds.value.size);
+
+const selectedAudiosTotalBytes = computed(() => {
+  let sum = 0;
+  for (const group of audioGroupsByDate.value) {
+    for (const item of group.items) {
+      if (selectedAudioIds.value.has(item.id)) {
+        sum += item.size || 0;
+      }
+    }
+  }
+  return sum;
+});
+
+function isAudioSelected(item) {
+  return selectedAudioIds.value.has(item.id);
+}
+
+function toggleAudioSelection(item) {
+  if (item.isSynced) return;
+  const newSet = new Set(selectedAudioIds.value);
+  if (newSet.has(item.id)) {
+    newSet.delete(item.id);
+  } else {
+    newSet.add(item.id);
+  }
+  selectedAudioIds.value = newSet;
+}
+
+function toggleAudioDateSelection(group) {
+  const unsynced = group.items.filter(i => !i.isSynced);
+  if (unsynced.length === 0) return;
+  const newSet = new Set(selectedAudioIds.value);
+  const allInGroupSelected = unsynced.every(i => newSet.has(i.id));
+  if (allInGroupSelected) {
+    unsynced.forEach(i => newSet.delete(i.id));
+  } else {
+    unsynced.forEach(i => newSet.add(i.id));
+  }
+  selectedAudioIds.value = newSet;
+}
+
+function isAudioDateAllSelected(group) {
+  const unsynced = group.items.filter(i => !i.isSynced);
+  if (unsynced.length === 0) return false;
+  return unsynced.every(i => selectedAudioIds.value.has(i.id));
+}
+
+function selectAllUnsyncedAudios() {
+  const newSet = new Set(selectedAudioIds.value);
+  for (const group of audioGroupsByDate.value) {
+    for (const item of group.items) {
+      if (!item.isSynced) {
+        newSet.add(item.id);
+      }
+    }
+  }
+  selectedAudioIds.value = newSet;
+}
+
+function clearAudioSelection() {
+  selectedAudioIds.value = new Set();
+}
+
+function downloadSelectedAudios() {
+  if (selectedAudioIds.value.size === 0) return;
+  const ids = Array.from(selectedAudioIds.value);
+  requestAudioSync({ targetIds: ids });
+}
+
+function downloadSingleAudio(item) {
+  requestAudioSync({ targetIds: [item.id] });
+}
+
+function openAudioPlayer(audio) {
+  activePlayingAudio.value = audio;
+}
+
+function closeAudioPlayer() {
+  activePlayingAudio.value = null;
+}
 
 const localDocs = computed(() => {
   return images.value.filter(file => {
@@ -4258,6 +4757,98 @@ function closeVideoPlayer() {
   activePlayingVideo.value = null;
 }
 
+// ── Audio Sync Functions ──────────────────────────────────────────
+let audioSyncTimeoutTimer = null;
+
+function requestAudioSync(options = {}) {
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    logSyncEvent('❌ WebRTC 直连通道未建立，无法发送音乐同步请求');
+    return;
+  }
+  
+  if (isAudioSyncing.value && isAudioSyncPaused.value) {
+    resumeAudioSync();
+    return;
+  }
+
+  const { forceFullScan = false, targetDate = null, targetIds = null } = options;
+  logSyncEvent(`🎵 正在向手机发送音乐同步请求 (日期: ${targetDate || '全部'}, 目标数: ${targetIds ? targetIds.length : '自动增量'})...`);
+
+  sendSafeDataChannelPacket(dataChannel, -21, {
+    force_full_scan: forceFullScan,
+    target_date: targetDate,
+    target_ids: targetIds
+  });
+
+  isAudioSyncing.value = true;
+  isAudioSyncPaused.value = false;
+  audioSyncDone.value = 0;
+  audioSyncTotal.value = targetIds ? targetIds.length : (targetDate ? 1 : 0);
+
+  if (audioSyncTimeoutTimer) clearTimeout(audioSyncTimeoutTimer);
+  audioSyncTimeoutTimer = setTimeout(() => {
+    if (isAudioSyncing.value && audioSyncTotal.value === 0 && audioSyncDone.value === 0) {
+      isAudioSyncing.value = false;
+      logSyncEvent('ℹ️ 手机端未发现需同步的新音乐，或请确保手机端 ShareCLIP App 已更新到最新版本。');
+    }
+  }, 6000);
+}
+
+function queryRemoteAudioCatalog() {
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    logSyncEvent('❌ WebRTC 直连通道未建立，无法查询手机音乐目录');
+    return;
+  }
+  logSyncEvent('🔍 正在向手机查询远程音乐目录...');
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -25, false); // fileId = -25: query audio catalog
+  view.setInt32(4, 0, false);
+  view.setInt32(8, 0, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+}
+
+function pauseAudioSync() {
+  if (!dataChannel || dataChannel.readyState !== 'open') return;
+  logSyncEvent('⏸️ 正在向手机发送暂停音乐同步指令...');
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -23, false); // fileId = -23: pause audio sync
+  view.setInt32(4, 0, false);
+  view.setInt32(8, 0, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+  isAudioSyncPaused.value = true;
+}
+
+function resumeAudioSync() {
+  if (!dataChannel || dataChannel.readyState !== 'open') return;
+  logSyncEvent('▶️ 正在向手机发送恢复音乐同步指令...');
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -21, false);
+  view.setInt32(4, 0, false);
+  view.setInt32(8, audioSyncTotal.value, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+  isAudioSyncPaused.value = false;
+}
+
+function stopAudioSync() {
+  if (!dataChannel || dataChannel.readyState !== 'open') return;
+  logSyncEvent('⏹️ 正在向手机发送停止音乐同步指令...');
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -24, false); // fileId = -24: stop audio sync
+  view.setInt32(4, 0, false);
+  view.setInt32(8, 0, false);
+  view.setInt32(12, 0, false);
+  dataChannel.send(buffer);
+  isAudioSyncing.value = false;
+  isAudioSyncPaused.value = false;
+}
+
 
 function generateHotspotCredentials() {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -4491,9 +5082,10 @@ function setupDataChannel(channel) {
     clearHandshakeTimeout();
     trackEvent('webrtc_channel_opened', { method: 'qr_ble' });
     
-    // Auto-fetch remote video catalog list (metadata only, no auto download)
+    // Auto-fetch remote video & audio catalog list (metadata only, no auto download)
     setTimeout(() => {
       queryRemoteVideoCatalog();
+      queryRemoteAudioCatalog();
     }, 500);
     
     // Start heartbeat timer
@@ -4756,6 +5348,45 @@ function setupDataChannel(channel) {
       return;
     }
 
+    // fileId = -22: Phone finished audio sync
+    if (fileId === -22) {
+      isAudioSyncing.value = false;
+      isAudioSyncPaused.value = false;
+      logSyncEvent(`✅ 手机端已完成音乐同步传输`);
+      return;
+    }
+
+    // fileId = -23: Phone paused audio sync
+    if (fileId === -23) {
+      isAudioSyncPaused.value = true;
+      logSyncEvent(`⏸️ 手机端已暂停音乐同步`);
+      return;
+    }
+
+    // fileId = -24: Phone stopped audio sync
+    if (fileId === -24) {
+      isAudioSyncing.value = false;
+      isAudioSyncPaused.value = false;
+      logSyncEvent(`⏹️ 手机端已停止并取消音乐同步`);
+      return;
+    }
+
+    // fileId = -25: Remote audio catalog response
+    if (fileId === -25) {
+      const payloadSize = view.getInt32(12, false);
+      const payloadBytes = new Uint8Array(arrayBuffer, 16, payloadSize);
+      const decoder = new TextDecoder('utf-8');
+      const payloadStr = decoder.decode(payloadBytes);
+      try {
+        const data = JSON.parse(payloadStr);
+        remoteAudioCatalog.value = data.audios || [];
+        logSyncEvent(`📋 收到手机端音乐目录，共发现 ${remoteAudioCatalog.value.length} 首音乐`);
+      } catch (err) {
+        console.error("Failed to parse audio catalog:", err);
+      }
+      return;
+    }
+
     // Metadata packet containing filename and asset ID
     if (fileId === -6) {
       const totalCount = view.getInt32(8, false);
@@ -4789,11 +5420,12 @@ function setupDataChannel(channel) {
         duration: metadata.duration || null
       };
 
-      // Add to chatMessages only for regular files (not thumbnails or album originals)
+      // Add to chatMessages only for regular files (not thumbnails, album originals, videos, or audios)
       const isThumb = metadata.name.startsWith('thumb_');
       const isAlbum = metadata.name.startsWith('album_');
       const isVid = metadata.name.startsWith('video_') || /\.(mp4|mkv|mov|avi|webm)$/i.test(metadata.name);
-      if (!isThumb && !isAlbum && !isVid && !chatMessages.value.some(m => m.id === metadata.file_id)) {
+      const isAud = metadata.name.startsWith('audio_') || /\.(mp3|wav|m4a|ogg|flac|aac|wma)$/i.test(metadata.name);
+      if (!isThumb && !isAlbum && !isVid && !isAud && !chatMessages.value.some(m => m.id === metadata.file_id)) {
         chatMessages.value.push({
           id: metadata.file_id,
           type: 'incoming',
@@ -4814,6 +5446,9 @@ function setupDataChannel(channel) {
       }
       if (isVid && isVideoSyncing.value) {
         videoSyncDone.value++;
+      }
+      if (isAud && isAudioSyncing.value) {
+        audioSyncDone.value++;
       }
       
       logSyncEvent(`📝 收到文件元数据: [ID: ${metadata.file_id}] ${metadata.name} (${(metadata.size / 1024 / 1024).toFixed(2)} MB)`);
@@ -6117,6 +6752,18 @@ async function openFileLocation(filePath) {
 }
 
 function handleGlobalKeydown(e) {
+  if (e.key === 'Escape') {
+    if (activePlayingAudio.value) {
+      e.preventDefault();
+      closeAudioPlayer();
+      return;
+    }
+    if (activePlayingVideo.value) {
+      e.preventDefault();
+      closeVideoPlayer();
+      return;
+    }
+  }
   if (!selectedImage.value) return;
   if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
     e.preventDefault();
@@ -6986,6 +7633,269 @@ function getMockClassification(url) {
 .video-native-element {
   width: 100%;
   max-height: 80vh;
+  outline: none;
+}
+
+/* Audios Tab Container & Playlist */
+.audios-tab-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+  gap: 12px;
+  overflow: hidden;
+}
+
+.audios-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 4px;
+}
+
+.audio-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.audio-date-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border-left: 3px solid #06b6d4;
+}
+
+.audio-date-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audio-date-icon {
+  font-size: 14px;
+}
+
+.audio-date-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.audio-date-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.audio-date-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audio-track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.audio-track-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.audio-track-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(6, 182, 212, 0.4);
+  transform: translateX(2px);
+}
+
+.audio-track-card.track-selected {
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.6);
+}
+
+.audio-track-card.track-playing {
+  border-color: #06b6d4;
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.25);
+}
+
+.audio-track-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.audio-disc-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.audio-disc-icon.spinning {
+  animation: spin 3s linear infinite;
+  border-color: #06b6d4;
+}
+
+.audio-track-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+
+.audio-track-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audio-track-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.audio-duration-tag, .audio-size-tag {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.track-status-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.pill-synced {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.pill-unsynced {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.audio-track-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.btn-track-play {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.btn-track-download {
+  border-color: rgba(6, 182, 212, 0.4) !important;
+  color: #06b6d4 !important;
+}
+
+/* Audio Player Floating Lightbox Modal */
+.audio-player-modal {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  background: #0f172a;
+  border: 1.5px solid rgba(6, 182, 212, 0.3);
+  border-radius: 20px;
+  overflow: hidden;
+  padding: 32px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(6, 182, 212, 0.2);
+}
+
+.audio-player-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.vinyl-record {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #334155 0%, #0f172a 70%, #020617 100%);
+  border: 4px solid #1e293b;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(6, 182, 212, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vinyl-record.spinning {
+  animation: spin 6s linear infinite;
+}
+
+.vinyl-inner {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.audio-player-info {
+  text-align: center;
+  max-width: 90%;
+}
+
+.audio-player-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.audio-player-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.audio-native-element {
+  width: 100%;
+  border-radius: 12px;
   outline: none;
 }
 </style>

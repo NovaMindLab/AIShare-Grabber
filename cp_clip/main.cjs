@@ -2591,6 +2591,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
   const isThumbnail = filename.startsWith('thumb_') && ext.toLowerCase() === '.jpg';
   const isAlbumPhoto = filename.startsWith('album_');
   const isVideo = type === 'videos' || filename.startsWith('video_') || ['.mp4', '.mkv', '.mov', '.avi', '.webm'].includes(ext.toLowerCase());
+  const isAudio = type === 'audios' || filename.startsWith('audio_') || ['.mp3', '.wav', '.m4a', '.ogg', '.flac'].includes(ext.toLowerCase());
   
   let targetPath = '';
   if (isThumbnail) {
@@ -2618,6 +2619,17 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     const baseDir = customDownloadPath
       ? path.join(customDownloadPath, 'videos_sync', activeDeviceUuid || 'default', dateFolderName)
       : path.join(app.getPath('downloads'), 'ShareCLIP_Data', 'videos_sync', activeDeviceUuid || 'default', dateFolderName);
+    if (!fs.existsSync(baseDir)) {
+      fs.mkdirSync(baseDir, { recursive: true });
+    }
+    targetPath = path.join(baseDir, filename);
+  } else if (isAudio) {
+    // Audios stored under audios_sync/<uuid>/<YYYY-MM-DD>/ for date-based organization
+    const createDateStr = metadata && metadata.create_date ? metadata.create_date : new Date().toISOString();
+    const dateFolderName = createDateStr.substring(0, 10); // 'YYYY-MM-DD'
+    const baseDir = customDownloadPath
+      ? path.join(customDownloadPath, 'audios_sync', activeDeviceUuid || 'default', dateFolderName)
+      : path.join(app.getPath('downloads'), 'ShareCLIP_Data', 'audios_sync', activeDeviceUuid || 'default', dateFolderName);
     if (!fs.existsSync(baseDir)) {
       fs.mkdirSync(baseDir, { recursive: true });
     }
@@ -3299,7 +3311,7 @@ ipcMain.handle('video-anime:get-styles', async () => {
 });
 
 ipcMain.handle('video-anime:start', async (event, params) => {
-  const { inputPath, outputPath, style = 'hayao', maxDimension = 1280 } = params;
+  const { inputPath, outputPath, style = 'hayao', maxDimension = 480, frameRateMode = 'anime15' } = params;
   try {
     if (activeAnimeConverter) {
       activeAnimeConverter.cancel();
@@ -3323,7 +3335,8 @@ ipcMain.handle('video-anime:start', async (event, params) => {
       inputPath,
       outputPath,
       modelPath,
-      maxDimension
+      maxDimension,
+      frameRateMode
     }, (progressData) => {
       if (!event.sender.isDestroyed()) {
         event.sender.send('video-anime:progress', progressData);
