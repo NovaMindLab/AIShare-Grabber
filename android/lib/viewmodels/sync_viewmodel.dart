@@ -1509,8 +1509,11 @@ class SyncViewModel extends ChangeNotifier {
           break;
         }
 
+        final String safeId = PhotoStreamer.sanitizeId(entity.id);
         final String thumbName = 'thumb_${entity.id}.jpg';
-        if (pcSyncedThumbnailIds.contains(entity.id) || pcSyncedThumbnailIds.contains(thumbName)) {
+        final String safeThumbName = 'thumb_$safeId.jpg';
+        if (pcSyncedThumbnailIds.contains(entity.id) || pcSyncedThumbnailIds.contains(safeId) ||
+            pcSyncedThumbnailIds.contains(thumbName) || pcSyncedThumbnailIds.contains(safeThumbName)) {
           debugPrint("Skip sending thumbnail for ${entity.title} (already synced)");
           thumbnailSyncDone++;
           notifyListeners();
@@ -1657,7 +1660,9 @@ class SyncViewModel extends ChangeNotifier {
         }
 
         // Skip if PC already has this asset (safety check using assetId)
-        if (pcSyncedIds.contains('album_${entity.id}') || pcSyncedIds.contains(entity.id)) {
+        final String safeId = PhotoStreamer.sanitizeId(entity.id);
+        if (pcSyncedIds.contains('album_${entity.id}') || pcSyncedIds.contains(entity.id) ||
+            pcSyncedIds.contains('album_$safeId') || pcSyncedIds.contains(safeId)) {
           albumSyncDone++;
           notifyListeners();
           continue;

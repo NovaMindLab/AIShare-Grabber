@@ -5445,7 +5445,7 @@ function setupDataChannel(channel) {
 
       // Add to chatMessages only for regular files (not thumbnails, album originals, videos, or audios)
       const isThumb = metadata.name.startsWith('thumb_');
-      const isAlbum = metadata.name.startsWith('album_');
+      const isAlbum = metadata.name.startsWith('album_') || (isAlbumSyncing.value && !isThumb);
       const isVid = metadata.name.startsWith('video_') || /\.(mp4|mkv|mov|avi|webm)$/i.test(metadata.name);
       const isAud = metadata.name.startsWith('audio_') || /\.(mp3|wav|m4a|ogg|flac|aac|wma)$/i.test(metadata.name);
       if (!isThumb && !isAlbum && !isVid && !isAud && !chatMessages.value.some(m => m.id === metadata.file_id)) {
@@ -5947,11 +5947,13 @@ onMounted(() => {
         }
 
         images.value.push({
+          id: imageInfo.id || imageInfo.name,
           path: imageInfo.path,
           name: imageInfo.name,
           src: imageInfo.src,
           status: 'completed',
           predictions: imageInfo.predictions,
+          type: imageInfo.type || (imageInfo.name.startsWith('album_') ? 'album_photo' : 'image'),
           latitude: imageInfo.latitude,
           longitude: imageInfo.longitude
         });

@@ -2624,7 +2624,8 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
   let ext = '';
   
   if (metadata && metadata.name) {
-    filename = metadata.name;
+    // Sanitize metadata.name for safe file storage across Windows/Mac/Linux
+    filename = path.basename(metadata.name).replace(/[/\\:*?"<>|]/g, '_').trim();
     assetId = metadata.assetId || metadata.asset_id || filename;
     ext = path.extname(filename).toLowerCase();
   }
@@ -2652,7 +2653,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     type = 'images';
   }
   
-  const isThumbnail = filename.startsWith('thumb_') && (ext === '.jpg' || ext === '.jpeg');
+  const isThumbnail = filename.startsWith('thumb_');
   const isAlbumPhoto = filename.startsWith('album_') || (type === 'images' && !isThumbnail);
   const isVideo = type === 'videos';
   const isAudio = type === 'audios';
@@ -2713,8 +2714,22 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     targetPath = path.join(aiimageDir, filename);
   }
   
-  fs.writeFileSync(targetPath, fullBuffer);
-  console.log(`[Sync] Saved reassembled file to ${targetPath}`);
+  const parentDir = path.dirname(targetPath);
+  if (!fs.existsSync(parentDir)) {
+    fs.mkdirSync(parentDir, { recursive: true });
+  }
+  try {
+    fs.writeFileSync(targetPath, fullBuffer);
+    console.log(`[Sync] Saved reassembled file to ${targetPath}`);
+  } catch (writeErr) {
+    console.error(`[Sync] Failed writing to ${targetPath}, attempting fallback:`, writeErr);
+    const safeName = `synced_${Date.now()}_${fileId}${ext || '.jpg'}`;
+    targetPath = path.join(app.getPath('userData'), 'synced_fallback', safeName);
+    const fbDir = path.dirname(targetPath);
+    if (!fs.existsSync(fbDir)) fs.mkdirSync(fbDir, { recursive: true });
+    fs.writeFileSync(targetPath, fullBuffer);
+    filename = safeName;
+  }
   
   // Register record in SQLite database if device is connected
   if (activeDeviceUuid && activeDeviceDb) {

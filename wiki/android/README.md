@@ -69,6 +69,7 @@ stateDiagram-v2
 
 ## 📡 Protocols
 For detailed connection specifications, see:
+*   [WebRTC Stability & Multi-Device Sync Engine](file:///d:/AI_serach_image/image_clip_android/wiki/features/webrtc_stability_and_sync_engine.md)
 *   [BLE Signaling Protocol](file:///d:/AI_serach_image/image_clip_android/wiki/android/BLE_Signaling.md)
 *   [WebRTC Channel Protocol](file:///d:/AI_serach_image/image_clip_android/wiki/android/WebRTC_Protocol.md)
 *   [Permissions Configuration](file:///d:/AI_serach_image/image_clip_android/wiki/android/Permissions.md)

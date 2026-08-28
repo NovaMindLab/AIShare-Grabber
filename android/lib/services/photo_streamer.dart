@@ -161,7 +161,10 @@ class PhotoStreamer {
         return false;
       }
       final int size = await file.length();
-      String cleanName = entity.title ?? (entity.type == AssetType.video ? 'video_${entity.id}.mp4' : 'photo_${entity.id}.jpg');
+      final String safeId = sanitizeId(entity.id);
+      String rawTitle = entity.title ?? '';
+      String cleanTitle = rawTitle.replaceAll(RegExp(r'[/\\:*?"<>|]'), '_').trim();
+      String cleanName = cleanTitle.isNotEmpty ? cleanTitle : (entity.type == AssetType.video ? 'video_$safeId.mp4' : 'photo_$safeId.jpg');
       if (!cleanName.contains('.')) {
         final String extension = entity.mimeType?.split('/').last ?? (entity.type == AssetType.video ? 'mp4' : 'jpg');
         cleanName = '$cleanName.$extension';
@@ -400,13 +403,19 @@ class PhotoStreamer {
     return true;
   }
 
+  /// Helper to sanitize asset IDs for safe cross-platform file paths
+  static String sanitizeId(String rawId) {
+    return rawId.replaceAll(RegExp(r'[/\\:*?"<>|]'), '_');
+  }
+
+  /// Stream a selected thumbnail chunk-by-chunk using raw thumbnail bytes
   Future<bool> streamThumbnail({
     required AssetEntity entity,
     required int fileId,
     required void Function(int chunkIndex, int totalChunks, int bytesSent) onProgress,
   }) async {
+    debugPrint("[Streamer] Starting transmission of thumbnail for asset: ${entity.title}, ID: $fileId");
     try {
-      debugPrint("[Streamer] Fetching thumbnail for asset ${entity.id}...");
       final Uint8List? thumbData = await entity.thumbnailDataWithSize(
         const ThumbnailSize.square(400),
         format: ThumbnailFormat.jpeg,
@@ -417,7 +426,8 @@ class PhotoStreamer {
         return false;
       }
 
-      final String name = 'thumb_${entity.id}.jpg';
+      final String safeId = sanitizeId(entity.id);
+      final String name = 'thumb_$safeId.jpg';
       final LatLng? latLng = await entity.latlngAsync();
       final double? lat = (latLng != null && latLng.latitude != 0.0) ? latLng.latitude : null;
       final double? lng = (latLng != null && latLng.longitude != 0.0) ? latLng.longitude : null;
@@ -460,7 +470,8 @@ class PhotoStreamer {
       final int size = await file.length();
       final String extension = entity.mimeType?.split('/').last ?? 'jpg';
       // Use album_ prefix so PC can identify this as an album sync file
-      final String albumName = 'album_${entity.id}.$extension';
+      final String safeId = sanitizeId(entity.id);
+      final String albumName = 'album_$safeId.$extension';
 
       // Build metadata with createDate for breakpoint tracking
       final Map<String, dynamic> metadataMap = {

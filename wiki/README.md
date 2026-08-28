@@ -66,6 +66,7 @@ Guidelines for automated builds and releases:
 
 ## 🔭 Features & Roadmap
 Implemented and upcoming feature specifications:
+*   [📡 WebRTC 稳定性、全机型适配与同步引擎架构 (WebRTC Stability & Multi-Device Sync Engine)](file:///d:/AI_serach_image/image_clip_android/wiki/features/webrtc_stability_and_sync_engine.md): 彻底解决高负载 AI 计算期间 WebRTC 掉线、国产全机型（OPPO / Vivo / 小米 / 华为）视频目录穿透抓取、MTU 单包丢弃、AI 同步 0/0 防呆超时及跨平台非法路径/文件名落盘保底。 **Status: ✅ Implemented**
 *   [🎨 短视频一键二次元/动漫化转换工作室 (AnimeGAN Video Studio)](file:///d:/AI_serach_image/image_clip_android/wiki/features/video_anime_studio_animegan.md): 基于 FFmpeg 裸流双向 stdio 管道的零磁盘写放大视频转换系统，集成 onnxruntime-node 神经风格迁移、纯 TypedArray 图像前后处理算法、背压流控防 OOM 机制与四大画风工作室界面。 **Status: ✅ Implemented**
 *   [🎥 远程视频同步、多选按需下载与时间线虚拟列表](file:///d:/AI_serach_image/image_clip_android/wiki/features/video_sync_and_virtual_scrolling.md): 远程视频目录轻量拉取与按拍摄日期时间线聚合、多选批量按需下载、手机端 15 路并发 Base64 缩略图提取 + PC 端离屏 Canvas 视频首帧捕获双重保障、以及 VirtualTimeline.vue 高性能时间线虚拟列表。 **Status: ✅ Implemented**
 *   [📱→🖥️ AI Thumbnail Sync](file:///d:/AI_serach_image/image_clip_android/wiki/features/thumbnail_sync_ai.md): Batch-sync compressed 400×400 JPEG thumbnails from phone to PC via WebRTC DataChannel, auto-trigger MobileCLIP ONNX classification, save to dedicated `thumbnail_sync/` directory, and display results in Link Mobile panel. **Status: ✅ Implemented**
@@ -79,6 +80,9 @@ Implemented and upcoming feature specifications:
 
 | Version | Date | Highlights |
 |---|---|---|
+| **v2.1.5** | 2026-08-28 | **跨平台 Asset ID 安全清洗与文件落盘保底**：<br>① **根除华为/小米等机型同步显示一直为 0 故障**：增加 `PhotoStreamer.sanitizeId`，自动过滤 `AssetEntity.id` 中的路径与冒号等 Windows 非法字符，杜绝 `fs.writeFileSync` 抛出 `ENOENT`/`EINVAL` 导致落盘失败；<br>② **PC 端落盘保底机制**：递归创建目标目录并集成 `try...catch` 异常安全重定向存储；<br>③ **相册原图 `type` 属性透传**：确保相册页 `albumBackupImages` 与图片页 `localImages` 计数精准自增。 |
+| **v2.1.4** | 2026-08-28 | **国产全机型视频目录穿透与 AI 同步防假死**：<br>① **视频目录轻量化 (<20KB)**：移除视频目录中的 Base64 缩略图，杜绝单包超 64KB 触发 WebRTC SCTP MTU 静默丢弃，耗时由 20s 降至 <300ms；<br>② **全机型相册穿透聚合**：修复 OPPO / Vivo 等机型视频存放于 Camera/Movies 导致的漏扫问题；<br>③ **AI 同步 8 秒防呆超时**：相册为空或无权限时发送 `-1` 结束包，PC 端 8 秒未响应自动重置并解锁 UI 按钮。 |
+| **v2.1.3** | 2026-08-28 | **高负载 AI 计算下的 WebRTC 心跳稳定性加固**：<br>① **解除 Chromium 后台节能限流**（`backgroundThrottling: false`）；<br>② **主进程高精度原生心跳时钟**，彻底解耦 Vue 组件渲染阻塞；<br>③ **人脸扫描与重分类分批 Yield 释放事件循环**（`await setTimeout(100ms)`）；<br>④ **聚类数据库分块写入**（200 条/事务 + 50ms 缓冲）；<br>⑤ **移除业务层超时自杀逻辑**，由 WebRTC C++ 原生状态机接管；<br>⑥ **Android 原生屏幕常亮锁**（`FLAG_KEEP_SCREEN_ON`）。 |
 | **v2.0.0** | 2026-08-24 | **🎉 2.0 重大里程碑版本（Milestone Release）**：<br>① **彻底根除视频列表卡顿**：移除 DOM 内昂贵的原始 `<video>` 视频标签，重构单线程串行异步离屏 Canvas 帧提取队列（`posterQueue`），杜绝并发硬件解码器竞争与事件循环阻塞，滑动帧率飙升至 60/120 FPS；<br>② **影院级极简视频播放器**：彻底移除顶部文件名标题与定位按钮，仅保留右上角半透明悬浮极简关闭药丸（`✕`），100% 满屏纯粹观影；<br>③ **可折叠式视频管理控制面板**：顶部默认收起为超薄视图过滤条（`全部视频` / `电脑已备份` / `手机待下载`），支持按需点击 `[ ▾ 展开面板 ]`，最大化释放画廊浏览垂直空间；<br>④ **连接日志默认折叠**：配对连接页调试日志默认收起，点击 `[ ▸ 展开连接日志 ]` 即可查看，彻底净化正式版 UI 视觉。 |
 | **v1.2.98** | 2026-08-24 | **全模块虚拟滚动架构重构（Virtual Scrolling）**：<br>① 全新自研时间线虚拟滚动引擎 `VirtualTimeline.vue`：按日期分组与视频栅格扁平化转换，视口仅挂载可见的 ~8-12 行 DOM 节点，DOM 占用恒定为 \(O(1)\)，解决千级视频滑动掉帧卡顿；<br>② 相册备份页（Album Tab）接入 `VirtualGrid.vue` 虚拟网格，消除内存激增；<br>③ 移除原组件残留的调试日志与悬浮视窗，提升渲染纯净度。 |
 | **v1.2.97** | 2026-08-24 | **视频封面双重保障与并发提取引擎**：<br>① 手机端（Android）加入 15 路并发批处理（`Future.wait`）提取底层 MediaStore 16:9 高清视频缩略图；<br>② PC 端引入离屏 HTML5 Canvas 视频帧抓取（`0.5s ~ 1.0s` 精彩画面）与 Base64 内存缓存引擎，彻底告别无封面黑块；<br>③ 修复 `sync_viewmodel.dart` 中 WebRTC 与 PhotoManager 的 `ThumbnailSize` 符号冲突。 |
