@@ -1174,12 +1174,21 @@ class SyncViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> _setKeepScreenOn(bool enabled) async {
+    try {
+      if (Platform.isAndroid) {
+        await _channel.invokeMethod('setKeepScreenOn', {'enabled': enabled});
+      }
+    } catch (_) {}
+  }
+
   void _onDataChannelStateChanged() {
     final state = _syncEngine?.dataChannelState.value;
     logMessage("WebRTC DataChannel state: $state");
 
     if (state == RTCDataChannelState.RTCDataChannelOpen) {
       appState = AppState.connected;
+      _setKeepScreenOn(true);
       logMessage("WebRTC DataChannel is OPEN. Load sync album console.");
       _photoStreamer = PhotoStreamer(syncEngine: _syncEngine!);
       _loadLocalGallery();
@@ -1198,18 +1207,8 @@ class SyncViewModel extends ChangeNotifier {
       }
 
       final diff = DateTime.now().difference(_lastHeartbeatReceived);
-      // Relax heartbeat timeout during active thumbnail/album/video/audio syncs and AI computation to prevent disconnects under load
-      final isTransferring = isThumbnailSyncing || isAlbumSyncing || isVideoSyncing || isAudioSyncing || activeTransferName != null;
-      final maxTimeoutSeconds = isTransferring ? 300 : 120;
-
-      if (diff.inSeconds >= maxTimeoutSeconds) {
-        logMessage("⚠️ 心跳超时：PC端已离线 (${diff.inSeconds}s)");
-        timer.cancel();
-        resetToScanner();
-        return;
-      }
-
-      // Send Ping (file_id = -1, chunk_index = 0, total_chunks = 0, payload_size = 0)
+      // Send periodic Ping (file_id = -1, chunk_index = 0, total_chunks = 0, payload_size = 0)
+      // to keep network NAT mappings and SCTP connection actively alive
       final pingHeader = ByteData(16);
       pingHeader.setInt32(0, -1, Endian.big);
       pingHeader.setInt32(4, 0, Endian.big);
@@ -2244,6 +2243,7 @@ class SyncViewModel extends ChangeNotifier {
   }
 
   void cleanup() {
+    _setKeepScreenOn(false);
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
     _discoveryTimer?.cancel();

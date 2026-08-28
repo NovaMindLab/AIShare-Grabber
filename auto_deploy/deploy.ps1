@@ -130,7 +130,7 @@ if (Get-Command "git" -ErrorAction SilentlyContinue) {
     if ($Diff) {
         Write-Host "Committing updates to Git..." -ForegroundColor Yellow
         git add .
-        git commit -m "feat: release $VersionOnly - Fix WebRTC heartbeat disconnection during AI computation, main-process keepalive timer, batch event loop yields, and timeout relaxation"
+        git commit -m "feat: release $VersionOnly - Fundamental fix for WebRTC disconnection: disable Chromium backgroundThrottling, native connection state management, IPC throttling, and Android KeepScreenOn"
         Write-Host "Pushing updates to Gitee (origin) and GitHub (github)..." -ForegroundColor Yellow
         git push origin master
         git push github master:main

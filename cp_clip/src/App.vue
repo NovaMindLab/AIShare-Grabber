@@ -5089,24 +5089,11 @@ function setupDataChannel(channel) {
       queryRemoteAudioCatalog();
     }, 500);
     
-    // Start heartbeat timer
+    // Start heartbeat timer: proactively send Ping every 3 seconds to keep DataChannel alive
     lastHeartbeatTime = Date.now();
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     heartbeatTimer = setInterval(() => {
-      // Increase timeout limit to 120 seconds to prevent aggressive disconnects during heavy AI / I/O tasks
-      if (Date.now() - lastHeartbeatTime > 120000) {
-        logSyncEvent("⚠️ 心跳超时：手机端已离线");
-        cleanupWebRtc();
-        if (isSyncActive.value) {
-          syncStatus.value = 'advertising';
-          nextTick(() => {
-            if (qrCanvas.value && qrPayload.value) {
-              QRCode.toCanvas(qrCanvas.value, JSON.stringify(qrPayload.value), { width: 140, margin: 1 });
-            }
-          });
-        }
-      } else if (Date.now() - lastHeartbeatTime > 4000 && channel && channel.readyState === 'open') {
-        // Send a ping from PC to phone if no packets received for 4 seconds
+      if (channel && channel.readyState === 'open') {
         const pingHeader = new ArrayBuffer(16);
         const view = new DataView(pingHeader);
         view.setInt32(0, -1, false);
@@ -5117,7 +5104,7 @@ function setupDataChannel(channel) {
           channel.send(pingHeader);
         } catch (_) {}
       }
-    }, 2000);
+    }, 3000);
   };
 
   if (channel.readyState === 'open') {

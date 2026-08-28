@@ -385,7 +385,8 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
-      webviewTag: true
+      webviewTag: true,
+      backgroundThrottling: false // Disable timer throttling when window is minimized or behind other apps
     }
   });
 
@@ -637,19 +638,18 @@ async function scanFacesOnDemand(event) {
         await new Promise((resolve) => activeDeviceDb.run(`UPDATE resources SET face_scanned = 1 WHERE id = ?`, [row.id], resolve));
       } finally {
         done++;
-        if (event) {
-          const avgDurationMs = done > 0 ? Math.round(totalDurationMs / done) : durationMs;
-          event.sender.send('face-scan-progress', { 
-            done, 
-            total, 
-            currentName: path.basename(row.path),
-            durationMs,
-            avgDurationMs,
-            facesFound
-          });
-        }
       }
     }));
+
+    if (event) {
+      const avgDurationMs = done > 0 ? Math.round(totalDurationMs / done) : 0;
+      event.sender.send('face-scan-progress', { 
+        done, 
+        total, 
+        currentName: path.basename(batch[batch.length - 1].path),
+        avgDurationMs
+      });
+    }
 
     // Yield 100ms to Node event loop so WebRTC DataChannel heartbeats and IPC messages process smoothly
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -1157,7 +1157,25 @@ let lastNetworkTransferTime = 0;
 let aiTotalBatchTasks = 0;
 let aiCompletedBatchTasks = 0;
 
-function sendAiQueueProgress() {
+let aiQueueProgressThrottleTimer = null;
+function sendAiQueueProgress(immediate = false) {
+  if (immediate) {
+    if (aiQueueProgressThrottleTimer) {
+      clearTimeout(aiQueueProgressThrottleTimer);
+      aiQueueProgressThrottleTimer = null;
+    }
+    _doSendAiQueueProgress();
+    return;
+  }
+
+  if (aiQueueProgressThrottleTimer) return;
+  aiQueueProgressThrottleTimer = setTimeout(() => {
+    aiQueueProgressThrottleTimer = null;
+    _doSendAiQueueProgress();
+  }, 150);
+}
+
+function _doSendAiQueueProgress() {
   if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
     mainWindow.webContents.send('ai-queue-progress', {
       isProcessing: isProcessingAiQueue || aiClassificationQueue.length > 0,
@@ -1313,14 +1331,15 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
         console.error(`[AI Reclassify] Failed for ${row.name}:`, err);
       } finally {
         done++;
-        // Report progress after each image completes
-        event.sender.send('reclassify-progress', {
-          done,
-          total,
-          currentName: row.name
-        });
       }
     }));
+
+    // Report progress after each batch completes
+    event.sender.send('reclassify-progress', {
+      done,
+      total,
+      currentName: batch[batch.length - 1].name
+    });
 
     // Yield 100ms to Node event loop so WebRTC DataChannel heartbeats and IPC messages process smoothly
     await new Promise(resolve => setTimeout(resolve, 100));

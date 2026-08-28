@@ -130,6 +130,16 @@ class MainActivity : FlutterActivity() {
                 }
             } else if (call.method == "disconnectWifiSilent") {
                 disconnectWifiSilent(result)
+            } else if (call.method == "setKeepScreenOn") {
+                val enabled = call.argument<Boolean>("enabled") ?: false
+                runOnUiThread {
+                    if (enabled) {
+                        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    } else {
+                        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    }
+                }
+                result.success(true)
             } else {
                 result.notImplemented()
             }
