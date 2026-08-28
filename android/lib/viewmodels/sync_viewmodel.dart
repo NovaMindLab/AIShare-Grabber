@@ -827,41 +827,51 @@ class SyncViewModel extends ChangeNotifier {
 
           if (fileId == -19) {
             // PC queries video catalog
-            logMessage("PC requested remote video catalog. Scanning...");
+            logMessage("📹 PC requested remote video catalog. Scanning...");
             Future.microtask(() async {
               try {
                 final streamer = PhotoStreamer.standalone();
                 localVideos = await streamer.loadLocalVideos();
+                notifyListeners();
+                logMessage("📹 Found ${localVideos.length} videos in device MediaStore.");
+
                 final List<Map<String, dynamic>> catalog = [];
-                // Process in concurrent batches of 15 for fast thumbnail generation
-                for (int i = 0; i < localVideos.length; i += 15) {
-                  final end = (i + 15 < localVideos.length) ? i + 15 : localVideos.length;
+                // Process video catalog metadata in parallel chunks of 20
+                for (int i = 0; i < localVideos.length; i += 20) {
+                  final end = (i + 20 < localVideos.length) ? i + 20 : localVideos.length;
                   final chunk = localVideos.sublist(i, end);
                   final chunkResults = await Future.wait(chunk.map((v) async {
-                    final int? createSec = v.createDateSecond;
+                    final int? createSec = (v.createDateSecond != null && v.createDateSecond! > 0)
+                        ? v.createDateSecond
+                        : v.modifiedDateSecond;
                     String? createDateStr;
                     if (createSec != null && createSec > 0) {
                       createDateStr = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true).toIso8601String();
+                    } else {
+                      createDateStr = DateTime.now().toUtc().toIso8601String();
                     }
-                    final file = await v.originFile;
-                    final int size = file != null ? await file.length() : 0;
 
-                    String thumbBase64 = "";
+                    int size = 0;
                     try {
-                      final thumbBytes = await v.thumbnailDataWithSize(const ThumbnailSize(200, 120), quality: 50);
-                      if (thumbBytes != null && thumbBytes.isNotEmpty) {
-                        thumbBase64 = base64Encode(thumbBytes);
+                      final file = await v.file.timeout(const Duration(milliseconds: 800), onTimeout: () => null);
+                      if (file != null) {
+                        size = await file.length();
                       }
                     } catch (_) {}
 
+                    String cleanName = v.title ?? "video_${v.id}.mp4";
+                    if (!cleanName.contains('.')) {
+                      final ext = v.mimeType?.split('/').last ?? 'mp4';
+                      cleanName = '$cleanName.$ext';
+                    }
+
                     return {
                       "id": v.id,
-                      "name": v.title ?? "video_${v.id}.mp4",
+                      "name": cleanName,
                       "size": size,
                       "duration": v.duration,
-                      "create_date": createDateStr ?? "",
-                      "timestamp": (createSec ?? 0) * 1000,
-                      "thumb": thumbBase64,
+                      "create_date": createDateStr,
+                      "timestamp": (createSec ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000)) * 1000,
                     };
                   }));
                   catalog.addAll(chunkResults);
@@ -879,9 +889,9 @@ class SyncViewModel extends ChangeNotifier {
                 respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
                 respPacket.setRange(16, respPacket.length, respBytes);
                 await _syncEngine?.sendBinary(respPacket);
-                logMessage("Sent video catalog with ${catalog.length} videos to PC.");
+                logMessage("✅ Sent video catalog with ${catalog.length} videos to PC.");
               } catch (e) {
-                logMessage("Error scanning/sending video catalog: $e");
+                logMessage("❌ Error scanning/sending video catalog: $e");
               }
             });
             return;
@@ -1445,67 +1455,99 @@ class SyncViewModel extends ChangeNotifier {
   }
 
   Future<void> syncThumbnailsToAI({List<AssetEntity>? targets}) async {
-    final list = targets ?? localImages.where((e) => e.type == AssetType.image).toList();
-    if (list.isEmpty || isThumbnailSyncing) return;
+    if (isThumbnailSyncing) return;
 
-    isThumbnailSyncing = true;
-    thumbnailSyncTotal = list.length;
-    thumbnailSyncDone = 0;
-    notifyListeners();
-
-    logMessage("Starting batch AI thumbnail sync. Total: ${list.length}");
-
-    // Send start notification packet to PC: file_id = -6, total_chunks = total count
-    final header = ByteData(16);
-    header.setInt32(0, -6, Endian.big); // file_id = -6
-    header.setInt32(4, 0, Endian.big);
-    header.setInt32(8, list.length, Endian.big);
-    header.setInt32(12, 0, Endian.big);
-    await _syncEngine?.sendBinary(header.buffer.asUint8List());
-
-    for (final entity in list) {
-      if (_syncEngine == null || appState != AppState.connected) {
-        logMessage("AI Sync interrupted: disconnected");
-        break;
+    try {
+      final PermissionState ps = await PhotoManager.requestPermissionExtend();
+      if (!ps.isAuth) {
+        logMessage("❌ 无法同步缩略图：无媒体读取权限");
+        final doneHeader = ByteData(16);
+        doneHeader.setInt32(0, -6, Endian.big);
+        doneHeader.setInt32(4, 0, Endian.big);
+        doneHeader.setInt32(8, -1, Endian.big);
+        doneHeader.setInt32(12, 0, Endian.big);
+        await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
+        return;
       }
 
-      final String thumbName = 'thumb_${entity.id}.jpg';
-       if (pcSyncedThumbnailIds.contains(entity.id) || pcSyncedThumbnailIds.contains(thumbName)) {
-        debugPrint("Skip sending thumbnail for ${entity.title} (already synced)");
-        thumbnailSyncDone++;
-        notifyListeners();
-        continue;
+      if (localImages.isEmpty) {
+        logMessage("🧠 AI 缩略图同步: 本地相册尚未加载完成，正在读取...");
+        final streamer = PhotoStreamer.standalone();
+        localImages = await streamer.loadLocalImages();
       }
 
-      final fileId = _fileIdCounter++;
-      final streamer = _photoStreamer;
-      if (streamer == null) continue;
-
-      final success = await streamer.streamThumbnail(
-        entity: entity,
-        fileId: fileId,
-        onProgress: (_, __, ___) {},
-      );
-
-      if (success) {
-        thumbnailSyncDone++;
-      } else {
-        logMessage("Failed to sync thumbnail for ${entity.title}");
+      final list = targets ?? localImages.where((e) => e.type == AssetType.image).toList();
+      if (list.isEmpty) {
+        logMessage("ℹ️ 相册中暂无可同步的图片");
+        final doneHeader = ByteData(16);
+        doneHeader.setInt32(0, -6, Endian.big);
+        doneHeader.setInt32(4, 0, Endian.big);
+        doneHeader.setInt32(8, -1, Endian.big);
+        doneHeader.setInt32(12, 0, Endian.big);
+        await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
+        return;
       }
+
+      isThumbnailSyncing = true;
+      thumbnailSyncTotal = list.length;
+      thumbnailSyncDone = 0;
       notifyListeners();
+
+      logMessage("Starting batch AI thumbnail sync. Total: ${list.length}");
+
+      // Send start notification packet to PC: file_id = -6, total_chunks = total count
+      final header = ByteData(16);
+      header.setInt32(0, -6, Endian.big); // file_id = -6
+      header.setInt32(4, 0, Endian.big);
+      header.setInt32(8, list.length, Endian.big);
+      header.setInt32(12, 0, Endian.big);
+      await _syncEngine?.sendBinary(header.buffer.asUint8List());
+
+      for (final entity in list) {
+        if (_syncEngine == null || appState != AppState.connected) {
+          logMessage("AI Sync interrupted: disconnected");
+          break;
+        }
+
+        final String thumbName = 'thumb_${entity.id}.jpg';
+        if (pcSyncedThumbnailIds.contains(entity.id) || pcSyncedThumbnailIds.contains(thumbName)) {
+          debugPrint("Skip sending thumbnail for ${entity.title} (already synced)");
+          thumbnailSyncDone++;
+          notifyListeners();
+          continue;
+        }
+
+        final fileId = _fileIdCounter++;
+        final streamer = _photoStreamer ?? PhotoStreamer(syncEngine: _syncEngine!);
+
+        final success = await streamer.streamThumbnail(
+          entity: entity,
+          fileId: fileId,
+          onProgress: (_, __, ___) {},
+        );
+
+        if (success) {
+          thumbnailSyncDone++;
+        } else {
+          logMessage("Failed to sync thumbnail for ${entity.title}");
+        }
+        notifyListeners();
+      }
+    } catch (e) {
+      logMessage("❌ 缩略图同步发生异常: $e");
+    } finally {
+      // Send completion signal to PC: fileId=-6, totalCount=-1 means "sync all done"
+      final doneHeader = ByteData(16);
+      doneHeader.setInt32(0, -6, Endian.big);
+      doneHeader.setInt32(4, 0, Endian.big);
+      doneHeader.setInt32(8, -1, Endian.big); // -1 = completion sentinel
+      doneHeader.setInt32(12, 0, Endian.big);
+      await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
+
+      isThumbnailSyncing = false;
+      notifyListeners();
+      logMessage("Batch AI thumbnail sync finished. Sync completed: $thumbnailSyncDone/$thumbnailSyncTotal");
     }
-
-    // Send completion signal to PC: fileId=-6, totalCount=-1 means "sync all done"
-    final doneHeader = ByteData(16);
-    doneHeader.setInt32(0, -6, Endian.big);
-    doneHeader.setInt32(4, 0, Endian.big);
-    doneHeader.setInt32(8, -1, Endian.big); // -1 = completion sentinel
-    doneHeader.setInt32(12, 0, Endian.big);
-    await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
-
-    isThumbnailSyncing = false;
-    notifyListeners();
-    logMessage("Batch AI thumbnail sync finished. Sync completed: $thumbnailSyncDone/$thumbnailSyncTotal");
   }
 
   /// Sync all original photos from the phone album to PC.

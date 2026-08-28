@@ -32,16 +32,30 @@ class PhotoStreamer {
         return [];
       }
 
-      final FilterOptionGroup filter = FilterOptionGroup(
-        imageOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
-        videoOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
-        audioOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
-      );
+      // 1. Try with filter first
+      List<AssetPathEntity> paths = [];
+      try {
+        final FilterOptionGroup filter = FilterOptionGroup(
+          imageOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
+          videoOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
+          audioOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
+        );
+        paths = await PhotoManager.getAssetPathList(
+          type: type,
+          filterOption: filter,
+        );
+      } catch (e) {
+        debugPrint('[Streamer] Filtered getAssetPathList failed, falling back to default: $e');
+      }
 
-      final List<AssetPathEntity> paths = await PhotoManager.getAssetPathList(
-        type: type,
-        filterOption: filter,
-      );
+      // 2. Fallback without filter if empty
+      if (paths.isEmpty) {
+        try {
+          paths = await PhotoManager.getAssetPathList(type: type);
+        } catch (e) {
+          debugPrint('[Streamer] Default getAssetPathList failed: $e');
+        }
+      }
 
       debugPrint('[Streamer] [$type] paths found: ${paths.length}');
       if (paths.isEmpty) return [];
@@ -53,20 +67,23 @@ class PhotoStreamer {
         final int count = await allPath.assetCountAsync;
         if (count > 0) {
           debugPrint('[Streamer] [$type] count in allPath (${allPath.name}): $count');
-          return await allPath.getAssetListRange(start: 0, end: count);
+          final list = await allPath.getAssetListRange(start: 0, end: count);
+          if (list.isNotEmpty) return list;
         }
       }
 
       // Fallback: Aggregate assets across all album folders and deduplicate
       final Map<String, AssetEntity> aggregated = {};
       for (final path in paths) {
-        final int count = await path.assetCountAsync;
-        if (count > 0) {
-          final items = await path.getAssetListRange(start: 0, end: count);
-          for (final item in items) {
-            aggregated[item.id] = item;
+        try {
+          final int count = await path.assetCountAsync;
+          if (count > 0) {
+            final items = await path.getAssetListRange(start: 0, end: count);
+            for (final item in items) {
+              aggregated[item.id] = item;
+            }
           }
-        }
+        } catch (_) {}
       }
       debugPrint('[Streamer] [$type] total aggregated from ${paths.length} paths: ${aggregated.length}');
       return aggregated.values.toList();

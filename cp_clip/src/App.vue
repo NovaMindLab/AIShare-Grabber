@@ -3703,6 +3703,8 @@ const thumbnailImages = ref([]);
 const isThumbnailSyncing = ref(false);
 const thumbSyncDone = ref(0);
 const thumbSyncTotal = ref(0);
+let thumbnailSyncTimeoutTimer = null;
+let albumSyncTimeoutTimer = null;
 const isDarkMode = ref(localStorage.getItem('theme-dark') !== 'false');
 
 // Decoupled Background AI Queue Progress
@@ -4415,6 +4417,14 @@ function cleanupWebRtc() {
     clearInterval(heartbeatTimer);
     heartbeatTimer = null;
   }
+  if (thumbnailSyncTimeoutTimer) {
+    clearTimeout(thumbnailSyncTimeoutTimer);
+    thumbnailSyncTimeoutTimer = null;
+  }
+  if (albumSyncTimeoutTimer) {
+    clearTimeout(albumSyncTimeoutTimer);
+    albumSyncTimeoutTimer = null;
+  }
   clearHandshakeTimeout();
   if (dataChannel) {
     try { dataChannel.close(); } catch (e) {}
@@ -4426,6 +4436,7 @@ function cleanupWebRtc() {
   }
   activePeerIp.value = null;
   isThumbnailSyncing.value = false;
+  isAlbumSyncing.value = false;
   chatMessages.value = [];
   activeDeviceUuid.value = null;
   activeDeviceName.value = '';
@@ -4458,6 +4469,14 @@ function requestThumbnailSync() {
   isThumbnailSyncing.value = true;
   thumbSyncDone.value = 0;
   thumbSyncTotal.value = 0;
+
+  if (thumbnailSyncTimeoutTimer) clearTimeout(thumbnailSyncTimeoutTimer);
+  thumbnailSyncTimeoutTimer = setTimeout(() => {
+    if (isThumbnailSyncing.value && thumbSyncTotal.value === 0) {
+      isThumbnailSyncing.value = false;
+      logSyncEvent('ℹ️ 手机端相册尚未加载完成或暂无可同步图片，已自动重置状态');
+    }
+  }, 8000);
 }
 
 function handleOpenThumbnailFolder() {
@@ -4603,6 +4622,14 @@ function requestAlbumSync() {
   isAlbumSyncPaused.value = false;
   albumSyncDone.value = 0;
   albumSyncTotal.value = 0;
+
+  if (albumSyncTimeoutTimer) clearTimeout(albumSyncTimeoutTimer);
+  albumSyncTimeoutTimer = setTimeout(() => {
+    if (isAlbumSyncing.value && albumSyncTotal.value === 0 && albumSyncDone.value === 0) {
+      isAlbumSyncing.value = false;
+      logSyncEvent('ℹ️ 手机端未发现需同步的新相册照片，或手机端相册尚未就绪');
+    }
+  }, 8000);
 }
 
 function pauseAlbumSync() {
@@ -5245,6 +5272,7 @@ function setupDataChannel(channel) {
 
     // fileId = -7: Phone started or resumed album sync, tells PC the total count
     if (fileId === -7) {
+      if (albumSyncTimeoutTimer) { clearTimeout(albumSyncTimeoutTimer); albumSyncTimeoutTimer = null; }
       const totalCount = view.getInt32(8, false);
       albumSyncTotal.value = totalCount;
       isAlbumSyncing.value = true;
@@ -5255,6 +5283,7 @@ function setupDataChannel(channel) {
 
     // fileId = -8: Phone finished album sync
     if (fileId === -8) {
+      if (albumSyncTimeoutTimer) { clearTimeout(albumSyncTimeoutTimer); albumSyncTimeoutTimer = null; }
       const done = view.getInt32(4, false);
       const total = view.getInt32(8, false);
       isAlbumSyncing.value = false;
@@ -5379,9 +5408,13 @@ function setupDataChannel(channel) {
 
     // Metadata packet containing filename and asset ID
     if (fileId === -6) {
+      if (thumbnailSyncTimeoutTimer) {
+        clearTimeout(thumbnailSyncTimeoutTimer);
+        thumbnailSyncTimeoutTimer = null;
+      }
       const totalCount = view.getInt32(8, false);
-      // totalCount === -1 is a completion sentinel sent by Android after the sync loop ends
-      if (totalCount === -1) {
+      // totalCount === -1 or 0 is a completion/empty sentinel sent by Android
+      if (totalCount === -1 || totalCount === 0) {
         isThumbnailSyncing.value = false;
         logSyncEvent(`✅ 收到手机端 AI 同步完成信号，互斥锁已释放`);
         return;
