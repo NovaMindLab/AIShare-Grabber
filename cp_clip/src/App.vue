@@ -5073,6 +5073,7 @@ async function submitConnectionCode() {
 
 // Set up the WebRTC DataChannel callbacks
 function setupDataChannel(channel) {
+  dataChannel = channel;
   channel.binaryType = 'arraybuffer';
   
   const handleOpen = () => {
@@ -5092,8 +5093,8 @@ function setupDataChannel(channel) {
     lastHeartbeatTime = Date.now();
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     heartbeatTimer = setInterval(() => {
-      // Increase timeout limit to 60 seconds to prevent aggressive disconnects during heavy AI / I/O tasks
-      if (Date.now() - lastHeartbeatTime > 60000) {
+      // Increase timeout limit to 120 seconds to prevent aggressive disconnects during heavy AI / I/O tasks
+      if (Date.now() - lastHeartbeatTime > 120000) {
         logSyncEvent("⚠️ 心跳超时：手机端已离线");
         cleanupWebRtc();
         if (isSyncActive.value) {
@@ -5104,17 +5105,19 @@ function setupDataChannel(channel) {
             }
           });
         }
-      } else if (Date.now() - lastHeartbeatTime > 6000 && channel && channel.readyState === 'open') {
-        // Send a ping from PC to phone if no packets received for 6 seconds
+      } else if (Date.now() - lastHeartbeatTime > 4000 && channel && channel.readyState === 'open') {
+        // Send a ping from PC to phone if no packets received for 4 seconds
         const pingHeader = new ArrayBuffer(16);
         const view = new DataView(pingHeader);
         view.setInt32(0, -1, false);
         view.setInt32(4, 0, false);
         view.setInt32(8, 0, false);
         view.setInt32(12, 0, false);
-        channel.send(pingHeader);
+        try {
+          channel.send(pingHeader);
+        } catch (_) {}
       }
-    }, 3000);
+    }, 2000);
   };
 
   if (channel.readyState === 'open') {
@@ -5500,7 +5503,9 @@ function setupDataChannel(channel) {
       transfer.received++;
     }
     
-    logSyncEvent(`📥 接收分片: ${chunkIndex + 1}/${totalChunks} (文件ID: ${fileId})`);
+    if (chunkIndex === 0 || chunkIndex === Math.floor(totalChunks / 2)) {
+      logSyncEvent(`📥 正在接收: ${Math.round(((chunkIndex + 1) / totalChunks) * 100)}% (文件ID: ${fileId})`);
+    }
     
     if (transfer.received === transfer.total) {
       // Reassemble the full file in renderer process
@@ -5630,6 +5635,23 @@ onMounted(() => {
       });
     }
 
+    // Main-process driven heartbeat keepalive listener: ensures pings are transmitted even when renderer is heavily loaded
+    if (window.api.onSendHeartbeatPing) {
+      window.api.onSendHeartbeatPing(() => {
+        if (dataChannel && dataChannel.readyState === 'open') {
+          try {
+            const pingHeader = new ArrayBuffer(16);
+            const view = new DataView(pingHeader);
+            view.setInt32(0, -1, false);
+            view.setInt32(4, 0, false);
+            view.setInt32(8, 0, false);
+            view.setInt32(12, 0, false);
+            dataChannel.send(pingHeader);
+          } catch (_) {}
+        }
+      });
+    }
+
     // 1. Offer SDP received from mobile client
     window.api.onOfferReceived(async (offerSdp) => {
       logSyncEvent("📡 蓝牙信令通道收到 WebRTC Offer SDP!");
@@ -5722,6 +5744,39 @@ onMounted(() => {
 
     
     window.api.onPhotoSynced((imageInfo) => {
+      const isAudio = imageInfo.type === 'audio' || imageInfo.type === 'audios' || /\.(mp3|wav|m4a|ogg|flac|aac|wma|opus)$/i.test(imageInfo.name);
+      if (isAudio) {
+        logSyncEvent(`🎉 音乐已成功同步并归档: ${imageInfo.name}`);
+        const targetId = imageInfo.id || imageInfo.assetId;
+        if (targetId && selectedAudioIds.value.has(targetId)) {
+          const newSet = new Set(selectedAudioIds.value);
+          newSet.delete(targetId);
+          selectedAudioIds.value = newSet;
+        }
+        const existingIdx = images.value.findIndex(item => item.id === imageInfo.id || item.path === imageInfo.path || item.name === imageInfo.name);
+        if (existingIdx >= 0) {
+          images.value[existingIdx] = {
+            ...images.value[existingIdx],
+            ...imageInfo,
+            status: 'completed',
+            type: 'audio'
+          };
+        } else {
+          images.value.push({
+            id: imageInfo.id || imageInfo.assetId,
+            path: imageInfo.path,
+            name: imageInfo.name,
+            size: imageInfo.size,
+            duration: imageInfo.duration,
+            create_date: imageInfo.create_date,
+            src: imageInfo.src,
+            status: 'completed',
+            type: 'audio'
+          });
+        }
+        return;
+      }
+
       const isVideo = imageInfo.type === 'video' || /\.(mp4|mkv|mov|avi|webm)$/i.test(imageInfo.name);
       if (isVideo) {
         logSyncEvent(`🎉 视频已成功同步并归档: ${imageInfo.name}`);

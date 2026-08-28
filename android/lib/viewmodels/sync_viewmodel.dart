@@ -629,6 +629,21 @@ class SyncViewModel extends ChangeNotifier {
                 lastAlbumSyncDate = data['last_album_sync_date'] ?? '';
                 logMessage("Handshake response received! PC has ${pcSyncedIds.length} files, ${pcSyncedThumbnailIds.length} thumbnails.");
                 notifyListeners();
+              } else if (realPacketType == -21) {
+                try {
+                  final payloadStr = utf8.decode(fullBytes);
+                  final Map<String, dynamic> data = jsonDecode(payloadStr);
+                  final forceFullScan = data['force_full_scan'] == true;
+                  final targetDate = data['target_date']?.toString();
+                  List<String>? targetIds;
+                  if (data['target_ids'] is List) {
+                    targetIds = (data['target_ids'] as List).map((e) => e.toString()).toList();
+                  }
+                  logMessage("PC requested audio sync (chunked). Starting...");
+                  syncAudiosToPC(forceFullScan: forceFullScan, targetDate: targetDate, targetIds: targetIds);
+                } catch (e) {
+                  logMessage("Error parsing chunked audio sync payload: $e");
+                }
               }
             }
             return;
@@ -1183,9 +1198,9 @@ class SyncViewModel extends ChangeNotifier {
       }
 
       final diff = DateTime.now().difference(_lastHeartbeatReceived);
-      // Relax heartbeat timeout during active thumbnail/album syncs to prevent disconnects under heavy AI load
-      final isTransferring = isThumbnailSyncing || isAlbumSyncing || activeTransferName != null;
-      final maxTimeoutSeconds = isTransferring ? 180 : 60;
+      // Relax heartbeat timeout during active thumbnail/album/video/audio syncs and AI computation to prevent disconnects under load
+      final isTransferring = isThumbnailSyncing || isAlbumSyncing || isVideoSyncing || isAudioSyncing || activeTransferName != null;
+      final maxTimeoutSeconds = isTransferring ? 300 : 120;
 
       if (diff.inSeconds >= maxTimeoutSeconds) {
         logMessage("⚠️ 心跳超时：PC端已离线 (${diff.inSeconds}s)");
@@ -1936,11 +1951,17 @@ class SyncViewModel extends ChangeNotifier {
 
       List<AssetEntity> toSync = allAudios;
       if (targetIds != null && targetIds.isNotEmpty) {
-        toSync = allAudios.where((a) => targetIds.contains(a.id)).toList();
+        toSync = allAudios.where((a) {
+          return targetIds.contains(a.id) || 
+                 targetIds.contains(a.id.toString()) || 
+                 targetIds.contains('audio_${a.id}');
+        }).toList();
       } else if (targetDate != null && targetDate.isNotEmpty) {
         toSync = allAudios.where((a) {
-          final createMs = a.createDateSecond;
-          if (createMs == null) return false;
+          final createMs = (a.createDateSecond != null && a.createDateSecond! > 0)
+              ? a.createDateSecond
+              : a.modifiedDateSecond;
+          if (createMs == null || createMs == 0) return false;
           final dStr = DateTime.fromMillisecondsSinceEpoch(createMs * 1000, isUtc: true).toIso8601String().substring(0, 10);
           return dStr == targetDate;
         }).toList();
@@ -1951,8 +1972,10 @@ class SyncViewModel extends ChangeNotifier {
         } catch (_) {}
         if (breakpoint != null) {
           toSync = allAudios.where((a) {
-            final createMs = a.createDateSecond;
-            if (createMs == null) return false;
+            final createMs = (a.createDateSecond != null && a.createDateSecond! > 0)
+                ? a.createDateSecond
+                : a.modifiedDateSecond;
+            if (createMs == null || createMs == 0) return false;
             final createDt = DateTime.fromMillisecondsSinceEpoch(createMs * 1000, isUtc: true);
             return createDt.isAfter(breakpoint!);
           }).toList();
@@ -2006,13 +2029,21 @@ class SyncViewModel extends ChangeNotifier {
         final int fileId = _fileIdCounter++;
         logMessage("🎵 [${i + 1}/${toSync.length}] Streaming audio: ${entity.title} (${entity.duration}s)...");
 
+        // Keepalive touch before streaming each file
+        _lastHeartbeatReceived = DateTime.now();
+
+        int lastProgressMs = 0;
         final bool success = await streamer.streamAudio(
           entity: entity,
           fileId: fileId,
           onProgress: (chunkIndex, totalChunks, bytesSent) {
-            activeProgress = totalChunks > 0 ? chunkIndex / totalChunks : 0;
-            activeTransferName = '🎵 ${entity.title}';
-            notifyListeners();
+            final now = DateTime.now().millisecondsSinceEpoch;
+            if (now - lastProgressMs > 120 || chunkIndex == totalChunks - 1) {
+              lastProgressMs = now;
+              activeProgress = totalChunks > 0 ? (chunkIndex + 1) / totalChunks : 0;
+              activeTransferName = '🎵 ${entity.title}';
+              notifyListeners();
+            }
           },
         );
 
@@ -2021,6 +2052,7 @@ class SyncViewModel extends ChangeNotifier {
           audioSyncDone = successCount;
           pcSyncedIds.add('audio_${entity.id}');
           pcSyncedIds.add(entity.id);
+          _lastHeartbeatReceived = DateTime.now();
         } else {
           logMessage("⚠️ Failed to sync audio: ${entity.title}");
         }

@@ -134,6 +134,11 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.removeAllListeners('ai-queue-progress');
     ipcRenderer.on('ai-queue-progress', (event, data) => callback(data));
   },
+  // Main-process driven heartbeat keepalive: ensures pings fire even when renderer is busy with IPC
+  onSendHeartbeatPing: (callback) => {
+    ipcRenderer.removeAllListeners('send-heartbeat-ping');
+    ipcRenderer.on('send-heartbeat-ping', () => callback());
+  },
 
   // YT-DLP Downloader
   getYtVideoInfo: (url) => ipcRenderer.invoke('yt-get-info', url),

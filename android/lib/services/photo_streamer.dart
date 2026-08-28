@@ -189,9 +189,17 @@ class PhotoStreamer {
   }) async {
     debugPrint("[Streamer] Starting transmission of audio asset: ${entity.title}, ID: $fileId");
     try {
-      final File? file = await entity.originFile;
+      File? file;
+      try {
+        file = await entity.file.timeout(const Duration(seconds: 3), onTimeout: () => null);
+      } catch (_) {}
       if (file == null) {
-        debugPrint("[Streamer] Error: could not obtain originFile for audio asset: ${entity.title}");
+        try {
+          file = await entity.originFile.timeout(const Duration(seconds: 3), onTimeout: () => null);
+        } catch (_) {}
+      }
+      if (file == null) {
+        debugPrint("[Streamer] Error: could not obtain file/originFile for audio asset: ${entity.title}");
         return false;
       }
       final int size = await file.length();
@@ -201,7 +209,9 @@ class PhotoStreamer {
         cleanName = '$cleanName.$extension';
       }
 
-      final int? createSec = entity.createDateSecond;
+      final int? createSec = (entity.createDateSecond != null && entity.createDateSecond! > 0)
+          ? entity.createDateSecond
+          : entity.modifiedDateSecond;
       String? createDateStr;
       if (createSec != null && createSec > 0) {
         createDateStr = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true).toIso8601String();
@@ -281,10 +291,9 @@ class PhotoStreamer {
 
       for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
         // Apply WebRTC Backpressure Flow Control
-        // If DataChannel write buffer exceeds 1MB, yield execution and wait
-        while (syncEngine!.getBufferedAmount() > 1000000) {
-          debugPrint("[Streamer] Backpressure: buffer is ${syncEngine!.getBufferedAmount()}B. Waiting...");
-          await Future.delayed(const Duration(milliseconds: 30));
+        // If DataChannel write buffer exceeds 128KB, yield execution and wait to prevent SCTP overflow
+        while (syncEngine != null && syncEngine!.getBufferedAmount() > 128 * 1024) {
+          await Future.delayed(const Duration(milliseconds: 15));
         }
 
         final int payloadSize = (bytesSent + chunkSize < totalSize) ? chunkSize : (totalSize - bytesSent);
@@ -311,8 +320,10 @@ class PhotoStreamer {
         bytesSent += payloadSize;
         onProgress(chunkIndex, totalChunks, bytesSent);
 
-        // Yield execution to allow WebRTC processing and avoid thread starvation
-        await Future.delayed(Duration.zero);
+        // Yield execution to allow WebRTC I/O event loop and keepalive timers to breathe
+        if (chunkIndex % 3 == 0) {
+          await Future.delayed(const Duration(milliseconds: 2));
+        }
       }
 
       debugPrint("[Streamer] Successfully streamed file ID $fileId");

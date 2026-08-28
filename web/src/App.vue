@@ -17,11 +17,11 @@
         </div>
         
         <nav class="nav-links">
-          <a href="#features" class="nav-link">{{ t.nav.features }}</a>
           <a href="#video-demo" class="nav-link">{{ t.nav.videoDemo }}</a>
+          <a href="#features" class="nav-link">{{ t.nav.features }}</a>
           <a href="#ai-ecosystem" class="nav-link">{{ t.nav.ai }}</a>
-          <a href="#simulator" class="nav-link">{{ t.nav.simulator }}</a>
           <a href="#comparison" class="nav-link">{{ t.nav.comparison }}</a>
+          <a href="#simulator" class="nav-link">{{ t.nav.simulator }}</a>
           
           <!-- WebShare Online Entry in Navbar -->
           <a 
@@ -79,18 +79,6 @@
             <!-- Row 1: 3 Primary Download/Experience Cards -->
             <div class="hero-primary-actions">
               <a 
-                href="./webshare/" 
-                class="btn btn-webshare-hero"
-                :title="t.hero.btnWebshare"
-              >
-                <span class="btn-icon">🌐</span>
-                <div class="btn-content">
-                  <div class="btn-label-main">{{ t.hero.btnWebshare }}</div>
-                  <div class="btn-label-sub">WebGPU AI • No Install Required</div>
-                </div>
-              </a>
-              
-              <a 
                 :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Setup-${appVersion.replace('v','')}.exe`" 
                 class="btn btn-primary-hero"
                 @click="showDownloadToast(`🚀 ${t.hero.btnWindows}...`)"
@@ -110,7 +98,19 @@
                 <span class="btn-icon">📱</span>
                 <div class="btn-content">
                   <div class="btn-label-main">{{ t.hero.btnAndroid }}</div>
-                  <div class="btn-label-sub">Android 8.0+ • ARMv8/v9</div>
+                  <div class="btn-label-sub">Android 8.0+ • APK Installer</div>
+                </div>
+              </a>
+
+              <a 
+                href="./webshare/" 
+                class="btn btn-webshare-hero"
+                :title="t.hero.btnWebshare"
+              >
+                <span class="btn-icon">🌐</span>
+                <div class="btn-content">
+                  <div class="btn-label-main">{{ t.hero.btnWebshare }}</div>
+                  <div class="btn-label-sub">WebGPU AI • No Install Required</div>
                 </div>
               </a>
             </div>
@@ -174,61 +174,6 @@
           <div class="stat-card">
             <div class="stat-value gradient-text-purple">{{ t.stats.s4_val }}</div>
             <div class="stat-label">{{ t.stats.s4_label }}</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== CORE FEATURES GRID ==================== -->
-    <section id="features" class="section-padding">
-      <div class="container">
-        <div class="section-header">
-          <div class="badge-pill">FEATURES</div>
-          <h2 class="section-title">{{ t.features.title }}</h2>
-          <p class="section-subtitle">{{ t.features.subtitle }}</p>
-        </div>
-
-        <div class="features-grid">
-          <!-- Feature 1: BLE Pairing -->
-          <div class="glass-panel glass-panel-hover feature-card">
-            <div class="feature-icon-box icon-purple">⚡</div>
-            <h3>{{ t.features.f1.title }}</h3>
-            <p>{{ t.features.f1.desc }}</p>
-          </div>
-
-          <!-- Feature 2: WebRTC LAN Direct -->
-          <div class="glass-panel glass-panel-hover feature-card">
-            <div class="feature-icon-box icon-cyan">🚀</div>
-            <h3>{{ t.features.f2.title }}</h3>
-            <p>{{ t.features.f2.desc }}</p>
-          </div>
-
-          <!-- Feature 3: MobileCLIP AI -->
-          <div class="glass-panel glass-panel-hover feature-card">
-            <div class="feature-icon-box icon-emerald">🧠</div>
-            <h3>{{ t.features.f3.title }}</h3>
-            <p>{{ t.features.f3.desc }}</p>
-          </div>
-
-          <!-- Feature 4: 4K Lightbox -->
-          <div class="glass-panel glass-panel-hover feature-card">
-            <div class="feature-icon-box icon-purple">🖼️</div>
-            <h3>{{ t.features.f4.title }}</h3>
-            <p>{{ t.features.f4.desc }}</p>
-          </div>
-
-          <!-- Feature 5: GPS Footprint Map -->
-          <div class="glass-panel glass-panel-hover feature-card">
-            <div class="feature-icon-box icon-cyan">🗺️</div>
-            <h3>{{ t.features.f5.title }}</h3>
-            <p>{{ t.features.f5.desc }}</p>
-          </div>
-
-          <!-- Feature 6: Deduplication -->
-          <div class="glass-panel glass-panel-hover feature-card">
-            <div class="feature-icon-box icon-emerald">🧹</div>
-            <h3>{{ t.features.f6.title }}</h3>
-            <p>{{ t.features.f6.desc }}</p>
           </div>
         </div>
       </div>
@@ -309,6 +254,61 @@
                 <span>🖥️</span> {{ t.hero.btnWindows }}
               </a>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== CORE FEATURES GRID ==================== -->
+    <section id="features" class="section-padding">
+      <div class="container">
+        <div class="section-header">
+          <div class="badge-pill">FEATURES</div>
+          <h2 class="section-title">{{ t.features.title }}</h2>
+          <p class="section-subtitle">{{ t.features.subtitle }}</p>
+        </div>
+
+        <div class="features-grid">
+          <!-- Feature 1: BLE Pairing -->
+          <div class="glass-panel glass-panel-hover feature-card">
+            <div class="feature-icon-box icon-purple">⚡</div>
+            <h3>{{ t.features.f1.title }}</h3>
+            <p>{{ t.features.f1.desc }}</p>
+          </div>
+
+          <!-- Feature 2: WebRTC LAN Direct -->
+          <div class="glass-panel glass-panel-hover feature-card">
+            <div class="feature-icon-box icon-cyan">🚀</div>
+            <h3>{{ t.features.f2.title }}</h3>
+            <p>{{ t.features.f2.desc }}</p>
+          </div>
+
+          <!-- Feature 3: MobileCLIP AI -->
+          <div class="glass-panel glass-panel-hover feature-card">
+            <div class="feature-icon-box icon-emerald">🧠</div>
+            <h3>{{ t.features.f3.title }}</h3>
+            <p>{{ t.features.f3.desc }}</p>
+          </div>
+
+          <!-- Feature 4: 4K Lightbox -->
+          <div class="glass-panel glass-panel-hover feature-card">
+            <div class="feature-icon-box icon-purple">🖼️</div>
+            <h3>{{ t.features.f4.title }}</h3>
+            <p>{{ t.features.f4.desc }}</p>
+          </div>
+
+          <!-- Feature 5: GPS Footprint Map -->
+          <div class="glass-panel glass-panel-hover feature-card">
+            <div class="feature-icon-box icon-cyan">🗺️</div>
+            <h3>{{ t.features.f5.title }}</h3>
+            <p>{{ t.features.f5.desc }}</p>
+          </div>
+
+          <!-- Feature 6: Deduplication -->
+          <div class="glass-panel glass-panel-hover feature-card">
+            <div class="feature-icon-box icon-emerald">🧹</div>
+            <h3>{{ t.features.f6.title }}</h3>
+            <p>{{ t.features.f6.desc }}</p>
           </div>
         </div>
       </div>

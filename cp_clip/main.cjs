@@ -208,6 +208,32 @@ let hotspotProcess = null;
 let pcSessionId = (1000 + Math.floor(Math.random() * 9000)).toString();
 const pendingTransfers = {}; // fileId -> { chunks: [], received: 0, total: 0 }
 
+// ─────────────────────────────────────────────────────────────────
+// 💓 MAIN PROCESS HEARTBEAT KEEPALIVE TIMER
+// Drives heartbeat pings from the main process to guarantee they fire
+// even when the renderer's JS event loop is saturated by IPC messages
+// during heavy AI computation (CLIP, face recognition, clustering).
+// ─────────────────────────────────────────────────────────────────
+let pcHeartbeatInterval = null;
+
+function startPcHeartbeat() {
+  stopPcHeartbeat();
+  pcHeartbeatInterval = setInterval(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('send-heartbeat-ping');
+    }
+  }, 2000); // Every 2 seconds, instruct renderer to send a Ping to keep connection alive
+  console.log('[Heartbeat] Main-process heartbeat keepalive timer started (2s interval).');
+}
+
+function stopPcHeartbeat() {
+  if (pcHeartbeatInterval) {
+    clearInterval(pcHeartbeatInterval);
+    pcHeartbeatInterval = null;
+    console.log('[Heartbeat] Main-process heartbeat keepalive timer stopped.');
+  }
+}
+
 
 // Load ONNX model and embeddings
 async function initializeAI() {
@@ -624,6 +650,9 @@ async function scanFacesOnDemand(event) {
         }
       }
     }));
+
+    // Yield 100ms to Node event loop so WebRTC DataChannel heartbeats and IPC messages process smoothly
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
   
   if (event) {
@@ -1292,6 +1321,9 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
         });
       }
     }));
+
+    // Yield 100ms to Node event loop so WebRTC DataChannel heartbeats and IPC messages process smoothly
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   // Final progress notification
@@ -1961,6 +1993,9 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
   // Kick off background clustering in case there are unclustered images
   scheduleBackgroundClustering();
   
+  // Start main-process driven heartbeat keepalive to prevent disconnects during AI computation
+  startPcHeartbeat();
+  
   return syncInfo;
 });
 
@@ -2565,33 +2600,43 @@ ipcMain.handle('yt-download', async (event, { url, outputDir, formatId }) => {
 ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) => {
   const fullBuffer = Buffer.from(payload);
   
-  // Resolve filename, type, and target path
-  const ext = getExtension(fullBuffer);
-  
   let filename = '';
   let assetId = '';
+  let ext = '';
   
   if (metadata && metadata.name) {
     filename = metadata.name;
-    assetId = metadata.assetId || filename;
-  } else {
+    assetId = metadata.assetId || metadata.asset_id || filename;
+    ext = path.extname(filename).toLowerCase();
+  }
+  
+  // Fallback to buffer analysis if no extension from filename
+  if (!ext) {
+    ext = getExtension(fullBuffer);
+  }
+  
+  if (!filename) {
     filename = `synced_${Date.now()}_${fileId}${ext}`;
     assetId = filename;
   }
   
+  const audioExtensions = ['.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac', '.wma', '.opus'];
+  const videoExtensions = ['.mp4', '.mkv', '.mov', '.avi', '.webm', '.flv', '.3gp'];
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif', '.heic', '.heif'];
+  
   let type = 'files';
-  if (['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext.toLowerCase())) {
-    type = 'images';
-  } else if (['.mp4', '.mkv', '.mov', '.avi', '.webm'].includes(ext.toLowerCase())) {
-    type = 'videos';
-  } else if (['.mp3', '.wav', '.m4a', '.ogg', '.flac'].includes(ext.toLowerCase())) {
+  if (audioExtensions.includes(ext) || filename.startsWith('audio_')) {
     type = 'audios';
+  } else if (videoExtensions.includes(ext) || filename.startsWith('video_')) {
+    type = 'videos';
+  } else if (imageExtensions.includes(ext) || filename.startsWith('photo_') || filename.startsWith('album_')) {
+    type = 'images';
   }
   
-  const isThumbnail = filename.startsWith('thumb_') && ext.toLowerCase() === '.jpg';
-  const isAlbumPhoto = filename.startsWith('album_');
-  const isVideo = type === 'videos' || filename.startsWith('video_') || ['.mp4', '.mkv', '.mov', '.avi', '.webm'].includes(ext.toLowerCase());
-  const isAudio = type === 'audios' || filename.startsWith('audio_') || ['.mp3', '.wav', '.m4a', '.ogg', '.flac'].includes(ext.toLowerCase());
+  const isThumbnail = filename.startsWith('thumb_') && (ext === '.jpg' || ext === '.jpeg');
+  const isAlbumPhoto = filename.startsWith('album_') || (type === 'images' && !isThumbnail);
+  const isVideo = type === 'videos';
+  const isAudio = type === 'audios';
   
   let targetPath = '';
   if (isThumbnail) {
@@ -2666,6 +2711,8 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
       embeddingBuffer = Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength);
     }
 
+    const resolvedType = isAudio ? 'audio' : (isVideo ? 'video' : (isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type)));
+
     activeDeviceDb.run(`
       INSERT OR REPLACE INTO resources (id, name, path, type, size, predictions, sync_time, embedding, latitude, longitude, create_date, duration)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -2673,7 +2720,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
       assetId, 
       filename, 
       targetPath, 
-      isVideo ? 'video' : (isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type)), 
+      resolvedType, 
       size, 
       '[]', 
       syncTime, 
@@ -2686,7 +2733,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
       if (err) {
         console.error(`[Database] Error registering synced asset ${assetId}:`, err);
       } else {
-        console.log(`[Database] Registered synced asset: ${filename} (ID: ${assetId}, type: ${isVideo ? 'video' : (isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type))})`);
+        console.log(`[Database] Registered synced asset: ${filename} (ID: ${assetId}, type: ${resolvedType})`);
       }
     });
   }
@@ -2695,12 +2742,17 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
 
   // Notify renderer immediately that file is saved on disk so UI updates instantly
   if (mainWindow) {
+    const resolvedType = isAudio ? 'audio' : (isVideo ? 'video' : (isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type)));
     mainWindow.webContents.send('photo-synced', {
       isThumbnail,
       assetId: metadata && (metadata.assetId || metadata.asset_id) ? (metadata.assetId || metadata.asset_id) : assetId,
-      type: isAlbumPhoto ? 'album_photo' : (isThumbnail ? 'thumbnail' : type),
+      id: metadata && (metadata.assetId || metadata.asset_id) ? (metadata.assetId || metadata.asset_id) : assetId,
+      type: resolvedType,
       path: targetPath,
       name: filename,
+      size: fullBuffer.length,
+      duration,
+      create_date: createDate,
       src: `local:///${targetPath.replace(/\\/g, '/')}`,
       predictions: [],
       latitude: metadata && metadata.latitude !== undefined ? metadata.latitude : null,
@@ -2766,27 +2818,36 @@ async function runBackgroundClustering() {
     const groups = await taskManager.clusterImages(sabIndices, validImages, 0.90);
     console.log(`[Background] Computed ${groups.length} clusters. Updating database...`);
     
-    activeDeviceDb.serialize(() => {
-      activeDeviceDb.run("BEGIN TRANSACTION");
-      const stmt = activeDeviceDb.prepare(`UPDATE resources SET cluster_id = ? WHERE id = ?`);
-      
-      const crypto = require('crypto');
-      for (const group of groups) {
-        const clusterId = crypto.randomUUID();
-        for (const img of group.images) {
-          stmt.run([clusterId, img.id]);
-        }
+    const crypto = require('crypto');
+    const allUpdates = [];
+    for (const group of groups) {
+      const clusterId = crypto.randomUUID();
+      for (const img of group.images) {
+        allUpdates.push({ clusterId, imgId: img.id });
       }
-      
-      stmt.finalize();
-      activeDeviceDb.run("COMMIT", (err) => {
-        if (!err) {
-          console.log("[Background] Silent clustering completed and saved to database.");
-        } else {
-          console.error("[Background] Failed to save clusters to database:", err);
-        }
+    }
+
+    const BATCH_SIZE = 200;
+    for (let i = 0; i < allUpdates.length; i += BATCH_SIZE) {
+      const chunk = allUpdates.slice(i, i + BATCH_SIZE);
+      await new Promise((resolve, reject) => {
+        activeDeviceDb.serialize(() => {
+          activeDeviceDb.run("BEGIN TRANSACTION");
+          const stmt = activeDeviceDb.prepare(`UPDATE resources SET cluster_id = ? WHERE id = ?`);
+          for (const item of chunk) {
+            stmt.run([item.clusterId, item.imgId]);
+          }
+          stmt.finalize();
+          activeDeviceDb.run("COMMIT", (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
       });
-    });
+      // Yield to event loop between chunks so WebRTC DataChannel heartbeats process smoothly
+      await new Promise(r => setTimeout(r, 50));
+    }
+    console.log("[Background] Silent clustering completed and saved to database.");
   } catch (err) {
     console.error("[Background] Silent clustering failed:", err);
   }
@@ -3127,6 +3188,7 @@ ipcMain.handle('set-sync-status', (event, { status, deviceUuid }) => {
   } else {
     isWebRtcConnected = false;
     activeDeviceUuid = null;
+    stopPcHeartbeat();
     console.log(`[Sync Status] Disconnected. Resuming UDP discovery broadcast immediately.`);
     broadcastDiscovery();
   }
