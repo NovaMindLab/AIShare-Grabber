@@ -130,7 +130,7 @@ if (Get-Command "git" -ErrorAction SilentlyContinue) {
     if ($Diff) {
         Write-Host "Committing updates to Git..." -ForegroundColor Yellow
         git add .
-        git commit -m "feat: release $VersionOnly - Fix image sync display remaining at 0 by sanitizing asset IDs/filenames, preventing Windows ENOENT I/O errors, and fixing album_photo type resolution"
+        git commit -m "feat: release $VersionOnly - Fix photo sync omissions on OEM Android devices (cross-album traversal, multi-tier thumbnail extraction, Scoped Storage file fallback, and HEIC/RAW support)"
         Write-Host "Pushing updates to Gitee (origin) and GitHub (github)..." -ForegroundColor Yellow
         git push origin master
         git push github master:main
