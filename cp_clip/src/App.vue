@@ -2964,10 +2964,12 @@ const connectingIp = ref(null);
 const activePeerType = ref('Mobile');
 const activeMetadata = {}; // fileId -> { assetId, name, size }
 
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif', '.heic', '.heif', '.dng', '.raw'];
+
 const selectedItemType = computed(() => {
   if (!selectedImage.value) return '';
   const ext = getExtensionName(selectedImage.value.name);
-  if (['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext)) return 'image';
+  if (IMAGE_EXTENSIONS.includes(ext)) return 'image';
   if (['.mp4', '.mkv', '.mov', '.avi', '.webm'].includes(ext)) return 'video';
   if (['.mp3', '.wav', '.m4a', '.ogg', '.flac'].includes(ext)) return 'audio';
   return 'file';
@@ -2982,14 +2984,14 @@ function getExtensionName(filename) {
 const localImages = computed(() => {
   return images.value.filter(file => {
     const ext = getExtensionName(file.name);
-    return ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext) && file.type !== 'album_photo';
+    return IMAGE_EXTENSIONS.includes(ext) && file.type !== 'album_photo';
   });
 });
 
 const albumBackupImages = computed(() => {
   return images.value.filter(file => {
     const ext = getExtensionName(file.name);
-    return ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext) && file.type === 'album_photo';
+    return IMAGE_EXTENSIONS.includes(ext) && file.type === 'album_photo';
   });
 });
 
@@ -4103,7 +4105,7 @@ async function analyzeSimilarImages() {
     const imageList = images.value
       .filter(img => {
         const ext = getExtensionName(img.name);
-        return ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext);
+        return IMAGE_EXTENSIONS.includes(ext);
       })
       .map(img => ({
         id: img.id || img.path,
@@ -6605,7 +6607,7 @@ async function processNextQueueItem() {
 
   // Bypass classification for non-images
   const ext = getExtensionName(imgItem.name);
-  const isImg = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'].includes(ext);
+  const isImg = IMAGE_EXTENSIONS.includes(ext);
   
   if (!isImg) {
     imgItem.status = 'completed';

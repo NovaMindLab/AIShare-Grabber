@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
@@ -1608,10 +1607,12 @@ class SyncViewModel extends ChangeNotifier {
 
       final List<AssetEntity> toSync = allImages.where((entity) {
         if (breakpoint == null) return true;
-        final createMs = entity.createDateSecond;
-        if (createMs == null) return false;
+        final createMs = (entity.createDateSecond != null && entity.createDateSecond! > 0)
+            ? entity.createDateSecond
+            : entity.modifiedDateSecond;
+        if (createMs == null || createMs == 0) return true;
         final createDt = DateTime.fromMillisecondsSinceEpoch(createMs * 1000, isUtc: true);
-        return createDt.isAfter(breakpoint!);
+        return createDt.isAfter(breakpoint);
       }).toList();
 
       albumSyncTotal = toSync.length;

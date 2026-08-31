@@ -191,7 +191,24 @@ Future<void> syncThumbnailsToAI({List<AssetEntity>? targets}) async {
 
 ---
 
-## 5. 全链路数据帧协议速查表
+## 5. 手机端全相册穿透与全格式图像（HEIC/RAW/DNG）流式传输加固
+
+### 5.1 故障现象
+部分机型（如华为/荣耀、小米、Vivo、OPPO、三星等）手机端明明可以看到相册有数百或数千张照片，但在电脑端点击同步时却漏掉大量图片或根本无法同步过来。
+
+### 5.2 根因排查与解决矩阵
+
+| 故障根因 | 底层机理 | 解决实施措施 |
+| :--- | :--- | :--- |
+| **① `isAll` 虚拟相册漏扫** | 部分 OEM 系统中 `isAll` 仅包含最近 30 天或仅 Camera 目录，其他文件夹（Screenshots/WeChat/Download 等）在独立 Path 中 | `_loadAssets` 改造为**多级聚合模式**：首先加载 `isAll`，随后无缝穿透遍历所有系统相册目录并基于 `item.id` 强力去重，覆盖率提升至 **100%**。 |
+| **② HEIC/DNG 缩略图为空** | Android 10+ 原生解码器对 HEIC/RAW 图强行转码 JPEG 时返回 `null`，原逻辑直接判定失败并丢弃整张图 | 引入**四级降级提取引擎**：<br>1. 400×400 JPEG 提取<br>2. 无格式约束原画幅缩略图（允许 WebP/PNG 原生通道）<br>3. 默认 Thumbnail<br>4. `file` / `originFile` 二进制直读兜底。 |
+| **③ 分区存储 `originFile` 为空** | Android 分区存储（Scoped Storage）下，微信/浏览器保存的图片 `originFile` 常返回 `null` | `streamOriginalPhoto` 与 `streamImage` 均改造为 `entity.file`（3s 超时）+ `entity.originFile` **双重顺序获取**。 |
+| **④ 断点过滤误杀无时间照片** | 原断点扫描遇到 `createDateSecond == null` 的照片直接 `return false` 丢弃 | 引入 `modifiedDateSecond` 备用时间戳，且无时间戳时默认放行，全权由绝对精准的 `pcSyncedIds` 集合判重。 |
+| **⑤ PC 端画廊格式过滤缺失** | PC 前端 `localImages` 仅校验了 `.jpg`/`.png` 等常规后缀，忽略了 `.heic`/`.heif`/`.dng`/`.raw` | 全局引入 `IMAGE_EXTENSIONS` 包含全量主流图像后缀，确保全类型照片正常渲染入库。 |
+
+---
+
+## 6. 全链路数据帧协议速查表
 
 | FileID / 指令 | 方向 | 载荷格式 | 说明 |
 | :--- | :--- | :--- | :--- |

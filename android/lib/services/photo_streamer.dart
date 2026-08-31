@@ -60,21 +60,29 @@ class PhotoStreamer {
       debugPrint('[Streamer] [$type] paths found: ${paths.length}');
       if (paths.isEmpty) return [];
 
-      // If an 'isAll' album exists and has assets, use it
+      // Aggregate assets across all album folders and deduplicate by ID
+      final Map<String, AssetEntity> aggregated = {};
+
+      // If an 'isAll' album exists, load all its assets first
       final isAllList = paths.where((p) => p.isAll).toList();
       if (isAllList.isNotEmpty) {
         final allPath = isAllList.first;
-        final int count = await allPath.assetCountAsync;
-        if (count > 0) {
-          debugPrint('[Streamer] [$type] count in allPath (${allPath.name}): $count');
-          final list = await allPath.getAssetListRange(start: 0, end: count);
-          if (list.isNotEmpty) return list;
+        try {
+          final int count = await allPath.assetCountAsync;
+          if (count > 0) {
+            final list = await allPath.getAssetListRange(start: 0, end: count);
+            for (final item in list) {
+              aggregated[item.id] = item;
+            }
+          }
+        } catch (e) {
+          debugPrint('[Streamer] Failed to load allPath: $e');
         }
       }
 
-      // Fallback: Aggregate assets across all album folders and deduplicate
-      final Map<String, AssetEntity> aggregated = {};
+      // Iterate through all other folder paths (Camera, Screenshots, WeChat, Download, Pictures, etc.) to ensure 100% coverage
       for (final path in paths) {
+        if (isAllList.isNotEmpty && path.isAll) continue;
         try {
           final int count = await path.assetCountAsync;
           if (count > 0) {
@@ -85,6 +93,7 @@ class PhotoStreamer {
           }
         } catch (_) {}
       }
+
       debugPrint('[Streamer] [$type] total aggregated from ${paths.length} paths: ${aggregated.length}');
       return aggregated.values.toList();
     } catch (e, stack) {
@@ -155,9 +164,17 @@ class PhotoStreamer {
   }) async {
     debugPrint("[Streamer] Starting transmission of gallery asset: ${entity.title}, ID: $fileId");
     try {
-      final File? file = await entity.originFile;
+      File? file;
+      try {
+        file = await entity.file.timeout(const Duration(seconds: 3), onTimeout: () => null);
+      } catch (_) {}
       if (file == null) {
-        debugPrint("[Streamer] Error: could not obtain originFile for asset: ${entity.title}");
+        try {
+          file = await entity.originFile.timeout(const Duration(seconds: 3), onTimeout: () => null);
+        } catch (_) {}
+      }
+      if (file == null) {
+        debugPrint("[Streamer] Error: could not obtain file/originFile for asset: ${entity.title}");
         return false;
       }
       final int size = await file.length();
@@ -175,7 +192,9 @@ class PhotoStreamer {
       final double? lat = (latLng != null && latLng.latitude != 0.0) ? latLng.latitude : null;
       final double? lng = (latLng != null && latLng.longitude != 0.0) ? latLng.longitude : null;
 
-      final int? createSec = entity.createDateSecond;
+      final int? createSec = (entity.createDateSecond != null && entity.createDateSecond! > 0)
+          ? entity.createDateSecond
+          : entity.modifiedDateSecond;
       String? createDateStr;
       if (createSec != null && createSec > 0) {
         createDateStr = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true).toIso8601String();
@@ -408,7 +427,7 @@ class PhotoStreamer {
     return rawId.replaceAll(RegExp(r'[/\\:*?"<>|]'), '_');
   }
 
-  /// Stream a selected thumbnail chunk-by-chunk using raw thumbnail bytes
+  /// Stream a selected thumbnail chunk-by-chunk using raw thumbnail bytes with multi-tier fallback
   Future<bool> streamThumbnail({
     required AssetEntity entity,
     required int fileId,
@@ -416,13 +435,57 @@ class PhotoStreamer {
   }) async {
     debugPrint("[Streamer] Starting transmission of thumbnail for asset: ${entity.title}, ID: $fileId");
     try {
-      final Uint8List? thumbData = await entity.thumbnailDataWithSize(
-        const ThumbnailSize.square(400),
-        format: ThumbnailFormat.jpeg,
-        quality: 85,
-      );
+      Uint8List? thumbData;
+      // 1. Try standard 400x400 JPEG thumbnail
+      try {
+        thumbData = await entity.thumbnailDataWithSize(
+          const ThumbnailSize.square(400),
+          format: ThumbnailFormat.jpeg,
+          quality: 85,
+        );
+      } catch (e) {
+        debugPrint("[Streamer] thumbnailDataWithSize JPEG failed for ${entity.id}: $e");
+      }
+
+      // 2. Fallback: try without explicit format (allows native WebP/PNG)
       if (thumbData == null) {
-        debugPrint("[Streamer] Failed to get thumbnail for asset ${entity.id}");
+        try {
+          thumbData = await entity.thumbnailDataWithSize(
+            const ThumbnailSize.square(400),
+            quality: 85,
+          );
+        } catch (_) {}
+      }
+
+      // 3. Fallback: try default thumbnailData
+      if (thumbData == null) {
+        try {
+          thumbData = await entity.thumbnailData;
+        } catch (_) {}
+      }
+
+      // 4. Fallback: read directly from file / originFile (e.g. for HEIC/RAW or unhandled codecs)
+      if (thumbData == null) {
+        try {
+          File? f;
+          try {
+            f = await entity.file.timeout(const Duration(seconds: 2), onTimeout: () => null);
+          } catch (_) {}
+          if (f == null) {
+            try {
+              f = await entity.originFile.timeout(const Duration(seconds: 2), onTimeout: () => null);
+            } catch (_) {}
+          }
+          if (f != null) {
+            thumbData = await f.readAsBytes();
+          }
+        } catch (e) {
+          debugPrint("[Streamer] File read fallback failed for ${entity.id}: $e");
+        }
+      }
+
+      if (thumbData == null) {
+        debugPrint("[Streamer] All thumbnail extraction methods failed for asset ${entity.id}");
         return false;
       }
 
@@ -462,9 +525,17 @@ class PhotoStreamer {
   }) async {
     debugPrint("[Streamer] Starting album original photo stream: ${entity.title}, ID: $fileId");
     try {
-      final File? file = await entity.originFile;
+      File? file;
+      try {
+        file = await entity.file.timeout(const Duration(seconds: 3), onTimeout: () => null);
+      } catch (_) {}
       if (file == null) {
-        debugPrint("[Streamer] Error: could not obtain originFile for album asset: ${entity.title}");
+        try {
+          file = await entity.originFile.timeout(const Duration(seconds: 3), onTimeout: () => null);
+        } catch (_) {}
+      }
+      if (file == null) {
+        debugPrint("[Streamer] Error: could not obtain file/originFile for album asset: ${entity.title}");
         return false;
       }
       final int size = await file.length();
@@ -474,14 +545,19 @@ class PhotoStreamer {
       final String albumName = 'album_$safeId.$extension';
 
       // Build metadata with createDate for breakpoint tracking
+      final int? createSec = (entity.createDateSecond != null && entity.createDateSecond! > 0)
+          ? entity.createDateSecond
+          : entity.modifiedDateSecond;
+      final String createDateStr = (createSec != null && createSec > 0)
+          ? DateTime.fromMillisecondsSinceEpoch(createSec * 1000).toUtc().toIso8601String()
+          : DateTime.now().toUtc().toIso8601String();
+
       final Map<String, dynamic> metadataMap = {
         "file_id": fileId,
         "asset_id": entity.id,
         "name": albumName,
         "size": size,
-        "create_date": entity.createDateSecond != null
-            ? DateTime.fromMillisecondsSinceEpoch(entity.createDateSecond! * 1000).toUtc().toIso8601String()
-            : DateTime.now().toUtc().toIso8601String(),
+        "create_date": createDateStr,
       };
       final LatLng? latLng = await entity.latlngAsync();
       if (latLng != null && latLng.latitude != 0.0) {

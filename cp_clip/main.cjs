@@ -2642,7 +2642,7 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
   
   const audioExtensions = ['.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac', '.wma', '.opus'];
   const videoExtensions = ['.mp4', '.mkv', '.mov', '.avi', '.webm', '.flv', '.3gp'];
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif', '.heic', '.heif'];
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif', '.heic', '.heif', '.dng', '.raw'];
   
   let type = 'files';
   if (audioExtensions.includes(ext) || filename.startsWith('audio_')) {
