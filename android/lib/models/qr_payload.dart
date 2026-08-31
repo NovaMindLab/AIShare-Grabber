@@ -8,6 +8,7 @@ class QrPayload {
   final String? hotspotSsid;
   final String? hotspotPassword;
   final List<String>? pcIps;
+  final int httpPort;
 
   QrPayload({
     required this.bleMac,
@@ -17,6 +18,7 @@ class QrPayload {
     this.hotspotSsid,
     this.hotspotPassword,
     this.pcIps,
+    this.httpPort = 15186,
   });
 
   factory QrPayload.fromJson(String jsonStr) {
@@ -27,6 +29,13 @@ class QrPayload {
       parsedIps = List<String>.from(data['pc_ips']);
     }
 
+    int port = 15186;
+    if (data['http_port'] is int) {
+      port = data['http_port'];
+    } else if (data['http_port'] != null) {
+      port = int.tryParse(data['http_port'].toString()) ?? 15186;
+    }
+
     return QrPayload(
       bleMac: data['ble_mac'] ?? '',
       serviceUuid: data['service_uuid'] ?? '',
@@ -35,6 +44,7 @@ class QrPayload {
       hotspotSsid: data['hotspotSsid'],
       hotspotPassword: data['hotspotPassword'],
       pcIps: parsedIps,
+      httpPort: port,
     );
   }
 }

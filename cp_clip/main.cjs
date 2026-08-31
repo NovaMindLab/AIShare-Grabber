@@ -542,6 +542,9 @@ app.whenReady().then(async () => {
   // Start local network UDP discovery
   startUdpDiscoveryService();
 
+  // Start high-speed HTTP TCP signaling service
+  startHttpSignalingServer();
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -1607,13 +1610,31 @@ ipcMain.handle('start-ble-server', async (event) => {
     let resolved = false;
     let macAddress = null;
     let lastBleError = null;
+
+    bleProcess.on('error', (err) => {
+      console.error("[BLE Helper Spawn Error]:", err);
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        reject(err);
+      }
+    });
+
+    bleProcess.on('exit', (code, signal) => {
+      console.log(`[BLE Helper Exited]: code=${code}, signal=${signal}`);
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        reject(new Error(lastBleError || `BLE GATT Server exited with code ${code}`));
+      }
+    });
     
     const timeout = setTimeout(() => {
       if (!resolved) {
         resolved = true;
-        reject(new Error("BLE GATT Server startup timeout (10s)"));
+        reject(new Error(lastBleError || "BLE GATT Server startup timeout (5s)"));
       }
-    }, 10000);
+    }, 5000);
     
     const readline = require('readline');
     const rl = readline.createInterface({
@@ -1637,6 +1658,11 @@ ipcMain.handle('start-ble-server', async (event) => {
 
       if (line.startsWith("ERROR:")) {
         lastBleError = line.substring(6).trim();
+        if (!resolved && (lastBleError.toLowerCase().includes("radio") || lastBleError.toLowerCase().includes("adapter") || lastBleError.toLowerCase().includes("not available") || lastBleError.toLowerCase().includes("failed"))) {
+          resolved = true;
+          clearTimeout(timeout);
+          reject(new Error(lastBleError));
+        }
       } else if (line.startsWith("MAC:")) {
         macAddress = line.substring(4).trim();
       } else if (line.startsWith("STATUS:ADVERTISING")) {
@@ -1651,7 +1677,8 @@ ipcMain.handle('start-ble-server', async (event) => {
             service_uuid,
             char_uuid,
             session_id: pcSessionId,
-            pc_ips: localIps
+            pc_ips: localIps,
+            http_port: httpSignalingPort,
           });
         }
       } else if (line === "STATUS:CONNECTED") {
@@ -3356,6 +3383,152 @@ ipcMain.handle('send-udp-ice', async (event, { ip, candidate }) => {
     }, 50);
     resolve(true);
   });
+});
+
+// ─────────────────────────────────────────────────────────────────
+// 🌐 HIGH-SPEED HTTP / TCP SIGNALING SERVER (FOR NON-BLE & LOW-END PCS)
+// ─────────────────────────────────────────────────────────────────
+const http = require('http');
+let httpServer = null;
+let httpSignalingPort = 15186;
+const pendingSignalRequests = new Map(); // reqId -> res
+
+function startHttpSignalingServer() {
+  if (httpServer) return;
+
+  httpServer = http.createServer((req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const clientIp = req.socket.remoteAddress ? req.socket.remoteAddress.replace(/^.*:/, '') : 'unknown';
+
+    if (req.method === 'GET' && (url.pathname === '/ping' || url.pathname === '/api/status')) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'ok',
+        device_name: require('os').hostname(),
+        device_uuid: getComputerUuid(),
+        session_id: pcSessionId,
+        http_port: httpSignalingPort,
+      }));
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/signal') {
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk;
+        if (body.length > 512 * 1024) {
+          res.writeHead(413, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Payload too large' }));
+          req.destroy();
+        }
+      });
+
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const reqId = 'sig_' + Math.random().toString(36).substring(2, 11);
+          console.log(`[HTTP Signaling] Received ${data.type || 'offer'} from ${clientIp} (ReqId: ${reqId})`);
+
+          if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && !mainWindow.webContents.isDestroyed()) {
+            pendingSignalRequests.set(reqId, res);
+            setTimeout(() => {
+              if (pendingSignalRequests.has(reqId)) {
+                pendingSignalRequests.delete(reqId);
+                if (!res.writableEnded) {
+                  res.writeHead(504, { 'Content-Type': 'application/json' });
+                  res.end(JSON.stringify({ success: false, error: 'Signaling timeout' }));
+                }
+              }
+            }, 8000);
+
+            mainWindow.webContents.send('http-signal-received', {
+              reqId,
+              ip: clientIp,
+              type: data.type || 'offer',
+              sdp: data.sdp,
+              candidates: data.candidates || []
+            });
+          } else {
+            res.writeHead(503, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'PC window not ready' }));
+          }
+        } catch (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/ice') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && !mainWindow.webContents.isDestroyed()) {
+            mainWindow.webContents.send('direct-ice-received', {
+              ip: clientIp,
+              candidate: typeof data.candidate === 'string' ? data.candidate : JSON.stringify(data.candidate)
+            });
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } catch (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
+  });
+
+  httpServer.on('error', (err) => {
+    console.error(`[HTTP Signaling Server Error]: ${err.message}`);
+    if (err.code === 'EADDRINUSE') {
+      httpSignalingPort++;
+      console.log(`[HTTP Signaling Server] Port busy, retrying port ${httpSignalingPort}...`);
+      httpServer.listen(httpSignalingPort);
+    }
+  });
+
+  httpServer.listen(httpSignalingPort, () => {
+    console.log(`[HTTP Signaling Server] Listening on http://0.0.0.0:${httpSignalingPort}`);
+  });
+}
+
+ipcMain.handle('respond-http-signal', (event, { reqId, success, sdp, candidates, error }) => {
+  const res = pendingSignalRequests.get(reqId);
+  if (res) {
+    pendingSignalRequests.delete(reqId);
+    if (!res.writableEnded) {
+      if (success) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, sdp, candidates: candidates || [] }));
+      } else {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: error || 'Failed to generate answer' }));
+      }
+    }
+  }
+  return true;
+});
+
+ipcMain.handle('get-http-signaling-port', () => {
+  return httpSignalingPort;
 });
 
 // ==================== VIDEO ANIMEGAN TRANSFORMATION IPCS ====================

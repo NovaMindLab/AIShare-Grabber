@@ -2,7 +2,7 @@ name: image_clip
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 2.1.5+20105
+version: 2.1.6+20106
 
 environment:
   sdk: ^3.11.1

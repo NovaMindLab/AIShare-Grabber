@@ -14,6 +14,33 @@ class PhotoStreamer {
   /// Standalone constructor — only for gallery scanning, no transmission capability.
   PhotoStreamer.standalone() : syncEngine = null;
 
+  // ── Helper to safely collect assets in batches (prevents Binder TransactionTooLargeException) ──
+  Future<void> _safeCollectPathAssets(
+    AssetPathEntity path,
+    Map<String, AssetEntity> aggregated, {
+    AssetType? filterType,
+  }) async {
+    try {
+      final int count = await path.assetCountAsync;
+      if (count <= 0) return;
+      int start = 0;
+      const int batchSize = 200;
+      while (start < count) {
+        final end = (start + batchSize < count) ? start + batchSize : count;
+        final items = await path.getAssetListRange(start: start, end: end);
+        for (final item in items) {
+          if (filterType != null && item.type != filterType) {
+            continue;
+          }
+          aggregated[item.id] = item;
+        }
+        start = end;
+      }
+    } catch (e) {
+      debugPrint('[Streamer] Safe collect error for path "${path.name}": $e');
+    }
+  }
+
   // ── Generic internal asset loader ──────────────────────────────────────────
   Future<List<AssetEntity>> _loadAssets(RequestType type) async {
     try {
@@ -58,40 +85,39 @@ class PhotoStreamer {
       }
 
       debugPrint('[Streamer] [$type] paths found: ${paths.length}');
-      if (paths.isEmpty) return [];
 
       // Aggregate assets across all album folders and deduplicate by ID
       final Map<String, AssetEntity> aggregated = {};
 
-      // If an 'isAll' album exists, load all its assets first
-      final isAllList = paths.where((p) => p.isAll).toList();
-      if (isAllList.isNotEmpty) {
-        final allPath = isAllList.first;
+      for (final path in paths) {
+        await _safeCollectPathAssets(path, aggregated);
+      }
+
+      // 3. Fallback: If type is RequestType.video and aggregated count is 0 (or paths is empty),
+      // query RequestType.all and filter for AssetType.video across OEM directories
+      if (type == RequestType.video && aggregated.isEmpty) {
+        debugPrint('[Streamer] Video count is 0, attempting fallback via RequestType.all...');
         try {
-          final int count = await allPath.assetCountAsync;
-          if (count > 0) {
-            final list = await allPath.getAssetListRange(start: 0, end: count);
-            for (final item in list) {
-              aggregated[item.id] = item;
-            }
+          final allPaths = await PhotoManager.getAssetPathList(type: RequestType.all);
+          for (final path in allPaths) {
+            await _safeCollectPathAssets(path, aggregated, filterType: AssetType.video);
           }
         } catch (e) {
-          debugPrint('[Streamer] Failed to load allPath: $e');
+          debugPrint('[Streamer] Fallback RequestType.all for videos failed: $e');
         }
       }
 
-      // Iterate through all other folder paths (Camera, Screenshots, WeChat, Download, Pictures, etc.) to ensure 100% coverage
-      for (final path in paths) {
-        if (isAllList.isNotEmpty && path.isAll) continue;
+      // 4. Fallback for Audio if aggregated is empty
+      if (type == RequestType.audio && aggregated.isEmpty) {
+        debugPrint('[Streamer] Audio count is 0, attempting fallback via RequestType.all...');
         try {
-          final int count = await path.assetCountAsync;
-          if (count > 0) {
-            final items = await path.getAssetListRange(start: 0, end: count);
-            for (final item in items) {
-              aggregated[item.id] = item;
-            }
+          final allPaths = await PhotoManager.getAssetPathList(type: RequestType.all);
+          for (final path in allPaths) {
+            await _safeCollectPathAssets(path, aggregated, filterType: AssetType.audio);
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[Streamer] Fallback RequestType.all for audio failed: $e');
+        }
       }
 
       debugPrint('[Streamer] [$type] total aggregated from ${paths.length} paths: ${aggregated.length}');

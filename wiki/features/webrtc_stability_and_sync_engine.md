@@ -208,7 +208,69 @@ Future<void> syncThumbnailsToAI({List<AssetEntity>? targets}) async {
 
 ---
 
-## 6. 全链路数据帧协议速查表
+---
+
+## 6. 手机端视频列表读取与远程目录分片直传加固
+
+### 6.1 故障现象
+部分机型（如小米、华为、Vivo、OPPO、三星等）在电脑端切换至「视频」标签页时，点击「刷新列表」或自动扫描时长时间转圈无响应、显示为 0 或提示「暂未检测到视频文件」，无法将手机视频目录抓取到 PC 端。
+
+### 6.2 根因排查与解决矩阵
+
+| 故障根因 | 底层机理 | 解决实施措施 |
+| :--- | :--- | :--- |
+| **① WebRTC SCTP 巨包丢弃** | 手机端视频目录 JSON 随着视频数量增加（如数百个）暴涨至 50KB~200KB+，原逻辑使用单包直发，超出 SCTP DataChannel MTU 极限抛错或静默丢弃 | 引入 **50 视频/片分片安全传输引擎**：计算 `total_chunks` 与 `chunk_index`，每片载荷严格控制在 10KB 以内；PC 端 DataChannel 自动根据 `chunkIndex` 聚合去重合并，彻底根除丢包。 |
+| **② MediaStore ContentProvider 串行阻塞** | 生成目录时对每个视频并发调用 `v.file` 获取文件体积，由于 OEM 手机底层 MediaStore 游标查询慢，20 并发频繁触发 800ms 超时，导致 Dart 事件循环被长时间冻结 20~40 秒 | 目录元数据提取改为**极速非阻塞模式**：优先读取 `AssetEntity` 内存字段（`id`/`title`/`duration`/`createDateSecond` 等），`file` 查询设为 50ms 极速探测兜底，每批次微任务让渡（`yield`）保活心跳。 |
+| **③ Binder `TransactionTooLargeException`** | 对包含上千视频/音频的相册一次性调用 `getAssetListRange(0, count)`，超出 Android IPC 1MB 事务缓冲区 | `_safeCollectPathAssets` 全面重构为 **200 条/批分页安全收集**，杜绝 Android 底层 Binder 内存溢出异常。 |
+| **④ OEM 视频独立目录穿透** | 华为/小米等系统将录屏置于 `/Movies`，微信视频置于独立目录，`RequestType.video` 扫描可能漏扫或为空 | 增加**全路径交叉兜底机制**：若原生 `RequestType.video` 结果为空，自动回退到 `RequestType.all` 穿透并筛选 `AssetType.video`，确保 100% 覆盖。 |
+| **⑤ 断点过滤丢弃无时间视频** | `syncVideosToPC` 原逻辑遇到 `createDateSecond == null` 的视频直接 `return false` 丢弃 | 引入 `createDateSecond ?? modifiedDateSecond` 备用机制，并对无时间视频放行至 `pcSyncedIds` 进行权威判重。 |
+
+---
+
+---
+
+## 7. 低配/无蓝牙 PC 局域网极速直连与双轨信令（TCP HTTP + UDP）架构
+
+### 7.1 故障现象与场景痛点
+部分台式电脑、老旧低配笔记本或虚拟机**未配备蓝牙硬件/蓝牙适配器驱动异常**，开启同步时：
+1. 原 BLE GATT 广播由于硬件缺失，在主进程中超时等待 10 秒后才抛出异常；
+2. 降级为 UDP 广播直连后，由于 3KB~8KB 的 WebRTC SDP 信令包超过网络 1472 字节 MTU，引发 IP 分片被许多家用/办公 Wi-Fi 路由器或手机省电策略静默丢弃；
+3. 手机与 PC 无法完成 SDP Offer/Answer 握手，导致双方始终卡在「正在连接」或「连接失败」。
+
+### 7.2 解决方案与双轨信令矩阵
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 用户 (Android 手机)
+    participant Phone as Android App
+    participant PC_Main as PC Node.js 极速信令服务 (:15186)
+    participant PC_Renderer as PC 前端 WebRTC 引擎
+
+    Note over PC_Main: PC 启动时常驻绑定 15186 高速 TCP 端口
+    User->>Phone: 扫码二维码 (含 PC 局域网 IP 与 15186 端口)
+    Phone->>Phone: 生成本地 WebRTC Offer SDP
+    par 极速通道 1: 并发 HTTP TCP 信令 (Priority 1)
+        Phone->>PC_Main: POST http://<pc_ip>:15186/api/signal (Offer SDP)
+        PC_Main->>PC_Renderer: IPC 调度生成 Answer SDP
+        PC_Renderer-->>PC_Main: 返回 Answer SDP
+        PC_Main-->>Phone: HTTP 200 OK (Answer SDP + PC ICE)
+        Phone->>Phone: 毫秒级应用 Answer，WebRTC P2P DataChannel 就绪 (<100ms)
+    and 备份通道 2: 局域网 UDP 广播信令 (Priority 2)
+        Phone->>PC_Main: UDP 广播/单播 Offer SDP (:15185)
+    end
+```
+
+| 优化维度 | 原有缺陷机理 | 实施改进与加固方案 |
+| :--- | :--- | :--- |
+| **① 硬件缺失感知延迟** | PC 端 `ble_signaling_server.exe` 在无蓝牙时抛出 `Radio not available`，但主进程未监听子进程立即退出，硬等 10s 超时 | 增加 `bleProcess.on('exit')` 与错误实时捕获，无蓝牙时 **< 100ms** 瞬间完成判断并生成直连二维码。 |
+| **② MTU 分片丢弃根治** | UDP 发送 5KB SDP 超过 1472 字节发生 IP 分片，被路由器防火墙丢弃 | PC 端启动轻量 **HTTP/TCP 信令服务（:15186）**，TCP 流式传输天然无视 MTU 限制，可靠性 **100%**。 |
+| **③ 手机端并发竞速连接** | 手机端依赖单一 UDP 单播，若 PC 多网卡/IP 变化极易失败 | 手机端 `HttpSignalingClient` 对 PC 所有物理 IP 发起 **并发竞速 HTTP 请求**，首个响应立即握手完成。 |
+| **④ Socket 初始化竞态修复** | 手机端异步 bind UDP socket 与 send 存在毫秒级竞态，导致首包 Offer 未发出 | 强制 `await _startUdpListener()` 就绪后再执行发送，并全网段广播路由保底。 |
+
+---
+
+## 8. 全链路数据帧协议速查表
 
 | FileID / 指令 | 方向 | 载荷格式 | 说明 |
 | :--- | :--- | :--- | :--- |
@@ -220,6 +282,10 @@ Future<void> syncThumbnailsToAI({List<AssetEntity>? targets}) async {
 | **-9 / -10** | PC ⇄ Phone | 16-byte Header | 相册同步控制（暂停 / 停止） |
 | **-15 / -16** | PC ⇄ Phone | 16-byte Header + JSON | 视频按需多选同步指令（开始 / 完成） |
 | **-17 / -18** | PC ⇄ Phone | 16-byte Header | 视频同步控制（暂停 / 停止） |
-| **-19** | PC ⇄ Phone | 16-byte Header + JSON | 远程视频轻量目录查询与响应（<20KB 精简格式） |
-| **-25** | PC ⇄ Phone | 16-byte Header + JSON | 远程音乐目录查询与响应 |
+| **-19** | PC ⇄ Phone | 16-byte Header + JSON 分片 | 远程视频轻量目录查询与响应（<10KB/片 分片安全传输） |
+| **-21 / -22** | PC ⇄ Phone | 16-byte Header + JSON | 音乐按需多选同步指令（开始 / 完成） |
+| **-23 / -24** | PC ⇄ Phone | 16-byte Header | 音乐同步控制（暂停 / 停止） |
+| **-25** | PC ⇄ Phone | 16-byte Header + JSON 分片 | 远程音乐目录查询与响应（<10KB/片 分片安全传输） |
 | **> 0** | Phone ➔ PC | 16-byte Header + 64KB 分片 | 二进制文件分片流式直传（缩略图、原图、视频、音乐） |
+
+

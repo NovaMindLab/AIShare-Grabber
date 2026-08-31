@@ -12,6 +12,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/qr_payload.dart';
 import '../services/ble_signaling_client.dart';
+import '../services/http_signaling_client.dart';
 import '../services/webrtc_sync_engine.dart';
 import '../services/photo_streamer.dart';
 import 'package:wifi_iot/wifi_iot.dart';
@@ -177,14 +178,14 @@ class SyncViewModel extends ChangeNotifier {
     _lastScannedPayload = payload;
     
     if (payload.pcIps != null && payload.pcIps!.isNotEmpty) {
-      logMessage("QR Code contains PC IPs. Attempting ultra-fast Wi-Fi Direct UDP Signaling...");
+      logMessage("⚡ 扫描到电脑 IP (${payload.pcIps!.join(', ')}，HTTP 端口: ${payload.httpPort})，启动极速局域网直连信令...");
       appState = AppState.connectingWebRtc;
       notifyListeners();
       _initializeWebRtc(isUdpFallback: true);
       
       Timer(const Duration(seconds: 12), () {
         if (appState != AppState.connected && appState != AppState.failed) {
-          logMessage("Wi-Fi Direct timeout (12s). Falling back to BLE Signaling...");
+          logMessage("局域网直连超时 (12s)。正在尝试回退至蓝牙信令...");
           cleanup();
           appState = AppState.connectingBle;
           notifyListeners();
@@ -199,7 +200,7 @@ class SyncViewModel extends ChangeNotifier {
           } else if (payload.hotspotSsid != null) {
             _triggerHotspotFallback(payload);
           } else {
-            errorMsg = "Wi-Fi Direct 失败且无备用连接方式";
+            errorMsg = "局域网直连失败且当前电脑无可用蓝牙";
             appState = AppState.failed;
             notifyListeners();
           }
@@ -209,7 +210,7 @@ class SyncViewModel extends ChangeNotifier {
     }
 
     if (payload.bleMac.isEmpty && payload.hotspotSsid != null) {
-      logMessage("QR Code indicates no BLE support. Triggering Wi-Fi Hotspot mode directly...");
+      logMessage("二维码指示无蓝牙支持，正在自动连接电脑热点...");
       _triggerHotspotFallback(payload);
       return;
     }
@@ -400,7 +401,7 @@ class SyncViewModel extends ChangeNotifier {
     _initializeWebRtc(isUdpFallback: true); 
   }
 
-  void _startUdpListener() async {
+  Future<void> _startUdpListener() async {
     // Guard: don't rebind if already listening
     if (_udpSocket != null) return;
     try {
@@ -475,6 +476,9 @@ class SyncViewModel extends ChangeNotifier {
   }
 
   Future<void> _sendUdp(Map<String, dynamic> payload) async {
+    if (_udpSocket == null) {
+      await _startUdpListener();
+    }
     if (_udpSocket == null) return;
     final payloadWithSender = Map<String, dynamic>.from(payload);
     if (deviceUuid != null) {
@@ -488,24 +492,20 @@ class SyncViewModel extends ChangeNotifier {
       targets.addAll(_lastScannedPayload!.pcIps!);
     }
 
-    final bool isDirectSignaling = payload['type'] == 'ShareCLIP_Direct_Sdp' || payload['type'] == 'ShareCLIP_Direct_Ice';
+    targets.add('255.255.255.255');
+    targets.add('192.168.137.1');
+    targets.add('192.168.43.1');
 
-    if (!isDirectSignaling) {
-      targets.add('255.255.255.255');
-      targets.add('192.168.137.1');
-      targets.add('192.168.43.1');
-
-      try {
-        final String? ip = await WiFiForIoTPlugin.getIP();
-        if (ip != null && ip.contains('.')) {
-          final parts = ip.split('.');
-          if (parts.length == 4) {
-            final prefix = '${parts[0]}.${parts[1]}.${parts[2]}';
-            targets.add('$prefix.255');
-          }
+    try {
+      final String? ip = await WiFiForIoTPlugin.getIP();
+      if (ip != null && ip.contains('.')) {
+        final parts = ip.split('.');
+        if (parts.length == 4) {
+          final prefix = '${parts[0]}.${parts[1]}.${parts[2]}';
+          targets.add('$prefix.255');
         }
-      } catch (_) {}
-    }
+      }
+    } catch (_) {}
 
     for (var ipStr in targets) {
       try {
@@ -550,6 +550,15 @@ class SyncViewModel extends ChangeNotifier {
     _syncEngine = WebRtcSyncEngine(
       onLocalIceCandidate: (localCandidate) async {
         if (isUdpFallback) {
+          if (_lastScannedPayload?.pcIps != null && _lastScannedPayload!.pcIps!.isNotEmpty) {
+            for (final ip in _lastScannedPayload!.pcIps!) {
+              HttpSignalingClient.sendIceCandidate(
+                ip: ip,
+                port: _lastScannedPayload!.httpPort,
+                candidate: localCandidate,
+              );
+            }
+          }
           _sendUdpIce(localCandidate);
         } else {
           await _bleClient.sendIceCandidate(
@@ -835,9 +844,9 @@ class SyncViewModel extends ChangeNotifier {
                 logMessage("📹 Found ${localVideos.length} videos in device MediaStore.");
 
                 final List<Map<String, dynamic>> catalog = [];
-                // Process video catalog metadata in parallel chunks of 20
-                for (int i = 0; i < localVideos.length; i += 20) {
-                  final end = (i + 20 < localVideos.length) ? i + 20 : localVideos.length;
+                // Process video catalog metadata in fast batches of 50 without blocking isolate
+                for (int i = 0; i < localVideos.length; i += 50) {
+                  final end = (i + 50 < localVideos.length) ? i + 50 : localVideos.length;
                   final chunk = localVideos.sublist(i, end);
                   final chunkResults = await Future.wait(chunk.map((v) async {
                     final int? createSec = (v.createDateSecond != null && v.createDateSecond! > 0)
@@ -852,7 +861,8 @@ class SyncViewModel extends ChangeNotifier {
 
                     int size = 0;
                     try {
-                      final file = await v.file.timeout(const Duration(milliseconds: 800), onTimeout: () => null);
+                      // Fast non-blocking check with 50ms timeout; default to 0 if not cached or slow
+                      final file = await v.file.timeout(const Duration(milliseconds: 50), onTimeout: () => null);
                       if (file != null) {
                         size = await file.length();
                       }
@@ -874,21 +884,57 @@ class SyncViewModel extends ChangeNotifier {
                     };
                   }));
                   catalog.addAll(chunkResults);
+                  // Yield event loop between batches so WebRTC heartbeats and UI never get blocked
+                  await Future.delayed(Duration.zero);
                 }
-                
-                final respStr = jsonEncode({ "videos": catalog });
-                final respBytes = utf8.encode(respStr);
-                final respHeader = ByteData(16);
-                respHeader.setInt32(0, -19, Endian.big);
-                respHeader.setInt32(4, 0, Endian.big);
-                respHeader.setInt32(8, catalog.length, Endian.big);
-                respHeader.setInt32(12, respBytes.length, Endian.big);
 
-                final respPacket = Uint8List(16 + respBytes.length);
-                respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
-                respPacket.setRange(16, respPacket.length, respBytes);
-                await _syncEngine?.sendBinary(respPacket);
-                logMessage("✅ Sent video catalog with ${catalog.length} videos to PC.");
+                if (catalog.isEmpty) {
+                  final respStr = jsonEncode({ "videos": [], "chunk_index": 0, "total_chunks": 1, "total_count": 0 });
+                  final respBytes = utf8.encode(respStr);
+                  final respHeader = ByteData(16);
+                  respHeader.setInt32(0, -19, Endian.big);
+                  respHeader.setInt32(4, 0, Endian.big);
+                  respHeader.setInt32(8, 1, Endian.big);
+                  respHeader.setInt32(12, respBytes.length, Endian.big);
+
+                  final respPacket = Uint8List(16 + respBytes.length);
+                  respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
+                  respPacket.setRange(16, respPacket.length, respBytes);
+                  await _syncEngine?.sendBinary(respPacket);
+                  logMessage("✅ Sent empty video catalog to PC.");
+                  return;
+                }
+
+                // Chunk into safe 50-video batches to ensure MTU safety (< 10KB per packet)
+                const int batchSize = 50;
+                final int totalChunks = (catalog.length / batchSize).ceil();
+                for (int chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
+                  final start = chunkIdx * batchSize;
+                  final end = (start + batchSize < catalog.length) ? start + batchSize : catalog.length;
+                  final chunkList = catalog.sublist(start, end);
+
+                  final respStr = jsonEncode({
+                    "videos": chunkList,
+                    "chunk_index": chunkIdx,
+                    "total_chunks": totalChunks,
+                    "total_count": catalog.length,
+                  });
+                  final respBytes = utf8.encode(respStr);
+                  final respHeader = ByteData(16);
+                  respHeader.setInt32(0, -19, Endian.big);
+                  respHeader.setInt32(4, chunkIdx, Endian.big);
+                  respHeader.setInt32(8, totalChunks, Endian.big);
+                  respHeader.setInt32(12, respBytes.length, Endian.big);
+
+                  final respPacket = Uint8List(16 + respBytes.length);
+                  respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
+                  respPacket.setRange(16, respPacket.length, respBytes);
+                  await _syncEngine?.sendBinary(respPacket);
+                  if (totalChunks > 1) {
+                    await Future.delayed(const Duration(milliseconds: 15));
+                  }
+                }
+                logMessage("✅ Sent video catalog with ${catalog.length} videos ($totalChunks chunks) to PC.");
               } catch (e) {
                 logMessage("❌ Error scanning/sending video catalog: $e");
               }
@@ -954,9 +1000,9 @@ class SyncViewModel extends ChangeNotifier {
                 logMessage("🎵 Found ${localAudios.length} audio tracks in device MediaStore.");
 
                 final List<Map<String, dynamic>> catalog = [];
-                // Process audio catalog metadata in parallel chunks of 20
-                for (int i = 0; i < localAudios.length; i += 20) {
-                  final end = (i + 20 < localAudios.length) ? i + 20 : localAudios.length;
+                // Process audio catalog metadata in fast batches of 50 without blocking isolate
+                for (int i = 0; i < localAudios.length; i += 50) {
+                  final end = (i + 50 < localAudios.length) ? i + 50 : localAudios.length;
                   final chunk = localAudios.sublist(i, end);
                   final chunkResults = await Future.wait(chunk.map((a) async {
                     final int? createSec = (a.createDateSecond != null && a.createDateSecond! > 0)
@@ -971,7 +1017,7 @@ class SyncViewModel extends ChangeNotifier {
 
                     int size = 0;
                     try {
-                      final file = await a.file.timeout(const Duration(milliseconds: 800), onTimeout: () => null);
+                      final file = await a.file.timeout(const Duration(milliseconds: 50), onTimeout: () => null);
                       if (file != null) {
                         size = await file.length();
                       }
@@ -993,21 +1039,56 @@ class SyncViewModel extends ChangeNotifier {
                     };
                   }));
                   catalog.addAll(chunkResults);
+                  await Future.delayed(Duration.zero);
                 }
 
-                final respStr = jsonEncode({ "audios": catalog });
-                final respBytes = utf8.encode(respStr);
-                final respHeader = ByteData(16);
-                respHeader.setInt32(0, -25, Endian.big);
-                respHeader.setInt32(4, 0, Endian.big);
-                respHeader.setInt32(8, catalog.length, Endian.big);
-                respHeader.setInt32(12, respBytes.length, Endian.big);
+                if (catalog.isEmpty) {
+                  final respStr = jsonEncode({ "audios": [], "chunk_index": 0, "total_chunks": 1, "total_count": 0 });
+                  final respBytes = utf8.encode(respStr);
+                  final respHeader = ByteData(16);
+                  respHeader.setInt32(0, -25, Endian.big);
+                  respHeader.setInt32(4, 0, Endian.big);
+                  respHeader.setInt32(8, 1, Endian.big);
+                  respHeader.setInt32(12, respBytes.length, Endian.big);
 
-                final respPacket = Uint8List(16 + respBytes.length);
-                respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
-                respPacket.setRange(16, respPacket.length, respBytes);
-                await _syncEngine?.sendBinary(respPacket);
-                logMessage("✅ Sent audio catalog with ${catalog.length} tracks to PC.");
+                  final respPacket = Uint8List(16 + respBytes.length);
+                  respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
+                  respPacket.setRange(16, respPacket.length, respBytes);
+                  await _syncEngine?.sendBinary(respPacket);
+                  logMessage("✅ Sent empty audio catalog to PC.");
+                  return;
+                }
+
+                // Chunk into safe 50-audio batches to ensure MTU safety (< 10KB per packet)
+                const int batchSize = 50;
+                final int totalChunks = (catalog.length / batchSize).ceil();
+                for (int chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
+                  final start = chunkIdx * batchSize;
+                  final end = (start + batchSize < catalog.length) ? start + batchSize : catalog.length;
+                  final chunkList = catalog.sublist(start, end);
+
+                  final respStr = jsonEncode({
+                    "audios": chunkList,
+                    "chunk_index": chunkIdx,
+                    "total_chunks": totalChunks,
+                    "total_count": catalog.length,
+                  });
+                  final respBytes = utf8.encode(respStr);
+                  final respHeader = ByteData(16);
+                  respHeader.setInt32(0, -25, Endian.big);
+                  respHeader.setInt32(4, chunkIdx, Endian.big);
+                  respHeader.setInt32(8, totalChunks, Endian.big);
+                  respHeader.setInt32(12, respBytes.length, Endian.big);
+
+                  final respPacket = Uint8List(16 + respBytes.length);
+                  respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
+                  respPacket.setRange(16, respPacket.length, respBytes);
+                  await _syncEngine?.sendBinary(respPacket);
+                  if (totalChunks > 1) {
+                    await Future.delayed(const Duration(milliseconds: 15));
+                  }
+                }
+                logMessage("✅ Sent audio catalog with ${catalog.length} tracks ($totalChunks chunks) to PC.");
               } catch (e) {
                 logMessage("❌ Error scanning/sending audio catalog: $e");
               }
@@ -1107,8 +1188,38 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
 
       if (isUdpFallback) {
+         await _startUdpListener();
+         
+         // 1. High-Speed HTTP/TCP Direct Signaling (Priority 1 for Non-BLE & LAN devices)
+         if (_lastScannedPayload?.pcIps != null && _lastScannedPayload!.pcIps!.isNotEmpty) {
+           logMessage("⚡ 正在通过局域网极速 TCP 信令握手连接 PC (${_lastScannedPayload!.pcIps!.join(', ')})...");
+           final httpPort = _lastScannedPayload!.httpPort;
+           HttpSignalingClient.exchangeSdp(
+             targetIps: _lastScannedPayload!.pcIps!,
+             port: httpPort,
+             offerSdp: offerSdp,
+           ).then((httpResult) {
+             if (httpResult != null && httpResult['sdp'] != null && appState != AppState.connected) {
+               logMessage("🎉 局域网极速信令握手成功！耗时 < 100ms");
+               _handleRemoteAnswer(httpResult['sdp'].toString());
+               if (httpResult['candidates'] is List) {
+                 for (final c in httpResult['candidates']) {
+                   try {
+                     final candMap = c is Map<String, dynamic> ? c : jsonDecode(c.toString());
+                     _syncEngine?.addRemoteIceCandidate(
+                       candMap['sdpMid']?.toString() ?? '',
+                       candMap['sdpMLineIndex'] is int ? candMap['sdpMLineIndex'] : 0,
+                       candMap['candidate']?.toString() ?? '',
+                     );
+                   } catch (_) {}
+                 }
+               }
+             }
+           });
+         }
+
+         // 2. Dual-Track UDP Signaling (Priority 2)
          logMessage("Sending UDP Offer SDP to PC...");
-         _startUdpListener();
          _sendUdpSdp(offerSdp, 'offer');
          appState = AppState.waitingForAnswer;
          notifyListeners();
@@ -1803,9 +1914,11 @@ class SyncViewModel extends ChangeNotifier {
         toSync = allVideos.where((v) => targetIds.contains(v.id)).toList();
       } else if (targetDate != null && targetDate.isNotEmpty) {
         toSync = allVideos.where((v) {
-          final createMs = v.createDateSecond;
-          if (createMs == null) return false;
-          final dStr = DateTime.fromMillisecondsSinceEpoch(createMs * 1000, isUtc: true).toIso8601String().substring(0, 10);
+          final int? createSec = (v.createDateSecond != null && v.createDateSecond! > 0)
+              ? v.createDateSecond
+              : v.modifiedDateSecond;
+          if (createSec == null || createSec <= 0) return false;
+          final dStr = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true).toIso8601String().substring(0, 10);
           return dStr == targetDate;
         }).toList();
       } else if (lastVideoSyncDate.isNotEmpty && !forceFullScan) {
@@ -1815,9 +1928,11 @@ class SyncViewModel extends ChangeNotifier {
         } catch (_) {}
         if (breakpoint != null) {
           toSync = allVideos.where((v) {
-            final createMs = v.createDateSecond;
-            if (createMs == null) return false;
-            final createDt = DateTime.fromMillisecondsSinceEpoch(createMs * 1000, isUtc: true);
+            final int? createSec = (v.createDateSecond != null && v.createDateSecond! > 0)
+                ? v.createDateSecond
+                : v.modifiedDateSecond;
+            if (createSec == null || createSec <= 0) return true; // Keep undated videos for pcSyncedIds check
+            final createDt = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true);
             return createDt.isAfter(breakpoint!);
           }).toList();
         }
@@ -2022,7 +2137,7 @@ class SyncViewModel extends ChangeNotifier {
             final createMs = (a.createDateSecond != null && a.createDateSecond! > 0)
                 ? a.createDateSecond
                 : a.modifiedDateSecond;
-            if (createMs == null || createMs == 0) return false;
+            if (createMs == null || createMs == 0) return true; // Keep undated audio tracks for pcSyncedIds check
             final createDt = DateTime.fromMillisecondsSinceEpoch(createMs * 1000, isUtc: true);
             return createDt.isAfter(breakpoint!);
           }).toList();

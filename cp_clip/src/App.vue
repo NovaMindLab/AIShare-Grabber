@@ -4950,15 +4950,21 @@ async function toggleSyncService() {
     syncLogs.value = []; // Reset log view
     logSyncEvent("正在开启同步服务，启动本地 BLE GATT 广播...");
     if (hasApi) {
+      let httpPort = 15186;
+      try {
+        httpPort = await window.api.getHttpSignalingPort();
+      } catch (_) {}
+
       try {
         const payload = await window.api.startBleServer();
+        payload.http_port = httpPort;
         if (hotspotSsid.value && hotspotPassword.value) {
           payload.hotspotSsid = hotspotSsid.value;
           payload.hotspotPassword = hotspotPassword.value;
         }
         qrPayload.value = payload;
         syncStatus.value = 'advertising';
-        logSyncEvent(`GATT 广播成功! MAC: ${payload.ble_mac}, Session: ${payload.session_id}`);
+        logSyncEvent(`GATT 广播成功! MAC: ${payload.ble_mac}, Session: ${payload.session_id}, HTTP Port: ${httpPort}`);
         await nextTick();
         if (qrCanvas.value) {
           QRCode.toCanvas(qrCanvas.value, JSON.stringify(payload), { width: 140, margin: 1 }, (error) => {
@@ -4967,7 +4973,7 @@ async function toggleSyncService() {
         }
       } catch (err) {
         logSyncEvent(`⚠️ BLE GATT 广播受限: ${err.message || err}`);
-        logSyncEvent('⚡ 自动降级为【局域网 Wi-Fi 直连模式】，生成直连二维码...');
+        logSyncEvent('⚡ 自动降级为【高速局域网 Wi-Fi 直连模式】，生成直连二维码...');
         
         let localIps = [];
         let sessId = '1001';
@@ -4984,12 +4990,13 @@ async function toggleSyncService() {
           char_uuid: '',
           session_id: sessId || '1001',
           pc_ips: localIps,
+          http_port: httpPort,
           hotspotSsid: hotspotSsid.value || '',
           hotspotPassword: hotspotPassword.value || ''
         };
         qrPayload.value = fallbackPayload;
         syncStatus.value = 'advertising'; // Keep active to render QR code for mobile scanning
-        logSyncEvent(`Wi-Fi 直连二维码已就绪! IP: ${localIps.join(', ') || '局域网自动探测'}`);
+        logSyncEvent(`Wi-Fi 直连二维码已就绪! IP: ${localIps.join(', ') || '局域网自动探测'} (HTTP Port: ${httpPort})`);
         await nextTick();
         if (qrCanvas.value) {
           QRCode.toCanvas(qrCanvas.value, JSON.stringify(fallbackPayload), { width: 140, margin: 1 }, (error) => {
@@ -5353,16 +5360,25 @@ function setupDataChannel(channel) {
       return;
     }
 
-    // fileId = -19: Remote video catalog response
+    // fileId = -19: Remote video catalog response (supports single packet and multi-chunk packet)
     if (fileId === -19) {
+      const chunkIndex = view.getInt32(4, false);
+      const totalChunks = view.getInt32(8, false);
       const payloadSize = view.getInt32(12, false);
       const payloadBytes = new Uint8Array(arrayBuffer, 16, payloadSize);
       const decoder = new TextDecoder('utf-8');
       const payloadStr = decoder.decode(payloadBytes);
       try {
         const data = JSON.parse(payloadStr);
-        remoteVideoCatalog.value = data.videos || [];
-        logSyncEvent(`📋 收到手机端视频目录，共发现 ${remoteVideoCatalog.value.length} 个远程视频`);
+        const incomingVideos = data.videos || [];
+        if (chunkIndex === 0 || totalChunks <= 1) {
+          remoteVideoCatalog.value = incomingVideos;
+        } else {
+          const existingIds = new Set(remoteVideoCatalog.value.map(v => v.id));
+          const newVideos = incomingVideos.filter(v => !existingIds.has(v.id));
+          remoteVideoCatalog.value = [...remoteVideoCatalog.value, ...newVideos];
+        }
+        logSyncEvent(`📋 收到手机端视频目录 [${chunkIndex + 1}/${Math.max(totalChunks, 1)}]，共发现 ${remoteVideoCatalog.value.length} 个远程视频`);
       } catch (err) {
         console.error("Failed to parse video catalog:", err);
       }
@@ -5392,16 +5408,25 @@ function setupDataChannel(channel) {
       return;
     }
 
-    // fileId = -25: Remote audio catalog response
+    // fileId = -25: Remote audio catalog response (supports single packet and multi-chunk packet)
     if (fileId === -25) {
+      const chunkIndex = view.getInt32(4, false);
+      const totalChunks = view.getInt32(8, false);
       const payloadSize = view.getInt32(12, false);
       const payloadBytes = new Uint8Array(arrayBuffer, 16, payloadSize);
       const decoder = new TextDecoder('utf-8');
       const payloadStr = decoder.decode(payloadBytes);
       try {
         const data = JSON.parse(payloadStr);
-        remoteAudioCatalog.value = data.audios || [];
-        logSyncEvent(`📋 收到手机端音乐目录，共发现 ${remoteAudioCatalog.value.length} 首音乐`);
+        const incomingAudios = data.audios || [];
+        if (chunkIndex === 0 || totalChunks <= 1) {
+          remoteAudioCatalog.value = incomingAudios;
+        } else {
+          const existingIds = new Set(remoteAudioCatalog.value.map(a => a.id));
+          const newAudios = incomingAudios.filter(a => !existingIds.has(a.id));
+          remoteAudioCatalog.value = [...remoteAudioCatalog.value, ...newAudios];
+        }
+        logSyncEvent(`📋 收到手机端音乐目录 [${chunkIndex + 1}/${Math.max(totalChunks, 1)}]，共发现 ${remoteAudioCatalog.value.length} 首音乐`);
       } catch (err) {
         console.error("Failed to parse audio catalog:", err);
       }
@@ -6140,6 +6165,74 @@ onMounted(() => {
         }
       } catch (_) {}
     });
+
+    // 11.1 High-Speed HTTP/TCP WebRTC Signaling Received
+    if (window.api.onHttpSignalReceived) {
+      window.api.onHttpSignalReceived(async ({ reqId, ip, type, sdp, candidates }) => {
+        logSyncEvent(`🌐 [HTTP] 收到 WebRTC ${type} 自 ${ip}`);
+        activePeerIp.value = ip;
+        if (syncStatus.value !== 'connected') {
+          syncStatus.value = 'handshaking';
+          startHandshakeTimeout();
+        }
+
+        if (type === 'offer') {
+          try {
+            if (!peerConnection || peerConnection.signalingState === 'closed') {
+              const configuration = { iceServers: [] };
+              peerConnection = new RTCPeerConnection(configuration);
+              setupPeerConnectionListeners(peerConnection);
+              peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                  window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
+                }
+              };
+              peerConnection.ondatachannel = (event) => {
+                if (event.channel.label === 'photo_sync') {
+                  dataChannel = event.channel;
+                  setupDataChannel(dataChannel);
+                }
+              };
+            }
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            if (Array.isArray(candidates)) {
+              for (const c of candidates) {
+                try {
+                  const candObj = typeof c === 'string' ? JSON.parse(c) : c;
+                  await peerConnection.addIceCandidate(new RTCIceCandidate(candObj));
+                } catch (_) {}
+              }
+            }
+
+            if (pendingDirectIceCandidates.length > 0) {
+              for (const cand of pendingDirectIceCandidates) {
+                try { await peerConnection.addIceCandidate(cand); } catch (_) {}
+              }
+              pendingDirectIceCandidates.length = 0;
+            }
+
+            logSyncEvent(`🌐 成功通过 HTTP 响应 Answer SDP 到 ${ip}`);
+            await window.api.respondHttpSignal({
+              reqId,
+              success: true,
+              sdp: answer.sdp,
+              candidates: []
+            });
+          } catch (err) {
+            console.error("[WebRTC HTTP] Error handling offer:", err);
+            await window.api.respondHttpSignal({
+              reqId,
+              success: false,
+              error: err.message
+            });
+          }
+        }
+      });
+    }
 
     // 12. Face Scan progress (Throttled via RAF for silky smooth 60fps rendering)
     let pendingFaceProgressData = null;

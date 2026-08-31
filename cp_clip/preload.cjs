@@ -88,6 +88,14 @@ contextBridge.exposeInMainWorld('api', {
   sendUdpSdp: (ip, sdp, sdpType) => ipcRenderer.invoke('send-udp-sdp', { ip, sdp, sdpType }),
   sendUdpIce: (ip, candidate) => ipcRenderer.invoke('send-udp-ice', { ip, candidate }),
 
+  // HTTP High-Speed TCP Signaling APIs
+  onHttpSignalReceived: (callback) => {
+    ipcRenderer.removeAllListeners('http-signal-received');
+    ipcRenderer.on('http-signal-received', (event, data) => callback(data));
+  },
+  respondHttpSignal: (data) => ipcRenderer.invoke('respond-http-signal', data),
+  getHttpSignalingPort: () => ipcRenderer.invoke('get-http-signaling-port'),
+
   // Reclassify AI analysis for photos
   reclassifyAllPhonePhotos: () => ipcRenderer.invoke('reclassify-all-phone-photos'),
   
