@@ -3535,9 +3535,120 @@ ipcMain.handle('get-http-signaling-port', () => {
 const VideoAnimeConverter = require('./src/workers/video-anime-converter.cjs');
 let activeAnimeConverter = null;
 
+function resolveFFmpegPaths() {
+  const isWin = process.platform === 'win32';
+  const ffmpegExe = isWin ? 'ffmpeg.exe' : 'ffmpeg';
+  const ffprobeExe = isWin ? 'ffprobe.exe' : 'ffprobe';
+
+  const candidateDirs = [
+    path.join(process.resourcesPath || __dirname, 'bin'),
+    path.join(__dirname, 'bin'),
+    path.join(process.resourcesPath || __dirname),
+    path.join(__dirname),
+    path.join(typeof app !== 'undefined' && app.getAppPath ? app.getAppPath() : __dirname, 'bin')
+  ];
+
+  if (isWin) {
+    if (process.env.LOCALAPPDATA) {
+      candidateDirs.push(
+        path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Links'),
+        path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Packages')
+      );
+    }
+    if (process.env.USERPROFILE) {
+      candidateDirs.push(
+        path.join(process.env.USERPROFILE, 'scoop', 'shims'),
+        path.join(process.env.USERPROFILE, 'scoop', 'apps', 'ffmpeg', 'current', 'bin')
+      );
+    }
+    candidateDirs.push(
+      'C:\\ProgramData\\chocolatey\\bin',
+      'C:\\ffmpeg\\bin',
+      'C:\\Program Files\\ffmpeg\\bin'
+    );
+  }
+
+  let resolvedFfmpeg = null;
+  let resolvedFfprobe = null;
+
+  for (const dir of candidateDirs) {
+    if (!resolvedFfmpeg) {
+      const f = path.join(dir, ffmpegExe);
+      if (fs.existsSync(f)) resolvedFfmpeg = f;
+    }
+    if (!resolvedFfprobe) {
+      const f = path.join(dir, ffprobeExe);
+      if (fs.existsSync(f)) resolvedFfprobe = f;
+    }
+  }
+
+  return {
+    ffmpegPath: resolvedFfmpeg || (process.env.FFMPEG_PATH || 'ffmpeg'),
+    ffprobePath: resolvedFfprobe || (process.env.FFPROBE_PATH || 'ffprobe')
+  };
+}
+
+function resolveAnimeModelPath(style) {
+  const filename = `animegan_${style}.onnx`;
+  const candidates = [
+    path.join(__dirname, filename),
+    path.join(process.resourcesPath || __dirname, filename),
+    path.join(process.resourcesPath || __dirname, 'app.asar.unpacked', filename),
+    path.join(typeof app !== 'undefined' && app.getAppPath ? app.getAppPath() : __dirname, filename)
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return path.join(__dirname, filename);
+}
+
+ipcMain.handle('video-anime:check-env', async () => {
+  const { ffmpegPath, ffprobePath } = resolveFFmpegPaths();
+  const styles = ['hayao', 'shinkai', 'paprika', 'portrait'];
+  const modelStatus = {};
+  for (const s of styles) {
+    const p = resolveAnimeModelPath(s);
+    modelStatus[s] = fs.existsSync(p);
+  }
+
+  const cp = require('child_process');
+  let ffprobeReady = false;
+  try {
+    await new Promise((resolve, reject) => {
+      const p = cp.spawn(ffprobePath, ['-version']);
+      p.on('close', code => code === 0 ? resolve() : reject());
+      p.on('error', reject);
+    });
+    ffprobeReady = true;
+  } catch (_) {
+    ffprobeReady = false;
+  }
+
+  let ffmpegReady = false;
+  try {
+    await new Promise((resolve, reject) => {
+      const p = cp.spawn(ffmpegPath, ['-version']);
+      p.on('close', code => code === 0 ? resolve() : reject());
+      p.on('error', reject);
+    });
+    ffmpegReady = true;
+  } catch (_) {
+    ffmpegReady = false;
+  }
+
+  return {
+    success: true,
+    ffmpegReady: ffmpegReady && ffprobeReady,
+    ffmpegPath,
+    ffprobePath,
+    modelStatus
+  };
+});
+
 ipcMain.handle('video-anime:get-info', async (event, videoPath) => {
   try {
-    const converter = new VideoAnimeConverter();
+    const { ffmpegPath, ffprobePath } = resolveFFmpegPaths();
+    const converter = new VideoAnimeConverter({ ffmpegPath, ffprobePath });
     const info = await converter.probeVideo(videoPath);
     return { success: true, data: info };
   } catch (err) {
@@ -3586,18 +3697,12 @@ ipcMain.handle('video-anime:start', async (event, params) => {
       activeAnimeConverter.cancel();
     }
 
-    activeAnimeConverter = new VideoAnimeConverter();
+    const { ffmpegPath, ffprobePath } = resolveFFmpegPaths();
+    activeAnimeConverter = new VideoAnimeConverter({ ffmpegPath, ffprobePath });
 
-    // Check model path
-    let modelPath = path.join(__dirname, `animegan_${style}.onnx`);
+    const modelPath = resolveAnimeModelPath(style);
     if (!fs.existsSync(modelPath)) {
-      const altPath = path.join(process.resourcesPath || __dirname, `animegan_${style}.onnx`);
-      if (fs.existsSync(altPath)) modelPath = altPath;
-    }
-
-    // If model file doesn't exist locally, we can fallback to mobileclip/det model or create a lightweight placeholder test
-    if (!fs.existsSync(modelPath)) {
-      console.warn(`[Video Anime] Model animegan_${style}.onnx not found locally at ${modelPath}`);
+      throw new Error(`画风模型文件 animegan_${style}.onnx 未找到，请检查模型完整性`);
     }
 
     const result = await activeAnimeConverter.convert({

@@ -80,6 +80,8 @@ Implemented and upcoming feature specifications:
 
 | Version | Date | Highlights |
 |---|---|---|
+| **v2.1.7** | 2026-09-01 | **短视频动漫化 (AnimeGAN) 全机型跨端兼容性加固**：<br>① **补齐 ONNX 模型打包白名单**：在 `package.json` 加入 `animegan_*.onnx`，根除打包发布后客户端缺失画风模型问题；<br>② **DirectML GPU ➔ CPU 运行时热降级**：逐帧推理时自动捕获 DirectML 驱动级抖动与显存不足异常，无缝热切换为 CPU 多线程推理，任务永不中断；<br>③ **FFmpeg 智能全路径探针与自检提示**：智能检索软件内置 bin/、WinGet、Scoop、Chocolatey 及系统 PATH，并在缺少编解码器时提供一键安装指令与环境告警；<br>④ **张量排布锁定 NHWC**：固定标准 `[1, H, W, 3]` 格式，彻底消除动态尺寸探测偶发异常。 |
+| **v2.1.6** | 2026-08-30 | **全机型视频目录抓取优化与非蓝牙低配电脑高速 HTTP/TCP 信令支持**。 |
 | **v2.1.5** | 2026-08-28 | **跨平台 Asset ID 安全清洗与文件落盘保底**：<br>① **根除华为/小米等机型同步显示一直为 0 故障**：增加 `PhotoStreamer.sanitizeId`，自动过滤 `AssetEntity.id` 中的路径与冒号等 Windows 非法字符，杜绝 `fs.writeFileSync` 抛出 `ENOENT`/`EINVAL` 导致落盘失败；<br>② **PC 端落盘保底机制**：递归创建目标目录并集成 `try...catch` 异常安全重定向存储；<br>③ **相册原图 `type` 属性透传**：确保相册页 `albumBackupImages` 与图片页 `localImages` 计数精准自增。 |
 | **v2.1.4** | 2026-08-28 | **国产全机型视频目录穿透与 AI 同步防假死**：<br>① **视频目录轻量化 (<20KB)**：移除视频目录中的 Base64 缩略图，杜绝单包超 64KB 触发 WebRTC SCTP MTU 静默丢弃，耗时由 20s 降至 <300ms；<br>② **全机型相册穿透聚合**：修复 OPPO / Vivo 等机型视频存放于 Camera/Movies 导致的漏扫问题；<br>③ **AI 同步 8 秒防呆超时**：相册为空或无权限时发送 `-1` 结束包，PC 端 8 秒未响应自动重置并解锁 UI 按钮。 |
 | **v2.1.3** | 2026-08-28 | **高负载 AI 计算下的 WebRTC 心跳稳定性加固**：<br>① **解除 Chromium 后台节能限流**（`backgroundThrottling: false`）；<br>② **主进程高精度原生心跳时钟**，彻底解耦 Vue 组件渲染阻塞；<br>③ **人脸扫描与重分类分批 Yield 释放事件循环**（`await setTimeout(100ms)`）；<br>④ **聚类数据库分块写入**（200 条/事务 + 50ms 缓冲）；<br>⑤ **移除业务层超时自杀逻辑**，由 WebRTC C++ 原生状态机接管；<br>⑥ **Android 原生屏幕常亮锁**（`FLAG_KEEP_SCREEN_ON`）。 |

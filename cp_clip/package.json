@@ -1,7 +1,7 @@
 {
   "name": "shareclip",
   "private": true,
-  "version": "2.1.6",
+  "version": "2.1.7",
   "description": "ShareCLIP PC Client",
   "author": "ShareCLIP Team",
   "type": "module",
@@ -60,6 +60,7 @@
       "mobileclip2_s0_text_encoder_quant.onnx",
       "det_500m.onnx",
       "w600k_mbf.onnx",
+      "animegan_*.onnx",
       "package.json",
       "icon.png",
       "icon.ico",

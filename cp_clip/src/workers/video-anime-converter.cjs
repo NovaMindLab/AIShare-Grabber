@@ -25,6 +25,7 @@ class VideoAnimeConverter {
     this.decodeProcess = null;
     this.encodeProcess = null;
     this.session = null;
+    this.isGpuMode = false;
     this.tempFiles = [];
   }
 
@@ -44,7 +45,13 @@ class VideoAnimeConverter {
         videoPath
       ];
 
-      const proc = spawn(this.ffprobePath, args);
+      let proc;
+      try {
+        proc = spawn(this.ffprobePath, args);
+      } catch (err) {
+        return reject(new Error(`Failed to spawn ffprobe (${this.ffprobePath}): ${err.message}`));
+      }
+
       let stdout = '';
       let stderr = '';
 
@@ -98,7 +105,7 @@ class VideoAnimeConverter {
         }
       });
 
-      proc.on('error', err => reject(err));
+      proc.on('error', err => reject(new Error(`ffprobe error (${this.ffprobePath}): ${err.message}`)));
     });
   }
 
@@ -116,7 +123,12 @@ class VideoAnimeConverter {
         '-of', 'json',
         videoPath
       ];
-      const proc = spawn(this.ffprobePath, args);
+      let proc;
+      try {
+        proc = spawn(this.ffprobePath, args);
+      } catch (_) {
+        return resolve(false);
+      }
       let stdout = '';
       proc.stdout.on('data', chunk => { stdout += chunk; });
       proc.on('close', code => {
@@ -139,8 +151,8 @@ class VideoAnimeConverter {
    * Calculate 32-pixel aligned dimensions with aspect ratio preservation
    */
   computeTargetDimensions(srcWidth, srcHeight, maxDimension = 480) {
-    let w = srcWidth;
-    let h = srcHeight;
+    let w = srcWidth || 640;
+    let h = srcHeight || 360;
     const maxEdge = Math.max(w, h);
 
     if (maxEdge > maxDimension) {
@@ -153,7 +165,7 @@ class VideoAnimeConverter {
       }
     }
 
-    // Force dimensions to be multiples of 32 for optimal neural network processing
+    // Force dimensions to be multiples of 32 for neural network processing & H.264 compatibility
     w = Math.max(32, Math.floor(w / 32) * 32);
     h = Math.max(32, Math.floor(h / 32) * 32);
 
@@ -173,15 +185,48 @@ class VideoAnimeConverter {
         '-b:a', '192k',
         tempAudioPath
       ];
-      const proc = spawn(this.ffmpegPath, args);
+      let proc;
+      try {
+        proc = spawn(this.ffmpegPath, args);
+      } catch (err) {
+        return reject(new Error(`Failed to spawn ffmpeg for audio extraction: ${err.message}`));
+      }
       this.tempFiles.push(tempAudioPath);
+
+      let stderr = '';
+      proc.stderr.on('data', c => { stderr += c; });
 
       proc.on('close', code => {
         if (code === 0) resolve();
-        else reject(new Error(`Audio extraction failed with code ${code}`));
+        else reject(new Error(`Audio extraction failed with code ${code}: ${stderr}`));
       });
       proc.on('error', err => reject(err));
     });
+  }
+
+  /**
+   * Initialize ONNX Runtime Inference Session (DirectML with CPU fallback)
+   */
+  async initSession(modelPath) {
+    try {
+      const sessionOptions = {
+        executionProviders: ['dml', 'cpu'],
+        graphOptimizationLevel: 'all',
+        enableCpuMemArena: true
+      };
+      this.session = await ort.InferenceSession.create(modelPath, sessionOptions);
+      this.isGpuMode = true;
+      console.log(`[Video Anime] Initialized DirectML/GPU session for ${path.basename(modelPath)}`);
+    } catch (e) {
+      console.warn(`[Video Anime] DirectML initialization failed (${e.message}), falling back to CPU`);
+      this.session = await ort.InferenceSession.create(modelPath, {
+        executionProviders: ['cpu'],
+        graphOptimizationLevel: 'all',
+        intraOpNumThreads: Math.max(1, Math.min(os.cpus().length, 8))
+      });
+      this.isGpuMode = false;
+      console.log(`[Video Anime] Initialized CPU session for ${path.basename(modelPath)}`);
+    }
   }
 
   /**
@@ -205,7 +250,10 @@ class VideoAnimeConverter {
     } = params;
 
     if (!fs.existsSync(inputPath)) {
-      throw new Error(`Input video not found: ${inputPath}`);
+      throw new Error(`输入视频文件不存在: ${inputPath}`);
+    }
+    if (!fs.existsSync(modelPath)) {
+      throw new Error(`AnimeGAN 模型文件不存在: ${modelPath}`);
     }
 
     // 1. Probe video metadata
@@ -237,43 +285,17 @@ class VideoAnimeConverter {
       try {
         await this.extractAudio(inputPath, tempAudioPath);
       } catch (e) {
-        console.warn('Audio extraction warning:', e);
+        console.warn('[Video Anime] Audio extraction warning:', e.message);
       }
     }
 
     // 3. Initialize ONNX Runtime Inference Session
-    try {
-      const sessionOptions = {
-        executionProviders: ['dml', 'cpu'],
-        graphOptimizationLevel: 'all',
-        enableCpuMemArena: true
-      };
-      this.session = await ort.InferenceSession.create(modelPath, sessionOptions);
-    } catch (e) {
-      // Fallback to pure CPU if DirectML fails on specific GPU drivers
-      console.warn('DirectML init failed, falling back to CPU:', e.message);
-      this.session = await ort.InferenceSession.create(modelPath, {
-        executionProviders: ['cpu'],
-        graphOptimizationLevel: 'all',
-        intraOpNumThreads: Math.max(1, Math.min(os.cpus().length, 8))
-      });
-    }
+    await this.initSession(modelPath);
 
     const inputName = this.session.inputNames[0];
     const outputName = this.session.outputNames[0];
 
-    // 4. Determine Model Tensor Layout (NHWC vs NCHW)
-    let isNHWC = true;
-    try {
-      // Test run with dummy 32x32 frame to reliably detect input tensor layout
-      const testNHWC = new ort.Tensor('float32', new Float32Array(1 * 32 * 32 * 3), [1, 32, 32, 3]);
-      await this.session.run({ [inputName]: testNHWC });
-      isNHWC = true;
-    } catch (_) {
-      isNHWC = false;
-    }
-
-    // 5. Spawn FFmpeg Decode & Encode Processes
+    // 4. Spawn FFmpeg Decode & Encode Processes
     // Decode: Video -> raw rgb24 via stdout
     const decodeArgs = [
       '-y',
@@ -283,7 +305,17 @@ class VideoAnimeConverter {
       '-pix_fmt', 'rgb24',
       '-'
     ];
-    this.decodeProcess = spawn(this.ffmpegPath, decodeArgs);
+    try {
+      this.decodeProcess = spawn(this.ffmpegPath, decodeArgs);
+    } catch (err) {
+      this.cleanup();
+      throw new Error(`无法启动 FFmpeg 解码器 (${this.ffmpegPath}): ${err.message}`);
+    }
+
+    let decodeStderr = '';
+    this.decodeProcess.stderr.on('data', chunk => {
+      decodeStderr += chunk.toString();
+    });
 
     // Encode: raw rgb24 via stdin -> Video MP4
     const encodeArgs = [
@@ -299,19 +331,29 @@ class VideoAnimeConverter {
       '-crf', '20',
       tempVideoOnlyPath
     ];
-    this.encodeProcess = spawn(this.ffmpegPath, encodeArgs);
+    try {
+      this.encodeProcess = spawn(this.ffmpegPath, encodeArgs);
+    } catch (err) {
+      this.cleanup();
+      throw new Error(`无法启动 FFmpeg 编码器 (${this.ffmpegPath}): ${err.message}`);
+    }
+
+    let encodeStderr = '';
+    this.encodeProcess.stderr.on('data', chunk => {
+      encodeStderr += chunk.toString();
+    });
 
     // Setup Process Error & Exit Handlers
     let encodeFinishedPromise = new Promise((resolve, reject) => {
       this.encodeProcess.on('close', code => {
         if (code === 0) resolve();
-        else if (!this.isCancelled) reject(new Error(`Encode process exited with code ${code}`));
+        else if (!this.isCancelled) reject(new Error(`Encode process exited with code ${code}: ${encodeStderr.slice(-400)}`));
         else resolve();
       });
       this.encodeProcess.on('error', err => reject(err));
     });
 
-    // 6. Streaming Frame Pipeline with Stride & Backpressure
+    // 5. Streaming Frame Pipeline with Stride & Backpressure
     let bufferRemainder = Buffer.alloc(0);
     let processedFrames = 0;
     let rawFrameIndex = 0;
@@ -326,7 +368,6 @@ class VideoAnimeConverter {
     // Reuse input Float32Array tensor memory to prevent GC churn
     const inputTensorData = new Float32Array(3 * framePixelCount);
     const outputUint8Buffer = Buffer.allocUnsafe(frameByteSize);
-    const planeSize = framePixelCount;
 
     for await (const chunk of this.decodeProcess.stdout) {
       if (this.isCancelled) break;
@@ -342,45 +383,45 @@ class VideoAnimeConverter {
         const shouldRunInference = (rawFrameIndex % stride === 0) || !hasCachedOutput;
 
         if (shouldRunInference) {
-          if (isNHWC) {
-            // Preprocessing for NHWC [1, H, W, 3]
-            for (let i = 0; i < frameByteSize; i++) {
-              inputTensorData[i] = (rawFrame[i] * (1.0 / 127.5)) - 1.0;
-            }
-            const inputTensor = new ort.Tensor('float32', inputTensorData, [1, targetHeight, targetWidth, 3]);
+          // Preprocessing for NHWC [1, H, W, 3] with [-1.0, 1.0] scaling
+          for (let i = 0; i < frameByteSize; i++) {
+            inputTensorData[i] = (rawFrame[i] * (1.0 / 127.5)) - 1.0;
+          }
+          const inputTensor = new ort.Tensor('float32', inputTensorData, [1, targetHeight, targetWidth, 3]);
+          
+          let outData = null;
+          try {
             const results = await this.session.run({ [inputName]: inputTensor });
-            const outData = results[outputName].data; // Float32Array
-            const isNormalized = Math.abs(outData[0]) <= 2.5;
-
-            // Postprocessing for NHWC [1, H, W, 3]
-            for (let i = 0; i < frameByteSize; i++) {
-              const val = isNormalized ? ((outData[i] + 1.0) * 127.5) : outData[i];
-              outputUint8Buffer[i] = val < 0 ? 0 : (val > 255 ? 255 : (val | 0));
-            }
-          } else {
-            // Preprocessing for NCHW [1, 3, H, W]
-            for (let i = 0; i < planeSize; i++) {
-              const idx = i * 3;
-              inputTensorData[i] = (rawFrame[idx] * (1.0 / 127.5)) - 1.0;
-              inputTensorData[planeSize + i] = (rawFrame[idx + 1] * (1.0 / 127.5)) - 1.0;
-              inputTensorData[2 * planeSize + i] = (rawFrame[idx + 2] * (1.0 / 127.5)) - 1.0;
-            }
-            const inputTensor = new ort.Tensor('float32', inputTensorData, [1, 3, targetHeight, targetWidth]);
-            const results = await this.session.run({ [inputName]: inputTensor });
-            const outData = results[outputName].data;
-            const isNormalized = Math.abs(outData[0]) <= 2.5;
-
-            // Postprocessing for NCHW [1, 3, H, W]
-            for (let i = 0; i < planeSize; i++) {
-              let r = isNormalized ? (outData[i] + 1.0) * 127.5 : outData[i];
-              let g = isNormalized ? (outData[planeSize + i] + 1.0) * 127.5 : outData[planeSize + i];
-              let b = isNormalized ? (outData[2 * planeSize + i] + 1.0) * 127.5 : outData[2 * planeSize + i];
-
-              outputUint8Buffer[i * 3] = r < 0 ? 0 : (r > 255 ? 255 : (r | 0));
-              outputUint8Buffer[i * 3 + 1] = g < 0 ? 0 : (g > 255 ? 255 : (g | 0));
-              outputUint8Buffer[i * 3 + 2] = b < 0 ? 0 : (b > 255 ? 255 : (b | 0));
+            outData = results[outputName].data;
+          } catch (inferErr) {
+            // DirectML GPU Driver Recovery: Seamlessly hot-switch to CPU and retry
+            if (this.isGpuMode) {
+              console.warn('[Video Anime] DirectML GPU runtime error, falling back to CPU:', inferErr.message);
+              this.isGpuMode = false;
+              if (this.session) {
+                try { await this.session.release(); } catch (_) {}
+              }
+              this.session = await ort.InferenceSession.create(modelPath, {
+                executionProviders: ['cpu'],
+                graphOptimizationLevel: 'all',
+                intraOpNumThreads: Math.max(1, Math.min(os.cpus().length, 8))
+              });
+              const results = await this.session.run({ [inputName]: inputTensor });
+              outData = results[outputName].data;
+            } else {
+              throw inferErr;
             }
           }
+
+          const isNormalized = Math.abs(outData[0]) <= 2.5;
+
+          // Postprocessing for NHWC [1, H, W, 3]
+          const outLen = Math.min(frameByteSize, outData.length);
+          for (let i = 0; i < outLen; i++) {
+            const val = isNormalized ? ((outData[i] + 1.0) * 127.5) : outData[i];
+            outputUint8Buffer[i] = val < 0 ? 0 : (val > 255 ? 255 : (val | 0));
+          }
+
           hasCachedOutput = true;
           actualAiFrames++;
         }
@@ -416,14 +457,17 @@ class VideoAnimeConverter {
             etaSeconds,
             stage: 'transforming',
             stride,
-            actualAiFrames
+            actualAiFrames,
+            isGpuMode: this.isGpuMode
           });
         }
       }
     }
 
     // Finish writing to encoder
-    this.encodeProcess.stdin.end();
+    if (this.encodeProcess && this.encodeProcess.stdin) {
+      this.encodeProcess.stdin.end();
+    }
     await encodeFinishedPromise;
 
     if (this.isCancelled) {
@@ -449,8 +493,12 @@ class VideoAnimeConverter {
     return new Promise((resolve, reject) => {
       // Ensure target folder exists
       const targetDir = path.dirname(outputPath);
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
+      try {
+        if (!fs.existsSync(targetDir)) {
+          fs.mkdirSync(targetDir, { recursive: true });
+        }
+      } catch (e) {
+        return reject(new Error(`无法创建输出目录 (${targetDir}): ${e.message}`));
       }
 
       const args = ['-y', '-i', videoPath];
@@ -461,10 +509,19 @@ class VideoAnimeConverter {
       }
       args.push(outputPath);
 
-      const proc = spawn(this.ffmpegPath, args);
+      let proc;
+      try {
+        proc = spawn(this.ffmpegPath, args);
+      } catch (err) {
+        return reject(new Error(`无法启动 FFmpeg 进行音视频混流: ${err.message}`));
+      }
+
+      let stderr = '';
+      proc.stderr.on('data', c => { stderr += c; });
+
       proc.on('close', code => {
         if (code === 0) resolve();
-        else reject(new Error(`Muxing failed with code ${code}`));
+        else reject(new Error(`混流输出失败 (code ${code}): ${stderr.slice(-400)}`));
       });
       proc.on('error', err => reject(err));
     });

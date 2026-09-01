@@ -17,6 +17,29 @@
         </div>
 
         <div class="anime-studio-content">
+          <!-- Environment Warning Banner (if FFmpeg missing) -->
+          <div v-if="envChecked && !ffmpegAvailable" class="anime-env-alert">
+            <div class="env-alert-icon">⚠️</div>
+            <div class="env-alert-content">
+              <div class="env-alert-title">未检测到 FFmpeg 视频编解码组件（无法直接转换视频）</div>
+              <div class="env-alert-desc">
+                视频逐帧动漫化与音轨混流依赖 FFmpeg。请通过以下方式之一快速启用：
+              </div>
+              <div class="env-alert-cmd-row">
+                <code>winget install Gyan.FFmpeg</code>
+                <button class="copy-cmd-btn" @click="copyFfmpegCmd">
+                  {{ copiedCmd ? '✓ 已复制命令' : '📋 复制安装命令 (PowerShell)' }}
+                </button>
+                <button class="recheck-btn" @click="checkEnvironment">
+                  🔄 重新检测
+                </button>
+              </div>
+              <div class="env-alert-tip">
+                💡 也可以直接下载 <code>ffmpeg.exe</code> 和 <code>ffprobe.exe</code> 放入本软件安装目录下的 <code>bin/</code> 文件夹。
+              </div>
+            </div>
+          </div>
+
           <!-- Left Column: Source Video Info & Preview -->
           <div class="anime-left-panel">
             <div class="video-preview-card">
@@ -259,13 +282,19 @@ const isError = ref(false);
 const statusMessage = ref('');
 const convertResult = ref(null);
 
+// FFmpeg Environment state
+const envChecked = ref(false);
+const ffmpegAvailable = ref(true);
+const copiedCmd = ref(false);
+
 const progressData = ref({
   currentFrame: 0,
   totalFrames: 0,
   percent: 0,
   fps: 0,
   etaSeconds: 0,
-  stage: 'idle'
+  stage: 'idle',
+  isGpuMode: false
 });
 
 const estimatedFpsText = computed(() => {
@@ -333,10 +362,34 @@ const styles = ref([
   }
 ]);
 
+async function checkEnvironment() {
+  if (window.api?.checkVideoAnimeEnv) {
+    try {
+      const res = await window.api.checkVideoAnimeEnv();
+      envChecked.value = true;
+      if (res && res.success) {
+        ffmpegAvailable.value = !!res.ffmpegReady;
+      }
+    } catch (_) {
+      envChecked.value = true;
+    }
+  }
+}
+
+function copyFfmpegCmd() {
+  const cmd = 'winget install Gyan.FFmpeg';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(cmd);
+    copiedCmd.value = true;
+    setTimeout(() => { copiedCmd.value = false; }, 3000);
+  }
+}
+
 // Watch for video prop changes to load metadata
 watch(() => props.video, async (newVal) => {
   if (newVal) {
     resetState();
+    await checkEnvironment();
     await loadVideoMetadata();
   }
 }, { immediate: true });
@@ -352,9 +405,17 @@ async function loadVideoMetadata() {
       statusMessage.value = '';
     } else {
       statusMessage.value = res?.error || '无法读取视频元数据';
+      if (res?.error && (res.error.includes('ENOENT') || res.error.includes('spawn'))) {
+        ffmpegAvailable.value = false;
+        envChecked.value = true;
+      }
     }
   } catch (err) {
     statusMessage.value = '探测失败: ' + err.message;
+    if (err.message && (err.message.includes('ENOENT') || err.message.includes('spawn'))) {
+      ffmpegAvailable.value = false;
+      envChecked.value = true;
+    }
   } finally {
     isLoadingInfo.value = false;
   }
@@ -372,12 +433,14 @@ function resetState() {
     percent: 0,
     fps: 0,
     etaSeconds: 0,
-    stage: 'idle'
+    stage: 'idle',
+    isGpuMode: false
   };
 }
 
 // Progress listener registration
 onMounted(() => {
+  checkEnvironment();
   if (window.api?.onVideoAnimeProgress) {
     window.api.onVideoAnimeProgress((data) => {
       if (data) {
@@ -389,6 +452,11 @@ onMounted(() => {
 
 async function startConversion() {
   if (!props.video?.path || !window.api?.startVideoAnime) return;
+  if (!ffmpegAvailable.value) {
+    alert('未检测到 FFmpeg 视频编解码器，请先根据提示安装或配置 FFmpeg 后再进行转换。');
+    return;
+  }
+
   isConverting.value = true;
   isError.value = false;
   statusMessage.value = '🚀 正在初始化神经网络模型与编码管道...';
@@ -929,5 +997,85 @@ function handleClose() {
 .btn-cancel:hover {
   background: #ef4444 !important;
   color: #fff !important;
+}
+
+/* Environment Warning Banner */
+.anime-env-alert {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 14px;
+  margin-bottom: 8px;
+  align-items: flex-start;
+}
+.env-alert-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.env-alert-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.env-alert-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fbbf24;
+}
+.env-alert-desc {
+  font-size: 11.5px;
+  color: #e2e8f0;
+  line-height: 1.4;
+}
+.env-alert-cmd-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 4px 0;
+}
+.env-alert-cmd-row code {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #38bdf8;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.copy-cmd-btn {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.copy-cmd-btn:hover {
+  background: #38bdf8;
+  color: #0f172a;
+}
+.recheck-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.recheck-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.env-alert-tip {
+  font-size: 10.5px;
+  color: var(--text-secondary, #94a3b8);
 }
 </style>

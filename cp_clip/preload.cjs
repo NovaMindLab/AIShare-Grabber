@@ -157,6 +157,7 @@ contextBridge.exposeInMainWorld('api', {
   },
 
   // Video AnimeGAN Transformation APIs
+  checkVideoAnimeEnv: () => ipcRenderer.invoke('video-anime:check-env'),
   getVideoAnimeInfo: (videoPath) => ipcRenderer.invoke('video-anime:get-info', videoPath),
   getVideoAnimeStyles: () => ipcRenderer.invoke('video-anime:get-styles'),
   startVideoAnime: (params) => ipcRenderer.invoke('video-anime:start', params),
