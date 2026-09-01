@@ -40,6 +40,7 @@
     "build":  {
                   "appId":  "com.shareclip.album.sync",
                   "productName":  "ShareCLIP",
+                  "copyright":  "Copyright 2026 ShareCLIP Team",
                   "electronLanguages":  [
                                             "zh-CN",
                                             "en-US"
@@ -112,6 +113,8 @@
                                   "repo":  "AIShare-Grabber"
                               },
                   "win":  {
+                              "executableName":  "ShareCLIP",
+                              "signAndEditExecutable":  false,
                               "icon":  "build/icon.ico",
                               "target":  [
                                              "nsis"
