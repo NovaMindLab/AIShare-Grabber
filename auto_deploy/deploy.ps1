@@ -197,6 +197,8 @@ if (-not [string]::IsNullOrWhiteSpace($MixpanelToken)) {
     $env:VITE_MIXPANEL_TOKEN = $MixpanelToken
     Write-Host "🔒 Injected Mixpanel Token into Desktop build" -ForegroundColor Gray
 }
+Remove-Item -Path "dist_electron" -Recurse -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 1
 npm run build
 npm run dist
 $env:VITE_MIXPANEL_TOKEN = $null
@@ -220,9 +222,9 @@ Remove-Item -Path "build/app/outputs/flutter-apk/*.apk" -Force -ErrorAction Sile
 
 if (-not [string]::IsNullOrWhiteSpace($MixpanelToken)) {
     Write-Host "🔒 Injected Mixpanel Token into Android build" -ForegroundColor Gray
-    & $FlutterCmd build apk --release --target-platform android-arm64 --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=$MixpanelToken
+    & $FlutterCmd build apk --release --target-platform android-arm,android-arm64 --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=$MixpanelToken
 } else {
-    & $FlutterCmd build apk --release --target-platform android-arm64 --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons
+    & $FlutterCmd build apk --release --target-platform android-arm,android-arm64 --build-name $VersionOnly --build-number $CalcBuildNumber --no-tree-shake-icons
 }
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Android compilation failed!"
