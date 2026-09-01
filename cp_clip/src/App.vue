@@ -449,15 +449,55 @@
                   </button>
                 </div>
 
-                <!-- Reclassify progress details -->
-                <div v-if="isReclassifying" style="font-size: 9px; color: var(--text-muted); text-align: left; display: flex; flex-direction: column; gap: 3px; background: rgba(255,255,255,0.01); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.03); width: 100%; box-sizing: border-box;">
-                  <div style="display: flex; justify-content: space-between;">
-                    <span>进度:</span>
-                    <span style="color: var(--text-primary); font-weight: 600;">{{ reclassifyProgress.done }} / {{ reclassifyProgress.total }}</span>
+                <!-- Reclassify progress details & Latency Stats -->
+                <div 
+                  v-if="isReclassifying || reclassifyStats.completedAt" 
+                  style="font-size: 10px; color: var(--text-muted); text-align: left; display: flex; flex-direction: column; gap: 4px; background: rgba(16, 185, 129, 0.04); padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.18); width: 100%; box-sizing: border-box; transition: all 0.3s ease;"
+                >
+                  <!-- Row 1: Title & Progress Counter -->
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; font-size: 10px;">
+                      <span v-if="isReclassifying" class="spinner" style="width: 10px; height: 10px; border-width: 1.5px; border-color: #10b981; border-top-color: transparent;"></span>
+                      <span v-else style="font-size: 11px;">✅</span>
+                      <span>{{ isReclassifying ? 'AI 重算分析中' : 'AI 计算已完成' }}</span>
+                    </span>
+                    <span style="color: #10b981; font-weight: 700; font-family: monospace; font-size: 11px;">
+                      {{ reclassifyProgress.done }} / {{ reclassifyProgress.total || reclassifyStats.totalCount }}
+                    </span>
                   </div>
-                  <div style="display: flex; justify-content: space-between;">
-                    <span>已用/预计:</span>
-                    <span style="color: #10b981; font-weight: 600;">{{ reclassifyElapsedTime }} / {{ reclassifyRemainingTime }}</span>
+
+                  <!-- Row 2: Mini Progress Bar -->
+                  <div v-if="isReclassifying" style="width: 100%; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; margin: 1px 0;">
+                    <div 
+                      style="height: 100%; background: linear-gradient(90deg, #10b981, #06b6d4); transition: width 0.2s;" 
+                      :style="{ width: ((reclassifyProgress.done / (reclassifyProgress.total || 1)) * 100) + '%' }"
+                    ></div>
+                  </div>
+
+                  <!-- Row 3: Latency stats (单张 ms & 平均 ms) -->
+                  <div style="display: flex; justify-content: space-between; font-family: monospace; font-size: 9.5px; background: rgba(0, 0, 0, 0.25); padding: 4px 8px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.04);">
+                    <span style="color: var(--text-secondary);">
+                      ⚡ 单张: <strong style="color: #38bdf8;">{{ reclassifyProgress.singleMs || reclassifyStats.lastSingleMs || 0 }} ms</strong>
+                    </span>
+                    <span style="color: var(--text-secondary);">
+                      📊 平均: <strong style="color: #34d399;">{{ reclassifyProgress.avgMs || reclassifyStats.avgMs || 0 }} ms/张</strong>
+                    </span>
+                  </div>
+
+                  <!-- Row 4: Elapsed & Total time -->
+                  <div style="display: flex; justify-content: space-between; font-size: 9.5px; padding: 0 2px;">
+                    <span v-if="isReclassifying" style="color: var(--text-muted);">
+                      ⏱️ 已用: <strong style="color: #10b981;">{{ reclassifyElapsedTime }}</strong>
+                    </span>
+                    <span v-else style="color: var(--text-muted);">
+                      ⏱️ 总计花费时间: <strong style="color: #10b981; font-weight: 700;">{{ reclassifyStats.totalTimeText }}</strong>
+                    </span>
+                    <span v-if="isReclassifying" style="color: var(--text-muted);">
+                      预计剩余: <strong style="color: #f59e0b;">{{ reclassifyRemainingTime }}</strong>
+                    </span>
+                    <span v-else style="color: var(--text-muted); font-size: 9px;">
+                      完成于 {{ reclassifyStats.completedAt }}
+                    </span>
                   </div>
                 </div>
 
@@ -988,11 +1028,11 @@
               <span class="spinner"></span>
               <div class="sync-progress-text">
                 <div class="sync-progress-title">
-                  <span>{{ t.videos?.syncingTitle ? t.videos.syncingTitle.replace('{done}', videoSyncDone).replace('{total}', videoSyncTotal) : `正在高速下载视频... (${videoSyncDone} / ${videoSyncTotal})` }}</span>
-                  <span class="sync-percent">{{ videoSyncTotal > 0 ? Math.round((videoSyncDone / videoSyncTotal) * 100) : 0 }}%</span>
+                  <span>{{ currentVideoSyncTitle }}</span>
+                  <span class="sync-percent">{{ currentVideoSyncPercent }}%</span>
                 </div>
                 <div class="sync-progress-track">
-                  <div class="sync-progress-bar" :style="{ width: `${videoSyncTotal > 0 ? Math.round((videoSyncDone / videoSyncTotal) * 100) : 0}%` }"></div>
+                  <div class="sync-progress-bar" :style="{ width: `${currentVideoSyncPercent}%` }"></div>
                 </div>
               </div>
             </div>
@@ -1219,11 +1259,11 @@
               <span class="spinner"></span>
               <div class="sync-progress-text">
                 <div class="sync-progress-title">
-                  <span>{{ t.audios?.syncingTitle ? t.audios.syncingTitle.replace('{done}', audioSyncDone).replace('{total}', audioSyncTotal) : `正在高速下载音乐... (${audioSyncDone} / ${audioSyncTotal})` }}</span>
-                  <span class="sync-percent">{{ audioSyncTotal > 0 ? Math.round((audioSyncDone / audioSyncTotal) * 100) : 0 }}%</span>
+                  <span>{{ currentAudioSyncTitle }}</span>
+                  <span class="sync-percent">{{ currentAudioSyncPercent }}%</span>
                 </div>
                 <div class="sync-progress-track">
-                  <div class="sync-progress-bar" :style="{ width: `${audioSyncTotal > 0 ? Math.round((audioSyncDone / audioSyncTotal) * 100) : 0}%` }"></div>
+                  <div class="sync-progress-bar" :style="{ width: `${currentAudioSyncPercent}%` }"></div>
                 </div>
               </div>
             </div>
@@ -3211,6 +3251,33 @@ const videoSyncDone = ref(0);
 const videoSyncTotal = ref(0);
 const activePlayingVideo = ref(null);
 
+const currentVideoSyncPercent = computed(() => {
+  if (videoSyncTotal.value <= 0) return 0;
+  let activeProg = 0;
+  if (incomingTransfer.value && incomingTransfer.value.name) {
+    const isVid = incomingTransfer.value.name.startsWith('video_') || /\.(mp4|mkv|mov|avi|webm)$/i.test(incomingTransfer.value.name);
+    if (isVid && incomingTransfer.value.progress > 0) {
+      activeProg = Math.min(0.99, incomingTransfer.value.progress);
+    }
+  }
+  const effective = videoSyncDone.value + activeProg;
+  return Math.min(100, Math.round((effective / videoSyncTotal.value) * 100));
+});
+
+const currentVideoSyncTitle = computed(() => {
+  if (!isVideoSyncing.value) return '';
+  if (incomingTransfer.value && incomingTransfer.value.name) {
+    const isVid = incomingTransfer.value.name.startsWith('video_') || /\.(mp4|mkv|mov|avi|webm)$/i.test(incomingTransfer.value.name);
+    if (isVid && incomingTransfer.value.progress > 0) {
+      const chunkPct = Math.round(incomingTransfer.value.progress * 100);
+      return `正在传输视频: ${incomingTransfer.value.name} (${videoSyncDone.value}/${videoSyncTotal.value}) · ${chunkPct}%`;
+    }
+  }
+  return t.value?.videos?.syncingTitle
+    ? t.value.videos.syncingTitle.replace('{done}', videoSyncDone.value).replace('{total}', videoSyncTotal.value)
+    : `正在高速下载视频... (${videoSyncDone.value} / ${videoSyncTotal.value})`;
+});
+
 const videoGroupsByDate = computed(() => {
   const groupsMap = {};
 
@@ -3546,6 +3613,31 @@ const audioSyncDone = ref(0);
 const audioSyncTotal = ref(0);
 const activePlayingAudio = ref(null);
 const isAudioControlExpanded = ref(false);
+
+const currentAudioSyncPercent = computed(() => {
+  if (audioSyncTotal.value <= 0) return 0;
+  let activeProg = 0;
+  if (incomingTransfer.value && incomingTransfer.value.name) {
+    const isAud = incomingTransfer.value.name.startsWith('audio_') || /\.(mp3|wav|m4a|ogg|flac|aac|wma|opus)$/i.test(incomingTransfer.value.name);
+    if (isAud && incomingTransfer.value.progress > 0) {
+      activeProg = Math.min(0.99, incomingTransfer.value.progress);
+    }
+  }
+  const effective = audioSyncDone.value + activeProg;
+  return Math.min(100, Math.round((effective / audioSyncTotal.value) * 100));
+});
+
+const currentAudioSyncTitle = computed(() => {
+  if (!isAudioSyncing.value) return '';
+  if (incomingTransfer.value && incomingTransfer.value.name) {
+    const isAud = incomingTransfer.value.name.startsWith('audio_') || /\.(mp3|wav|m4a|ogg|flac|aac|wma|opus)$/i.test(incomingTransfer.value.name);
+    if (isAud && incomingTransfer.value.progress > 0) {
+      const chunkPct = Math.round(incomingTransfer.value.progress * 100);
+      return `正在传输音频: ${incomingTransfer.value.name} (${audioSyncDone.value}/${audioSyncTotal.value}) · ${chunkPct}%`;
+    }
+  }
+  return `正在高速下载音频... (${audioSyncDone.value} / ${audioSyncTotal.value})`;
+});
 
 const audioGroupsByDate = computed(() => {
   const groupsMap = {};
@@ -4006,7 +4098,25 @@ function openUpdateRelease() {
 const isImportingFolder = ref(false);
 
 const isReclassifying = ref(false);
-const reclassifyProgress = ref({ done: 0, total: 0, currentName: '' });
+const reclassifyProgress = ref({ 
+  done: 0, 
+  total: 0, 
+  currentName: '',
+  singleMs: 0,
+  avgMs: 0,
+  elapsedMs: 0,
+  remainingMs: 0,
+  totalTimeMs: 0,
+  isComplete: false
+});
+const reclassifyStats = ref({
+  totalCount: 0,
+  lastSingleMs: 0,
+  avgMs: 0,
+  totalTimeText: '',
+  totalTimeMs: 0,
+  completedAt: null
+});
 let reclassifyStartTime = 0;
 const reclassifyElapsedTime = ref('0s');
 const reclassifyRemainingTime = ref('计算中...');
@@ -4015,7 +4125,7 @@ function formatTimeDuration(ms) {
   if (isNaN(ms) || ms < 0) return '计算中...';
   const totalSeconds = Math.round(ms / 1000);
   if (totalSeconds < 60) {
-    return `${totalSeconds}s`;
+    return `${(ms / 1000).toFixed(1)}s`;
   }
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
@@ -4025,9 +4135,19 @@ function formatTimeDuration(ms) {
 async function handleReclassifyAllPhotos() {
   if (isReclassifying.value) return;
   isReclassifying.value = true;
-  reclassifyProgress.value = { done: 0, total: 0, currentName: '' };
+  reclassifyProgress.value = { 
+    done: 0, 
+    total: 0, 
+    currentName: '',
+    singleMs: 0,
+    avgMs: 0,
+    elapsedMs: 0,
+    remainingMs: 0,
+    totalTimeMs: 0,
+    isComplete: false
+  };
   reclassifyStartTime = Date.now();
-  reclassifyElapsedTime.value = '0s';
+  reclassifyElapsedTime.value = '0.0s';
   logSyncEvent("🔄 开始对当前手机的所有图片重新做 AI 分析...");
   
   // Instantly clear old predictions so left sidebar category counts reset & update live!
@@ -5641,12 +5761,6 @@ function setupDataChannel(channel) {
       if (isAlbum) {
         albumSyncDone.value++;
       }
-      if (isVid && isVideoSyncing.value) {
-        videoSyncDone.value++;
-      }
-      if (isAud && isAudioSyncing.value) {
-        audioSyncDone.value++;
-      }
       
       logSyncEvent(`📝 收到文件元数据: [ID: ${metadata.file_id}] ${metadata.name} (${(metadata.size / 1024 / 1024).toFixed(2)} MB)`);
       return;
@@ -5942,6 +6056,12 @@ onMounted(() => {
     window.api.onPhotoSynced((imageInfo) => {
       const isAudio = imageInfo.type === 'audio' || imageInfo.type === 'audios' || /\.(mp3|wav|m4a|ogg|flac|aac|wma|opus)$/i.test(imageInfo.name);
       if (isAudio) {
+        if (isAudioSyncing.value) {
+          audioSyncDone.value++;
+          if (audioSyncTotal.value > 0 && audioSyncDone.value >= audioSyncTotal.value) {
+            isAudioSyncing.value = false;
+          }
+        }
         logSyncEvent(`🎉 音乐已成功同步并归档: ${imageInfo.name}`);
         const targetId = imageInfo.id || imageInfo.assetId;
         if (targetId && selectedAudioIds.value.has(targetId)) {
@@ -5975,6 +6095,12 @@ onMounted(() => {
 
       const isVideo = imageInfo.type === 'video' || /\.(mp4|mkv|mov|avi|webm)$/i.test(imageInfo.name);
       if (isVideo) {
+        if (isVideoSyncing.value) {
+          videoSyncDone.value++;
+          if (videoSyncTotal.value > 0 && videoSyncDone.value >= videoSyncTotal.value) {
+            isVideoSyncing.value = false;
+          }
+        }
         logSyncEvent(`🎉 视频已成功同步并归档: ${imageInfo.name}`);
         const targetId = imageInfo.id || imageInfo.assetId;
         if (targetId && selectedVideoIds.value.has(targetId)) {
@@ -6467,18 +6593,33 @@ onMounted(() => {
     window.api.onReclassifyProgress((data) => {
       reclassifyProgress.value = data;
       
-      if (reclassifyStartTime) {
+      if (data.elapsedMs !== undefined) {
+        reclassifyElapsedTime.value = formatTimeDuration(data.elapsedMs);
+      } else if (reclassifyStartTime) {
         const elapsedMs = Date.now() - reclassifyStartTime;
         reclassifyElapsedTime.value = formatTimeDuration(elapsedMs);
-        if (data.done > 0) {
-          const remainingMs = (elapsedMs / data.done) * (data.total - data.done);
-          reclassifyRemainingTime.value = formatTimeDuration(remainingMs);
-        }
       }
 
-      if (data.done === data.total) {
+      if (data.remainingMs !== undefined) {
+        reclassifyRemainingTime.value = formatTimeDuration(data.remainingMs);
+      } else if (reclassifyStartTime && data.done > 0) {
+        const elapsedMs = Date.now() - reclassifyStartTime;
+        const remainingMs = (elapsedMs / data.done) * (data.total - data.done);
+        reclassifyRemainingTime.value = formatTimeDuration(remainingMs);
+      }
+
+      if (data.done === data.total || data.isComplete) {
         isReclassifying.value = false;
-        logSyncEvent(`🎉 手机图片 AI 重新分析完成！共处理 ${data.total} 张图片。`);
+        const finalTotalTime = data.totalTimeMs ? formatTimeDuration(data.totalTimeMs) : reclassifyElapsedTime.value;
+        reclassifyStats.value = {
+          totalCount: data.total,
+          lastSingleMs: data.singleMs || 0,
+          avgMs: data.avgMs || 0,
+          totalTimeText: finalTotalTime,
+          totalTimeMs: data.totalTimeMs || 0,
+          completedAt: new Date().toLocaleTimeString()
+        };
+        logSyncEvent(`🎉 手机图片 AI 重新分析完成！共处理 ${data.total} 张图片，总计耗时 ${finalTotalTime}，平均 ${data.avgMs || 0} ms/张。`);
       }
     });
 

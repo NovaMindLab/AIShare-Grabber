@@ -192,18 +192,26 @@ class PhotoStreamer {
     try {
       File? file;
       try {
-        file = await entity.file.timeout(const Duration(seconds: 3), onTimeout: () => null);
+        file = await entity.file.timeout(const Duration(seconds: 15), onTimeout: () => null);
       } catch (_) {}
       if (file == null) {
         try {
-          file = await entity.originFile.timeout(const Duration(seconds: 3), onTimeout: () => null);
+          file = await entity.originFile.timeout(const Duration(seconds: 15), onTimeout: () => null);
         } catch (_) {}
       }
+
+      Uint8List? directBytes;
       if (file == null) {
-        debugPrint("[Streamer] Error: could not obtain file/originFile for asset: ${entity.title}");
+        try {
+          directBytes = await entity.originBytes;
+        } catch (_) {}
+      }
+
+      if (file == null && (directBytes == null || directBytes.isEmpty)) {
+        debugPrint("[Streamer] Error: could not obtain file/originFile/originBytes for asset: ${entity.title}");
         return false;
       }
-      final int size = await file.length();
+      final int size = file != null ? await file.length() : directBytes!.length;
       final String safeId = sanitizeId(entity.id);
       String rawTitle = entity.title ?? '';
       String cleanTitle = rawTitle.replaceAll(RegExp(r'[/\\:*?"<>|]'), '_').trim();
@@ -239,7 +247,11 @@ class PhotoStreamer {
         duration: durationSec,
       );
 
-      return await _streamFileInternal(file: file, fileId: fileId, onProgress: onProgress);
+      if (file != null) {
+        return await _streamFileInternal(file: file, fileId: fileId, onProgress: onProgress);
+      } else {
+        return await _streamBytesInternal(data: directBytes!, fileId: fileId, onProgress: onProgress);
+      }
     } catch (e, stack) {
       debugPrint("[Streamer] Exception during gallery asset streaming: $e\n$stack");
       return false;
@@ -256,18 +268,26 @@ class PhotoStreamer {
     try {
       File? file;
       try {
-        file = await entity.file.timeout(const Duration(seconds: 3), onTimeout: () => null);
+        file = await entity.file.timeout(const Duration(seconds: 15), onTimeout: () => null);
       } catch (_) {}
       if (file == null) {
         try {
-          file = await entity.originFile.timeout(const Duration(seconds: 3), onTimeout: () => null);
+          file = await entity.originFile.timeout(const Duration(seconds: 15), onTimeout: () => null);
         } catch (_) {}
       }
+
+      Uint8List? directBytes;
       if (file == null) {
-        debugPrint("[Streamer] Error: could not obtain file/originFile for audio asset: ${entity.title}");
+        try {
+          directBytes = await entity.originBytes;
+        } catch (_) {}
+      }
+
+      if (file == null && (directBytes == null || directBytes.isEmpty)) {
+        debugPrint("[Streamer] Error: could not obtain file/originFile/originBytes for audio asset: ${entity.title}");
         return false;
       }
-      final int size = await file.length();
+      final int size = file != null ? await file.length() : directBytes!.length;
       String cleanName = entity.title ?? 'audio_${entity.id}.mp3';
       if (!cleanName.contains('.')) {
         final String extension = entity.mimeType?.split('/').last ?? 'mp3';
@@ -293,7 +313,11 @@ class PhotoStreamer {
         duration: durationSec,
       );
 
-      return await _streamFileInternal(file: file, fileId: fileId, onProgress: onProgress);
+      if (file != null) {
+        return await _streamFileInternal(file: file, fileId: fileId, onProgress: onProgress);
+      } else {
+        return await _streamBytesInternal(data: directBytes!, fileId: fileId, onProgress: onProgress);
+      }
     } catch (e, stack) {
       debugPrint("[Streamer] Exception during audio asset streaming: $e\n$stack");
       return false;

@@ -26,7 +26,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         ndk {
-            abiFilters.add("arm64-v8a")
+            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
         }
     }
 
@@ -52,7 +52,6 @@ android {
     packaging {
         jniLibs {
             excludes += listOf(
-                "lib/armeabi-v7a/**",
                 "lib/x86/**",
                 "lib/x86_64/**",
                 "lib/armeabi/**",

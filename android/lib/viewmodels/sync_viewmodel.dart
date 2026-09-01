@@ -669,6 +669,21 @@ class SyncViewModel extends ChangeNotifier {
                 lastAlbumSyncDate = data['last_album_sync_date'] ?? '';
                 logMessage("Handshake response received! PC has ${pcSyncedIds.length} files, ${pcSyncedThumbnailIds.length} thumbnails.");
                 notifyListeners();
+              } else if (realPacketType == -15) {
+                try {
+                  final payloadStr = utf8.decode(fullBytes);
+                  final Map<String, dynamic> data = jsonDecode(payloadStr);
+                  final forceFullScan = data['force_full_scan'] == true;
+                  final targetDate = data['target_date']?.toString();
+                  List<String>? targetIds;
+                  if (data['target_ids'] is List) {
+                    targetIds = (data['target_ids'] as List).map((e) => e.toString()).toList();
+                  }
+                  logMessage("PC requested video sync (chunked). Starting...");
+                  syncVideosToPC(forceFullScan: forceFullScan, targetDate: targetDate, targetIds: targetIds);
+                } catch (e) {
+                  logMessage("Error parsing chunked video sync payload: $e");
+                }
               } else if (realPacketType == -21) {
                 try {
                   final payloadStr = utf8.decode(fullBytes);
@@ -1967,7 +1982,28 @@ class SyncViewModel extends ChangeNotifier {
 
       List<AssetEntity> toSync = allVideos;
       if (targetIds != null && targetIds.isNotEmpty) {
-        toSync = allVideos.where((v) => targetIds.contains(v.id)).toList();
+        final targetSet = targetIds.toSet();
+        toSync = allVideos.where((v) {
+          final sId = PhotoStreamer.sanitizeId(v.id);
+          return targetSet.contains(v.id) ||
+                 targetSet.contains(sId) ||
+                 targetSet.contains(v.title) ||
+                 targetSet.contains('video_$sId') ||
+                 targetSet.contains('video_${v.id}');
+        }).toList();
+
+        // Robust fallback: If not matched in localVideos, fetch directly via AssetEntity.fromId
+        if (toSync.isEmpty) {
+          for (final tid in targetIds) {
+            try {
+              final rawId = tid.replaceFirst(RegExp(r'^(video_|audio_)'), '');
+              final entity = await AssetEntity.fromId(rawId);
+              if (entity != null) {
+                toSync.add(entity);
+              }
+            } catch (_) {}
+          }
+        }
       } else if (targetDate != null && targetDate.isNotEmpty) {
         toSync = allVideos.where((v) {
           final int? createSec = (v.createDateSecond != null && v.createDateSecond! > 0)
@@ -2002,12 +2038,12 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
 
       if (toSync.isEmpty) {
-        logMessage("✅ Video sync complete: all videos already synced.");
+        logMessage("✅ Video sync complete: no matching or pending videos.");
         final doneHeader = ByteData(16);
         doneHeader.setInt32(0, -16, Endian.big);
         doneHeader.setInt32(4, 0, Endian.big);
         doneHeader.setInt32(8, 0, Endian.big);
-        doneHeader.setInt32(12, 0, Endian.big);
+        doneHeader.setInt32(12, 1, Endian.big); // 1 = isFinished
         await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
         isVideoSyncing = false;
         notifyListeners();
@@ -2169,11 +2205,28 @@ class SyncViewModel extends ChangeNotifier {
 
       List<AssetEntity> toSync = allAudios;
       if (targetIds != null && targetIds.isNotEmpty) {
+        final targetSet = targetIds.toSet();
         toSync = allAudios.where((a) {
-          return targetIds.contains(a.id) || 
-                 targetIds.contains(a.id.toString()) || 
-                 targetIds.contains('audio_${a.id}');
+          final sId = PhotoStreamer.sanitizeId(a.id);
+          return targetSet.contains(a.id) || 
+                 targetSet.contains(sId) ||
+                 targetSet.contains(a.title) || 
+                 targetSet.contains('audio_${a.id}') ||
+                 targetSet.contains('audio_$sId');
         }).toList();
+
+        // Robust fallback: If not matched in localAudios, fetch directly via AssetEntity.fromId
+        if (toSync.isEmpty) {
+          for (final tid in targetIds) {
+            try {
+              final rawId = tid.replaceFirst(RegExp(r'^(audio_|video_)'), '');
+              final entity = await AssetEntity.fromId(rawId);
+              if (entity != null) {
+                toSync.add(entity);
+              }
+            } catch (_) {}
+          }
+        }
       } else if (targetDate != null && targetDate.isNotEmpty) {
         toSync = allAudios.where((a) {
           final createMs = (a.createDateSecond != null && a.createDateSecond! > 0)
@@ -2208,12 +2261,12 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
 
       if (toSync.isEmpty) {
-        logMessage("✅ Audio sync complete: all audios already synced.");
+        logMessage("✅ Audio sync complete: no matching or pending audios.");
         final doneHeader = ByteData(16);
         doneHeader.setInt32(0, -22, Endian.big);
         doneHeader.setInt32(4, 0, Endian.big);
         doneHeader.setInt32(8, 0, Endian.big);
-        doneHeader.setInt32(12, 0, Endian.big);
+        doneHeader.setInt32(12, 1, Endian.big); // 1 = isFinished
         await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
         isAudioSyncing = false;
         notifyListeners();

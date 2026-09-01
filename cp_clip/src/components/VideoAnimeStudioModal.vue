@@ -334,8 +334,8 @@ const estimatedTimeText = computed(() => {
 const styles = ref([
   { 
     id: 'hayao', 
-    name: '🍃 宫崎骏·吉卜力风 (Hayao)', 
-    desc: '清新手绘、自然治愈、高饱和绿意光影', 
+    name: '🍃 宫崎骏·吉卜力油画风 (Hayao & Oil Painting)', 
+    desc: '蓝天白云、青翠草甸、治愈系手绘与厚涂油画质感', 
     icon: '🍃',
     previewGradient: 'linear-gradient(135deg, #10b981, #059669)'
   },

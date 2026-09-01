@@ -1303,7 +1303,11 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
   const CONCURRENCY = taskManager.maxInferenceWorkers || 4;
   console.log(`[AI Reclassify] Processing ${total} photos with concurrency: ${CONCURRENCY}`);
 
+  const reclassifyStartTime = Date.now();
   let done = 0;
+  let lastSingleMs = 0;
+  let totalSingleLatency = 0;
+
   for (let batchStart = 0; batchStart < total; batchStart += CONCURRENCY) {
     const batch = rows.slice(batchStart, batchStart + CONCURRENCY);
 
@@ -1311,7 +1315,12 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
       try {
         if (!fs.existsSync(row.path)) return;
 
+        const itemStartTime = Date.now();
         const predictions = await classifyPhotoInternal(row.path);
+        const itemLatency = Math.max(1, Date.now() - itemStartTime);
+        lastSingleMs = itemLatency;
+        totalSingleLatency += itemLatency;
+
         const predictionsStr = JSON.stringify(predictions);
 
         let embeddingBuffer = null;
@@ -1337,22 +1346,42 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
       }
     }));
 
+    const elapsedMs = Date.now() - reclassifyStartTime;
+    const avgMs = done > 0 ? parseFloat((totalSingleLatency / done).toFixed(1)) : 0;
+    const remainingCount = Math.max(0, total - done);
+    const avgTimePerBatchItem = done > 0 ? (elapsedMs / done) : 0;
+    const remainingMs = Math.round(avgTimePerBatchItem * remainingCount);
+
     // Report progress after each batch completes
     event.sender.send('reclassify-progress', {
       done,
       total,
-      currentName: batch[batch.length - 1].name
+      currentName: batch[batch.length - 1].name,
+      singleMs: lastSingleMs,
+      avgMs,
+      elapsedMs,
+      remainingMs,
+      totalTimeMs: elapsedMs,
+      isComplete: false
     });
 
     // Yield 100ms to Node event loop so WebRTC DataChannel heartbeats and IPC messages process smoothly
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 
-  // Final progress notification
+  // Final progress notification with total elapsed time and final average
+  const totalElapsedMs = Date.now() - reclassifyStartTime;
+  const finalAvgMs = total > 0 ? parseFloat((totalSingleLatency / total).toFixed(1)) : lastSingleMs;
   event.sender.send('reclassify-progress', {
     done: total,
     total,
-    currentName: 'Completed'
+    currentName: 'Completed',
+    singleMs: lastSingleMs,
+    avgMs: finalAvgMs,
+    elapsedMs: totalElapsedMs,
+    remainingMs: 0,
+    totalTimeMs: totalElapsedMs,
+    isComplete: true
   });
 
   // Automatically trigger face clustering at the end of AI re-classification!
@@ -3681,8 +3710,8 @@ ipcMain.handle('video-anime:get-styles', async () => {
   return [
     { 
       id: 'hayao', 
-      name: '🍃 宫崎骏·吉卜力风 (Hayao)', 
-      desc: '清新手绘、自然治愈、高饱和绿意光影', 
+      name: '🍃 宫崎骏·吉卜力油画风 (Hayao & Oil Painting)', 
+      desc: '蓝天白云、青翠草甸、治愈系手绘与厚涂油画质感', 
       icon: '🍃',
       previewGradient: 'linear-gradient(135deg, #10b981, #059669)'
     },
