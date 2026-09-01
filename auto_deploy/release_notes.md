@@ -1,7 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-
-const notes = `### 🚀 ShareCLIP v2.1.8 更新日志
+### 🚀 ShareCLIP v2.1.8 更新日志
 
 1. 👤 **两阶段自适应质心人脸聚类 (Two-Stage HAC)**：
    - 彻底根除同一人物被错误拆分为多个独立人物组的历史顽疾；
@@ -23,9 +20,3 @@ const notes = `### 🚀 ShareCLIP v2.1.8 更新日志
 5. 📡 **无蓝牙 PC 双通道信令竞态加固**：
    - 增加 isProcessingOffer / hasGeneratedAnswer 互斥锁与 pendingDirectIceCandidates 队列保护；
    - 防止 HTTP/UDP 并发信令自毁 PeerConnection 及清空 ICE 导致连接超时。
-`;
-
-fs.writeFileSync(path.join(__dirname, '..', 'auto_deploy', 'release_notes.md'), notes, 'utf8');
-console.log('Saved auto_deploy/release_notes.md successfully');
-
-

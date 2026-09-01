@@ -77,6 +77,7 @@ class SyncViewModel extends ChangeNotifier {
   bool _isCleanedUp = false;
   bool _remoteAnswerApplied = false;
   final List<Uint8List> _chunkedBufferList = [];
+  final Map<String, List<String?>> _udpSdpChunkBuffers = {};
 
   bool isThumbnailSyncing = false;
   int thumbnailSyncTotal = 0;
@@ -449,18 +450,32 @@ class SyncViewModel extends ChangeNotifier {
                  if (data['accept'] == true && data['sdp'] != null) {
                     _handleRemoteOffer(data['sdp']);
                  }
-              } else if (data['type'] == 'ShareCLIP_Direct_Sdp' && data['sdpType'] == 'answer') {
-                if (appState != AppState.connected) {
-                  logMessage("Received UDP Answer SDP");
-                  _handleRemoteAnswer(data['sdp']);
+              } else if (data['type'] == 'ShareCLIP_Direct_Sdp') {
+                String? sdp = data['sdp'];
+                if (data['totalChunks'] != null && data['totalChunks'] > 1) {
+                  final key = "${data['sessionId']}_${data['sdpType']}";
+                  _udpSdpChunkBuffers.putIfAbsent(key, () => List<String?>.filled(data['totalChunks'], null));
+                  final buf = _udpSdpChunkBuffers[key]!;
+                  final int idx = data['chunkIndex'] ?? 0;
+                  if (idx >= 0 && idx < buf.length) {
+                    buf[idx] = data['sdpChunk'];
+                  }
+                  if (buf.every((c) => c != null)) {
+                    sdp = buf.join();
+                    _udpSdpChunkBuffers.remove(key);
+                  }
                 }
-              } else if (data['type'] == 'ShareCLIP_Direct_Sdp' && data['sdpType'] == 'offer') {
-                // ONLY handle incoming Offer if we are NOT currently in outgoing connecting/waiting states
-                if (appState == AppState.idle || appState == AppState.scanning) {
-                  logMessage("Received UDP Offer SDP");
-                  _handleRemoteOffer(data['sdp']);
-                } else {
-                  debugPrint("[ViewModel LOG] Ignored incoming Offer while in active state: $appState");
+
+                if (sdp != null && sdp.isNotEmpty) {
+                  if (data['sdpType'] == 'answer' && appState != AppState.connected) {
+                    logMessage("Received UDP Answer SDP");
+                    _handleRemoteAnswer(sdp);
+                  } else if (data['sdpType'] == 'offer') {
+                    if (appState == AppState.idle || appState == AppState.scanning) {
+                      logMessage("Received UDP Offer SDP");
+                      _handleRemoteOffer(sdp);
+                    }
+                  }
                 }
               } else if (data['type'] == 'ShareCLIP_Direct_Ice') {
                  final cand = json.decode(data['candidate']);
@@ -515,13 +530,30 @@ class SyncViewModel extends ChangeNotifier {
   }
 
   void _sendUdpSdp(String sdp, String type) async {
-    for (int i = 0; i < 3; i++) {
+    // 1. Direct send
+    _sendUdp({
+      'type': 'ShareCLIP_Direct_Sdp',
+      'sdp': sdp,
+      'sdpType': type
+    });
+
+    // 2. MTU-safe chunked send (prevents router packet dropping for >1400B UDP payloads)
+    const int chunkSize = 800;
+    final int totalChunks = (sdp.length / chunkSize).ceil();
+    final String sess = DateTime.now().millisecondsSinceEpoch.toString();
+    for (int i = 0; i < totalChunks; i++) {
+      final int start = i * chunkSize;
+      final int end = (start + chunkSize < sdp.length) ? start + chunkSize : sdp.length;
+      final chunkStr = sdp.substring(start, end);
       _sendUdp({
         'type': 'ShareCLIP_Direct_Sdp',
-        'sdp': sdp,
-        'sdpType': type
+        'sdpType': type,
+        'sdpChunk': chunkStr,
+        'chunkIndex': i,
+        'totalChunks': totalChunks,
+        'sessionId': sess,
       });
-      await Future.delayed(const Duration(milliseconds: 80));
+      await Future.delayed(const Duration(milliseconds: 15));
     }
   }
 
@@ -843,52 +875,7 @@ class SyncViewModel extends ChangeNotifier {
                 notifyListeners();
                 logMessage("📹 Found ${localVideos.length} videos in device MediaStore.");
 
-                final List<Map<String, dynamic>> catalog = [];
-                // Process video catalog metadata in fast batches of 50 without blocking isolate
-                for (int i = 0; i < localVideos.length; i += 50) {
-                  final end = (i + 50 < localVideos.length) ? i + 50 : localVideos.length;
-                  final chunk = localVideos.sublist(i, end);
-                  final chunkResults = await Future.wait(chunk.map((v) async {
-                    final int? createSec = (v.createDateSecond != null && v.createDateSecond! > 0)
-                        ? v.createDateSecond
-                        : v.modifiedDateSecond;
-                    String? createDateStr;
-                    if (createSec != null && createSec > 0) {
-                      createDateStr = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true).toIso8601String();
-                    } else {
-                      createDateStr = DateTime.now().toUtc().toIso8601String();
-                    }
-
-                    int size = 0;
-                    try {
-                      // Fast non-blocking check with 50ms timeout; default to 0 if not cached or slow
-                      final file = await v.file.timeout(const Duration(milliseconds: 50), onTimeout: () => null);
-                      if (file != null) {
-                        size = await file.length();
-                      }
-                    } catch (_) {}
-
-                    String cleanName = v.title ?? "video_${v.id}.mp4";
-                    if (!cleanName.contains('.')) {
-                      final ext = v.mimeType?.split('/').last ?? 'mp4';
-                      cleanName = '$cleanName.$ext';
-                    }
-
-                    return {
-                      "id": v.id,
-                      "name": cleanName,
-                      "size": size,
-                      "duration": v.duration,
-                      "create_date": createDateStr,
-                      "timestamp": (createSec ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000)) * 1000,
-                    };
-                  }));
-                  catalog.addAll(chunkResults);
-                  // Yield event loop between batches so WebRTC heartbeats and UI never get blocked
-                  await Future.delayed(Duration.zero);
-                }
-
-                if (catalog.isEmpty) {
+                if (localVideos.isEmpty) {
                   final respStr = jsonEncode({ "videos": [], "chunk_index": 0, "total_chunks": 1, "total_count": 0 });
                   final respBytes = utf8.encode(respStr);
                   final respHeader = ByteData(16);
@@ -905,19 +892,71 @@ class SyncViewModel extends ChangeNotifier {
                   return;
                 }
 
-                // Chunk into safe 50-video batches to ensure MTU safety (< 10KB per packet)
-                const int batchSize = 50;
-                final int totalChunks = (catalog.length / batchSize).ceil();
+                // Process and stream video catalog in batches of 15 immediately to PC
+                const int batchSize = 15;
+                final int totalChunks = (localVideos.length / batchSize).ceil();
+
                 for (int chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
                   final start = chunkIdx * batchSize;
-                  final end = (start + batchSize < catalog.length) ? start + batchSize : catalog.length;
-                  final chunkList = catalog.sublist(start, end);
+                  final end = (start + batchSize < localVideos.length) ? start + batchSize : localVideos.length;
+                  final chunk = localVideos.sublist(start, end);
+
+                  final chunkResults = await Future.wait(chunk.map((v) async {
+                    final int? createSec = (v.createDateSecond != null && v.createDateSecond! > 0)
+                        ? v.createDateSecond
+                        : v.modifiedDateSecond;
+                    String? createDateStr;
+                    if (createSec != null && createSec > 0) {
+                      createDateStr = DateTime.fromMillisecondsSinceEpoch(createSec * 1000, isUtc: true).toIso8601String();
+                    } else {
+                      createDateStr = DateTime.now().toUtc().toIso8601String();
+                    }
+
+                    int size = 0;
+                    try {
+                      File? file = await v.file.timeout(const Duration(milliseconds: 300), onTimeout: () => null);
+                      file ??= await v.originFile.timeout(const Duration(milliseconds: 200), onTimeout: () => null);
+                      if (file != null) {
+                        size = await file.length();
+                      }
+                    } catch (_) {}
+
+                    String? thumbBase64;
+                    try {
+                      final Uint8List? thumbBytes = await v.thumbnailDataWithSize(
+                        const ThumbnailSize.square(240),
+                        quality: 60,
+                      ).timeout(const Duration(milliseconds: 350), onTimeout: () => null);
+                      if (thumbBytes != null && thumbBytes.isNotEmpty) {
+                        thumbBase64 = "data:image/jpeg;base64,${base64Encode(thumbBytes)}";
+                      }
+                    } catch (_) {}
+
+                    String cleanName = v.title ?? "video_${v.id}.mp4";
+                    if (!cleanName.contains('.')) {
+                      final ext = v.mimeType?.split('/').last ?? 'mp4';
+                      cleanName = '$cleanName.$ext';
+                    }
+
+                    final Map<String, dynamic> item = {
+                      "id": v.id,
+                      "name": cleanName,
+                      "size": size,
+                      "duration": v.duration,
+                      "create_date": createDateStr,
+                      "timestamp": (createSec ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000)) * 1000,
+                    };
+                    if (thumbBase64 != null) {
+                      item["thumb"] = thumbBase64;
+                    }
+                    return item;
+                  }));
 
                   final respStr = jsonEncode({
-                    "videos": chunkList,
+                    "videos": chunkResults,
                     "chunk_index": chunkIdx,
                     "total_chunks": totalChunks,
-                    "total_count": catalog.length,
+                    "total_count": localVideos.length,
                   });
                   final respBytes = utf8.encode(respStr);
                   final respHeader = ByteData(16);
@@ -930,11 +969,10 @@ class SyncViewModel extends ChangeNotifier {
                   respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
                   respPacket.setRange(16, respPacket.length, respBytes);
                   await _syncEngine?.sendBinary(respPacket);
-                  if (totalChunks > 1) {
-                    await Future.delayed(const Duration(milliseconds: 15));
-                  }
+
+                  await Future.delayed(const Duration(milliseconds: 20));
                 }
-                logMessage("✅ Sent video catalog with ${catalog.length} videos ($totalChunks chunks) to PC.");
+                logMessage("✅ Sent video catalog with ${localVideos.length} videos ($totalChunks chunks) to PC.");
               } catch (e) {
                 logMessage("❌ Error scanning/sending video catalog: $e");
               }
@@ -1017,7 +1055,8 @@ class SyncViewModel extends ChangeNotifier {
 
                     int size = 0;
                     try {
-                      final file = await a.file.timeout(const Duration(milliseconds: 50), onTimeout: () => null);
+                      File? file = await a.file.timeout(const Duration(milliseconds: 300), onTimeout: () => null);
+                      file ??= await a.originFile.timeout(const Duration(milliseconds: 200), onTimeout: () => null);
                       if (file != null) {
                         size = await file.length();
                       }
@@ -1633,16 +1672,29 @@ class SyncViewModel extends ChangeNotifier {
         final fileId = _fileIdCounter++;
         final streamer = _photoStreamer ?? PhotoStreamer(syncEngine: _syncEngine!);
 
-        final success = await streamer.streamThumbnail(
-          entity: entity,
-          fileId: fileId,
-          onProgress: (_, __, ___) {},
-        );
+        bool success = false;
+        try {
+          success = await streamer.streamThumbnail(
+            entity: entity,
+            fileId: fileId,
+            onProgress: (_, _, _) {},
+          ).timeout(const Duration(seconds: 15), onTimeout: () {
+            debugPrint("[Sync] streamThumbnail timed out for ${entity.title} (15s), skipping");
+            return false;
+          });
+        } catch (e) {
+          debugPrint("[Sync] streamThumbnail exception for ${entity.title}: $e");
+        }
 
-        if (success) {
-          thumbnailSyncDone++;
-        } else {
-          logMessage("Failed to sync thumbnail for ${entity.title}");
+        // Mark it as handled in pcSyncedThumbnailIds so whether success or failure/skipped, we won't repeatedly retry failing assets
+        pcSyncedThumbnailIds.add(entity.id);
+        pcSyncedThumbnailIds.add(safeId);
+        pcSyncedThumbnailIds.add(thumbName);
+        pcSyncedThumbnailIds.add(safeThumbName);
+
+        thumbnailSyncDone++;
+        if (!success) {
+          logMessage("⏭️ 跳过无法读取的图片: ${entity.title ?? entity.id}");
         }
         notifyListeners();
       }
@@ -1650,12 +1702,16 @@ class SyncViewModel extends ChangeNotifier {
       logMessage("❌ 缩略图同步发生异常: $e");
     } finally {
       // Send completion signal to PC: fileId=-6, totalCount=-1 means "sync all done"
-      final doneHeader = ByteData(16);
-      doneHeader.setInt32(0, -6, Endian.big);
-      doneHeader.setInt32(4, 0, Endian.big);
-      doneHeader.setInt32(8, -1, Endian.big); // -1 = completion sentinel
-      doneHeader.setInt32(12, 0, Endian.big);
-      await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
+      try {
+        final doneHeader = ByteData(16);
+        doneHeader.setInt32(0, -6, Endian.big);
+        doneHeader.setInt32(4, 0, Endian.big);
+        doneHeader.setInt32(8, -1, Endian.big); // -1 = completion sentinel
+        doneHeader.setInt32(12, 0, Endian.big);
+        await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
+      } catch (e) {
+        debugPrint("[Sync] Error sending thumbnail completion sentinel: $e");
+      }
 
       isThumbnailSyncing = false;
       notifyListeners();

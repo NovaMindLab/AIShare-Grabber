@@ -13,7 +13,7 @@ import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 import 'services/analytics_service.dart';
 
-const String appVersion = '2.1.7';
+const String appVersion = '2.1.8';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -166,54 +166,231 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(lang.get('updateTitle')),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(lang.get('updateMessage').replaceAll('{version}', latestVersion)),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  '💡 支持应用内高速直连下载与自动安装，或使用外部浏览器下载。',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                ),
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: const Color(0xFF8B5CF6).withOpacity(0.35),
+                width: 1.2,
               ),
-            ],
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF6366F1).withOpacity(0.2),
+                  blurRadius: 32,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.6),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Top Header with Gradient Icon and Version Badge
+                Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF6366F1).withOpacity(0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 26),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            lang.get('updateTitle'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF8B5CF6).withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFF8B5CF6).withOpacity(0.4),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Text(
+                              'v$appVersion  ➔  $latestVersion',
+                              style: const TextStyle(
+                                color: Color(0xFFC084FC),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 18),
+
+                // Description
+                Text(
+                  lang.get('updateMessage').replaceAll('{version}', latestVersion),
+                  style: const TextStyle(
+                    color: Color(0xFFCBD5E1),
+                    fontSize: 13,
+                    height: 1.45,
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // Feature Highlights Box
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B).withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.08),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: lang
+                        .get('updateHighlights')
+                        .split('\n')
+                        .map((line) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2.5),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      line,
+                                      style: const TextStyle(
+                                        color: Color(0xFF94A3B8),
+                                        fontSize: 11.5,
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                ),
+
+                const SizedBox(height: 22),
+
+                // Action 1: Primary High-speed In-App Update Button
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF6366F1).withOpacity(0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: const Icon(Icons.download_rounded, size: 18),
+                    label: Text(
+                      lang.get('updateBtn'),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      _startInAppDownload(latestVersion, apkUrl);
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Action 2: Secondary Browser Download Button
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF38BDF8),
+                    side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.4)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+                  label: Text(
+                    lang.get('browserDownload'),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    const platform = MethodChannel('com.shareclip/system_info');
+                    platform.invokeMethod('openUrl', {'url': apkUrl});
+                  },
+                ),
+
+                const SizedBox(height: 6),
+
+                // Action 3: Later Text Button
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: Text(
+                      lang.get('laterBtn'),
+                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(lang.get('laterBtn')),
-            ),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.open_in_browser, size: 16),
-              label: const Text('浏览器下载'),
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                const platform = MethodChannel('com.shareclip/system_info');
-                platform.invokeMethod('openUrl', {'url': apkUrl});
-              },
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C3AED),
-                foregroundColor: Colors.white,
-              ),
-              icon: const Icon(Icons.download, size: 16),
-              label: Text(lang.get('updateBtn')),
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                _startInAppDownload(latestVersion, apkUrl);
-              },
-            ),
-          ],
         );
       },
     );
@@ -389,7 +566,6 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
   // ─────────────────────────────────────────────────────────────────
   Widget _buildConnectionFailedScreen(SyncViewModel viewModel) {
     final t = Provider.of<LocalizationService>(context);
-    final isZh = t.currentLocale.startsWith('zh');
     return Scaffold(
       backgroundColor: const Color(0xFF070A12),
       body: Center(
@@ -445,7 +621,7 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
               const SizedBox(height: 14),
               TextButton(
                 onPressed: () => viewModel.returnHome(),
-                child: Text(isZh ? "返回主页" : "Back to Home",
+                child: Text(t.get('backHome'),
                     style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14)),
               ),
             ],
@@ -471,7 +647,7 @@ class _DownloadProgressDialog extends StatefulWidget {
 
 class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
   double _progress = 0.0;
-  String _statusText = '正在连接下载服务器...';
+  String _statusText = '';
   int _downloaded = 0;
   int _total = 0;
   bool _isFailed = false;
@@ -481,7 +657,9 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
   @override
   void initState() {
     super.initState();
-    _startDownload();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startDownload();
+    });
   }
 
   @override
@@ -491,10 +669,11 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
   }
 
   Future<void> _startDownload() async {
+    final lang = Provider.of<LocalizationService>(context, listen: false);
     setState(() {
       _progress = 0.0;
       _isFailed = false;
-      _statusText = '准备下载安装包...';
+      _statusText = lang.get('downloadPreparing');
     });
 
     try {
@@ -521,7 +700,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
         try {
           if (!mounted) return;
           setState(() {
-            _statusText = '正在建立高速直连通道...';
+            _statusText = lang.get('downloadConnecting');
           });
 
           _client = HttpClient();
@@ -550,7 +729,12 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
                 _progress = (_downloaded / _total).clamp(0.0, 1.0);
                 final mbDownloaded = (_downloaded / 1024 / 1024).toStringAsFixed(1);
                 final mbTotal = (_total / 1024 / 1024).toStringAsFixed(1);
-                _statusText = '正在下载: $mbDownloaded MB / $mbTotal MB (${(_progress * 100).toInt()}%)';
+                final percent = (_progress * 100).toInt().toString();
+                _statusText = lang
+                    .get('downloadProgress')
+                    .replaceAll('{done}', mbDownloaded)
+                    .replaceAll('{total}', mbTotal)
+                    .replaceAll('{percent}', percent);
               });
             }
           }
@@ -560,6 +744,10 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
           // Verify magic bytes (0x50, 0x4B, 0x03, 0x04) and size
           final fileSize = await targetFile.length();
           if (fileSize > 5 * 1024 * 1024) {
+            if (!mounted) return;
+            setState(() {
+              _statusText = lang.get('downloadVerifying');
+            });
             final header = await targetFile.openRead(0, 4).first;
             if (header.length >= 4 &&
                 header[0] == 0x50 &&
@@ -582,16 +770,16 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
         if (!mounted) return;
         setState(() {
           _progress = 1.0;
-          _statusText = '下载完成，正在启动安装...';
+          _statusText = lang.get('downloadInstalling');
         });
 
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 600));
         if (mounted) {
           Navigator.of(context).pop();
         }
         await platform.invokeMethod('installApk', {'path': targetFile.path});
       } else {
-        throw Exception('所有下载镜像均未成功，请使用浏览器下载');
+        throw Exception(lang.get('downloadFailedTip'));
       }
     } catch (e) {
       if (mounted) {
@@ -605,69 +793,234 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(_isFailed ? '⚠️ 下载未完成' : '🚀 正在高速下载 ShareCLIP ${widget.latestVersion}'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!_isFailed) ...[
-            Text(
-              _statusText,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+    final lang = Provider.of<LocalizationService>(context);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F172A),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: _isFailed
+                ? const Color(0xFFEF4444).withOpacity(0.4)
+                : const Color(0xFF8B5CF6).withOpacity(0.35),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: (_isFailed ? const Color(0xFFEF4444) : const Color(0xFF6366F1))
+                  .withOpacity(0.2),
+              blurRadius: 32,
+              spreadRadius: 2,
+              offset: const Offset(0, 8),
             ),
-            const SizedBox(height: 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: _progress > 0 ? _progress : null,
-                minHeight: 10,
-                backgroundColor: const Color(0xFFE2E8F0),
-                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF7C3AED)),
-              ),
-            ),
-          ] else ...[
-            Text(
-              _errorMessage,
-              style: const TextStyle(fontSize: 13, color: Colors.redAccent),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              '建议使用手机自带浏览器直接下载安装包。',
-              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.6),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
             ),
           ],
-        ],
-      ),
-      actions: [
-        if (_isFailed) ...[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
-          ),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7C3AED),
-              foregroundColor: Colors.white,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header Icon & Title
+            Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: _isFailed
+                          ? [const Color(0xFFEF4444), const Color(0xFFDC2626)]
+                          : [const Color(0xFF6366F1), const Color(0xFFA855F7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    _isFailed ? Icons.cloud_off_rounded : Icons.cloud_download_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isFailed
+                            ? lang.get('downloadFailed')
+                            : lang
+                                .get('downloadingTitle')
+                                .replaceAll('{version}', widget.latestVersion),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        _isFailed
+                            ? lang.get('downloadFailedTip')
+                            : (_statusText.isNotEmpty
+                                ? _statusText
+                                : lang.get('downloadConnecting')),
+                        style: TextStyle(
+                          color: _isFailed
+                              ? const Color(0xFFFCA5A5)
+                              : const Color(0xFF94A3B8),
+                          fontSize: 12,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            icon: const Icon(Icons.language, size: 16),
-            label: const Text('使用手机浏览器下载'),
-            onPressed: () {
-              Navigator.of(context).pop();
-              const platform = MethodChannel('com.shareclip/system_info');
-              platform.invokeMethod('openUrl', {'url': widget.apkUrl});
-            },
-          ),
-        ] else ...[
-          TextButton(
-            onPressed: () {
-              _client?.close(force: true);
-              Navigator.of(context).pop();
-            },
-            child: const Text('取消'),
-          ),
-        ],
-      ],
+
+            const SizedBox(height: 20),
+
+            // Progress Section
+            if (!_isFailed) ...[
+              // Progress Bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: Stack(
+                  children: [
+                    Container(
+                      height: 10,
+                      color: const Color(0xFF1E293B),
+                    ),
+                    FractionallySizedBox(
+                      widthFactor: _progress > 0 ? _progress : 0.05,
+                      child: Container(
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF6366F1), Color(0xFFA855F7), Color(0xFF38BDF8)],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${(_downloaded / 1024 / 1024).toStringAsFixed(1)} MB / ${(_total / 1024 / 1024).toStringAsFixed(1)} MB',
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 11.5,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  Text(
+                    '${(_progress * 100).toInt()}%',
+                    style: const TextStyle(
+                      color: Color(0xFFC084FC),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFEF4444).withOpacity(0.25),
+                  ),
+                ),
+                child: Text(
+                  _errorMessage.isNotEmpty ? _errorMessage : lang.get('downloadFailedTip'),
+                  style: const TextStyle(color: Color(0xFFFCA5A5), fontSize: 12, height: 1.4),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 22),
+
+            // Buttons
+            if (_isFailed) ...[
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF38BDF8),
+                  foregroundColor: const Color(0xFF0F172A),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+                label: Text(
+                  lang.get('browserDownload'),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  const platform = MethodChannel('com.shareclip/system_info');
+                  platform.invokeMethod('openUrl', {'url': widget.apkUrl});
+                },
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFC084FC),
+                  side: BorderSide(color: const Color(0xFF8B5CF6).withOpacity(0.4)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: Text(lang.get('retryDownload'), style: const TextStyle(fontSize: 13)),
+                onPressed: () => _startDownload(),
+              ),
+              const SizedBox(height: 4),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    lang.get('cancel'),
+                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 12.5),
+                  ),
+                ),
+              ),
+            ] else ...[
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    _client?.close(force: true);
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(
+                    lang.get('cancel'),
+                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

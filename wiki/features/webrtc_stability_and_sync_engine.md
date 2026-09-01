@@ -288,4 +288,18 @@ sequenceDiagram
 | **-25** | PC ⇄ Phone | 16-byte Header + JSON 分片 | 远程音乐目录查询与响应（<10KB/片 分片安全传输） |
 | **> 0** | Phone ➔ PC | 16-byte Header + 64KB 分片 | 二进制文件分片流式直传（缩略图、原图、视频、音乐） |
 
+---
+
+## 9. 无蓝牙 PC 双通道信令竞态加固与 AI 缩略图死循环根治 (v2.1.7 ~ v2.1.8)
+
+### 9.1 HTTP + UDP 双通道信令竞态与 ICE 候选队列保护
+- **双通道竞态冲突**：当手机同时通过 HTTP (15186) 与 UDP (15185) 发送 Offer 时，PC 端在毫秒级内相继收到两份 Offer。若未设互斥，第二个通道触发 `cleanupWebRtc()` 会直接销毁由首个通道建立的 `PeerConnection`。
+- **解决方案**：引入 `isProcessingOffer` 与 `hasGeneratedAnswer` 双锁拦截；并在 `cleanupWebRtc()` 前备份 `pendingDirectIceCandidates` 队列，重置后恢复注入，防止先于 Offer 到达的远程 ICE 候选被误清空导致 ICE 协商超时（15s 断连）。
+
+### 9.2 AI 缩略图同步卡死 (如 1060/1078) 根治
+- **逐项超时跳过**：在手机端 `streamThumbnail` 中为 `thumbnailDataWithSize`、`thumbnailData`、`latlngAsync` 注入 5s 超时保护（单张上限 15s），损坏或不可读图片自动跳过；
+- **失败项记录与去重**：跳过的图片自动写入 `pcSyncedThumbnailIds`，避免下次再次点击同步时反复重试失败项；
+- **Sentinel 完成信号同步**：手机完成所有图片处理后向电脑发送 `fileId = -6, totalCount = -1`，PC 端自动对齐进度条至 100% 并释放同步互斥锁。
+
+
 

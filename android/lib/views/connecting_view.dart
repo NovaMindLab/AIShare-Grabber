@@ -83,33 +83,32 @@ class _ConnectingViewState extends State<ConnectingView>
     }
   }
 
-  String _getStatusText(AppState state, bool isZh) {
+  String _getStatusText(AppState state, LocalizationService t) {
     switch (state) {
       case AppState.connectingBle:
-        return isZh ? "正在通过局域网与蓝牙搜索电脑..." : "Discovering PC via LAN & Bluetooth...";
+        return t.get('statusDiscovering');
       case AppState.negotiatingMtu:
-        return isZh ? "正在协商高速传输参数 (MTU)..." : "Negotiating high-speed MTU parameters...";
+        return t.get('statusMtu');
       case AppState.discoveringGatt:
-        return isZh ? "正在建立安全通信信道..." : "Establishing secure service channel...";
+        return t.get('statusGatt');
       case AppState.generatingOffer:
-        return isZh ? "正在生成 WebRTC 直连加密参数..." : "Generating WebRTC direct crypto offer...";
+        return t.get('statusCrypto');
       case AppState.sendingOffer:
-        return isZh ? "正在向电脑同步握手信令..." : "Syncing handshake offer to PC...";
+        return t.get('statusOffer');
       case AppState.waitingForAnswer:
-        return isZh ? "正在等待电脑端确认连接..." : "Awaiting remote PC confirmation...";
+        return t.get('statusAnswer');
       case AppState.connectingWebRtc:
-        return isZh ? "正在建立 P2P 极速加密直连传输通道..." : "Building P2P high-speed WebRTC tunnel...";
+        return t.get('statusTunnel');
       default:
-        return isZh ? "正在准备连接..." : "Preparing connection...";
+        return t.get('statusPreparing');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Provider.of<LocalizationService>(context);
-    final isZh = t.currentLocale.startsWith('zh');
     final stepIdx = _getStepIndex(widget.appState);
-    final statusText = _getStatusText(widget.appState, isZh);
+    final statusText = _getStatusText(widget.appState, t);
 
     return Scaffold(
       body: Container(
@@ -145,7 +144,7 @@ class _ConnectingViewState extends State<ConnectingView>
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            isZh ? "安全点对点同步" : "Secure P2P Sync",
+                            t.get('secureP2p'),
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 12,
@@ -162,12 +161,12 @@ class _ConnectingViewState extends State<ConnectingView>
               const Spacer(flex: 1),
 
               // Visual Device-to-Device Radar Energy Beam
-              _buildDeviceBridgeVisual(stepIdx, isZh),
+              _buildDeviceBridgeVisual(stepIdx, t),
 
               const SizedBox(height: 36),
 
               // Step Progression Dots / Stepper
-              _buildStepIndicator(stepIdx, isZh),
+              _buildStepIndicator(stepIdx, t),
 
               const Spacer(flex: 1),
 
@@ -222,7 +221,7 @@ class _ConnectingViewState extends State<ConnectingView>
                           const SizedBox(height: 18),
 
                           Text(
-                            isZh ? "正在连接电脑..." : "Connecting to PC...",
+                            t.get('connecting'),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -279,7 +278,7 @@ class _ConnectingViewState extends State<ConnectingView>
                     border: Border.all(color: Colors.white.withOpacity(0.12)),
                   ),
                   child: Text(
-                    isZh ? "取消连接" : "Cancel Connection",
+                    t.get('cancel'),
                     style: const TextStyle(
                       color: Color(0xFF94A3B8),
                       fontSize: 13,
@@ -297,7 +296,7 @@ class _ConnectingViewState extends State<ConnectingView>
     );
   }
 
-  Widget _buildDeviceBridgeVisual(int stepIdx, bool isZh) {
+  Widget _buildDeviceBridgeVisual(int stepIdx, LocalizationService t) {
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
@@ -439,7 +438,7 @@ class _ConnectingViewState extends State<ConnectingView>
                   scale: _pulseAnimation.value,
                   child: _buildDeviceNode(
                     icon: Icons.phone_android_rounded,
-                    title: isZh ? "手机" : "Phone",
+                    title: "Mobile",
                     isGlowing: true,
                     gradientColors: [const Color(0xFF6366F1), const Color(0xFF818CF8)],
                   ),
@@ -453,7 +452,7 @@ class _ConnectingViewState extends State<ConnectingView>
                   scale: _pulseAnimation.value,
                   child: _buildDeviceNode(
                     icon: Icons.desktop_windows_rounded,
-                    title: isZh ? "电脑端" : "PC",
+                    title: "PC",
                     isGlowing: stepIdx >= 1,
                     gradientColors: [const Color(0xFFA855F7), const Color(0xFFC084FC)],
                   ),
@@ -511,10 +510,12 @@ class _ConnectingViewState extends State<ConnectingView>
     );
   }
 
-  Widget _buildStepIndicator(int currentStep, bool isZh) {
-    final steps = isZh
-        ? ["探测设备", "信令协商", "极速直连"]
-        : ["Discovery", "Signaling", "P2P Direct"];
+  Widget _buildStepIndicator(int currentStep, LocalizationService t) {
+    final steps = [
+      t.get('stepPairing'),
+      t.get('stepSignaling'),
+      t.get('stepTunnel'),
+    ];
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

@@ -1103,7 +1103,7 @@
           />
         </div>
 
-        <!-- 4. AUDIOS TAB (Remote Music Sync & Date Grouped Playlist) -->
+        <!-- 4. AUDIOS TAB (Cyber Hi-Fi Music Station & Date Grouped Playlist) -->
         <div v-else-if="currentTab === 'audios'" class="videos-tab-container audios-tab-container">
           <!-- Compact View Filter & Control Bar -->
           <div class="video-compact-top-bar glass-panel">
@@ -1247,38 +1247,49 @@
             </p>
           </div>
 
-          <!-- Date-Grouped Music Playlist Cards -->
+          <!-- Cyber Hi-Fi Date-Grouped Music Playlist -->
           <div v-else class="audios-scroll-container">
             <div 
               v-for="group in filteredAudioGroupsByDate" 
               :key="group.rawDate"
               class="audio-date-group"
             >
-              <!-- Date Header -->
-              <div class="audio-date-header">
-                <div class="audio-date-title">
-                  <span class="audio-date-icon">📅</span>
-                  <span class="audio-date-text">{{ group.dateKey }}</span>
-                  <span class="audio-date-badge">{{ group.filteredCount }} 首 • {{ formatBytes(group.filteredBytes) }}</span>
+              <!-- Glassmorphism Audio Date Header -->
+              <div class="audio-date-header glass-panel">
+                <div class="audio-date-title-wrap">
+                  <div class="audio-date-icon-box">📅</div>
+                  <h4 class="audio-date-text">{{ group.dateKey }}</h4>
+                  <span class="audio-date-meta-pill">{{ group.filteredCount }} 首 • {{ formatBytes(group.filteredBytes) }}</span>
                 </div>
                 <div class="audio-date-actions" v-if="group.hasUnsynced && syncStatus === 'connected'">
                   <button 
-                    class="btn btn-secondary btn-xs"
+                    class="btn-audio-date-select"
+                    :class="{ 'is-selected': isAudioDateAllSelected(group) }"
                     @click="toggleAudioDateSelection(group)"
+                    :title="isAudioDateAllSelected(group) ? '取消勾选此日期的所有待同步音乐' : '勾选此日期的所有待同步音乐'"
                   >
-                    {{ isAudioDateAllSelected(group) ? '⬜ 取消勾选此日期' : `☑️ 勾选此日期 (${group.unsyncedCount})` }}
+                    <span class="btn-check-dot">{{ isAudioDateAllSelected(group) ? '✓' : '' }}</span>
+                    <span>{{ isAudioDateAllSelected(group) ? '已全选' : `勾选此日期 (${group.unsyncedCount})` }}</span>
                   </button>
                   <button 
-                    class="btn btn-primary btn-xs"
+                    class="btn-audio-date-sync"
                     :disabled="isAudioSyncing"
                     @click="requestAudioSync({ targetDate: group.rawDate, targetIds: group.unsyncedIds })"
+                    title="仅下载此日期的全部音乐"
                   >
-                    ⚡ 同步此日期
+                    <span class="bolt-icon">⚡</span>
+                    <span>同步此日期 ({{ group.unsyncedCount }})</span>
                   </button>
+                </div>
+                <div class="audio-date-actions" v-else-if="!group.hasUnsynced">
+                  <span class="audio-all-synced-badge">
+                    <span class="check-pill-icon">✓</span>
+                    <span>全部已备份</span>
+                  </span>
                 </div>
               </div>
 
-              <!-- Track List Items -->
+              <!-- Sleek Cyber Hi-Fi Track Cards -->
               <div class="audio-track-list">
                 <div 
                   v-for="track in group.items" 
@@ -1291,48 +1302,83 @@
                   }"
                   @click="track.isSynced ? openAudioPlayer(track) : toggleAudioSelection(track)"
                 >
-                  <!-- Left: Checkbox (for unsynced) or Disc Icon -->
+                  <!-- Left: Checkbox (for unsynced) + Spinning Vinyl Record Art -->
                   <div class="audio-track-left">
+                    <!-- Unsynced Multi-Select Checkbox -->
                     <div 
                       v-if="!track.isSynced" 
-                      class="track-checkbox"
-                      :class="{ checked: isAudioSelected(track) }"
+                      class="hifi-track-checkbox"
+                      :class="{ 'is-checked': isAudioSelected(track) }"
                       @click.stop="toggleAudioSelection(track)"
+                      title="勾选/取消勾选曲目"
                     >
-                      <span v-if="isAudioSelected(track)">✓</span>
+                      <span v-if="isAudioSelected(track)" class="check-icon">✓</span>
                     </div>
-                    <div class="audio-disc-icon" :class="{ spinning: activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path) }">
-                      <span>🎵</span>
+
+                    <!-- Hi-Fi Vinyl Cover / Equalizer Animation -->
+                    <div 
+                      class="hifi-vinyl-cover" 
+                      :class="{ 'is-playing': activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path) }"
+                    >
+                      <div class="hifi-vinyl-disc">
+                        <div class="vinyl-groove-rings"></div>
+                        <div class="vinyl-center-label">
+                          <span class="vinyl-icon-symbol">🎵</span>
+                        </div>
+                      </div>
+
+                      <!-- Equalizer wave jumping animation when playing -->
+                      <div v-if="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path)" class="hifi-eq-bars">
+                        <span class="eq-bar bar-1"></span>
+                        <span class="eq-bar bar-2"></span>
+                        <span class="eq-bar bar-3"></span>
+                        <span class="eq-bar bar-4"></span>
+                      </div>
                     </div>
-                    <div class="audio-track-meta">
-                      <div class="audio-track-title" :title="track.name">{{ track.name }}</div>
-                      <div class="audio-track-sub">
-                        <span v-if="track.duration" class="audio-duration-tag">⏱️ {{ formatVideoDuration(track.duration) }}</span>
-                        <span class="audio-size-tag">💾 {{ formatBytes(track.size) }}</span>
+
+                    <!-- Track Metadata Info with Smart Title & Tags -->
+                    <div class="hifi-track-meta">
+                      <div class="hifi-title-row">
+                        <span class="hifi-track-title" :title="track.name">{{ getCleanAudioTitle(track.name) }}</span>
+                        <span v-if="getAudioFormatType(track.name) === 'hi-res'" class="hifi-tag hifi-tag-hires">Hi-Res</span>
+                      </div>
+                      <div class="hifi-track-tags">
+                        <span class="hifi-tag" :class="`hifi-tag-${getAudioFormatType(track.name)}`">
+                          {{ getAudioFormat(track.name) }}
+                        </span>
+                        <span v-if="track.duration" class="hifi-tag hifi-tag-duration">
+                          ⏱️ {{ formatVideoDuration(track.duration) }}
+                        </span>
+                        <span class="hifi-tag hifi-tag-size">
+                          💾 {{ formatBytes(track.size) }}
+                        </span>
                         <span 
-                          class="track-status-pill" 
+                          class="hifi-status-pill" 
                           :class="track.isSynced ? 'pill-synced' : 'pill-unsynced'"
                         >
-                          {{ track.isSynced ? '🟢 已备份' : '⏳ 待下载' }}
+                          <span class="status-icon-symbol">{{ track.isSynced ? '✓' : '⬇' }}</span>
+                          <span>{{ track.isSynced ? '已备份' : '待下载' }}</span>
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Right: Action Buttons -->
-                  <div class="audio-track-right" @click.stop>
+                  <!-- Right: Action Buttons (Play / Quick Download) -->
+                  <div class="hifi-track-actions" @click.stop>
                     <template v-if="track.isSynced">
                       <button 
-                        class="btn btn-primary btn-xs btn-track-play"
+                        class="btn-hifi-play"
+                        :class="{ 'is-active-playing': activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path) }"
                         @click="openAudioPlayer(track)"
-                        title="播放此音频"
+                        :title="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path) ? '正在播放中' : '播放此音乐'"
                       >
-                        <span>▶️</span> 播放
+                        <span v-if="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path)">🔊 播放中</span>
+                        <span v-else>▶️ 播放</span>
                       </button>
                     </template>
                     <template v-else>
                       <button 
-                        class="btn btn-secondary btn-xs btn-track-download"
+                        class="btn-hifi-download"
                         :disabled="isAudioSyncing"
                         @click="downloadSingleAudio(track)"
                         title="单曲极速下载"
@@ -1350,30 +1396,28 @@
           <transition name="modal-fade">
             <div 
               v-if="selectedAudiosCount > 0" 
-              class="video-floating-bar"
+              class="audio-floating-bar glass-panel"
             >
-              <div class="video-floating-info">
-                <span style="font-size: 18px;">🎵</span>
+              <div class="audio-floating-info">
+                <span class="floating-music-icon">🎵</span>
                 <span>
                   {{ t.audios?.floatingSelected ? t.audios.floatingSelected.replace('{count}', selectedAudiosCount) : `已勾选 ${selectedAudiosCount} 首音乐` }}
-                  <span style="color: var(--text-muted); font-size: 12px; margin-left: 6px;">
+                  <span class="floating-size-hint">
                     ({{ t.audios?.floatingTotalSize ? t.audios.floatingTotalSize.replace('{size}', formatBytes(selectedAudiosTotalBytes)) : `共 ${formatBytes(selectedAudiosTotalBytes)}` }})
                   </span>
                 </span>
               </div>
-              <div class="video-floating-actions">
+              <div class="audio-floating-actions">
                 <button 
-                  class="btn btn-secondary btn-sm" 
+                  class="btn btn-secondary btn-sm btn-floating-clear" 
                   @click="clearAudioSelection"
-                  style="border-radius: 20px; padding: 7px 18px;"
                 >
                   {{ t.audios?.floatingClear || '✕ 取消勾选' }}
                 </button>
                 <button 
-                  class="btn btn-primary" 
+                  class="btn btn-primary btn-floating-download" 
                   @click="downloadSelectedAudios"
                   :disabled="isAudioSyncing"
-                  style="border-radius: 20px; padding: 8px 24px; font-weight: 700; box-shadow: 0 4px 16px rgba(6, 182, 212, 0.45); background: linear-gradient(135deg, #06b6d4, #3b82f6);"
                 >
                   <span>⬇️</span>
                   <span>{{ isAudioSyncing ? '正在下载...' : (t.audios?.floatingDownload ? t.audios.floatingDownload.replace('{count}', selectedAudiosCount) : `立即下载 (${selectedAudiosCount})`) }}</span>
@@ -1382,25 +1426,51 @@
             </div>
           </transition>
 
-          <!-- Audio Player Floating Lightbox Modal -->
+          <!-- Modern Cyber Hi-Fi Audio Player Lightbox Modal -->
           <transition name="modal-fade">
             <div v-if="activePlayingAudio" class="video-player-overlay" @click.self="closeAudioPlayer">
               <div class="audio-player-modal glass-panel">
                 <button class="vp-floating-close-btn" @click="closeAudioPlayer" title="关闭播放器 (ESC)">✕</button>
 
                 <div class="audio-player-content">
-                  <!-- Animated Vinyl Disc -->
-                  <div class="vinyl-record spinning">
-                    <div class="vinyl-inner">
-                      <span style="font-size: 36px;">🎵</span>
+                  <!-- Modern Cyber Hi-Fi Vinyl Deck -->
+                  <div class="hifi-player-deck">
+                    <div class="vinyl-record spinning">
+                      <div class="vinyl-groove-rings"></div>
+                      <div class="vinyl-inner">
+                        <span style="font-size: 28px;">🎵</span>
+                      </div>
                     </div>
+                  </div>
+
+                  <!-- Dynamic Equalizer Frequency Wave in Player -->
+                  <div class="hifi-player-equalizer">
+                    <span class="eq-bar bar-1"></span>
+                    <span class="eq-bar bar-2"></span>
+                    <span class="eq-bar bar-3"></span>
+                    <span class="eq-bar bar-4"></span>
+                    <span class="eq-bar bar-5"></span>
+                    <span class="eq-bar bar-6"></span>
+                    <span class="eq-bar bar-7"></span>
+                    <span class="eq-bar bar-8"></span>
                   </div>
 
                   <!-- Track Info -->
                   <div class="audio-player-info">
-                    <h3 class="audio-player-title">{{ activePlayingAudio.name }}</h3>
-                    <p class="audio-player-sub" v-if="activePlayingAudio.duration">
-                      时长: {{ formatVideoDuration(activePlayingAudio.duration) }} • 容量: {{ formatBytes(activePlayingAudio.size) }}
+                    <h3 class="audio-player-title">{{ getCleanAudioTitle(activePlayingAudio.name) }}</h3>
+                    <div class="audio-player-specs">
+                      <span class="hifi-tag" :class="`hifi-tag-${getAudioFormatType(activePlayingAudio.name)}`">
+                        {{ getAudioFormat(activePlayingAudio.name) }}
+                      </span>
+                      <span v-if="activePlayingAudio.duration" class="hifi-player-spec-pill">
+                        ⏱️ {{ formatVideoDuration(activePlayingAudio.duration) }}
+                      </span>
+                      <span class="hifi-player-spec-pill">
+                        💾 {{ formatBytes(activePlayingAudio.size) }}
+                      </span>
+                    </div>
+                    <p class="audio-player-raw-name" :title="activePlayingAudio.name">
+                      {{ activePlayingAudio.name }}
                     </p>
                   </div>
 
@@ -3440,6 +3510,28 @@ function processPosterQueue() {
   };
 }
 
+function getCleanAudioTitle(name) {
+  if (!name) return '未知曲目';
+  let clean = name.replace(/\.(mp3|m4a|flac|wav|aac|ogg|wma|opus|ape|dsf|dff|alac)$/i, '');
+  return clean.trim() || name;
+}
+
+function getAudioFormat(name) {
+  if (!name) return 'AUDIO';
+  const parts = name.split('.');
+  if (parts.length <= 1) return 'AUDIO';
+  return parts.pop().toUpperCase();
+}
+
+function getAudioFormatType(name) {
+  const fmt = getAudioFormat(name);
+  if (['FLAC', 'APE', 'DSF', 'DFF', 'ALAC', 'WAV'].includes(fmt)) return 'hi-res';
+  if (['M4A', 'AAC'].includes(fmt)) return 'm4a';
+  if (['MP3'].includes(fmt)) return 'mp3';
+  if (['OGG', 'OPUS'].includes(fmt)) return 'ogg';
+  return 'other';
+}
+
 const localAudios = computed(() => {
   return images.value.filter(file => {
     const ext = getExtensionName(file.name);
@@ -4299,11 +4391,12 @@ async function scrollToBottom() {
 }
 
 function formatBytes(bytes, decimals = 2) {
-  if (bytes === 0) return '0 Bytes';
+  if (!bytes || isNaN(bytes) || bytes <= 0) return '0 B';
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
+  if (i < 0 || i >= sizes.length) return '0 B';
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
@@ -4349,6 +4442,10 @@ let dataChannel = null;
 let heartbeatTimer = null;
 let lastHeartbeatTime = 0;
 let handshakeTimeoutTimer = null;
+let disconnectGraceTimer = null;
+const pendingDirectIceCandidates = [];
+let hasGeneratedAnswer = false;
+let isProcessingOffer = false;
 
 function startHandshakeTimeout() {
   if (handshakeTimeoutTimer) clearTimeout(handshakeTimeoutTimer);
@@ -4384,17 +4481,47 @@ function handleWebRtcDisconnect() {
 function setupPeerConnectionListeners(pc) {
   pc.onconnectionstatechange = () => {
     console.log(`[WebRTC] Connection State Changed: ${pc.connectionState}`);
-    if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+    if (pc.connectionState === 'connected') {
+      if (disconnectGraceTimer) {
+        clearTimeout(disconnectGraceTimer);
+        disconnectGraceTimer = null;
+      }
+    } else if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
       logSyncEvent(`⚠️ WebRTC 连接断开或失败 (State: ${pc.connectionState})`);
       handleWebRtcDisconnect();
+    } else if (pc.connectionState === 'disconnected') {
+      if (!disconnectGraceTimer) {
+        disconnectGraceTimer = setTimeout(() => {
+          disconnectGraceTimer = null;
+          if (peerConnection && (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed')) {
+            logSyncEvent(`⚠️ WebRTC 连接超时断开 (State: ${peerConnection?.connectionState})`);
+            handleWebRtcDisconnect();
+          }
+        }, 5000);
+      }
     }
   };
   
   pc.oniceconnectionstatechange = () => {
     console.log(`[WebRTC] ICE Connection State Changed: ${pc.iceConnectionState}`);
-    if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'closed') {
+    if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+      if (disconnectGraceTimer) {
+        clearTimeout(disconnectGraceTimer);
+        disconnectGraceTimer = null;
+      }
+    } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'closed') {
       logSyncEvent(`⚠️ ICE 连接断开或失败 (State: ${pc.iceConnectionState})`);
       handleWebRtcDisconnect();
+    } else if (pc.iceConnectionState === 'disconnected') {
+      if (!disconnectGraceTimer) {
+        disconnectGraceTimer = setTimeout(() => {
+          disconnectGraceTimer = null;
+          if (peerConnection && (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed')) {
+            logSyncEvent(`⚠️ ICE 连接超时断开 (State: ${peerConnection?.iceConnectionState})`);
+            handleWebRtcDisconnect();
+          }
+        }, 5000);
+      }
     }
   };
 }
@@ -4415,6 +4542,10 @@ function logSyncEvent(msg) {
 
 // Clean up WebRTC connection state
 function cleanupWebRtc() {
+  if (disconnectGraceTimer) {
+    clearTimeout(disconnectGraceTimer);
+    disconnectGraceTimer = null;
+  }
   if (heartbeatTimer) {
     clearInterval(heartbeatTimer);
     heartbeatTimer = null;
@@ -4443,13 +4574,9 @@ function cleanupWebRtc() {
   activeDeviceUuid.value = null;
   activeDeviceName.value = '';
   activeDeviceSystemInfo.value = null;
-  
-  if (typeof hasGeneratedAnswer !== 'undefined') {
-    hasGeneratedAnswer = false;
-  }
-  if (typeof pendingDirectIceCandidates !== 'undefined') {
-    pendingDirectIceCandidates.length = 0;
-  }
+  hasGeneratedAnswer = false;
+  isProcessingOffer = false;
+  pendingDirectIceCandidates.length = 0;
 }
 
 function requestThumbnailSync() {
@@ -4457,6 +4584,12 @@ function requestThumbnailSync() {
     logSyncEvent("❌ WebRTC 直连通道未建立，无法发送同步请求");
     return;
   }
+  
+  if (thumbSyncDone.value >= thumbSyncTotal.value && thumbSyncTotal.value > 0) {
+    thumbSyncDone.value = 0;
+    thumbSyncTotal.value = 0;
+  }
+
   logSyncEvent("🧠 正在发送 AI 缩略图批量同步请求到手机...");
   
   const buffer = new ArrayBuffer(16);
@@ -5114,8 +5247,12 @@ function setupDataChannel(channel) {
   
   const handleOpen = () => {
     if (syncStatus.value === 'connected') return;
-    logSyncEvent("🟢 WebRTC 数据通道 'photo_sync' 已开启!");
+    logSyncEvent("🟢 WebRTC 数据通道 'photo_sync' 已开启! 连接成功");
     syncStatus.value = 'connected';
+    activePeerType.value = 'Mobile';
+    if (!activeDeviceName.value) {
+      activeDeviceName.value = 'Android Device';
+    }
     clearHandshakeTimeout();
     trackEvent('webrtc_channel_opened', { method: 'qr_ble' });
     
@@ -5371,14 +5508,18 @@ function setupDataChannel(channel) {
       try {
         const data = JSON.parse(payloadStr);
         const incomingVideos = data.videos || [];
-        if (chunkIndex === 0 || totalChunks <= 1) {
-          remoteVideoCatalog.value = incomingVideos;
-        } else {
-          const existingIds = new Set(remoteVideoCatalog.value.map(v => v.id));
-          const newVideos = incomingVideos.filter(v => !existingIds.has(v.id));
-          remoteVideoCatalog.value = [...remoteVideoCatalog.value, ...newVideos];
+        
+        // Use Map to preserve all existing videos and merge/update properties (thumb, size, duration)
+        const catalogMap = new Map(remoteVideoCatalog.value.map(v => [v.id, v]));
+        for (const inv of incomingVideos) {
+          if (catalogMap.has(inv.id)) {
+            Object.assign(catalogMap.get(inv.id), inv);
+          } else {
+            catalogMap.set(inv.id, inv);
+          }
         }
-        logSyncEvent(`📋 收到手机端视频目录 [${chunkIndex + 1}/${Math.max(totalChunks, 1)}]，共发现 ${remoteVideoCatalog.value.length} 个远程视频`);
+        remoteVideoCatalog.value = Array.from(catalogMap.values());
+        logSyncEvent(`📋 收到手机端视频目录 [${chunkIndex + 1}/${Math.max(totalChunks, 1)}]，共发现 ${remoteVideoCatalog.value.length} 个视频`);
       } catch (err) {
         console.error("Failed to parse video catalog:", err);
       }
@@ -5419,13 +5560,16 @@ function setupDataChannel(channel) {
       try {
         const data = JSON.parse(payloadStr);
         const incomingAudios = data.audios || [];
-        if (chunkIndex === 0 || totalChunks <= 1) {
-          remoteAudioCatalog.value = incomingAudios;
-        } else {
-          const existingIds = new Set(remoteAudioCatalog.value.map(a => a.id));
-          const newAudios = incomingAudios.filter(a => !existingIds.has(a.id));
-          remoteAudioCatalog.value = [...remoteAudioCatalog.value, ...newAudios];
+        
+        const catalogMap = new Map(remoteAudioCatalog.value.map(a => [a.id, a]));
+        for (const ina of incomingAudios) {
+          if (catalogMap.has(ina.id)) {
+            Object.assign(catalogMap.get(ina.id), ina);
+          } else {
+            catalogMap.set(ina.id, ina);
+          }
         }
+        remoteAudioCatalog.value = Array.from(catalogMap.values());
         logSyncEvent(`📋 收到手机端音乐目录 [${chunkIndex + 1}/${Math.max(totalChunks, 1)}]，共发现 ${remoteAudioCatalog.value.length} 首音乐`);
       } catch (err) {
         console.error("Failed to parse audio catalog:", err);
@@ -5442,8 +5586,11 @@ function setupDataChannel(channel) {
       const totalCount = view.getInt32(8, false);
       // totalCount === -1 or 0 is a completion/empty sentinel sent by Android
       if (totalCount === -1 || totalCount === 0) {
+        if (thumbSyncTotal.value > 0) {
+          thumbSyncDone.value = thumbSyncTotal.value;
+        }
         isThumbnailSyncing.value = false;
-        logSyncEvent(`✅ 收到手机端 AI 同步完成信号，互斥锁已释放`);
+        logSyncEvent(`✅ 收到手机端 AI 同步完成信号，已标记全部同步完成并释放互斥锁`);
         return;
       }
       thumbSyncTotal.value = totalCount;
@@ -5705,7 +5852,9 @@ onMounted(() => {
       syncStatus.value = 'handshaking';
       startHandshakeTimeout();
       
+      const savedIceCandidates = [...pendingDirectIceCandidates];
       cleanupWebRtc();
+      pendingDirectIceCandidates.push(...savedIceCandidates);
       
       const configuration = {
         iceServers: []
@@ -5722,6 +5871,14 @@ onMounted(() => {
             event.candidate.sdpMLineIndex,
             event.candidate.candidate
           );
+        }
+      };
+
+      peerConnection.ondatachannel = (event) => {
+        if (event.channel.label === 'photo_sync') {
+          logSyncEvent("📡 监听到直连数据通道创建请求");
+          dataChannel = event.channel;
+          setupDataChannel(dataChannel);
         }
       };
       
@@ -5741,14 +5898,6 @@ onMounted(() => {
         logSyncEvent(`❌ WebRTC 协商握手失败: ${err.message || err}`);
         syncStatus.value = 'advertising';
       }
-      
-      peerConnection.ondatachannel = (event) => {
-        if (event.channel.label === 'photo_sync') {
-          logSyncEvent("📡 监听到直连数据通道创建请求");
-          dataChannel = event.channel;
-          setupDataChannel(dataChannel);
-        }
-      };
     });
     
     // 2. ICE Candidate received from mobile client
@@ -6051,10 +6200,6 @@ onMounted(() => {
     });
 
     // 10. Direct SDP received (Consolidated with deduplication & candidate buffering)
-    const pendingDirectIceCandidates = [];
-    let hasGeneratedAnswer = false;
-    let isProcessingOffer = false;
-
     window.api.onDirectSdpReceived(async ({ ip, sdp, sdpType }) => {
       logSyncEvent(`📡 [UDP] 收到 WebRTC SDP ${sdpType} 自 ${ip}`);
       activePeerIp.value = ip;
@@ -6064,8 +6209,8 @@ onMounted(() => {
       }
 
       if (sdpType === 'offer') {
-        if (isProcessingOffer) {
-          logSyncEvent(`[WebRTC] 正在处理上一个 Offer，丢弃并发的重复 Offer`);
+        if (isProcessingOffer || hasGeneratedAnswer) {
+          logSyncEvent(`[WebRTC] 已有 Offer 在处理中或已生成 Answer，丢弃并发的重复 UDP Offer`);
           return;
         }
         isProcessingOffer = true;
@@ -6077,34 +6222,25 @@ onMounted(() => {
             return;
           }
 
-          // Ignore duplicate offers if we already generated an answer for this session
-          if (hasGeneratedAnswer && peerConnection && peerConnection.signalingState !== 'closed') {
-            logSyncEvent(`[WebRTC] 已生成过 Answer，直接丢弃重复的 Offer`);
-            return;
-          }
+          const savedIceCandidates = [...pendingDirectIceCandidates];
+          cleanupWebRtc();
+          isProcessingOffer = true; // re-assert: cleanupWebRtc resets this
+          pendingDirectIceCandidates.push(...savedIceCandidates);
 
-          // If currently negotiating (e.g. have-remote-offer), ignore duplicate in-flight offer
-          if (peerConnection && peerConnection.signalingState !== 'stable' && peerConnection.signalingState !== 'closed') {
-            logSyncEvent(`[WebRTC] 当前状态 (${peerConnection.signalingState}) 正在处理协商，忽略重复 Offer`);
-            return;
-          }
-
-          if (!peerConnection || peerConnection.signalingState === 'closed') {
-            const configuration = { iceServers: [] };
-            peerConnection = new RTCPeerConnection(configuration);
-            setupPeerConnectionListeners(peerConnection);
-            peerConnection.onicecandidate = (event) => {
-              if (event.candidate) {
-                window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
-              }
-            };
-            peerConnection.ondatachannel = (event) => {
-              if (event.channel.label === 'photo_sync') {
-                dataChannel = event.channel;
-                setupDataChannel(dataChannel);
-              }
-            };
-          }
+          const configuration = { iceServers: [] };
+          peerConnection = new RTCPeerConnection(configuration);
+          setupPeerConnectionListeners(peerConnection);
+          peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+              window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
+            }
+          };
+          peerConnection.ondatachannel = (event) => {
+            if (event.channel.label === 'photo_sync') {
+              dataChannel = event.channel;
+              setupDataChannel(dataChannel);
+            }
+          };
 
           try {
             await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
@@ -6177,28 +6313,40 @@ onMounted(() => {
         }
 
         if (type === 'offer') {
+          if (isProcessingOffer || hasGeneratedAnswer) {
+            logSyncEvent(`🌐 [HTTP] 已有 Offer 在处理中或已生成 Answer，跳过重复 HTTP Offer`);
+            try {
+              await window.api.respondHttpSignal({ reqId, success: false, error: 'Duplicate offer' });
+            } catch (_) {}
+            return;
+          }
+          isProcessingOffer = true;
           try {
-            if (!peerConnection || peerConnection.signalingState === 'closed') {
-              const configuration = { iceServers: [] };
-              peerConnection = new RTCPeerConnection(configuration);
-              setupPeerConnectionListeners(peerConnection);
-              peerConnection.onicecandidate = (event) => {
-                if (event.candidate) {
-                  window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
-                }
-              };
-              peerConnection.ondatachannel = (event) => {
-                if (event.channel.label === 'photo_sync') {
-                  dataChannel = event.channel;
-                  setupDataChannel(dataChannel);
-                }
-              };
-            }
+            const savedIceCandidates = [...pendingDirectIceCandidates];
+            cleanupWebRtc();
+            isProcessingOffer = true; // re-assert: cleanupWebRtc resets this
+            pendingDirectIceCandidates.push(...savedIceCandidates);
+
+            const configuration = { iceServers: [] };
+            peerConnection = new RTCPeerConnection(configuration);
+            setupPeerConnectionListeners(peerConnection);
+
+            const gatheredCandidates = [];
+            peerConnection.onicecandidate = (event) => {
+              if (event.candidate) {
+                gatheredCandidates.push(event.candidate);
+                try { window.api.sendUdpIce(ip, JSON.stringify(event.candidate)); } catch (_) {}
+              }
+            };
+            peerConnection.ondatachannel = (event) => {
+              if (event.channel.label === 'photo_sync') {
+                dataChannel = event.channel;
+                setupDataChannel(dataChannel);
+              }
+            };
 
             await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-
+            
             if (Array.isArray(candidates)) {
               for (const c of candidates) {
                 try {
@@ -6215,20 +6363,50 @@ onMounted(() => {
               pendingDirectIceCandidates.length = 0;
             }
 
-            logSyncEvent(`🌐 成功通过 HTTP 响应 Answer SDP 到 ${ip}`);
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            hasGeneratedAnswer = true;
+
+            // Wait briefly for local host ICE candidate gathering so answer contains candidate lines
+            await new Promise((resolve) => {
+              let resolved = false;
+              const timer = setTimeout(() => {
+                if (!resolved) { resolved = true; resolve(); }
+              }, 300);
+
+              const origIceHandler = peerConnection.onicecandidate;
+              peerConnection.onicecandidate = (event) => {
+                if (origIceHandler) origIceHandler(event);
+                if (!event.candidate) {
+                  if (!resolved) { resolved = true; clearTimeout(timer); resolve(); }
+                }
+              };
+
+              if (peerConnection.iceGatheringState === 'complete') {
+                clearTimeout(timer);
+                resolve();
+              }
+            });
+
+            const finalSdp = peerConnection.localDescription?.sdp || answer.sdp;
+            logSyncEvent(`🌐 成功通过 HTTP 响应 Answer SDP 到 ${ip} (收集到 ${gatheredCandidates.length} 个 ICE)`);
             await window.api.respondHttpSignal({
               reqId,
               success: true,
-              sdp: answer.sdp,
-              candidates: []
+              sdp: finalSdp,
+              candidates: gatheredCandidates
             });
           } catch (err) {
             console.error("[WebRTC HTTP] Error handling offer:", err);
+            logSyncEvent(`❌ [HTTP] 处理 WebRTC Offer 失败: ${err.message || err}`);
+            hasGeneratedAnswer = false;
             await window.api.respondHttpSignal({
               reqId,
               success: false,
               error: err.message
             });
+          } finally {
+            isProcessingOffer = false;
           }
         }
       });
@@ -7808,7 +7986,7 @@ function getMockClassification(url) {
   outline: none;
 }
 
-/* Audios Tab Container & Playlist */
+/* Audios Tab (Cyber Hi-Fi Music Station) */
 .audios-tab-container {
   display: flex;
   flex-direction: column;
@@ -7823,7 +8001,7 @@ function getMockClassification(url) {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding-right: 4px;
+  padding-right: 6px;
 }
 
 .audio-date-group {
@@ -7832,38 +8010,49 @@ function getMockClassification(url) {
   gap: 8px;
 }
 
+/* Glassmorphism Audio Date Header */
 .audio-date-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  border-left: 3px solid #06b6d4;
+  padding: 8px 16px;
+  background: rgba(18, 24, 38, 0.65);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 4px solid #06b6d4;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
-.audio-date-title {
+.audio-date-title-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.audio-date-icon {
-  font-size: 14px;
+.audio-date-icon-box {
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .audio-date-text {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-primary);
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary, #f8fafc);
+  letter-spacing: 0.2px;
 }
 
-.audio-date-badge {
-  font-size: 11px;
-  color: var(--text-muted);
+.audio-date-meta-pill {
+  font-size: 11.5px;
+  color: var(--text-secondary, #94a3b8);
+  font-weight: 600;
   background: rgba(255, 255, 255, 0.06);
-  padding: 2px 8px;
+  padding: 2px 10px;
   border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .audio-date-actions {
@@ -7872,145 +8061,487 @@ function getMockClassification(url) {
   gap: 8px;
 }
 
+.btn-audio-date-select {
+  padding: 4px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary, #cbd5e1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-audio-date-select:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn-audio-date-select.is-selected {
+  background: rgba(6, 182, 212, 0.2);
+  border-color: rgba(6, 182, 212, 0.5);
+  color: #38bdf8;
+}
+
+.btn-audio-date-select.is-selected .btn-check-dot {
+  background: #06b6d4;
+  border-color: #06b6d4;
+  color: #fff;
+}
+
+.btn-audio-date-sync {
+  padding: 4px 14px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  border: 1px solid rgba(6, 182, 212, 0.5);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(6, 182, 212, 0.35);
+}
+
+.btn-audio-date-sync:hover:not(:disabled) {
+  transform: scale(1.04);
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.55);
+}
+
+.btn-audio-date-sync:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.audio-all-synced-badge {
+  font-size: 11.5px;
+  color: #34d399;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Audio Track Cards List */
 .audio-track-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .audio-track-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  border-radius: 10px;
-  transition: all 0.2s ease;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--bg-surface, rgba(18, 24, 38, 0.75));
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
 }
 
 .audio-track-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(6, 182, 212, 0.4);
-  transform: translateX(2px);
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(6, 182, 212, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 20px rgba(6, 182, 212, 0.2);
 }
 
 .audio-track-card.track-selected {
-  background: rgba(6, 182, 212, 0.12);
-  border-color: rgba(6, 182, 212, 0.6);
+  background: rgba(6, 182, 212, 0.14) !important;
+  border-color: #06b6d4 !important;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.35), 0 4px 16px rgba(0, 0, 0, 0.3) !important;
 }
 
 .audio-track-card.track-playing {
-  border-color: #06b6d4;
-  box-shadow: 0 0 16px rgba(6, 182, 212, 0.25);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.14) 0%, rgba(99, 102, 241, 0.14) 100%) !important;
+  border-color: #06b6d4 !important;
+  box-shadow: 0 0 26px rgba(6, 182, 212, 0.45), 0 8px 24px rgba(0, 0, 0, 0.4) !important;
 }
 
 .audio-track-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
   flex: 1;
 }
 
-.audio-disc-icon {
-  width: 38px;
-  height: 38px;
+/* Unsynced Track Multi-Select Checkbox */
+.hifi-track-checkbox {
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
-  border: 2px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
   flex-shrink: 0;
 }
 
-.audio-disc-icon.spinning {
-  animation: spin 3s linear infinite;
-  border-color: #06b6d4;
+.hifi-track-checkbox:hover {
+  transform: scale(1.12);
+  border-color: #fff;
 }
 
-.audio-track-meta {
+.hifi-track-checkbox.is-checked {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  border-color: #ffffff;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.85);
+}
+
+/* Hi-Fi Vinyl Disc Art Placeholder */
+.hifi-vinyl-cover {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, #2d3748 0%, #1a202c 60%, #0d1117 100%);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.hifi-vinyl-cover.is-playing {
+  border-color: #06b6d4;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.65), 0 4px 14px rgba(0, 0, 0, 0.6);
+}
+
+.hifi-vinyl-disc {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.hifi-vinyl-cover.is-playing .hifi-vinyl-disc {
+  animation: spin 3s linear infinite;
+}
+
+.vinyl-groove-rings {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.8);
+}
+
+.vinyl-center-label {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+.vinyl-icon-symbol {
+  font-size: 9px;
+}
+
+/* Audio Wave Equalizer Animation (Shown when playing) */
+.hifi-eq-bars {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5px;
+  z-index: 4;
+}
+
+.eq-bar {
+  width: 3px;
+  background: linear-gradient(to top, #06b6d4, #c084fc);
+  border-radius: 2px;
+  animation: eq-jump 0.8s ease-in-out infinite alternate;
+}
+
+.bar-1 { height: 12px; animation-delay: 0.1s; }
+.bar-2 { height: 18px; animation-delay: 0.3s; }
+.bar-3 { height: 10px; animation-delay: 0.5s; }
+.bar-4 { height: 16px; animation-delay: 0.2s; }
+.bar-5 { height: 14px; animation-delay: 0.4s; }
+.bar-6 { height: 20px; animation-delay: 0.15s; }
+.bar-7 { height: 11px; animation-delay: 0.35s; }
+.bar-8 { height: 17px; animation-delay: 0.25s; }
+
+@keyframes eq-jump {
+  0% {
+    height: 4px;
+    opacity: 0.5;
+  }
+  100% {
+    height: 22px;
+    opacity: 1;
+  }
+}
+
+/* Track Metadata Info */
+.hifi-track-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
   text-align: left;
 }
 
-.audio-track-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.audio-track-sub {
+.hifi-title-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
-  color: var(--text-muted);
+  min-width: 0;
 }
 
-.audio-duration-tag, .audio-size-tag {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 1px 6px;
-  border-radius: 4px;
+.hifi-track-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 460px;
+  letter-spacing: 0.1px;
 }
 
-.track-status-pill {
+.hifi-track-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hifi-tag {
   font-size: 10px;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 10px;
+  font-weight: 700;
+  padding: 1.5px 7px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
-.pill-synced {
-  background: rgba(16, 185, 129, 0.15);
+.hifi-tag-hires {
+  background: rgba(234, 179, 8, 0.18);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #facc15;
+  text-shadow: 0 0 8px rgba(234, 179, 8, 0.4);
+  font-weight: 900;
+}
+
+.hifi-tag-m4a {
+  background: rgba(6, 182, 212, 0.18);
+  border: 1px solid rgba(6, 182, 212, 0.5);
+  color: #22d3ee;
+}
+
+.hifi-tag-mp3 {
+  background: rgba(168, 85, 247, 0.18);
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  color: #c084fc;
+}
+
+.hifi-tag-ogg {
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.5);
   color: #34d399;
 }
 
-.pill-unsynced {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
+.hifi-tag-wav, .hifi-tag-other {
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  color: #60a5fa;
 }
 
-.audio-track-right {
+.hifi-tag-duration, .hifi-tag-size {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #94a3b8);
+}
+
+.hifi-status-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1.5px 7px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.hifi-track-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  margin-left: 12px;
+  margin-left: 14px;
 }
 
-.btn-track-play {
+.btn-hifi-play {
+  padding: 4.5px 14px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #06b6d4, #6366f1);
+  border: 1px solid rgba(6, 182, 212, 0.5);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(6, 182, 212, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-hifi-play:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.55);
+}
+
+.btn-hifi-play.is-active-playing {
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  border-color: #10b981;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.6);
+}
+
+.btn-hifi-download {
+  padding: 4.5px 14px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  background: rgba(6, 182, 212, 0.16);
+  border: 1px solid rgba(6, 182, 212, 0.45);
+  color: #38bdf8;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-hifi-download:hover:not(:disabled) {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  color: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.45);
+}
+
+.btn-hifi-download:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Floating Bottom Sticky Bar for Multi-Select Download */
+.audio-floating-bar {
+  position: fixed;
+  bottom: 28px;
+  left: 55%;
+  transform: translateX(-50%);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px 24px;
+  background: #0f172a;
+  backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(6, 182, 212, 0.6);
+  border-radius: 99px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 24px rgba(6, 182, 212, 0.3);
+  min-width: 440px;
+  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #ffffff;
+}
+
+.audio-floating-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.floating-music-icon {
+  font-size: 18px;
+}
+
+.floating-size-hint {
+  color: var(--text-muted, #94a3b8);
+  font-size: 12px;
+  margin-left: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.audio-floating-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-floating-clear {
+  border-radius: 20px !important;
+  padding: 6px 16px !important;
+  font-weight: 600 !important;
+}
+
+.btn-floating-download {
+  border-radius: 20px !important;
+  padding: 7px 22px !important;
+  font-weight: 800 !important;
   background: linear-gradient(135deg, #06b6d4, #3b82f6) !important;
-  color: #fff !important;
-  border: none !important;
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.45) !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.btn-track-download {
-  border-color: rgba(6, 182, 212, 0.4) !important;
-  color: #06b6d4 !important;
-}
-
-/* Audio Player Floating Lightbox Modal */
+/* Modern Cyber Hi-Fi Audio Player Lightbox Modal */
 .audio-player-modal {
   position: relative;
   width: 100%;
   max-width: 520px;
-  background: #0f172a;
-  border: 1.5px solid rgba(6, 182, 212, 0.3);
-  border-radius: 20px;
+  background: linear-gradient(145deg, #111827 0%, #0b0f19 100%);
+  border: 1.5px solid rgba(6, 182, 212, 0.35);
+  border-radius: 24px;
   overflow: hidden;
-  padding: 32px 24px 24px;
+  padding: 36px 28px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(6, 182, 212, 0.2);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(6, 182, 212, 0.25);
 }
 
 .audio-player-content {
@@ -8021,48 +8552,95 @@ function getMockClassification(url) {
   gap: 18px;
 }
 
-.vinyl-record {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #334155 0%, #0f172a 70%, #020617 100%);
-  border: 4px solid #1e293b;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(6, 182, 212, 0.3);
+.hifi-player-deck {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.vinyl-record {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #334155 0%, #0f172a 65%, #020617 100%);
+  border: 4px solid #1e293b;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7), 0 0 25px rgba(6, 182, 212, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
 .vinyl-record.spinning {
-  animation: spin 6s linear infinite;
+  animation: spin 5s linear infinite;
 }
 
 .vinyl-inner {
-  width: 50px;
-  height: 50px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: linear-gradient(135deg, #06b6d4, #8b5cf6);
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+
+.hifi-player-equalizer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+  width: 100%;
 }
 
 .audio-player-info {
   text-align: center;
   max-width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
 .audio-player-title {
   font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  font-weight: 800;
+  color: var(--text-primary, #f8fafc);
+  margin: 0;
   word-break: break-word;
 }
 
-.audio-player-sub {
-  font-size: 12px;
-  color: var(--text-muted);
+.audio-player-specs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hifi-player-spec-pill {
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.audio-player-raw-name {
+  font-size: 11px;
+  color: var(--text-muted, #64748b);
+  margin: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .audio-native-element {

@@ -462,13 +462,13 @@ class PhotoStreamer {
     debugPrint("[Streamer] Starting transmission of thumbnail for asset: ${entity.title}, ID: $fileId");
     try {
       Uint8List? thumbData;
-      // 1. Try standard 400x400 JPEG thumbnail
+      // 1. Try standard 400x400 JPEG thumbnail (with timeout to prevent hanging on inaccessible assets)
       try {
         thumbData = await entity.thumbnailDataWithSize(
           const ThumbnailSize.square(400),
           format: ThumbnailFormat.jpeg,
           quality: 85,
-        );
+        ).timeout(const Duration(seconds: 5), onTimeout: () => null);
       } catch (e) {
         debugPrint("[Streamer] thumbnailDataWithSize JPEG failed for ${entity.id}: $e");
       }
@@ -479,14 +479,14 @@ class PhotoStreamer {
           thumbData = await entity.thumbnailDataWithSize(
             const ThumbnailSize.square(400),
             quality: 85,
-          );
+          ).timeout(const Duration(seconds: 5), onTimeout: () => null);
         } catch (_) {}
       }
 
       // 3. Fallback: try default thumbnailData
       if (thumbData == null) {
         try {
-          thumbData = await entity.thumbnailData;
+          thumbData = await entity.thumbnailData.timeout(const Duration(seconds: 5), onTimeout: () => null);
         } catch (_) {}
       }
 
@@ -503,7 +503,8 @@ class PhotoStreamer {
             } catch (_) {}
           }
           if (f != null) {
-            thumbData = await f.readAsBytes();
+            thumbData = await f.readAsBytes().timeout(const Duration(seconds: 3), onTimeout: () => Uint8List(0));
+            if (thumbData != null && thumbData!.isEmpty) thumbData = null;
           }
         } catch (e) {
           debugPrint("[Streamer] File read fallback failed for ${entity.id}: $e");
@@ -517,7 +518,10 @@ class PhotoStreamer {
 
       final String safeId = sanitizeId(entity.id);
       final String name = 'thumb_$safeId.jpg';
-      final LatLng? latLng = await entity.latlngAsync();
+      LatLng? latLng;
+      try {
+        latLng = await entity.latlngAsync().timeout(const Duration(seconds: 2), onTimeout: () => null);
+      } catch (_) {}
       final double? lat = (latLng != null && latLng.latitude != 0.0) ? latLng.latitude : null;
       final double? lng = (latLng != null && latLng.longitude != 0.0) ? latLng.longitude : null;
 

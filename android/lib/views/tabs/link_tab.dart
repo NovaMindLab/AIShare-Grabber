@@ -93,7 +93,7 @@ class LinkTab extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    t.currentLocale.startsWith('zh') ? '局域网在线电脑 (${viewModel.discoveredPCs.length})' : 'LAN PCs Nearby (${viewModel.discoveredPCs.length})',
+                    '${t.get('lanPcFound')} (${viewModel.discoveredPCs.length})',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onBackground,
                       fontSize: 14,
@@ -181,7 +181,7 @@ class LinkTab extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              t.currentLocale.startsWith('zh') ? '直连' : 'Connect',
+                              t.get('instantConnect'),
                               style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                             ),
                           ),

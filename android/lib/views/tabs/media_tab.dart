@@ -25,7 +25,6 @@ class _MediaTabState extends State<MediaTab> {
   Widget build(BuildContext context) {
     final viewModel = Provider.of<SyncViewModel>(context);
     final t = Provider.of<LocalizationService>(context);
-    final isZh = t.currentLocale.startsWith('zh');
 
     final currentList = _selectedTab == 0 ? viewModel.localImages : viewModel.localVideos;
 
@@ -102,7 +101,7 @@ class _MediaTabState extends State<MediaTab> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            "${isZh ? '照片' : 'Photos'} (${viewModel.localImages.length})",
+                            "${t.get('photos')} (${viewModel.localImages.length})",
                             style: TextStyle(
                               color: _selectedTab == 0
                                   ? Colors.white
@@ -142,7 +141,7 @@ class _MediaTabState extends State<MediaTab> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            "${isZh ? '视频' : 'Videos'} (${viewModel.localVideos.length})",
+                            "${t.get('videos')} (${viewModel.localVideos.length})",
                             style: TextStyle(
                               color: _selectedTab == 1
                                   ? Colors.white
@@ -165,7 +164,7 @@ class _MediaTabState extends State<MediaTab> {
           // Media Grid View
           Expanded(
             child: currentList.isEmpty
-                ? _buildEmptyState(context, _selectedTab == 0, isZh)
+                ? _buildEmptyState(context, _selectedTab == 0, t)
                 : GridView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -240,7 +239,7 @@ class _MediaTabState extends State<MediaTab> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, bool isPhotos, bool isZh) {
+  Widget _buildEmptyState(BuildContext context, bool isPhotos, LocalizationService t) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -252,9 +251,7 @@ class _MediaTabState extends State<MediaTab> {
           ),
           const SizedBox(height: 12),
           Text(
-            isPhotos
-                ? (isZh ? '相册中暂无照片' : 'No photos found')
-                : (isZh ? '相册中暂无视频' : 'No videos found'),
+            isPhotos ? t.get('noPhotos') : t.get('noVideos'),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               fontSize: 14,

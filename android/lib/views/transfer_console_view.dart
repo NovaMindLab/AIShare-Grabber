@@ -359,7 +359,6 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
           child: Builder(
             builder: (context) {
               final currentList = _mediaSubTab == 0 ? viewModel.localImages : viewModel.localVideos;
-              final isZh = t.currentLocale.startsWith('zh');
 
               if (currentList.isEmpty) {
                 return Center(
@@ -373,9 +372,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        _mediaSubTab == 0
-                            ? (isZh ? "相册中暂无照片" : "No photos available")
-                            : (isZh ? "相册中暂无视频" : "No videos available"),
+                        _mediaSubTab == 0 ? t.get('noPhotos') : t.get('noVideos'),
                         style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
                       ),
                     ],
@@ -759,7 +756,6 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
     final totalSelected = selectedPhotos.length + selectedVideos.length + selectedMusic.length + viewModel.chosenFiles.length;
 
     final t = Provider.of<LocalizationService>(context);
-    final isZh = t.currentLocale.startsWith('zh');
 
     if (totalSelected == 0) {
       return Center(
@@ -774,7 +770,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
             ),
             const SizedBox(height: 6.0),
             Text(
-              isZh ? "前往其他选项卡勾选要传输的文件" : "Browse other tabs to select files to transmit",
+              t.get('selectFilesHint'),
               style: const TextStyle(color: Color(0xFF475569), fontSize: 12.0),
             ),
           ],
@@ -789,7 +785,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Text(
-              isZh ? "已选照片 (${selectedPhotos.length})" : "SELECTED PHOTOS (${selectedPhotos.length})",
+              "${t.get('selectedPhotos')} (${selectedPhotos.length})",
               style: const TextStyle(fontSize: 11.0, color: Color(0xFF64748B), fontWeight: FontWeight.bold, letterSpacing: 0.8),
             ),
           ),
@@ -806,7 +802,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Text(
-              isZh ? "已选视频 (${selectedVideos.length})" : "SELECTED VIDEOS (${selectedVideos.length})",
+              "${t.get('selectedVideos')} (${selectedVideos.length})",
               style: const TextStyle(fontSize: 11.0, color: Color(0xFF64748B), fontWeight: FontWeight.bold, letterSpacing: 0.8),
             ),
           ),
@@ -823,7 +819,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Text(
-              isZh ? "已选音乐 (${selectedMusic.length})" : "SELECTED MUSIC (${selectedMusic.length})",
+              "${t.get('selectedMusic')} (${selectedMusic.length})",
               style: const TextStyle(fontSize: 11.0, color: Color(0xFF64748B), fontWeight: FontWeight.bold, letterSpacing: 0.8),
             ),
           ),
@@ -938,8 +934,6 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
     LocalizationService t,
     int totalCount,
   ) {
-    final isZh = t.currentLocale.startsWith('zh');
-
     // Case 1: Items are actively selected in gallery -> Show Send + Sync buttons
     if (totalCount > 0) {
       return Row(
@@ -952,7 +946,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
             backgroundColor: const Color(0xFF1E293B),
             foregroundColor: const Color(0xFF8B5CF6),
             elevation: 4.0,
-            tooltip: isZh ? "AI与相册同步" : "AI & Album Sync",
+            tooltip: t.get('syncHub'),
             child: const Icon(Icons.bolt_rounded, size: 20.0),
           ),
           const SizedBox(width: 10.0),
@@ -991,9 +985,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
           ),
         ),
         label: Text(
-          isZh
-              ? "AI同步中 ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}"
-              : "AI Syncing ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}",
+          "${t.get('aiSyncTitle')} ${viewModel.thumbnailSyncDone}/${viewModel.thumbnailSyncTotal}",
           style: const TextStyle(
             color: Colors.white,
             fontSize: 12.0,
@@ -1016,11 +1008,9 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
           size: 18.0,
         ),
         label: Text(
-          isZh
-              ? (viewModel.isAlbumSyncPaused
-                  ? "备份暂停 (${viewModel.albumSyncDone}/${viewModel.albumSyncTotal})"
-                  : "备份中 ${viewModel.albumSyncDone}/${viewModel.albumSyncTotal}")
-              : "Syncing ${viewModel.albumSyncDone}/${viewModel.albumSyncTotal}",
+          viewModel.isAlbumSyncPaused
+              ? "${t.get('pauseBackup')} (${viewModel.albumSyncDone}/${viewModel.albumSyncTotal})"
+              : "${t.get('albumBackupTitle')} ${viewModel.albumSyncDone}/${viewModel.albumSyncTotal}",
           style: const TextStyle(
             color: Colors.white,
             fontSize: 12.0,
@@ -1039,7 +1029,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
       elevation: 6.0,
       icon: const Icon(Icons.bolt_rounded, size: 20.0),
       label: Text(
-        isZh ? "AI & 相册同步" : "AI & Album Sync",
+        t.get('syncHub'),
         style: const TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 13.0,
@@ -1055,8 +1045,6 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
     SyncViewModel viewModel,
     LocalizationService t,
   ) {
-    final isZh = t.currentLocale.startsWith('zh');
-
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF0F172A),
@@ -1104,7 +1092,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                             ),
                             const SizedBox(width: 10.0),
                             Text(
-                              isZh ? "多端极速数据同步" : "Cross-Device Data Sync",
+                              t.get('syncHub'),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16.0,
@@ -1144,7 +1132,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                               ),
                               const SizedBox(width: 10.0),
                               Text(
-                                isZh ? "AI 智能相册分类 (MobileCLIP)" : "AI Album Categorization (MobileCLIP)",
+                                t.get('aiSyncTitle'),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14.0,
@@ -1155,9 +1143,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                           ),
                           const SizedBox(height: 8.0),
                           Text(
-                            isZh
-                                ? "仅发送高清缩略图到 PC 本地 AI 引擎进行零样本语义分类与人脸聚类（毫秒级极速，省流省电）。"
-                                : "Sync thumbnails to PC local AI engine for zero-shot classification and face clustering.",
+                            t.get('aiSyncDesc'),
                             style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12.0, height: 1.4),
                           ),
                           const SizedBox(height: 12.0),
@@ -1166,9 +1152,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  isZh
-                                      ? "🔄 正在同步缩略图..."
-                                      : "🔄 Syncing thumbnails...",
+                                  t.get('aiSyncProgress'),
                                   style: const TextStyle(color: Color(0xFFA78BFA), fontSize: 12.0, fontWeight: FontWeight.w600),
                                 ),
                                 Text(
@@ -1211,8 +1195,8 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                                 icon: const Icon(Icons.psychology_rounded, size: 16.0),
                                 label: Text(
                                   vm.selectedImages.isNotEmpty
-                                      ? (isZh ? "同步选中 (${vm.selectedImages.length}) 张图片到AI" : "Sync Selected (${vm.selectedImages.length}) to AI")
-                                      : (isZh ? "同步全部图片到AI进行分类" : "Sync All Images to AI"),
+                                      ? t.get('syncSelectedToAi').replaceAll('{count}', vm.selectedImages.length.toString())
+                                      : t.get('syncAllToAi'),
                                   style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                                 ),
                               ),
@@ -1247,7 +1231,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                               ),
                               const SizedBox(width: 10.0),
                               Text(
-                                isZh ? "电脑端全量相册备份 (Full Backup)" : "Full Album Backup to PC",
+                                t.get('albumBackupTitle'),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14.0,
@@ -1258,9 +1242,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                           ),
                           const SizedBox(height: 8.0),
                           Text(
-                            isZh
-                                ? "无损传输相册原图原片至电脑本地硬盘，自动按日期建立归档，支持断点续传与增量对齐。"
-                                : "Lossless original photo transfer to PC storage with date-based hierarchy and resume support.",
+                            t.get('albumBackupDesc'),
                             style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12.0, height: 1.4),
                           ),
                           const SizedBox(height: 12.0),
@@ -1269,13 +1251,13 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  isZh
-                                      ? (vm.isAlbumSyncPaused ? "⏸️ 备份已暂停" : "🔄 正在传输原图...")
-                                      : (vm.isAlbumSyncPaused ? "⏸️ Paused" : "🔄 Syncing original photos..."),
+                                  vm.isAlbumSyncPaused
+                                      ? "⏸️ ${t.get('pauseBackup')}"
+                                      : t.get('albumBackupProgress'),
                                   style: const TextStyle(color: Color(0xFF34D399), fontSize: 12.0, fontWeight: FontWeight.w600),
                                 ),
                                 Text(
-                                  "${vm.albumSyncDone} / ${vm.albumSyncTotal} (余${vm.albumSyncTotal - vm.albumSyncDone}张)",
+                                  "${vm.albumSyncDone} / ${vm.albumSyncTotal}",
                                   style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold),
                                 ),
                               ],
@@ -1312,7 +1294,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                                     },
                                     icon: Icon(vm.isAlbumSyncPaused ? Icons.play_arrow : Icons.pause, size: 16.0),
                                     label: Text(
-                                      vm.isAlbumSyncPaused ? (isZh ? "继续备份" : "Resume") : (isZh ? "暂停备份" : "Pause"),
+                                      vm.isAlbumSyncPaused ? t.get('resumeBackup') : t.get('pauseBackup'),
                                       style: const TextStyle(fontSize: 12.0),
                                     ),
                                   ),
@@ -1329,7 +1311,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                                     onPressed: () => vm.stopAlbumSync(),
                                     icon: const Icon(Icons.stop, size: 16.0),
                                     label: Text(
-                                      isZh ? "停止备份" : "Stop",
+                                      t.get('stopBackup'),
                                       style: const TextStyle(fontSize: 12.0),
                                     ),
                                   ),
@@ -1356,8 +1338,8 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                                 icon: const Icon(Icons.cloud_upload_rounded, size: 16.0),
                                 label: Text(
                                   vm.lastAlbumSyncDate.isNotEmpty
-                                      ? (isZh ? "继续同步相册" : "Resume Album Sync")
-                                      : (isZh ? "开始全量备份相册到电脑" : "Start Full Album Backup"),
+                                      ? t.get('resumeAlbumSync')
+                                      : t.get('startAlbumBackup'),
                                   style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                                 ),
                               ),
@@ -1382,8 +1364,8 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                                 icon: const Icon(Icons.video_library_rounded, size: 16.0),
                                 label: Text(
                                   vm.lastVideoSyncDate.isNotEmpty
-                                      ? (isZh ? "继续同步视频" : "Resume Video Sync")
-                                      : (isZh ? "开始备份全部视频到电脑" : "Backup All Videos to PC"),
+                                      ? t.get('resumeVideoSync')
+                                      : t.get('startVideoBackup'),
                                   style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                                 ),
                               ),
@@ -1408,8 +1390,8 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                                 icon: const Icon(Icons.music_note_rounded, size: 16.0),
                                 label: Text(
                                   vm.lastAudioSyncDate.isNotEmpty
-                                      ? (isZh ? "继续同步音乐" : "Resume Music Sync")
-                                      : (isZh ? "开始备份全部音乐到电脑" : "Backup All Music to PC"),
+                                      ? t.get('resumeMusicSync')
+                                      : t.get('startMusicBackup'),
                                   style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                                 ),
                               ),

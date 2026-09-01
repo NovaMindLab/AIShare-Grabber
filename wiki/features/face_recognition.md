@@ -141,52 +141,63 @@ flowchart LR
 - **容量梯队**：根据硬件档位自动分配 20MB（10,000 张面容）~ 100MB（50,000 张面容）；
 - **内存映射**：通过统一的共享内存池直接进行**零内存拷贝 (Zero-Copy)** 计算。
 
-### 5.2 独创算法：平均距离 + 同图排他聚类 (Average-Linkage with Same-Photo Exclusion)
+### 5.2 独创算法：两阶段自适应质心人脸聚类 (Two-Stage Hierarchical Centroid Clustering)
 
-传统简单聚类容易产生“连锁效应”（Person A 像 B，B 像 C，导致 A 和完全不相干的 C 被强行合并）。
+#### 5.2.1 传统单阶段与严格 minSim 的缺陷分析
+早期单阶段顺序贪心聚类（Sequential Greedy Clustering）存在致命的过度碎片化问题：
+- **无对齐生活照相似度分布**：未经过 5 点仿射变换的自由生活照中，同一人物在不同角度（正脸 vs 45°微侧脸）、光照、表情下的 MobileFaceNet 余弦相似度普遍分布在 **`0.42 ~ 0.58`** 之间；
+- **完全链接（Complete-Linkage）陷阱**：旧算法强制要求 `minSim >= 0.42`，当一个组的照片数量增加时，只要组内存在任意一张侧脸与新照片的相似度低于 0.42，就会被一票否决并强行分立出全新的独立人物组；
+- **缺少聚类后合并阶段**：初次贪心遍历后形成的两个同人小组，即便质心相似度高达 0.55+，也无法在后续流程中融合。
 
-ShareCLIP 在 `search.worker.cjs` 中实现了专为人脸相册设计的聚类器：
+#### 5.2.2 两阶段自适应质心聚类架构 (Two-Stage HAC)
+
+ShareCLIP 在 `search.worker.cjs` 中全新升级了工业级两阶段自适应质心聚类算法：
 
 ```mermaid
-sequenceDiagram
-    participant Worker as Search Worker
-    participant Cluster as 现有候选人物分组 [Group 1, Group 2...]
-    participant Engine as 底层高性能向量计算内核
-    
-    Worker->>Cluster: 遍历当前待聚类人脸 Face(i), 所属照片 Path(i)
-    loop 遍历已有候选组 Group(g)
-        Worker->>Worker: 检查规则1: 同图排他 (Path 碰撞检测)
-        alt Group(g) 中已有同一张照片中的其他人脸
-            Worker-->>Cluster: ❌ 命中同图排他原则，强制跳过该组！
-        else 无同图冲突
-            loop 计算与 Group(g) 各成员的相似度
-                Worker->>Engine: cosine_similarity(Face_i, Member_j)
-                Engine-->>Worker: 返回 sim
-            end
-            Worker->>Worker: 计算 avgSim 与 minSim
-            alt avgSim ≥ 0.50 且 minSim ≥ 0.42
-                Worker->>Worker: 记为有效候选组，更新最佳匹配
-            end
-        end
+flowchart TD
+    subgraph Stage1 ["阶段 1: 自适应动态图 Top-K 聚类"]
+        F["📸 待聚类人脸 Face(i)"] --> Conflict1{"同图排他检测<br/>(所属照片是否已有组内成员?)"}
+        Conflict1 -->|有冲突| SkipGroup["❌ 跳过该组"]
+        Conflict1 -->|无冲突| TopKSim["📐 计算 Top-K (k=min(3, size)) 代表成员平均相似度"]
+        TopKSim --> CentroidCheck["🎯 计算与组动态归一化质心 Centroid 相似度"]
+        CentroidCheck --> Eval1{"综合相似度 ≥ 0.44 ?"}
+        Eval1 -->|是| JoinBest["✅ 加入最高相似度候选组<br/>更新组质心向量"]
+        Eval1 -->|否| NewCluster["✨ 创建初始人脸子簇 [Face_i]"]
     end
-    alt 找到最佳候选组
-        Worker->>Cluster: 将 Face(i) 加入 Group(best)
-    else 无匹配组
-        Worker->>Cluster: 创建全新人物组 [Face_i]
+
+    subgraph Stage2 ["阶段 2: 层次凝聚多轮质心/成对合并 (Agglomerative Merge)"]
+        NewCluster --> InterCluster["📊 计算所有簇间质心及 Top-3 成员交互相似度"]
+        JoinBest --> InterCluster
+        InterCluster --> Conflict2{"同图排他安全校验<br/>(两簇成员是否包含同一张照片?)"}
+        Conflict2 -->|包含同图照片| BlockMerge["🚫 物理互斥，严禁合并"]
+        Conflict2 -->|无同图重叠| MergeEval{"簇间相似度 ≥ 0.43 ?"}
+        MergeEval -->|是| MergeClusters["🔗 凝聚合并为同一个人<br/>重新计算综合质心"]
+        MergeEval -->|否| KeepSeparate["保持独立"]
+        MergeClusters --> LoopCheck{"本轮是否有发生合并?"}
+        LoopCheck -->|有| InterCluster
+        LoopCheck -->|无| Stage3["阶段 3: 排序与封面挑选"]
+    end
+
+    subgraph Stage3 ["阶段 3: 封面肖像挑选与降序重排"]
+        Stage3 --> BBoxArea["📐 遍历所有人脸 BBox，选取像素面积最大、最清晰的免冠特写"]
+        BBoxArea --> SortDesc["🏆 按包含照片数量降序重排 (person_001, person_002...)"]
+        SortDesc --> SQLiteSave["💾 批量写入 SQLite person_clusters 与 faces.person_id"]
     end
 ```
 
-#### 核心聚类法则：
-1. **同图排他原则（Same-Photo Exclusion Rule）**：
-   - **公理**：在同一张照片中同时出现的两张人脸，**在物理上绝对不可能属于同一个人**！
-   - 如果某个候选人物组中已经包含了当前照片的其他人脸，则算法无条件跳过该组，彻底杜绝合影中的好友被错误聚为一人的历史顽疾。
-2. **双重相似度门槛（Dual-Threshold Bound）**：
-   - 组内平均相似度：$\text{avgSim} \ge 0.50$；
-   - 组内最差相似度底线：$\text{minSim} \ge 0.42$（防止边缘极端样本污染聚类中心）。
-3. **最佳封面智能选取**：
-   - 聚类完成后，遍历该人物分组下的所有人脸 BBox，**自动选取像素面积最大、分辨率最高的特写面容**作为人物相册的 Cover Portrait。
-4. **按出镜频次降序重排**：
-   - 人物分组自动按包含照片数量降序排列，家人、密友等高频出镜主角自动排在最前列。
+#### 5.2.3 核心聚类法则：
+1. **阶段 1：Top-K 自适应动态链接 (Adaptive Top-K Linkage)**：
+   - 移除破坏性的 `minSim` 门槛；
+   - 提取待聚类人脸与组内成员的 Top-$k$ ($k=\min(3, \text{groupSize})$) 最高相似度平均值；
+   - 维护动态归一化质心向量 $\mathbf{C} = \frac{\sum \mathbf{e}_m}{\|\sum \mathbf{e}_m\|_2}$，综合判定门槛校准为 **`0.44`**。
+2. **阶段 2：层次凝聚组间合并 (Agglomerative Centroid Merge)**：
+   - 全局扫描所有生成的人物簇，按簇间质心相似度及 Top-3 成对相似度（门槛 **`0.43`**）寻找最匹配簇对；
+   - **同图排他强隔离**：在合并两簇前，严格校验其包含的所有照片路径集合 $P_A \cap P_B = \emptyset$。若有同一张照片的合影人脸，绝对禁止合并；
+   - 迭代循环合并，直到所有簇达到最大收敛。
+3. **阶段 3：最佳肖像封面挑选**：
+   - 遍历各人物组下所有人脸 BBox，自动计算 $\text{Area} = \text{Width} \times \text{Height}$，**选取面积最大、画质最清晰的正面免冠特写**作为人物相册头像；
+4. **出镜频次降序重排**：
+   - 自动按照片数量降序排序，并在持久化时重新赋予全局唯一且连续的 `person_001`, `person_002` 标识。
 
 ---
 

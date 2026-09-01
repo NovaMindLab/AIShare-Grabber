@@ -11,36 +11,42 @@
           <!-- 1. Header Row -->
           <div 
             v-if="row.data.type === 'header'" 
-            class="video-date-header"
+            class="video-date-header glass-panel"
           >
             <div class="video-date-title-wrap">
-              <span class="video-date-icon">📅</span>
+              <div class="video-date-icon-box">📅</div>
               <h4 class="video-date-title">{{ row.data.group.dateKey }}</h4>
-              <span class="video-date-meta">
-                {{ t?.videos?.dateVideosMeta ? t.videos.dateVideosMeta.replace('{count}', row.data.group.filteredCount).replace('{size}', formatBytes(row.data.group.filteredBytes)) : `(${row.data.group.filteredCount} 个视频 • ${formatBytes(row.data.group.filteredBytes)})` }}
+              <span class="video-date-meta-pill">
+                {{ t?.videos?.dateVideosMeta ? t.videos.dateVideosMeta.replace('{count}', row.data.group.filteredCount).replace('{size}', formatBytes(row.data.group.filteredBytes)) : `${row.data.group.filteredCount} 个视频 • ${formatBytes(row.data.group.filteredBytes)}` }}
               </span>
             </div>
 
             <!-- Date-level Actions -->
             <div class="video-date-actions" v-if="syncStatus === 'connected' && row.data.group.hasUnsynced">
               <button 
-                class="btn btn-secondary btn-xs"
+                class="btn-date-select"
+                :class="{ 'is-selected': isDateAllSelected(row.data.group) }"
                 @click="$emit('toggle-date-selection', row.data.group)"
                 :title="isDateAllSelected(row.data.group) ? '取消勾选此日期的所有待同步视频' : '勾选此日期的所有待同步视频'"
               >
-                {{ isDateAllSelected(row.data.group) ? (t?.videos?.clearDate || '⬜ 取消勾选此日期') : (t?.videos?.selectDate ? t.videos.selectDate.replace('{count}', row.data.group.unsyncedCount) : `☑️ 勾选此日期 (${row.data.group.unsyncedCount})`) }}
+                <span class="btn-check-dot">{{ isDateAllSelected(row.data.group) ? '✓' : '' }}</span>
+                <span>{{ isDateAllSelected(row.data.group) ? (t?.videos?.clearDate || '取消全选') : (t?.videos?.selectDate ? t.videos.selectDate.replace('{count}', row.data.group.unsyncedCount) : `勾选此日期 (${row.data.group.unsyncedCount})`) }}</span>
               </button>
               <button 
-                class="btn btn-primary btn-xs"
+                class="btn-date-sync"
                 :disabled="isVideoSyncing"
                 @click="$emit('sync-date', row.data.group)"
                 title="仅下载此拍摄日期的全部视频"
               >
-                <span>⚡</span> {{ t?.videos?.syncDateBtn ? t.videos.syncDateBtn.replace('{count}', row.data.group.unsyncedCount) : `同步此日期 (${row.data.group.unsyncedCount})` }}
+                <span class="bolt-icon">⚡</span>
+                <span>{{ t?.videos?.syncDateBtn ? t.videos.syncDateBtn.replace('{count}', row.data.group.unsyncedCount) : `同步此日期 (${row.data.group.unsyncedCount})` }}</span>
               </button>
             </div>
             <div class="video-date-actions" v-else-if="!row.data.group.hasUnsynced">
-              <span class="video-all-synced-badge">{{ t?.videos?.allDateSynced || '✅ 全部已备份' }}</span>
+              <span class="video-all-synced-badge">
+                <span class="check-pill-icon">✓</span>
+                <span>{{ t?.videos?.allDateSynced || '全部已备份' }}</span>
+              </span>
             </div>
           </div>
 
@@ -60,7 +66,7 @@
               }"
               @click="item.isSynced ? $emit('play-video', item) : $emit('toggle-selection', item)"
             >
-              <!-- Thumbnail / Poster Area -->
+              <!-- 16:9 Thumbnail / Poster Area -->
               <div class="video-poster-box">
                 <!-- Real Thumbnail Cover (Base64 from mobile or local video frame capture) -->
                 <img 
@@ -69,8 +75,34 @@
                   class="video-poster-media" 
                   loading="lazy" 
                 />
+                
+                <!-- Cyberpunk Indigo Fallback Poster Mesh -->
                 <div v-else class="video-poster-placeholder">
-                  <span class="video-poster-icon">🎬</span>
+                  <div class="cyber-mesh-bg"></div>
+                  <div class="cyber-film-watermark">
+                    <svg class="cyber-film-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="6" y="8" width="36" height="32" rx="6" stroke="url(#filmGrad)" stroke-width="2.5" fill="rgba(15, 23, 42, 0.65)"/>
+                      <circle cx="14" cy="15" r="2.2" fill="#a855f7" opacity="0.85"/>
+                      <circle cx="24" cy="15" r="2.2" fill="#6366f1" opacity="0.85"/>
+                      <circle cx="34" cy="15" r="2.2" fill="#06b6d4" opacity="0.85"/>
+                      <circle cx="14" cy="33" r="2.2" fill="#a855f7" opacity="0.85"/>
+                      <circle cx="24" cy="33" r="2.2" fill="#6366f1" opacity="0.85"/>
+                      <circle cx="34" cy="33" r="2.2" fill="#06b6d4" opacity="0.85"/>
+                      <polygon points="21,20 31,24 21,28" fill="url(#playGrad)"/>
+                      <defs>
+                        <linearGradient id="filmGrad" x1="6" y1="8" x2="42" y2="40" gradientUnits="userSpaceOnUse">
+                          <stop stop-color="#a855f7"/>
+                          <stop offset="0.5" stop-color="#6366f1"/>
+                          <stop offset="1" stop-color="#06b6d4"/>
+                        </linearGradient>
+                        <linearGradient id="playGrad" x1="21" y1="20" x2="31" y2="28" gradientUnits="userSpaceOnUse">
+                          <stop stop-color="#38bdf8"/>
+                          <stop offset="1" stop-color="#c084fc"/>
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <span class="cyber-film-text">ShareCLIP 1080P</span>
+                  </div>
                 </div>
 
                 <!-- Top-Left Status Pill -->
@@ -78,7 +110,8 @@
                   class="video-status-tag"
                   :class="item.isSynced ? 'tag-synced' : 'tag-unsynced'"
                 >
-                  {{ item.isSynced ? (t?.videos?.tagSynced || '🟢 已备份') : (t?.videos?.tagUnsynced || '⏳ 待下载') }}
+                  <span class="status-icon-symbol">{{ item.isSynced ? '✓' : '⬇' }}</span>
+                  <span>{{ item.isSynced ? (t?.videos?.tagSynced || '已备份') : (t?.videos?.tagUnsynced || '待下载') }}</span>
                 </span>
 
                 <!-- Top-Right Custom Checkbox for Multi-Select -->
@@ -94,7 +127,7 @@
 
                 <!-- Center Hover Play Overlay for Synced Videos -->
                 <div v-if="item.isSynced" class="video-play-center-btn">
-                  <span>▶</span>
+                  <span class="play-triangle">▶</span>
                 </div>
 
                 <!-- Bottom-Right Duration Badge -->
@@ -107,8 +140,8 @@
               <div class="video-card-footer">
                 <div class="video-card-name" :title="item.name">{{ item.name }}</div>
                 <div class="video-card-sub">
-                  <span>{{ formatBytes(item.size) }}</span>
-                  <div v-if="item.isSynced" style="display: flex; align-items: center; gap: 6px;">
+                  <span class="video-size-badge">{{ formatBytes(item.size) }}</span>
+                  <div v-if="item.isSynced" class="video-action-group">
                     <button 
                       class="btn-video-anime-edit" 
                       @click.stop="$emit('open-anime-studio', item)"
@@ -116,9 +149,15 @@
                     >
                       🎨 动漫化
                     </button>
-                    <span class="video-play-hint">{{ t?.videos?.playHint || '▶️ 播放' }}</span>
+                    <button 
+                      class="btn-video-play-action" 
+                      @click.stop="$emit('play-video', item)"
+                      title="播放视频"
+                    >
+                      <span>▶️</span> {{ t?.videos?.playHint || '播放' }}
+                    </button>
                   </div>
-                  <div v-else style="display: flex; align-items: center; gap: 6px;">
+                  <div v-else class="video-action-group">
                     <button 
                       class="btn-video-quick-download" 
                       @click.stop="$emit('download-video', item)"
@@ -156,7 +195,7 @@ const props = defineProps({
   },
   minItemWidth: {
     type: Number,
-    default: 220
+    default: 230
   },
   gap: {
     type: Number,
@@ -248,8 +287,8 @@ const itemWidth = computed(() => {
 
 const cardRowHeight = computed(() => {
   const w = itemWidth.value;
-  const posterH = w / (16 / 9.5);
-  const footerH = 58;
+  const posterH = w / (16 / 9);
+  const footerH = 64;
   return Math.round(posterH + footerH);
 });
 
@@ -264,7 +303,7 @@ const flattenedRows = computed(() => {
       type: 'header',
       key: `hdr_${group.rawDate}`,
       group,
-      height: 48
+      height: 52
     });
 
     // 2. Chunks of video items
@@ -291,7 +330,7 @@ const { list, containerProps, wrapperProps, scrollTo } = useVirtualList(flattene
     const margin = item.type === 'header' ? 12 : props.gap;
     return item.height + margin;
   },
-  overscan: 5
+  overscan: 6
 });
 
 defineExpose({
@@ -334,24 +373,30 @@ defineExpose({
   box-sizing: border-box;
 }
 
+/* 16:9 Video Card Container */
 .video-card {
   flex: 1;
   min-width: 0;
   border-radius: 14px;
   overflow: hidden;
-  background: var(--bg-surface, rgba(30, 41, 59, 0.7));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  background: var(--bg-surface, rgba(18, 24, 38, 0.75));
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.28s ease,
+              background 0.28s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  position: relative;
 }
 
 .video-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(168, 85, 247, 0.5);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+  transform: translateY(-4px);
+  border-color: rgba(168, 85, 247, 0.55);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45), 0 0 24px rgba(168, 85, 247, 0.22);
 }
 
 .video-card-empty-placeholder {
@@ -361,20 +406,26 @@ defineExpose({
 }
 
 .card-unsynced {
-  border-color: rgba(245, 158, 11, 0.25);
+  border-color: rgba(6, 182, 212, 0.25);
+}
+
+.card-unsynced:hover {
+  border-color: rgba(6, 182, 212, 0.6);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45), 0 0 24px rgba(6, 182, 212, 0.25);
 }
 
 .card-selected {
   border-color: #a855f7 !important;
-  background: rgba(168, 85, 247, 0.08) !important;
-  box-shadow: 0 0 18px rgba(168, 85, 247, 0.4) !important;
+  background: rgba(168, 85, 247, 0.12) !important;
+  box-shadow: 0 0 24px rgba(168, 85, 247, 0.55), 0 8px 24px rgba(0, 0, 0, 0.4) !important;
 }
 
+/* 16:9 Poster Area */
 .video-poster-box {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9.5;
-  background: #0f172a;
+  aspect-ratio: 16 / 9;
+  background: #090d16;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -386,47 +437,86 @@ defineExpose({
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .video-card:hover .video-poster-media {
-  transform: scale(1.05);
+  transform: scale(1.06);
 }
 
+/* Fallback Poster Gradient & Cyber Mesh */
 .video-poster-placeholder {
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
+  background: linear-gradient(135deg, #18132b 0%, #0d1322 50%, #12182b 100%);
+  overflow: hidden;
 }
 
-.video-poster-icon {
-  font-size: 32px;
-  opacity: 0.6;
+.cyber-mesh-bg {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.18) 0%, transparent 65%),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 20px 20px, 20px 20px;
 }
 
+.cyber-film-watermark {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.75;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.video-card:hover .cyber-film-watermark {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.cyber-film-svg {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.4));
+}
+
+.cyber-film-text {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Center Play Overlay on Hover */
 .video-play-center-btn {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) scale(0.85);
-  width: 44px;
-  height: 44px;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
+  width: 46px;
+  height: 46px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(10px);
   border: 1.5px solid rgba(255, 255, 255, 0.85);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 18px;
   opacity: 0;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  z-index: 3;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.4);
+  z-index: 4;
 }
 
 .video-card:hover .video-play-center-btn {
@@ -434,6 +524,15 @@ defineExpose({
   transform: translate(-50%, -50%) scale(1);
 }
 
+.play-triangle {
+  font-size: 17px;
+  margin-left: 2px;
+  background: linear-gradient(135deg, #38bdf8, #c084fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Top-Right Multi-Select Checkbox */
 .video-select-checkbox {
   position: absolute;
   top: 8px;
@@ -441,9 +540,9 @@ defineExpose({
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(6px);
-  border: 2px solid rgba(255, 255, 255, 0.8);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -453,14 +552,15 @@ defineExpose({
 }
 
 .video-select-checkbox:hover {
-  transform: scale(1.12);
+  transform: scale(1.14);
   border-color: #fff;
+  background: rgba(15, 23, 42, 0.9);
 }
 
 .video-select-checkbox.is-checked {
   background: linear-gradient(135deg, #a855f7, #6366f1);
   border-color: #ffffff;
-  box-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.85);
 }
 
 .check-icon {
@@ -470,51 +570,67 @@ defineExpose({
   line-height: 1;
 }
 
+/* Bottom-Right Duration Badge */
 .video-duration-pill {
   position: absolute;
   bottom: 8px;
   right: 8px;
-  background: rgba(0, 0, 0, 0.75);
-  color: #fff;
-  font-size: 10px;
+  background: rgba(15, 23, 42, 0.8);
+  color: #f8fafc;
+  font-size: 10.5px;
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 6px;
-  backdrop-filter: blur(6px);
-  font-family: var(--font-mono);
-  z-index: 2;
+  backdrop-filter: blur(8px);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  z-index: 3;
   border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.3px;
 }
 
+/* Top-Left Status Pill */
 .video-status-tag {
   position: absolute;
   top: 8px;
   left: 8px;
   font-size: 10px;
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 2.5px 8px;
   border-radius: 6px;
-  backdrop-filter: blur(6px);
-  z-index: 2;
+  backdrop-filter: blur(8px);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.status-icon-symbol {
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .tag-synced {
-  background: rgba(16, 185, 129, 0.85);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.22);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #34d399;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
 }
 
 .tag-unsynced {
-  background: rgba(245, 158, 11, 0.85);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+  background: rgba(6, 182, 212, 0.22);
+  border: 1px solid rgba(6, 182, 212, 0.5);
+  color: #38bdf8;
+  text-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
 }
 
+/* Card Bottom Footer */
 .video-card-footer {
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   text-align: left;
   background: transparent;
 }
@@ -522,10 +638,11 @@ defineExpose({
 .video-card-name {
   font-size: 12.5px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text-primary, #f8fafc);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
 .video-card-sub {
@@ -533,13 +650,18 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   font-size: 11px;
-  color: var(--text-secondary);
 }
 
-.video-play-hint {
-  color: #38bdf8;
-  font-weight: 700;
-  font-size: 11px;
+.video-size-badge {
+  color: var(--text-secondary, #94a3b8);
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.video-action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .btn-video-anime-edit {
@@ -547,7 +669,7 @@ defineExpose({
   font-size: 10.5px;
   font-weight: 700;
   border-radius: 6px;
-  background: rgba(168, 85, 247, 0.18);
+  background: rgba(168, 85, 247, 0.16);
   border: 1px solid rgba(168, 85, 247, 0.45);
   color: #c084fc;
   cursor: pointer;
@@ -562,7 +684,30 @@ defineExpose({
   color: #fff;
   border-color: #a855f7;
   transform: scale(1.06);
-  box-shadow: 0 2px 10px rgba(168, 85, 247, 0.4);
+  box-shadow: 0 3px 12px rgba(168, 85, 247, 0.45);
+}
+
+.btn-video-play-action {
+  padding: 2.5px 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 6px;
+  background: rgba(6, 182, 212, 0.16);
+  border: 1px solid rgba(6, 182, 212, 0.45);
+  color: #38bdf8;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.btn-video-play-action:hover {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  color: #fff;
+  border-color: #06b6d4;
+  transform: scale(1.06);
+  box-shadow: 0 3px 12px rgba(6, 182, 212, 0.45);
 }
 
 .btn-video-quick-download {
@@ -570,52 +715,66 @@ defineExpose({
   font-size: 11px;
   font-weight: 700;
   border-radius: 6px;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.5);
-  color: #f59e0b;
+  background: rgba(6, 182, 212, 0.18);
+  border: 1px solid rgba(6, 182, 212, 0.5);
+  color: #38bdf8;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .btn-video-quick-download:hover {
-  background: #f59e0b;
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
   color: #fff;
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+  transform: scale(1.06);
+  box-shadow: 0 3px 12px rgba(6, 182, 212, 0.45);
 }
 
+/* Glassmorphism Date Header */
 .video-date-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px;
-  background: var(--bg-surface, rgba(255, 255, 255, 0.04));
-  border-radius: 10px;
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
-  border-left: 3.5px solid #a855f7;
+  padding: 8px 16px;
+  background: rgba(18, 24, 38, 0.65);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 4px solid #a855f7;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .video-date-title-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.video-date-icon {
+.video-date-icon-box {
   font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .video-date-title {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 800;
-  color: var(--text-primary);
+  color: var(--text-primary, #f8fafc);
+  letter-spacing: 0.2px;
 }
 
-.video-date-meta {
+.video-date-meta-pill {
   font-size: 11.5px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #94a3b8);
   font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .video-date-actions {
@@ -624,13 +783,96 @@ defineExpose({
   gap: 8px;
 }
 
+.btn-date-select {
+  padding: 4px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary, #cbd5e1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-date-select:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn-date-select.is-selected {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: rgba(168, 85, 247, 0.5);
+  color: #c084fc;
+}
+
+.btn-check-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.btn-date-select.is-selected .btn-check-dot {
+  background: #a855f7;
+  border-color: #a855f7;
+  color: #fff;
+}
+
+.btn-date-sync {
+  padding: 4px 14px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(168, 85, 247, 0.35);
+}
+
+.btn-date-sync:hover:not(:disabled) {
+  transform: scale(1.04);
+  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.55);
+}
+
+.btn-date-sync:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bolt-icon {
+  font-size: 12px;
+}
+
 .video-all-synced-badge {
   font-size: 11.5px;
-  color: #10b981;
+  color: #34d399;
   font-weight: 700;
-  background: rgba(16, 185, 129, 0.12);
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.15);
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.check-pill-icon {
+  font-weight: 900;
+  font-size: 12px;
 }
 </style>

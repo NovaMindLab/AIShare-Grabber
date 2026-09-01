@@ -897,9 +897,9 @@ async function reclusterFacesInternal() {
     return [];
   }
 
-  // 4. Run face clustering via TaskManager Search Worker with 0.50 threshold (MobileFaceNet ArcFace verified threshold)
-  console.log(`[Face Cluster] Clustering ${validFaces.length} face crops (threshold: 0.50)...`);
-  const rawPersonClusters = await taskManager.clusterFaces(faceSabIndices, validFaces, 0.50);
+  // 4. Run face clustering via TaskManager Search Worker with 0.44 threshold (Two-Stage Adaptive Clustering)
+  console.log(`[Face Cluster] Clustering ${validFaces.length} face crops (threshold: 0.44)...`);
+  const rawPersonClusters = await taskManager.clusterFaces(faceSabIndices, validFaces, 0.44);
 
   // Keep valid person clusters
   const personClusters = rawPersonClusters.filter(c => c.face_count >= 1);
@@ -1697,7 +1697,7 @@ ipcMain.handle('start-ble-server', async (event) => {
           const sdpMid = parts[0];
           const sdpMLineIndex = parseInt(parts[1], 10);
           const prefix = `ICE:${sdpMid}:${sdpMLineIndex}:`;
-          const candidate = line.substring(4 + prefix.length);
+          const candidate = line.substring(prefix.length);
           if (mainWindow) {
             mainWindow.webContents.send('ble-ice-received', { sdpMid, sdpMLineIndex, candidate });
           }
@@ -3040,6 +3040,7 @@ ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
 const dgram = require('dgram');
 let udpSocket = null;
 const discoveredDevices = new Map(); // uuid -> { uuid, name, ip, type, lastSeen, sessionId }
+const udpSdpChunkBuffers = new Map();
 
 let computerUuid = null;
 function getComputerUuid() {
@@ -3117,10 +3118,29 @@ function startUdpDiscoveryService() {
         }
       } else if (data.type === 'ShareCLIP_Direct_Sdp') {
         console.log(`[UDP Message] Received Direct SDP (${data.sdpType}) from ${rinfo.address}:${rinfo.port}`);
-        if (mainWindow) {
+        let fullSdp = data.sdp;
+        if (data.totalChunks && data.totalChunks > 1) {
+          const chunkKey = `${rinfo.address}_${data.sdpType}_${data.sessionId || 'sdp'}`;
+          if (!udpSdpChunkBuffers.has(chunkKey)) {
+            udpSdpChunkBuffers.set(chunkKey, new Array(data.totalChunks).fill(null));
+          }
+          const buf = udpSdpChunkBuffers.get(chunkKey);
+          const idx = data.chunkIndex ?? 0;
+          if (idx >= 0 && idx < buf.length) {
+            buf[idx] = data.sdpChunk || data.sdp;
+          }
+          if (buf.every(c => c !== null)) {
+            fullSdp = buf.join('');
+            udpSdpChunkBuffers.delete(chunkKey);
+            console.log(`[UDP Message] Successfully reassembled chunked SDP (${fullSdp.length}B) from ${rinfo.address}`);
+          } else {
+            return;
+          }
+        }
+        if (mainWindow && fullSdp) {
           mainWindow.webContents.send('direct-sdp-received', {
             ip: rinfo.address,
-            sdp: data.sdp,
+            sdp: fullSdp,
             sdpType: data.sdpType
           });
         }
@@ -3501,11 +3521,11 @@ function startHttpSignalingServer() {
     if (err.code === 'EADDRINUSE') {
       httpSignalingPort++;
       console.log(`[HTTP Signaling Server] Port busy, retrying port ${httpSignalingPort}...`);
-      httpServer.listen(httpSignalingPort);
+      httpServer.listen(httpSignalingPort, '0.0.0.0');
     }
   });
 
-  httpServer.listen(httpSignalingPort, () => {
+  httpServer.listen(httpSignalingPort, '0.0.0.0', () => {
     console.log(`[HTTP Signaling Server] Listening on http://0.0.0.0:${httpSignalingPort}`);
   });
 }

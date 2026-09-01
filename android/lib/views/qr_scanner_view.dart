@@ -211,8 +211,8 @@ class _QrScannerViewState extends State<QrScannerView> with TickerProviderStateM
                       const SizedBox(height: 14),
                       Text(
                         error.errorCode == MobileScannerErrorCode.permissionDenied
-                            ? '请在系统设置中授予相机权限以使用扫码功能'
-                            : '相机初始化失败: ${error.errorCode.name}',
+                            ? t.get('cameraPermRequired')
+                            : t.get('cameraInitFailed').replaceAll('{error}', error.errorCode.name),
                         style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
                         textAlign: TextAlign.center,
                       ),
@@ -250,7 +250,7 @@ class _QrScannerViewState extends State<QrScannerView> with TickerProviderStateM
                     // Back Button (Frosted Glass Pill)
                     _buildFrostedButton(
                       icon: Icons.arrow_back_ios_new_rounded,
-                      tooltip: 'Back',
+                      tooltip: t.get('back'),
                       onTap: _onBack,
                     ),
                     const SizedBox(width: 12),

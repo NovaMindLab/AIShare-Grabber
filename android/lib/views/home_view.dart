@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/localization_service.dart';
 import '../services/theme_service.dart';
 import '../viewmodels/sync_viewmodel.dart';
+import '../main.dart';
 import 'tabs/link_tab.dart';
 import 'tabs/media_tab.dart';
 import 'tabs/settings_tab.dart';
@@ -69,17 +70,17 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
           NavigationDestination(
             icon: const Icon(Icons.link_outlined, color: Color(0xFF94A3B8)),
             selectedIcon: const Icon(Icons.link, color: Color(0xFFC084FC)),
-            label: t.currentLocale.startsWith('zh') ? '连接' : 'Link',
+            label: t.get('navLink'),
           ),
           NavigationDestination(
             icon: const Icon(Icons.photo_library_outlined, color: Color(0xFF94A3B8)),
             selectedIcon: const Icon(Icons.photo_library, color: Color(0xFFC084FC)),
-            label: t.currentLocale.startsWith('zh') ? '相册' : 'Media',
+            label: t.get('navMedia'),
           ),
           NavigationDestination(
             icon: const Icon(Icons.settings_outlined, color: Color(0xFF94A3B8)),
             selectedIcon: const Icon(Icons.settings, color: Color(0xFFC084FC)),
-            label: t.currentLocale.startsWith('zh') ? '设置' : 'Settings',
+            label: t.get('navSettings'),
           ),
         ],
       ),
@@ -87,7 +88,6 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
 
   Widget _buildHomeTab(SyncViewModel viewModel, LocalizationService t) {
-    final isZh = t.currentLocale.startsWith('zh');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -131,9 +131,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                     ),
                   ),
                   Text(
-                    "v2.0.1 Premium",
-                    style: TextStyle(
-                      color: const Color(0xFF94A3B8),
+                    "v$appVersion Premium",
+                    style: const TextStyle(
+                      color: Color(0xFF94A3B8),
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -183,7 +183,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                         const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 54),
                         const SizedBox(height: 12),
                         Text(
-                          isZh ? "扫描连接" : "Scan to Connect",
+                          t.get('scanToConnect'),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -224,7 +224,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  isZh ? '局域网在线电脑 (${viewModel.discoveredPCs.length})' : 'Discovered PCs (${viewModel.discoveredPCs.length})',
+                  '${t.get('lanPcFound')} (${viewModel.discoveredPCs.length})',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -307,7 +307,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            isZh ? '直连' : 'Connect',
+                            t.get('instantConnect'),
                             style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                         ),

@@ -8,7 +8,7 @@ import '../../main.dart';
 class SettingsTab extends StatelessWidget {
   const SettingsTab({Key? key}) : super(key: key);
 
-  void _showLanguageModal(BuildContext context, LocalizationService t, bool isZh) {
+  void _showLanguageModal(BuildContext context, LocalizationService t) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -47,7 +47,7 @@ class SettingsTab extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      isZh ? '选择语言' : 'Select Language',
+                      t.get('selectLanguage'),
                       style: TextStyle(
                         color: theme.colorScheme.onSurface,
                         fontSize: 18,
@@ -119,7 +119,6 @@ class SettingsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Provider.of<LocalizationService>(context);
     final themeService = Provider.of<ThemeService>(context);
-    final isZh = t.currentLocale.startsWith('zh');
     final currentLanguageName = LocalizationService.languages[t.currentLocale] ?? t.currentLocale;
 
     return SafeArea(
@@ -127,7 +126,7 @@ class SettingsTab extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            isZh ? '设置与外观' : 'Settings & Appearance',
+            t.get('settingsTitle'),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontSize: 24,
@@ -138,7 +137,7 @@ class SettingsTab extends StatelessWidget {
 
           // Theme Selection
           Text(
-            isZh ? '主题风格' : 'Theme Mode',
+            t.get('themeMode'),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               fontSize: 14,
@@ -173,7 +172,7 @@ class SettingsTab extends StatelessWidget {
                       _getThemeIcon(mode, isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface),
                       const SizedBox(width: 8),
                       Text(
-                        _getThemeName(mode, isZh),
+                        _getThemeName(mode, t),
                         style: TextStyle(
                           color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -190,7 +189,7 @@ class SettingsTab extends StatelessWidget {
 
           // Language Selection Header
           Text(
-            isZh ? '语言设置' : 'Language',
+            t.get('languageSettings'),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               fontSize: 14,
@@ -205,7 +204,7 @@ class SettingsTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
-              onTap: () => _showLanguageModal(context, t, isZh),
+              onTap: () => _showLanguageModal(context, t),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
@@ -234,7 +233,7 @@ class SettingsTab extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isZh ? '当前语言' : 'Current Language',
+                            t.get('currentLanguage'),
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                               fontSize: 11,
@@ -294,19 +293,18 @@ class SettingsTab extends StatelessWidget {
     }
   }
 
-  String _getThemeName(AppThemeMode mode, bool isZh) {
+  String _getThemeName(AppThemeMode mode, LocalizationService t) {
     switch (mode) {
       case AppThemeMode.light:
-        return isZh ? '清爽亮色' : 'Clear Light';
+        return t.get('themeLight');
       case AppThemeMode.dark:
-        return isZh ? '经典暗色' : 'Midnight Dark';
+        return t.get('themeDark');
       case AppThemeMode.ocean:
-        return isZh ? '深海蓝调' : 'Deep Ocean';
+        return t.get('themeOcean');
       case AppThemeMode.amoled:
-        return isZh ? '纯黑省电' : 'AMOLED Pure';
+        return t.get('themeAmoled');
       case AppThemeMode.cyberpunk:
-        return isZh ? '赛博朋克' : 'Cyberpunk';
+        return t.get('themeCyberpunk');
     }
   }
 }
-
