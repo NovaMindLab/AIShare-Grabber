@@ -852,7 +852,12 @@ class SyncViewModel extends ChangeNotifier {
               } catch (_) {}
             }
 
-            if (isVideoSyncing && !isVideoSyncPaused) {
+            if (targetIds != null && targetIds.isNotEmpty) {
+              isVideoSyncing = false;
+              isVideoSyncPaused = false;
+              logMessage("PC requested targeted video download (${targetIds.length} items). Starting...");
+              syncVideosToPC(forceFullScan: forceFullScan, targetDate: targetDate, targetIds: targetIds);
+            } else if (isVideoSyncing && !isVideoSyncPaused) {
               logMessage("Video sync is already in progress.");
             } else if (isVideoSyncing && isVideoSyncPaused) {
               logMessage("PC requested to resume video sync.");
@@ -1014,7 +1019,12 @@ class SyncViewModel extends ChangeNotifier {
               } catch (_) {}
             }
 
-            if (isAudioSyncing && !isAudioSyncPaused) {
+            if (targetIds != null && targetIds.isNotEmpty) {
+              isAudioSyncing = false;
+              isAudioSyncPaused = false;
+              logMessage("PC requested targeted audio download (${targetIds.length} items). Starting...");
+              syncAudiosToPC(forceFullScan: forceFullScan, targetDate: targetDate, targetIds: targetIds);
+            } else if (isAudioSyncing && !isAudioSyncPaused) {
               logMessage("Audio sync is already in progress.");
             } else if (isAudioSyncing && isAudioSyncPaused) {
               logMessage("PC requested to resume audio sync.");
@@ -1982,26 +1992,29 @@ class SyncViewModel extends ChangeNotifier {
 
       List<AssetEntity> toSync = allVideos;
       if (targetIds != null && targetIds.isNotEmpty) {
-        final targetSet = targetIds.toSet();
-        toSync = allVideos.where((v) {
-          final sId = PhotoStreamer.sanitizeId(v.id);
-          return targetSet.contains(v.id) ||
-                 targetSet.contains(sId) ||
-                 targetSet.contains(v.title) ||
-                 targetSet.contains('video_$sId') ||
-                 targetSet.contains('video_${v.id}');
-        }).toList();
-
-        // Robust fallback: If not matched in localVideos, fetch directly via AssetEntity.fromId
-        if (toSync.isEmpty) {
-          for (final tid in targetIds) {
+        toSync = [];
+        for (final tid in targetIds) {
+          final cleanTid = tid.replaceFirst(RegExp(r'^(video_|audio_|photo_|album_|thumb_)'), '').trim();
+          AssetEntity? found;
+          for (final v in allVideos) {
+            final sId = PhotoStreamer.sanitizeId(v.id);
+            if (v.id == tid || v.id == cleanTid || sId == tid || sId == cleanTid || v.title == tid || v.title == cleanTid) {
+              found = v;
+              break;
+            }
+          }
+          if (found == null) {
             try {
-              final rawId = tid.replaceFirst(RegExp(r'^(video_|audio_)'), '');
-              final entity = await AssetEntity.fromId(rawId);
-              if (entity != null) {
-                toSync.add(entity);
-              }
+              found = await AssetEntity.fromId(cleanTid);
             } catch (_) {}
+          }
+          if (found == null) {
+            try {
+              found = await AssetEntity.fromId(tid);
+            } catch (_) {}
+          }
+          if (found != null) {
+            toSync.add(found);
           }
         }
       } else if (targetDate != null && targetDate.isNotEmpty) {
@@ -2205,26 +2218,29 @@ class SyncViewModel extends ChangeNotifier {
 
       List<AssetEntity> toSync = allAudios;
       if (targetIds != null && targetIds.isNotEmpty) {
-        final targetSet = targetIds.toSet();
-        toSync = allAudios.where((a) {
-          final sId = PhotoStreamer.sanitizeId(a.id);
-          return targetSet.contains(a.id) || 
-                 targetSet.contains(sId) ||
-                 targetSet.contains(a.title) || 
-                 targetSet.contains('audio_${a.id}') ||
-                 targetSet.contains('audio_$sId');
-        }).toList();
-
-        // Robust fallback: If not matched in localAudios, fetch directly via AssetEntity.fromId
-        if (toSync.isEmpty) {
-          for (final tid in targetIds) {
+        toSync = [];
+        for (final tid in targetIds) {
+          final cleanTid = tid.replaceFirst(RegExp(r'^(video_|audio_|photo_|album_|thumb_)'), '').trim();
+          AssetEntity? found;
+          for (final a in allAudios) {
+            final sId = PhotoStreamer.sanitizeId(a.id);
+            if (a.id == tid || a.id == cleanTid || sId == tid || sId == cleanTid || a.title == tid || a.title == cleanTid) {
+              found = a;
+              break;
+            }
+          }
+          if (found == null) {
             try {
-              final rawId = tid.replaceFirst(RegExp(r'^(audio_|video_)'), '');
-              final entity = await AssetEntity.fromId(rawId);
-              if (entity != null) {
-                toSync.add(entity);
-              }
+              found = await AssetEntity.fromId(cleanTid);
             } catch (_) {}
+          }
+          if (found == null) {
+            try {
+              found = await AssetEntity.fromId(tid);
+            } catch (_) {}
+          }
+          if (found != null) {
+            toSync.add(found);
           }
         }
       } else if (targetDate != null && targetDate.isNotEmpty) {

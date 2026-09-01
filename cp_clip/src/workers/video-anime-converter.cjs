@@ -205,27 +205,22 @@ class VideoAnimeConverter {
   }
 
   /**
-   * Initialize ONNX Runtime Inference Session (DirectML with CPU fallback)
+   * Initialize ONNX Runtime Inference Session (Multi-threaded CPU with SIMD optimization for rock-solid stability)
    */
   async initSession(modelPath) {
+    const threadCount = Math.max(2, Math.min(os.cpus().length, 8));
     try {
-      const sessionOptions = {
-        executionProviders: ['dml', 'cpu'],
-        graphOptimizationLevel: 'all',
-        enableCpuMemArena: true
-      };
-      this.session = await ort.InferenceSession.create(modelPath, sessionOptions);
-      this.isGpuMode = true;
-      console.log(`[Video Anime] Initialized DirectML/GPU session for ${path.basename(modelPath)}`);
-    } catch (e) {
-      console.warn(`[Video Anime] DirectML initialization failed (${e.message}), falling back to CPU`);
       this.session = await ort.InferenceSession.create(modelPath, {
         executionProviders: ['cpu'],
         graphOptimizationLevel: 'all',
-        intraOpNumThreads: Math.max(1, Math.min(os.cpus().length, 8))
+        intraOpNumThreads: threadCount,
+        enableCpuMemArena: true
       });
       this.isGpuMode = false;
-      console.log(`[Video Anime] Initialized CPU session for ${path.basename(modelPath)}`);
+      console.log(`[Video Anime] Initialized CPU multi-threaded session (${threadCount} threads) for ${path.basename(modelPath)}`);
+    } catch (e) {
+      console.error(`[Video Anime] Failed to initialize ONNX session:`, e);
+      throw e;
     }
   }
 
