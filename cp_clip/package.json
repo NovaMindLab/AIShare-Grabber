@@ -133,6 +133,7 @@
                   "mac":  {
                               "category":  "public.app-category.photography",
                               "icon":  "icon.png",
+                              "identity":  null,
                               "target":  [
                                              {
                                                  "target":  "dmg",

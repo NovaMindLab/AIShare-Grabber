@@ -142,7 +142,7 @@ jobs:
           VITE_MIXPANEL_TOKEN: ${{ secrets.MIXPANEL_TOKEN }}
         run: |
           cd cp_clip
-          npm ci
+          npm install
           npm run build
           npx electron-builder --win
 
@@ -170,16 +170,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: cp_clip/package-lock.json
 
       - name: Build macOS Client
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_MIXPANEL_TOKEN: ${{ secrets.MIXPANEL_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: |
           cd cp_clip
-          npm ci
+          npm install
           npm run build
           npx electron-builder --mac
 
@@ -211,8 +210,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: cp_clip/package-lock.json
 
       - name: Build Linux Client
         env:
@@ -220,7 +217,7 @@ jobs:
           VITE_MIXPANEL_TOKEN: ${{ secrets.MIXPANEL_TOKEN }}
         run: |
           cd cp_clip
-          npm ci
+          npm install
           npm run build
           npx electron-builder --linux
 
