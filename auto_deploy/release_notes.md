@@ -1,21 +1,17 @@
-### 🚀 ShareCLIP v2.1.10 更新日志
+### 🚀 ShareCLIP v2.1.11 更新日志
 
-1. 🌐 **手机连接面板全域 20 语言国际化**：
-   - 彻底消除连接后控制台卡片（设备状态监控、AI 智能处理中心、相册物理备份、P2P 传输沙盒）的中英混杂；
-   - 毫秒级单张/平均/总计耗时看板与所有状态指示标签全面接入响应式 `t.link.*` 双语字典。
+1. 🍎 **macOS 苹果生态原生适配（Apple Silicon & Intel 双架构）**：
+   - 全面支持 macOS 12+ (Monterey, Ventura, Sonoma, Sequoia)；
+   - 提供 Apple Silicon 原生 ARM64（M1/M2/M3/M4 系列芯片）与 Intel x64 独立 `.dmg` 安装镜像及便携 `.zip` 绿色包；
+   - 深度集成 Metal 与 CoreML 硬件级 AI 推理加速。
 
-2. 🗑️ **当前手机专属缓存独立清理与重置机制**：
-   - 在控制台新增「🗑️ 清空当前手机缓存」按钮，支持独立抹除指定手机的物理缩略图、备份相册与 SQLite 资源记录；
-   - 修复 `database.sqlite` 句柄锁定的 `EBUSY` 异常，改为 SQLite 原生事务清理与 `VACUUM` 压缩；
-   - 清空后通过 WebRTC `-4` 握手包通知手机端重置待同步列表，且不强制触发自动重新下载。
+2. 🐧 **Linux 全平台桌面端支持（AppImage & DEB）**：
+   - 提供免安装即开即用 `.AppImage` 便携包，完美兼容 Ubuntu, Debian, Fedora, Arch Linux, Manjaro 等主流发行版；
+   - 提供标准 `.deb` 安装包，支持 Debian/Ubuntu 系统原生包管理器安装与桌面快捷方式集成。
 
-3. 🔄 **AI 同步请求状态透传与空缓存强制重推**：
-   - 修复了清空缓存后点击「同步手机图片到 AI 分析」无反应的问题；
-   - 电脑端发起 `-6` 请求时携带当前实际缩略图 ID 列表（为空时标记 `force_resync: true`），手机端自动重置本地过滤集合并强制触发全量缩略图传输。
+3. ☁️ **GitHub Actions 全平台云端并发编译流水线**：
+   - 上线全新 CI/CD 自动化多平台矩阵构建流（Ubuntu + Windows + macOS 虚拟机并发），2~3 分钟全自动完成 Windows / Mac / Linux / Android / Web 5 端编译并聚合发布；
+   - 支持本地一行命令 `.\auto_deploy\deploy.ps1 -Cloud` 或推送 Git Tag 触发。
 
-4. 🛡️ **底层流式传输超时熔断与防挂死**：
-   - 为 Android 端 `PhotoStreamer` 注入 `originBytes` (15s)、`latlngAsync` (5s) 以及 WebRTC 背压循环 (15s) 三层超时熔断保护，彻底消除大视频传输时进度条停在 0% 的假死故障；
-   - PC 端 WebRTC 元数据解析器增加异常安全沙箱，杜绝异常文件名阻塞 DataChannel。
-
-5. 📑 **核心架构与性能调研白皮书落盘**：
-   - 针对模型框架对比、召回率（92.9%）、多线程 SAB 零拷贝与 Electron/Tauri/Flutter 桌面架构选型等 8 项议题，在 `wiki_work/` 输出完整的技术决策白皮书。
+4. 🌐 **官方门户网站升级 5 端全域下载中心**：
+   - 官方主站首页全面设计 Windows (`.exe`)、macOS (`.dmg`/`.zip`)、Linux (`.AppImage`/`.deb`)、Android (`.apk`) 及 WebShare 5 大平台下载矩阵与架构细分直达通道。

@@ -76,35 +76,48 @@
 
           <!-- Hero Action Buttons -->
           <div class="hero-cta-container">
-            <!-- Row 1: 3 Primary Download/Experience Cards -->
+            <!-- Row 1: Primary Download & Experience Cards -->
             <div class="hero-primary-actions">
               <a 
-                :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Setup-${appVersion.replace('v','')}.exe`" 
+                :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Setup-${cleanVer}.exe`" 
                 class="btn btn-primary-hero"
                 @click="showDownloadToast(`🚀 ${t.hero.btnWindows}...`)"
               >
                 <span class="btn-icon">🖥️</span>
                 <div class="btn-content">
                   <div class="btn-label-main">{{ t.hero.btnWindows }}</div>
-                  <div class="btn-label-sub">Windows 10 / 11 • 64-bit Installer</div>
+                  <div class="btn-label-sub">Windows 10 / 11 • 64-bit .exe</div>
                 </div>
               </a>
 
               <a 
-                :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/app-arm64-v8a-release.apk`" 
+                :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-arm64.dmg`" 
+                class="btn btn-secondary-hero"
+                style="border-color: rgba(168, 85, 247, 0.4);"
+                @click="showDownloadToast(`🍏 ${t.hero.btnMac}...`)"
+              >
+                <span class="btn-icon">🍎</span>
+                <div class="btn-content">
+                  <div class="btn-label-main">{{ t.hero.btnMac }}</div>
+                  <div class="btn-label-sub">macOS • Apple Silicon &amp; Intel .dmg</div>
+                </div>
+              </a>
+
+              <a 
+                :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Android-${cleanVer}.apk`" 
                 class="btn btn-secondary-hero"
                 @click="showDownloadToast(`📱 ${t.hero.btnAndroid}...`)"
               >
                 <span class="btn-icon">📱</span>
                 <div class="btn-content">
                   <div class="btn-label-main">{{ t.hero.btnAndroid }}</div>
-                  <div class="btn-label-sub">Android 8.0+ • APK Installer</div>
+                  <div class="btn-label-sub">Android 8.0+ • Universal APK</div>
                 </div>
               </a>
 
               <a 
                 href="./webshare/" 
-                class="btn btn-webshare-hero"
+                class="btn btn-webshare-hero" 
                 :title="t.hero.btnWebshare"
               >
                 <span class="btn-icon">🌐</span>
@@ -765,54 +778,120 @@
           </div>
           
           <div class="download-cards-row">
-            <!-- PC Desktop App -->
+            <!-- 1. Windows PC Desktop App -->
             <div class="glass-panel glass-panel-hover download-card">
               <div class="download-badge-tag">Windows 10 / 11</div>
               <div class="download-icon-circle">🖥️</div>
-              <h3 style="font-size: 22px; font-weight: 800; color: #fff; margin: 12px 0 6px 0;">{{ t.download.pc_title }}</h3>
+              <h3 class="card-title-dl">{{ t.download.pc_title }}</h3>
               <p class="download-meta">{{ t.download.pc_meta }}</p>
               <p class="download-desc">{{ t.download.pc_desc }}</p>
-              <a 
-                :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Setup-${appVersion.replace('v','')}.exe`" 
-                class="btn btn-primary" 
-                style="width: 100%; justify-content: center; font-size: 15px;"
-                @click="showDownloadToast(`🚀 ${t.download.pc_btn}...`)"
-              >
-                <span>⚡</span> {{ t.download.pc_btn }}
-              </a>
+              <div class="btn-dl-group">
+                <a 
+                  :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Setup-${cleanVer}.exe`" 
+                  class="btn btn-primary btn-dl-block"
+                  @click="showDownloadToast(`🚀 ${t.download.pc_btn}...`)"
+                >
+                  <span>⚡</span> {{ t.download.pc_btn }}
+                </a>
+              </div>
             </div>
 
-            <!-- Android Companion App -->
+            <!-- 2. macOS Desktop App -->
+            <div class="glass-panel glass-panel-hover download-card">
+              <div class="download-badge-tag" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.35);">macOS 12+</div>
+              <div class="download-icon-circle" style="background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.35);">🍎</div>
+              <h3 class="card-title-dl">{{ t.download.mac_title }}</h3>
+              <p class="download-meta">{{ t.download.mac_meta }}</p>
+              <p class="download-desc">{{ t.download.mac_desc }}</p>
+              <div class="btn-dl-group">
+                <a 
+                  :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-arm64.dmg`" 
+                  class="btn btn-secondary btn-dl-block"
+                  @click="showDownloadToast(`🍏 下载 Apple Silicon DMG...`)"
+                >
+                  {{ t.download.mac_btn_arm }}
+                </a>
+                <div class="sub-links-row">
+                  <a 
+                    :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-x64.dmg`"
+                    class="sub-dl-link"
+                    @click="showDownloadToast(`🖥️ 下载 Intel Mac DMG...`)"
+                  >
+                    {{ t.download.mac_btn_intel }}
+                  </a>
+                  <span class="sub-dl-sep">•</span>
+                  <a 
+                    :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-arm64.zip`"
+                    class="sub-dl-link"
+                    @click="showDownloadToast(`📦 下载 macOS ZIP...`)"
+                  >
+                    {{ t.download.mac_btn_zip }}
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Linux Desktop App -->
+            <div class="glass-panel glass-panel-hover download-card">
+              <div class="download-badge-tag" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.35);">Linux x64</div>
+              <div class="download-icon-circle" style="background: rgba(234, 179, 8, 0.15); border-color: rgba(234, 179, 8, 0.35);">🐧</div>
+              <h3 class="card-title-dl">{{ t.download.linux_title }}</h3>
+              <p class="download-meta">{{ t.download.linux_meta }}</p>
+              <p class="download-desc">{{ t.download.linux_desc }}</p>
+              <div class="btn-dl-group">
+                <a 
+                  :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Linux-${cleanVer}-x64.AppImage`" 
+                  class="btn btn-secondary btn-dl-block"
+                  style="border-color: rgba(234, 179, 8, 0.4);"
+                  @click="showDownloadToast(`🚀 下载 Linux AppImage...`)"
+                >
+                  {{ t.download.linux_btn_appimage }}
+                </a>
+                <div class="sub-links-row">
+                  <a 
+                    :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Linux-${cleanVer}-x64.deb`"
+                    class="sub-dl-link"
+                    @click="showDownloadToast(`📦 下载 Linux DEB 安装包...`)"
+                  >
+                    {{ t.download.linux_btn_deb }}
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Android Companion App -->
             <div class="glass-panel glass-panel-hover download-card">
               <div class="download-badge-tag">Android 8.0+</div>
               <div class="download-icon-circle" style="background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.35);">📱</div>
-              <h3 style="font-size: 22px; font-weight: 800; color: #fff; margin: 12px 0 6px 0;">{{ t.download.android_title }}</h3>
+              <h3 class="card-title-dl">{{ t.download.android_title }}</h3>
               <p class="download-meta">{{ t.download.android_meta }}</p>
               <p class="download-desc">{{ t.download.android_desc }}</p>
-              <a 
-                :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Android-${appVersion.replace('v','')}.apk`" 
-                class="btn btn-secondary" 
-                style="width: 100%; justify-content: center; font-size: 15px;"
-                @click="showDownloadToast(`📱 ${t.download.android_btn}...`)"
-              >
-                <span>⚡</span> {{ t.download.android_btn }}
-              </a>
+              <div class="btn-dl-group">
+                <a 
+                  :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Android-${cleanVer}.apk`" 
+                  class="btn btn-secondary btn-dl-block"
+                  @click="showDownloadToast(`📱 ${t.download.android_btn}...`)"
+                >
+                  <span>⚡</span> {{ t.download.android_btn }}
+                </a>
+              </div>
             </div>
 
-            <!-- iOS MShare Companion PWA -->
+            <!-- 5. iOS MShare Companion PWA -->
             <div class="glass-panel glass-panel-hover download-card">
               <div class="download-badge-tag" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35);">iOS &amp; 移动端 PWA</div>
               <div class="download-icon-circle" style="background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.35);">📲</div>
-              <h3 style="font-size: 22px; font-weight: 800; color: #fff; margin: 12px 0 6px 0;">ShareCLIP MShare (iOS)</h3>
-              <p class="download-meta">支持 iPhone / iPad • 纯浏览器免证书运行</p>
-              <p class="download-desc">专为手机触摸屏打造，内置摄像头扫码器、相册多选直传与 4K 视频流式发送。</p>
-              <a 
-                href="./webshare/mshare.html" 
-                class="btn btn-webshare-hero" 
-                style="width: 100%; justify-content: center; font-size: 15px;"
-              >
-                <span>📱</span> 打开 MShare 手机端
-              </a>
+              <h3 class="card-title-dl">{{ t.download.ios_title }}</h3>
+              <p class="download-meta">{{ t.download.ios_meta }}</p>
+              <p class="download-desc">{{ t.download.ios_desc }}</p>
+              <div class="btn-dl-group">
+                <a 
+                  href="./webshare/mshare.html" 
+                  class="btn btn-webshare-hero btn-dl-block" 
+                >
+                  <span>📱</span> {{ t.download.ios_btn }}
+                </a>
+              </div>
             </div>
           </div>
 
@@ -936,7 +1015,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { languages, messages, locales } from './locales.js';
 import pkg from '../package.json';
 
-const appVersion = 'v' + (pkg.version || '1.2.93');
+const appVersion = 'v' + (pkg.version || '2.1.10');
+const cleanVer = computed(() => appVersion.replace(/^v/, ''));
 const currentLocale = ref('zh');
 const currentStep = ref(1);
 const flowDir = ref('pc-to-phone');
@@ -2354,18 +2434,72 @@ function simulateDedupCleanup() {
 
 .download-cards-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 22px;
   margin-bottom: 30px;
 }
 
 .download-card {
-  padding: 32px 26px;
+  padding: 32px 24px 28px 24px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
+  border-radius: 20px;
+}
+
+.card-title-dl {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  margin: 14px 0 6px 0;
+}
+
+.btn-dl-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-dl-block {
+  width: 100%;
+  justify-content: center;
+  font-size: 14.5px;
+  padding: 12px 16px;
+}
+
+.sub-links-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.sub-dl-link {
+  color: #94a3b8;
+  font-size: 12px;
+  text-decoration: none;
+  transition: all 0.2s;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sub-dl-link:hover {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.1);
+  text-decoration: none;
+}
+
+.sub-dl-sep {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 10px;
 }
 
 .download-badge-tag {
