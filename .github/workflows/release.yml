@@ -27,9 +27,6 @@ jobs:
   build-and-deploy-web:
     name: 🌐 Build & Deploy Web Portal
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -62,14 +59,13 @@ jobs:
           mkdir -p site_dist/webshare
           cp -r webshare/dist/* site_dist/webshare/
 
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site_dist
-
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site_dist
+          publish_branch: gh-pages
+          force_orphan: false
 
   # ─────────────────────────────────────────────────────────────
   # Job 2: Build Android Universal APK (Linux Runner)
