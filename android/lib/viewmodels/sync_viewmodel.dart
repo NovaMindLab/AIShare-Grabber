@@ -699,6 +699,25 @@ class SyncViewModel extends ChangeNotifier {
                 } catch (e) {
                   logMessage("Error parsing chunked audio sync payload: $e");
                 }
+              } else if (realPacketType == -6) {
+                try {
+                  final payloadStr = utf8.decode(fullBytes);
+                  final Map<String, dynamic> data = jsonDecode(payloadStr);
+                  if (data['force_resync'] == true) {
+                    pcSyncedThumbnailIds.clear();
+                    logMessage("Force resync requested (chunked). Cleared local synced thumbnail tracker.");
+                  } else if (data.containsKey('synced_thumbnail_ids')) {
+                    final List<dynamic> syncedThumbsList = data['synced_thumbnail_ids'] ?? [];
+                    pcSyncedThumbnailIds.clear();
+                    for (var id in syncedThumbsList) {
+                      pcSyncedThumbnailIds.add(id.toString());
+                    }
+                    logMessage("Updated synced thumbnail tracker from PC (chunked): ${pcSyncedThumbnailIds.length} items");
+                  }
+                } catch (e) {
+                  debugPrint("Error parsing chunked -6 payload: $e");
+                }
+                syncThumbnailsToAI();
               }
             }
             return;
@@ -731,6 +750,11 @@ class SyncViewModel extends ChangeNotifier {
 
           if (fileId == -6) {
             logMessage("PC requested thumbnail sync to AI. Starting sync...");
+            final int flag = byteData.getInt32(8, Endian.big);
+            if (flag == -2) {
+              pcSyncedThumbnailIds.clear();
+              logMessage("Force resync requested via flag (-2). Cleared local synced thumbnail tracker.");
+            }
             if (binaryData.length >= 16) {
               final payloadSize = byteData.getInt32(12, Endian.big);
               if (payloadSize > 0 && binaryData.length >= 16 + payloadSize) {

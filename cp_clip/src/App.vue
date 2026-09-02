@@ -4768,24 +4768,22 @@ function requestThumbnailSync() {
     return;
   }
   
-  if (thumbSyncDone.value >= thumbSyncTotal.value && thumbSyncTotal.value > 0) {
-    thumbSyncDone.value = 0;
-    thumbSyncTotal.value = 0;
-  }
-
   logSyncEvent("🧠 正在发送 AI 缩略图批量同步请求到手机...");
   
   isThumbnailSyncing.value = true;
-  thumbSyncDone.value = thumbnailImages.value.length;
-  thumbSyncTotal.value = 0;
+  const isCacheEmpty = thumbnailImages.value.length === 0;
+  thumbSyncDone.value = isCacheEmpty ? 0 : thumbnailImages.value.length;
+  thumbSyncTotal.value = isCacheEmpty ? 0 : thumbnailImages.value.length;
 
-  // Send -6 with payload containing current synced thumbnail IDs and force_resync flag
-  const thumbIds = thumbnailImages.value.map(img => img.id || img.name);
-  const payload = {
-    synced_thumbnail_ids: thumbIds,
-    force_resync: thumbnailImages.value.length === 0
-  };
-  sendSafeDataChannelPacket(dataChannel, -6, payload);
+  // Send compact 16-byte -6 packet (never chunked, never dropped, instant reception)
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setInt32(0, -6, false); // file_id = -6
+  view.setInt32(4, 0, false);
+  view.setInt32(8, isCacheEmpty ? -2 : 0, false); // -2 = force resync flag
+  view.setInt32(12, 0, false);
+  
+  dataChannel.send(buffer);
 
   if (thumbnailSyncTimeoutTimer) clearTimeout(thumbnailSyncTimeoutTimer);
   thumbnailSyncTimeoutTimer = setTimeout(() => {
@@ -4793,7 +4791,7 @@ function requestThumbnailSync() {
       isThumbnailSyncing.value = false;
       logSyncEvent('ℹ️ 手机端相册尚未加载完成或暂无可同步图片，已自动重置状态');
     }
-  }, 8000);
+  }, 10000);
 }
 
 function handleOpenThumbnailFolder() {
@@ -5766,18 +5764,23 @@ function setupDataChannel(channel) {
         thumbnailSyncTimeoutTimer = null;
       }
       const totalCount = view.getInt32(8, false);
-      // totalCount === -1 or 0 is a completion/empty sentinel sent by Android
-      if (totalCount === -1 || totalCount === 0) {
+      // totalCount === -1 is a completion sentinel sent by Android
+      if (totalCount === -1) {
         if (thumbSyncTotal.value > 0) {
           thumbSyncDone.value = thumbSyncTotal.value;
         }
         isThumbnailSyncing.value = false;
-        logSyncEvent(`✅ 收到手机端 AI 同步完成信号，已标记全部同步完成并释放互斥锁`);
+        logSyncEvent(`✅ 收到手机端 AI 同步完成信号，已全部同步完成并释放互斥锁`);
+        return;
+      }
+      if (totalCount === 0) {
+        isThumbnailSyncing.value = false;
+        logSyncEvent(`ℹ️ 手机相册中暂无可同步的图片`);
         return;
       }
       thumbSyncTotal.value = totalCount;
       thumbSyncDone.value = Math.min(thumbnailImages.value.length, totalCount);
-      isThumbnailSyncing.value = thumbSyncDone.value < totalCount;
+      isThumbnailSyncing.value = true;
       logSyncEvent(`🧠 收到手机端 AI 缩略图同步开始通知，共 ${totalCount} 张图片，本地已缓存 ${thumbSyncDone.value} 张`);
       return;
     }
