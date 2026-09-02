@@ -717,6 +717,7 @@ class SyncViewModel extends ChangeNotifier {
                 } catch (e) {
                   debugPrint("Error parsing chunked -6 payload: $e");
                 }
+                isThumbnailSyncing = false;
                 syncThumbnailsToAI();
               }
             }
@@ -777,6 +778,8 @@ class SyncViewModel extends ChangeNotifier {
                 }
               }
             }
+            // Force-reset the guard to prevent deadlock from stale state (e.g. previous sync interrupted)
+            isThumbnailSyncing = false;
             syncThumbnailsToAI();
             return;
           }
@@ -2592,6 +2595,9 @@ class SyncViewModel extends ChangeNotifier {
     } catch (_) {}
     _udpSocket = null;
     appState = AppState.idle;
+    isThumbnailSyncing = false;
+    isAlbumSyncing = false;
+    isAlbumSyncPaused = false;
     localImages.clear();
     localVideos.clear();
     selectedImages.clear();
