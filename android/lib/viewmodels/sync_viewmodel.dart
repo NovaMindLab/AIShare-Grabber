@@ -731,6 +731,28 @@ class SyncViewModel extends ChangeNotifier {
 
           if (fileId == -6) {
             logMessage("PC requested thumbnail sync to AI. Starting sync...");
+            if (binaryData.length >= 16) {
+              final payloadSize = byteData.getInt32(12, Endian.big);
+              if (payloadSize > 0 && binaryData.length >= 16 + payloadSize) {
+                try {
+                  final payloadStr = utf8.decode(binaryData.sublist(16, 16 + payloadSize));
+                  final Map<String, dynamic> data = jsonDecode(payloadStr);
+                  if (data['force_resync'] == true) {
+                    pcSyncedThumbnailIds.clear();
+                    logMessage("Force resync requested. Cleared local synced thumbnail tracker.");
+                  } else if (data.containsKey('synced_thumbnail_ids')) {
+                    final List<dynamic> syncedThumbsList = data['synced_thumbnail_ids'] ?? [];
+                    pcSyncedThumbnailIds.clear();
+                    for (var id in syncedThumbsList) {
+                      pcSyncedThumbnailIds.add(id.toString());
+                    }
+                    logMessage("Updated synced thumbnail tracker from PC: ${pcSyncedThumbnailIds.length} items");
+                  }
+                } catch (e) {
+                  debugPrint("Error parsing -6 payload: $e");
+                }
+              }
+            }
             syncThumbnailsToAI();
             return;
           }

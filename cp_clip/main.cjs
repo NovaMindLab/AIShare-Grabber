@@ -597,9 +597,11 @@ async function scanFacesOnDemand(event) {
   }
   console.log(`[Manual Scanner] Found ${total} images to scan for faces.`);
 
+  const globalStart = performance.now();
   const CONCURRENCY = taskManager.maxInferenceWorkers || 4;
   let done = 0;
   let totalDurationMs = 0;
+  let lastDurationMs = 0;
 
   for (let batchStart = 0; batchStart < total; batchStart += CONCURRENCY) {
     const batch = rows.slice(batchStart, batchStart + CONCURRENCY);
@@ -617,6 +619,7 @@ async function scanFacesOnDemand(event) {
         const result = await taskManager.computeFace(row.path);
         durationMs = Math.round(performance.now() - tStart);
         totalDurationMs += durationMs;
+        lastDurationMs = durationMs;
 
         if (result && result.faces && Array.isArray(result.faces)) {
           facesFound = result.faces.length;
@@ -650,7 +653,8 @@ async function scanFacesOnDemand(event) {
         done, 
         total, 
         currentName: path.basename(batch[batch.length - 1].path),
-        avgDurationMs
+        avgDurationMs,
+        durationMs: lastDurationMs
       });
     }
 
@@ -658,10 +662,12 @@ async function scanFacesOnDemand(event) {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   
+  const totalRealTime = Math.round(performance.now() - globalStart);
   if (event) {
-    event.sender.send('face-scan-progress', { done: total, total });
+    event.sender.send('face-scan-progress', { done: total, total, avgDurationMs: Math.round(totalDurationMs / Math.max(1, total)), durationMs: lastDurationMs });
   }
-  console.log("[Manual Scanner] Completed face scanning.");
+  const totalSecs = (totalRealTime / 1000).toFixed(1);
+  console.log(`[Manual Scanner] Completed face scanning of ${total} images in ${totalSecs}秒. (CPU Time: ${totalDurationMs}ms, Avg: ${Math.round(totalDurationMs / Math.max(1, total))}ms)`);
 }
 
 // IPC Communication
@@ -898,8 +904,10 @@ async function reclusterFacesInternal() {
   }
 
   // 4. Run face clustering via TaskManager Search Worker with 0.44 threshold (Two-Stage Adaptive Clustering)
+  const tStart = performance.now();
   console.log(`[Face Cluster] Clustering ${validFaces.length} face crops (threshold: 0.44)...`);
   const rawPersonClusters = await taskManager.clusterFaces(faceSabIndices, validFaces, 0.44);
+  const clusterTime = Math.round(performance.now() - tStart);
 
   // Keep valid person clusters
   const personClusters = rawPersonClusters.filter(c => c.face_count >= 1);
@@ -931,7 +939,8 @@ async function reclusterFacesInternal() {
     });
   });
 
-  console.log(`[Face Cluster] Created ${personClusters.length} person clusters successfully.`);
+  const totalTime = Math.round(performance.now() - tStart);
+  console.log(`[Face Cluster] Created ${personClusters.length} person clusters successfully in ${(totalTime / 1000).toFixed(1)}秒 (Clustering CPU time: ${clusterTime}ms).`);
 
   // 6. Return populated clusters with cover_path and cover_bbox
   return new Promise((resolve) => {
@@ -2086,11 +2095,16 @@ ipcMain.handle('clear-device-database', async (event) => {
     isProcessingAiQueue = false;
     sendAiQueueProgress();
 
-    // 1. Delete all records from resources table
+    // 1. Delete all records from resources, faces, and person_clusters tables
     await new Promise((resolve, reject) => {
-      activeDeviceDb.run(`DELETE FROM resources`, (err) => {
-        if (err) reject(err);
-        else resolve();
+      activeDeviceDb.serialize(() => {
+        activeDeviceDb.run(`DELETE FROM resources`);
+        activeDeviceDb.run(`DELETE FROM faces`);
+        activeDeviceDb.run(`DELETE FROM person_clusters`);
+        activeDeviceDb.run(`VACUUM`, (err) => {
+          if (err) console.warn('[Database] VACUUM notice:', err);
+          resolve();
+        });
       });
     });
     
@@ -2102,21 +2116,32 @@ ipcMain.handle('clear-device-database', async (event) => {
         }
       });
       
-      // 3. Remove physical files under sync_storage and thumbnail_sync for this device
+      // 3. Clean physical files under thumbnail_sync and sync_storage (excluding active open SQLite DB)
+      const fs = require('fs');
       const thumbDir = path.join(app.getPath('userData'), 'thumbnail_sync', activeDeviceUuid);
       const syncDir = path.join(app.getPath('userData'), 'sync_storage', activeDeviceUuid);
       
-      const fs = require('fs');
       if (fs.existsSync(thumbDir)) {
         try {
           fs.rmSync(thumbDir, { recursive: true, force: true });
+          fs.mkdirSync(thumbDir, { recursive: true });
         } catch (err) {
           console.error(`[Database] Failed to delete thumbnail directory ${thumbDir}:`, err);
         }
       }
+      
       if (fs.existsSync(syncDir)) {
         try {
-          fs.rmSync(syncDir, { recursive: true, force: true });
+          const entries = fs.readdirSync(syncDir);
+          for (const entry of entries) {
+            if (entry.startsWith('database.sqlite')) continue; // Avoid EBUSY on active DB file
+            const entryPath = path.join(syncDir, entry);
+            try {
+              fs.rmSync(entryPath, { recursive: true, force: true });
+            } catch (e) {
+              console.warn(`[Database] Failed to delete subentry ${entryPath}:`, e);
+            }
+          }
         } catch (err) {
           console.error(`[Database] Failed to delete sync storage directory ${syncDir}:`, err);
         }
@@ -2902,11 +2927,13 @@ async function runBackgroundClustering() {
     );
   });
   
+  const startTime = performance.now();
   if (sabIndices.length === 0) return;
 
   try {
     const groups = await taskManager.clusterImages(sabIndices, validImages, 0.90);
-    console.log(`[Background] Computed ${groups.length} clusters. Updating database...`);
+    const computeTime = Math.round(performance.now() - startTime);
+    console.log(`[Background] Computed ${groups.length} clusters in ${computeTime}ms. Updating database...`);
     
     const crypto = require('crypto');
     const allUpdates = [];
@@ -2937,7 +2964,8 @@ async function runBackgroundClustering() {
       // Yield to event loop between chunks so WebRTC DataChannel heartbeats process smoothly
       await new Promise(r => setTimeout(r, 50));
     }
-    console.log("[Background] Silent clustering completed and saved to database.");
+    const totalRealTime = Math.round(performance.now() - startTime);
+    console.log(`[Background] Silent clustering completed in ${(totalRealTime / 1000).toFixed(1)}秒 and saved to database.`);
   } catch (err) {
     console.error("[Background] Silent clustering failed:", err);
   }

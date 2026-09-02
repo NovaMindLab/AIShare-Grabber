@@ -29,6 +29,19 @@ Details the Electron main lifecycle process, ONNX AI classification model integr
 
 ---
 
+## 📑 [核心技术议题调研与决策白皮书 (Meeting Topics Wiki)](file:///d:/AI_serach_image/image_clip_android/wiki_work/README.md)
+收录针对模型框架对比、分类精度与速度、新推理框架替代可行性、多线程并发隔离、Prompt 规范、包体积优化与桌面架构选型的 8 项深度调研报告：
+*   [01. 新旧模型框架性能对比](file:///d:/AI_serach_image/image_clip_android/wiki_work/01_model_framework_performance_comparison.md): 量化吞吐量、推理时延及资源消耗（ONNX Runtime CPU / DirectML / OpenVINO / TensorRT）。
+*   [02. 图像分类精度与速度](file:///d:/AI_serach_image/image_clip_android/wiki_work/02_image_classification_accuracy_and_latency.md): Top-1 (70.4%) / Top-5 准确率、召回率、F1-Score 及单图 76ms 全链路耗时拆解。
+*   [03. 新推理框架替代可行性](file:///d:/AI_serach_image/image_clip_android/wiki_work/03_inference_framework_migration_feasibility.md): 算子覆盖度、跨平台稳定性及 DirectML ➔ CPU 自动热降级防御。
+*   [04. 多线程与多任务并发](file:///d:/AI_serach_image/image_clip_android/wiki_work/04_multithreading_and_task_concurrency.md): 独立 Session 隔离、线程池竞争防卫与 SharedArrayBuffer 零拷贝无锁单写多读。
+*   [05. Prompt 设计与多语言支持](file:///d:/AI_serach_image/image_clip_android/wiki_work/05_prompt_engineering_and_multilingual.md): 官方推荐集成模板工程 (Ensembling)、Softmax 温度系数调校 ($T=0.01$) 与 20+ 语言对齐。
+*   [06. 安装包体积评估与竞品对比](file:///d:/AI_serach_image/image_clip_android/wiki_work/06_installer_bundle_size_and_competitor_analysis.md): 整包控制在 ~168MB（目标 ≤200MB），横评 Immich (2.5G) 与 Mylio (420M)。
+*   [07. MobileCLIP2-S0 指标复核](file:///d:/AI_serach_image/image_clip_android/wiki_work/07_mobileclip2_s0_metrics_and_evaluation.md): 2025 TMLR SOTA 指标复现、重参数化折叠与 INT8 导出验证。
+*   [08. 桌面端架构选型对比](file:///d:/AI_serach_image/image_clip_android/wiki_work/08_desktop_framework_selection_electron_tauri_flutter.md): Electron vs Tauri vs Flutter 性能、体积、AI 生态与迁移成本模型。
+
+---
+
 ## 🧠 [AI Architecture & Zero-Copy SharedArrayBuffer Wiki](file:///d:/AI_serach_image/image_clip_android/wiki/ai_architecture.md)
 Contains complete architectural designs, Mermaid dataflow diagrams, sequence diagrams, and low-level zero-copy `SharedArrayBuffer` memory models for MobileCLIP, ONNX multi-threading, SQLite 2048-Byte BLOB persistence, and lock-free inter-worker similarity searching.
 *   [Zero-Copy SharedArrayBuffer Architecture Guide](file:///d:/AI_serach_image/image_clip_android/wiki/ai_architecture.md): Hardware tiering (40MB-200MB SAB), single-writer lock-free design, 512-dim Float32Array slicing, 2048-byte Node.js Buffer conversion, and Leader Centroid Clustering.
@@ -67,6 +80,7 @@ Guidelines for automated builds and releases:
 ## 🔭 Features & Roadmap
 Implemented and upcoming feature specifications:
 *   [📡 WebRTC 稳定性、全机型适配与同步引擎架构 (WebRTC Stability & Multi-Device Sync Engine)](file:///d:/AI_serach_image/image_clip_android/wiki/features/webrtc_stability_and_sync_engine.md): 彻底解决高负载 AI 计算期间 WebRTC 掉线、国产全机型（OPPO / Vivo / 小米 / 华为）视频目录穿透抓取、MTU 单包丢弃、AI 同步 0/0 防呆超时及跨平台非法路径/文件名落盘保底。 **Status: ✅ Implemented**
+*   [📱 手机连接面板全域国际化与专属缓存清空机制 (Connected View i18n & Device Cache Management)](file:///d:/AI_serach_image/image_clip_android/wiki/features/device_cache_and_i18n.md): 彻底补齐手机连接成功后各卡片（设备状态监控、AI 智能处理控制台、相册物理备份中心、P2P 传输沙盒）的 20 种语言全域国际化支持，并全新引入当前连接手机的「🗑️ 清空手机缓存」独立重置与物理磁盘文件清理机制。 **Status: ✅ Implemented**
 *   [🎨 短视频一键二次元/动漫化转换工作室 (AnimeGAN Video Studio)](file:///d:/AI_serach_image/image_clip_android/wiki/features/video_anime_studio_animegan.md): 基于 FFmpeg 裸流双向 stdio 管道的零磁盘写放大视频转换系统，集成 onnxruntime-node 神经风格迁移、纯 TypedArray 图像前后处理算法、背压流控防 OOM 机制与四大画风工作室界面。 **Status: ✅ Implemented**
 *   [🎥 远程视频同步、多选按需下载与时间线虚拟列表](file:///d:/AI_serach_image/image_clip_android/wiki/features/video_sync_and_virtual_scrolling.md): 远程视频目录轻量拉取与按拍摄日期时间线聚合、多选批量按需下载、手机端 15 路并发 Base64 缩略图提取 + PC 端离屏 Canvas 视频首帧捕获双重保障、以及 VirtualTimeline.vue 高性能时间线虚拟列表。 **Status: ✅ Implemented**
 *   [📱→🖥️ AI Thumbnail Sync](file:///d:/AI_serach_image/image_clip_android/wiki/features/thumbnail_sync_ai.md): Batch-sync compressed 400×400 JPEG thumbnails from phone to PC via WebRTC DataChannel, auto-trigger MobileCLIP ONNX classification, save to dedicated `thumbnail_sync/` directory, and display results in Link Mobile panel. **Status: ✅ Implemented**
@@ -81,6 +95,7 @@ Implemented and upcoming feature specifications:
 
 | Version | Date | Highlights |
 |---|---|---|
+| **v2.1.10** | 2026-09-02 | **手机连接面板全域国际化、独立设备缓存清空与大文件传输弹性加固**：<br>① **连接成功界面全域 20 语言国际化**：彻底消除设备状态卡片、AI 智能处理中心、相册物理备份以及 P2P 传输消息区的中英混杂，所有标签与状态指示（包括单张/平均/总计毫秒级耗时看板）全面接入 `t.link.*` 响应式双语字典；<br>② **当前连接设备「清空手机缓存」独立操作**：新增 `handleClearPhoneCacheOnly` 按钮与确认弹窗，一键抹除当前手机的 `thumbnail_sync` 物理缩略图、备份相册索引及 SQLite 资源表，并通过 WebRTC `-4` 包同步通知手机端重置待同步列表，且不强制触发重新下载；<br>③ **底层流式传输超时保护与防挂死**：为 Android 手机端 `PhotoStreamer` 注入 `originBytes`（15s）、`latlngAsync`（5s）以及 WebRTC Backpressure 背压循环（15s）三层超时熔断保护，彻底消除大视频传输时进度条停在 0% 的假死故障；<br>④ **PC 端 WebRTC 元数据解析安全熔断**：在 `fileId === -5` 接收器增加 `try...catch` 异常安全沙箱，杜绝异常文件名导致的全局 DataChannel 阻塞。 |
 | **v2.1.9** | 2026-09-01 | **Universal 全机型双架构兼容、音视频 ContentResolver 原生回退流与实时平滑分片进度**：<br>① **Universal 32/64位双架构全机型兼容**：Android 安装包全面内嵌 `arm64-v8a` + `armeabi-v7a` 原生库，彻底解决低配红米（Redmi 9A/10A/12C/A1/A2/A3 等 32 位 MIUI/HyperOS 系统）提示“解析软件包错误 / 架构不兼容”无法安装的问题；<br>② **音视频 ContentResolver 原生二进制回退流（`originBytes`）**：解决 Android 11+ Scoped Storage 沙箱机制下特定音视频无法获取 File 句柄的痛点，自动降级为系统二进制直读 32KB 内存分片直传，配合 `AssetEntity.fromId` 底层强制直查回退，保证 100% 精准读取与稳定传输；<br>③ **实时平滑分片进度条与文件名流式联动**：PC 客户端音视频下载进度条全面接入实时分片流，动态显示正在传输的文件名与实时百分比，彻底消除单文件下载停在 0% 的等待假死感；<br>④ **AI 重新计算单张/平均/总计耗时极客监控看板**：点击「🔄 重新算 AI」时新增毫秒级单张耗时、平均耗时、动态已用/预计剩余时间，并在完成后常驻展示总计花费时间；<br>⑤ **宫崎骏·吉卜力油画风 (Hayao & Oil Painting) 视频动漫化增强**：针对实拍风景与人像视频，强化澄澈晴空、厚涂油画积雨云与青翠草甸的治愈系油画质感渲染转换。 |
 | **v2.1.8** | 2026-09-01 | **两阶段质心人脸聚类重构、16:9 视频海报流式直发与 Cyber Hi-Fi 音乐电台上屏**：<br>① **两阶段自适应质心人脸聚类 (Two-Stage HAC)**：彻底根除同一人物被错误拆分为多个独立人物组的历史顽疾。移除破坏性 `minSim` 门槛，结合 Top-3 自适应链接（0.44）与多轮质心层次凝聚合并（0.43），自动选择最大正面免冠特写作为头像，10/10 自动化评测全通过；<br>② **视频列表真实海报即时流式回传与 0 Bytes 修复**：手机端扫描后按 15 个视频为一批即时提取 240x240 封面并流式直发（1 秒内首批上屏），修复元数据查询超时导致的 `0 Bytes` 缺陷，全面重构 16:9 影院级卡片与赛博暗夜光效；<br>③ **全新 Cyber Hi-Fi 音乐电台**：上线 44px 质感黑胶唱片（播放中 3s 旋转）、4 柱跳动音频频谱声波、智能歌曲标题净化、Hi-Fi（FLAC/M4A/MP3）霓虹角标及 130px 沉浸式唱机弹窗播放器；<br>④ **AI 缩略图同步卡死 (1060/1078) 根治**：为缩略图提取注入 5s 逐项超时跳过保护，跳过项记录防死循环，并完善 Sentinel -1 完成信号握手与进度自动对齐；<br>⑤ **无蓝牙 PC 双通道信令竞态加固**：增加 `isProcessingOffer` / `hasGeneratedAnswer` 互斥锁与 `pendingDirectIceCandidates` 队列保护，防止 HTTP/UDP 并发信令自毁 PeerConnection 及清空 ICE 导致连接超时。 |
 | **v2.1.7** | 2026-09-01 | **短视频动漫化 (AnimeGAN) 全机型跨端兼容性加固**：<br>① **补齐 ONNX 模型打包白名单**：在 `package.json` 加入 `animegan_*.onnx`，根除打包发布后客户端缺失画风模型问题；<br>② **DirectML GPU ➔ CPU 运行时热降级**：逐帧推理时自动捕获 DirectML 驱动级抖动与显存不足异常，无缝热切换为 CPU 多线程推理，任务永不中断；<br>③ **FFmpeg 智能全路径探针与自检提示**：智能检索软件内置 bin/、WinGet、Scoop、Chocolatey 及系统 PATH，并在缺少编解码器时提供一键安装指令与环境告警；<br>④ **张量排布锁定 NHWC**：固定标准 `[1, H, W, 3]` 格式，彻底消除动态尺寸探测偶发异常。 |

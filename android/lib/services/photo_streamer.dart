@@ -203,7 +203,7 @@ class PhotoStreamer {
       Uint8List? directBytes;
       if (file == null) {
         try {
-          directBytes = await entity.originBytes;
+          directBytes = await entity.originBytes.timeout(const Duration(seconds: 15), onTimeout: () => null);
         } catch (_) {}
       }
 
@@ -222,7 +222,10 @@ class PhotoStreamer {
       }
 
       // Obtain GPS coordinates asynchronously (required for Android 10+)
-      final LatLng? latLng = await entity.latlngAsync();
+      LatLng? latLng;
+      try {
+        latLng = await entity.latlngAsync().timeout(const Duration(seconds: 5), onTimeout: () => null);
+      } catch (_) {}
       final double? lat = (latLng != null && latLng.latitude != 0.0) ? latLng.latitude : null;
       final double? lng = (latLng != null && latLng.longitude != 0.0) ? latLng.longitude : null;
 
@@ -279,7 +282,7 @@ class PhotoStreamer {
       Uint8List? directBytes;
       if (file == null) {
         try {
-          directBytes = await entity.originBytes;
+          directBytes = await entity.originBytes.timeout(const Duration(seconds: 15), onTimeout: () => null);
         } catch (_) {}
       }
 
@@ -381,8 +384,14 @@ class PhotoStreamer {
       for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
         // Apply WebRTC Backpressure Flow Control
         // If DataChannel write buffer exceeds 128KB, yield execution and wait to prevent SCTP overflow
+        int waitCount = 0;
         while (syncEngine != null && syncEngine!.getBufferedAmount() > 128 * 1024) {
           await Future.delayed(const Duration(milliseconds: 15));
+          waitCount++;
+          if (waitCount > 1000) { // 15 seconds timeout
+            debugPrint("[Streamer] WebRTC Backpressure timeout, dropping transfer.");
+            return false;
+          }
         }
 
         final int payloadSize = (bytesSent + chunkSize < totalSize) ? chunkSize : (totalSize - bytesSent);
@@ -441,8 +450,14 @@ class PhotoStreamer {
     int bytesSent = 0;
 
     for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      int waitCount = 0;
       while (engine.getBufferedAmount() > 1000000) {
         await Future.delayed(const Duration(milliseconds: 30));
+        waitCount++;
+        if (waitCount > 500) { // 15 seconds timeout
+          debugPrint("[Streamer] WebRTC Backpressure timeout in streamBytesInternal, dropping transfer.");
+          return false;
+        }
       }
 
       final int payloadSize = (bytesSent + chunkSize < data.length) ? chunkSize : (data.length - bytesSent);
@@ -613,7 +628,10 @@ class PhotoStreamer {
         "size": size,
         "create_date": createDateStr,
       };
-      final LatLng? latLng = await entity.latlngAsync();
+      LatLng? latLng;
+      try {
+        latLng = await entity.latlngAsync().timeout(const Duration(seconds: 5), onTimeout: () => null);
+      } catch (_) {}
       if (latLng != null && latLng.latitude != 0.0) {
         metadataMap["latitude"] = latLng.latitude;
       }

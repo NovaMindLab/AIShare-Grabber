@@ -372,20 +372,20 @@
               <!-- Card 1: System & Storage Info -->
               <div style="padding: 14px 16px; border-radius: 16px; background: rgba(255, 255, 255, 0.015); border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; backdrop-filter: blur(20px);">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">设备状态</span>
+                  <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">{{ t.link.deviceStatus || '设备状态' }}</span>
                   <span style="font-size: 10px; color: var(--text-secondary); font-weight: 600;">
                     {{ activeDeviceSystemInfo ? `Android ${activeDeviceSystemInfo.version || ''}` : 'Android' }}
                   </span>
                 </div>
                 <!-- Brand & Model -->
                 <div style="font-size: 13px; color: var(--text-primary); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -2px;">
-                  {{ activeDeviceSystemInfo ? `${activeDeviceSystemInfo.brand || ''} ${activeDeviceSystemInfo.model || ''}` : 'Android Device' }}
+                  {{ activeDeviceSystemInfo ? `${activeDeviceSystemInfo.brand || ''} ${activeDeviceSystemInfo.model || ''}` : (t.link.unnamedDevice || 'Android Device') }}
                 </div>
 
                 <!-- Storage Info Card -->
                 <div v-if="activeDeviceSystemInfo && activeDeviceSystemInfo.total_storage" style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; margin-top: 2px;">
                   <div style="display: flex; justify-content: space-between; font-size: 10px;">
-                    <span style="color: var(--text-muted);">已使用存储</span>
+                    <span style="color: var(--text-muted);">{{ t.link.storageUsed || '已使用存储' }}</span>
                     <span style="color: var(--text-secondary); font-weight: 600;">
                       {{ formatBytes(activeDeviceSystemInfo.used_storage) }} / {{ formatBytes(activeDeviceSystemInfo.total_storage) }}
                     </span>
@@ -398,13 +398,26 @@
                     ></div>
                   </div>
                 </div>
+
+                <!-- Clear Current Phone Cache Button -->
+                <button
+                  class="btn btn-secondary"
+                  @click="handleClearPhoneCacheOnly"
+                  :disabled="isThumbnailSyncing || isReclassifying || isAlbumSyncing"
+                  style="margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px; font-size: 11px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid rgba(239,68,68,0.2); background: rgba(239,68,68,0.05); color: #f87171; transition: all 0.2s;"
+                  onmouseover="this.style.background='rgba(239,68,68,0.12)'; this.style.borderColor='rgba(239,68,68,0.35)'"
+                  onmouseout="this.style.background='rgba(239,68,68,0.05)'; this.style.borderColor='rgba(239,68,68,0.2)'"
+                >
+                  <span>🗑️</span>
+                  <span>{{ t.link.clearPhoneCacheBtn || '清空当前手机缓存' }}</span>
+                </button>
               </div>
 
               <!-- Card 2: AI Sync Center -->
               <div v-if="activePeerType !== 'PC'" style="padding: 14px 16px; border-radius: 16px; background: rgba(168, 85, 247, 0.02); border: 1px solid rgba(168, 85, 247, 0.15); box-shadow: 0 4px 20px rgba(168, 85, 247, 0.02); display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; backdrop-filter: blur(20px);">
                 <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
                   <span style="font-size: 12px;">🧠</span>
-                  <span style="font-size: 11px; color: #c084fc; font-weight: 700; letter-spacing: 0.5px;">管理与同步 (AI 智能处理)</span>
+                  <span style="font-size: 11px; color: #c084fc; font-weight: 700; letter-spacing: 0.5px;">{{ t.link.aiManagement || '管理与同步 (AI 智能处理)' }}</span>
                 </div>
                 
                 <!-- Batch AI Sync Button -->
@@ -416,8 +429,8 @@
                 >
                   <span>🧠</span>
                   {{ isThumbnailSyncing 
-                    ? `AI 同步中 ${thumbSyncDone}/${thumbSyncTotal}` 
-                    : (thumbnailImages.length > 0 ? '继续 AI 同步' : '同步手机图片到 AI') }}
+                    ? (t.link.thumbnailSyncing ? t.link.thumbnailSyncing.replace('{done}', thumbSyncDone).replace('{total}', thumbSyncTotal) : `AI 同步中 ${thumbSyncDone}/${thumbSyncTotal}`)
+                    : (thumbnailImages.length > 0 ? (t.link.thumbnailSyncContinue || '继续 AI 同步') : (t.link.thumbnailSyncBtn || '同步手机图片到 AI')) }}
                 </button>
 
                 <!-- Actions row side-by-side -->
@@ -432,7 +445,7 @@
                     onmouseout="this.style.background='rgba(16,185,129,0.03)'"
                   >
                     <span>🔄</span>
-                    <span>{{ isReclassifying ? '正在重算' : '重新算 AI' }}</span>
+                    <span>{{ isReclassifying ? (t.link.reclassifying || '正在重算') : (t.link.reclassifyBtn || '重新算 AI') }}</span>
                   </button>
 
                   <!-- Clear and Re-download Button -->
@@ -445,7 +458,7 @@
                     onmouseout="this.style.background='rgba(239,68,68,0.03)'"
                   >
                     <span>🗑️</span>
-                    <span>重新下载</span>
+                    <span>{{ t.link.resyncPhotos || '重新下载' }}</span>
                   </button>
                 </div>
 
@@ -459,7 +472,7 @@
                     <span style="font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; font-size: 10px;">
                       <span v-if="isReclassifying" class="spinner" style="width: 10px; height: 10px; border-width: 1.5px; border-color: #10b981; border-top-color: transparent;"></span>
                       <span v-else style="font-size: 11px;">✅</span>
-                      <span>{{ isReclassifying ? 'AI 重算分析中' : 'AI 计算已完成' }}</span>
+                      <span>{{ isReclassifying ? (t.link.reclassifyingTitle || 'AI 重算分析中') : (t.link.reclassifyDone || 'AI 计算已完成') }}</span>
                     </span>
                     <span style="color: #10b981; font-weight: 700; font-family: monospace; font-size: 11px;">
                       {{ reclassifyProgress.done }} / {{ reclassifyProgress.total || reclassifyStats.totalCount }}
@@ -477,26 +490,26 @@
                   <!-- Row 3: Latency stats (单张 ms & 平均 ms) -->
                   <div style="display: flex; justify-content: space-between; font-family: monospace; font-size: 9.5px; background: rgba(0, 0, 0, 0.25); padding: 4px 8px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.04);">
                     <span style="color: var(--text-secondary);">
-                      ⚡ 单张: <strong style="color: #38bdf8;">{{ reclassifyProgress.singleMs || reclassifyStats.lastSingleMs || 0 }} ms</strong>
+                      ⚡ {{ t.link.singleLatency || '单张' }}: <strong style="color: #38bdf8;">{{ reclassifyProgress.singleMs || reclassifyStats.lastSingleMs || 0 }} ms</strong>
                     </span>
                     <span style="color: var(--text-secondary);">
-                      📊 平均: <strong style="color: #34d399;">{{ reclassifyProgress.avgMs || reclassifyStats.avgMs || 0 }} ms/张</strong>
+                      📊 {{ t.link.avgLatency || '平均' }}: <strong style="color: #34d399;">{{ reclassifyProgress.avgMs || reclassifyStats.avgMs || 0 }} ms</strong>
                     </span>
                   </div>
 
                   <!-- Row 4: Elapsed & Total time -->
                   <div style="display: flex; justify-content: space-between; font-size: 9.5px; padding: 0 2px;">
                     <span v-if="isReclassifying" style="color: var(--text-muted);">
-                      ⏱️ 已用: <strong style="color: #10b981;">{{ reclassifyElapsedTime }}</strong>
+                      ⏱️ {{ t.link.elapsedTime || '已用' }}: <strong style="color: #10b981;">{{ reclassifyElapsedTime }}</strong>
                     </span>
                     <span v-else style="color: var(--text-muted);">
-                      ⏱️ 总计花费时间: <strong style="color: #10b981; font-weight: 700;">{{ reclassifyStats.totalTimeText }}</strong>
+                      ⏱️ {{ t.link.totalTimeSpent || '总计花费时间' }}: <strong style="color: #10b981; font-weight: 700;">{{ reclassifyStats.totalTimeText }}</strong>
                     </span>
                     <span v-if="isReclassifying" style="color: var(--text-muted);">
-                      预计剩余: <strong style="color: #f59e0b;">{{ reclassifyRemainingTime }}</strong>
+                      {{ t.link.estRemaining || '预计剩余' }}: <strong style="color: #f59e0b;">{{ reclassifyRemainingTime }}</strong>
                     </span>
                     <span v-else style="color: var(--text-muted); font-size: 9px;">
-                      完成于 {{ reclassifyStats.completedAt }}
+                      {{ t.link.completedAt || '完成于' }} {{ reclassifyStats.completedAt }}
                     </span>
                   </div>
                 </div>
@@ -509,7 +522,7 @@
                   onmouseover="this.style.background='rgba(168,85,247,0.08)'"
                   onmouseout="this.style.background='rgba(168,85,247,0.03)'"
                 >
-                  <span>📁</span> 打开缩略图文件夹
+                  <span>📁</span> {{ t.link.openThumbnailFolder || '打开缩略图文件夹' }}
                 </button>
               </div>
 
@@ -517,15 +530,15 @@
               <div v-if="activePeerType !== 'PC'" style="padding: 14px 16px; border-radius: 16px; background: rgba(16, 185, 129, 0.02); border: 1px solid rgba(16, 185, 129, 0.15); box-shadow: 0 4px 20px rgba(16, 185, 129, 0.02); display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; backdrop-filter: blur(20px);">
                 <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
                   <span style="font-size: 12px;">📸</span>
-                  <span style="font-size: 11px; color: #34d399; font-weight: 700; letter-spacing: 0.5px;">相册备份到PC (物理备份)</span>
+                  <span style="font-size: 11px; color: #34d399; font-weight: 700; letter-spacing: 0.5px;">{{ t.link.albumSyncTitle || '相册备份到PC (物理备份)' }}</span>
                 </div>
 
                 <!-- Sync Album to PC Controls -->
                 <div v-if="isAlbumSyncing" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
                   <!-- Status & Remaining count -->
                   <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-primary); font-weight: 600;">
-                    <span>已同步: {{ albumSyncDone }} / {{ albumSyncTotal }}</span>
-                    <span style="color: #10b981;">剩余: {{ albumSyncTotal - albumSyncDone }} 张</span>
+                    <span>{{ t.link.albumSyncedText ? t.link.albumSyncedText.replace('{done}', albumSyncDone).replace('{total}', albumSyncTotal) : `已同步: ${albumSyncDone} / ${albumSyncTotal}` }}</span>
+                    <span style="color: #10b981;">{{ t.link.albumRemainingText ? t.link.albumRemainingText.replace('{count}', albumSyncTotal - albumSyncDone) : `剩余: ${albumSyncTotal - albumSyncDone} 张` }}</span>
                   </div>
 
                   <!-- Progress Bar -->
@@ -543,7 +556,7 @@
                       onmouseover="this.style.background='rgba(250,204,21,0.08)'"
                       onmouseout="this.style.background='rgba(250,204,21,0.03)'"
                     >
-                      <span>⏸️</span> 暂停
+                      <span>⏸️</span> {{ t.link.pause || '暂停' }}
                     </button>
                     <button
                       v-else
@@ -553,7 +566,7 @@
                       onmouseover="this.style.background='rgba(16,185,129,0.08)'"
                       onmouseout="this.style.background='rgba(16,185,129,0.03)'"
                     >
-                      <span>▶️</span> 继续
+                      <span>▶️</span> {{ t.link.resume || '继续' }}
                     </button>
                     <button
                       class="btn"
@@ -562,7 +575,7 @@
                       onmouseover="this.style.background='rgba(239,68,68,0.08)'"
                       onmouseout="this.style.background='rgba(239,68,68,0.03)'"
                     >
-                      <span>⏹️</span> 停止
+                      <span>⏹️</span> {{ t.link.stop || '停止' }}
                     </button>
                   </div>
                 </div>
@@ -576,7 +589,7 @@
                     style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; font-size: 12px; border-radius: 10px; font-weight: 600; width: 100%; cursor: pointer; background: linear-gradient(135deg, #10b981, #059669);"
                   >
                     <span>📸</span>
-                    <span>{{ albumSyncDone > 0 ? '继续同步相册到PC' : '同步相册到PC' }}</span>
+                    <span>{{ albumSyncDone > 0 ? (t.link.albumSyncContinue || '继续同步相册到PC') : (t.link.albumSyncToPc || '同步相册到PC') }}</span>
                   </button>
 
                   <!-- Actions Row for Album Sync -->
@@ -590,7 +603,7 @@
                       onmouseover="this.style.background='rgba(245,158,11,0.08)'"
                       onmouseout="this.style.background='rgba(245,158,11,0.03)'"
                     >
-                      <span>🔄</span> 检查补漏
+                      <span>🔄</span> {{ t.link.checkMissing || '检查补漏' }}
                     </button>
 
                     <!-- Open Album Sync Folder -->
@@ -601,7 +614,7 @@
                       onmouseover="this.style.background='rgba(16,185,129,0.08)'"
                       onmouseout="this.style.background='rgba(16,185,129,0.03)'"
                     >
-                      <span>📂</span> 打开文件夹
+                      <span>📂</span> {{ t.link.openFolder || '打开文件夹' }}
                     </button>
                   </div>
                 </div>
@@ -615,21 +628,21 @@
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                   <span style="font-weight: 700; color: var(--text-primary); font-size: 14px; display: flex; align-items: center; gap: 6px;">
                     <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-                    P2P 极速直连通道 (WebRTC Tunnel)
+                    {{ t.link.p2pTunnelTitle || 'P2P 极速直连通道 (WebRTC Tunnel)' }}
                   </span>
-                  <span style="font-size: 11px; color: var(--text-muted);">GATT channel ready | P2P link active</span>
+                  <span style="font-size: 11px; color: var(--text-muted);">{{ t.link.gattChannelReady || 'GATT channel ready | P2P link active' }}</span>
                 </div>
                 <!-- Mini status info -->
                 <div style="font-size: 11px; color: var(--text-muted); background: rgba(255,255,255,0.03); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05);">
                   <span v-if="pcActiveTransferName" style="color: #3b82f6; display: flex; align-items: center; gap: 4px;">
                     <span class="spinner" style="width: 10px; height: 10px; border-width: 1.5px; border-top-color: #3b82f6;"></span>
-                    📤 发送中: {{ pcActiveTransferName }}
+                    📤 {{ t.link.sendingFile || '发送中' }}: {{ pcActiveTransferName }}
                   </span>
                   <span v-else-if="incomingTransfer" style="color: #a855f7; display: flex; align-items: center; gap: 4px;">
                     <span class="spinner" style="width: 10px; height: 10px; border-width: 1.5px; border-top-color: #a855f7;"></span>
-                    📥 接收中: {{ incomingTransfer.name }}
+                    📥 {{ t.link.receivingFile || '接收中' }}: {{ incomingTransfer.name }}
                   </span>
-                  <span v-else>⚡ 通道空闲 (Idle)</span>
+                  <span v-else>{{ t.link.channelIdle || '⚡ 通道空闲 (Idle)' }}</span>
                 </div>
               </div>
 
@@ -647,8 +660,8 @@
                 <!-- Empty State -->
                 <div v-if="chatMessages.length === 0" class="chat-empty-state" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.85;">
                   <span style="font-size: 48px; margin-bottom: 12px; display: block; filter: drop-shadow(0 0 12px rgba(168,85,247,0.3));">📦</span>
-                  <span style="color: var(--text-primary); font-size: 15px; font-weight: 700; margin-bottom: 6px;">数据双向传输就绪</span>
-                  <span style="color: var(--text-muted); font-size: 12px; max-width: 320px; line-height: 1.6; text-align: center;">点击下方按钮发送文件，或将任何格式的文件直接拖拽拖放到本区域内。</span>
+                  <span style="color: var(--text-primary); font-size: 15px; font-weight: 700; margin-bottom: 6px;">{{ t.link.chatReadyTitle || '数据双向传输就绪' }}</span>
+                  <span style="color: var(--text-muted); font-size: 12px; max-width: 320px; line-height: 1.6; text-align: center;">{{ t.link.chatReadyDesc || '点击下方按钮发送文件，或将任何格式的文件直接拖拽拖放到本区域内。' }}</span>
                 </div>
 
                 <!-- Message Bubble List -->
@@ -659,13 +672,13 @@
                   :class="msg.type"
                 >
                   <!-- Left Avatar for mobile -->
-                  <div v-if="msg.type === 'incoming'" class="chat-avatar mobile-avatar" title="手机端">📱</div>
+                  <div v-if="msg.type === 'incoming'" class="chat-avatar mobile-avatar" :title="t.link.senderMobile || '手机端'">📱</div>
 
                   <!-- Message bubble -->
                   <div class="chat-message-bubble">
                     <!-- Meta row -->
                     <div class="chat-message-meta">
-                      <span class="chat-sender-name">{{ msg.type === 'incoming' ? '手机端' : '我的电脑' }}</span>
+                      <span class="chat-sender-name">{{ msg.type === 'incoming' ? (t.link.senderMobile || '手机端') : (t.link.senderPc || '我的电脑') }}</span>
                       <span class="chat-time">{{ msg.time }}</span>
                     </div>
 
@@ -691,15 +704,15 @@
                       <div class="chat-progress-bar">
                         <div class="chat-progress-fill" :style="{ width: (msg.progress * 100) + '%' }"></div>
                       </div>
-                      <span class="chat-progress-text">正在传输: {{ Math.round(msg.progress * 100) }}%</span>
+                      <span class="chat-progress-text">{{ t.link.msgTransferring ? t.link.msgTransferring.replace('{pct}', Math.round(msg.progress * 100)) : `正在传输: ${Math.round(msg.progress * 100)}%` }}</span>
                     </div>
                     
                     <div v-else-if="msg.status === 'processing'" class="chat-progress-container">
-                      <span class="chat-progress-text text-processing">🔄 AI 分析归类中...</span>
+                      <span class="chat-progress-text text-processing">{{ t.link.msgProcessing || '🔄 AI 分析归类中...' }}</span>
                     </div>
 
                     <div v-else-if="msg.status === 'completed'" class="chat-status-text success">
-                      <span style="display: flex; align-items: center; gap: 4px;">🟢 已完成</span>
+                      <span style="display: flex; align-items: center; gap: 4px;">{{ t.link.msgCompleted || '🟢 已完成' }}</span>
                       <!-- AI Prediction tag -->
                       <span v-if="msg.predictions && msg.predictions[0]" class="chat-pred-badge">
                         {{ getShortCategory(msg.predictions[0].category) }} ({{ Math.round(msg.predictions[0].score * 100) }}%)
@@ -707,12 +720,12 @@
                     </div>
 
                     <div v-else-if="msg.status === 'failed'" class="chat-status-text error">
-                      <span>🔴 传输失败</span>
+                      <span>{{ t.link.msgFailed || '🔴 传输失败' }}</span>
                     </div>
                   </div>
 
                   <!-- Right Avatar for PC -->
-                  <div v-if="msg.type === 'outgoing'" class="chat-avatar pc-avatar" title="我的电脑">💻</div>
+                  <div v-if="msg.type === 'outgoing'" class="chat-avatar pc-avatar" :title="t.link.senderPc || '我的电脑'">💻</div>
                 </div>
               </div>
 
@@ -724,7 +737,7 @@
                   :disabled="pcActiveTransferName !== null"
                   style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer;"
                 >
-                  <span>📤</span> 选择本地文件发送到手机 (支持任意格式拖放)
+                  <span>📤</span> {{ t.link.sendLocalFileBtn || '选择本地文件发送到手机 (支持任意格式拖放)' }}
                 </button>
               </div>
             </div>
@@ -735,7 +748,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
               <h4 style="margin: 0; font-size: 13.5px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
                 <span class="spinner" style="width: 12px; height: 12px; border-width: 2px; border-color: rgba(255,255,255,0.2); border-top-color: #a855f7;"></span>
-                正在自动搜索附近设备...
+                {{ t.link.discoveryTitle || '正在自动搜索附近设备...' }}
               </h4>
               <button 
                 @click="refreshDevices" 
@@ -743,7 +756,7 @@
                 onmouseover="this.style.background='rgba(255,255,255,0.05)'"
                 onmouseout="this.style.background='transparent'"
               >
-                🔄 刷新
+                🔄 {{ t.link.refreshBtn || '刷新' }}
               </button>
             </div>
 
@@ -762,7 +775,7 @@
                   <div class="device-card-meta">
                     <div class="device-card-title-row">
                       <span class="device-card-name" :title="device.name">{{ device.name }}</span>
-                      <span class="device-type-badge">{{ device.type === 'PC' ? '电脑' : '手机' }}</span>
+                      <span class="device-type-badge">{{ device.type === 'PC' ? (t.link.deviceTypePc || '电脑') : (t.link.deviceTypeMobile || '手机') }}</span>
                     </div>
                     <span class="device-card-ip">{{ device.ip }} · Wi-Fi</span>
                   </div>
@@ -4257,27 +4270,17 @@ async function handleClearAndResync() {
             logSyncEvent("📤 正在向手机发送重置指令，请求重新同步图片...");
             
             // Send type = -4 (handshake response) with empty synced_ids to update phone's synced list
-            const responseStr = JSON.stringify({ synced_ids: [] });
-            const encoder = new TextEncoder();
-            const responseBytes = encoder.encode(responseStr);
-            const responseBuffer = new ArrayBuffer(16 + responseBytes.byteLength);
-            const responseView = new DataView(responseBuffer);
-            responseView.setInt32(0, -4, false); // Response type = -4
-            responseView.setInt32(4, 0, false);
-            responseView.setInt32(8, 0, false);
-            responseView.setInt32(12, responseBytes.byteLength, false);
-            const responseBytesArr = new Uint8Array(responseBuffer);
-            responseBytesArr.set(responseBytes, 16);
-            dataChannel.send(responseBuffer);
+            sendSafeDataChannelPacket(dataChannel, -4, {
+              synced_ids: [],
+              synced_thumbnail_ids: [],
+              last_album_sync_date: ''
+            });
 
-            // Send type = -6 (request thumbnail sync to AI) to trigger phone auto sync
-            const syncRequestBuffer = new ArrayBuffer(16);
-            const syncRequestView = new DataView(syncRequestBuffer);
-            syncRequestView.setInt32(0, -6, false); // request type = -6
-            syncRequestView.setInt32(4, 0, false);
-            syncRequestView.setInt32(8, 0, false);
-            syncRequestView.setInt32(12, 0, false);
-            dataChannel.send(syncRequestBuffer);
+            // Send type = -6 (request thumbnail sync to AI) to trigger phone auto sync with force_resync
+            sendSafeDataChannelPacket(dataChannel, -6, {
+              synced_thumbnail_ids: [],
+              force_resync: true
+            });
 
             logSyncEvent("🟢 已成功请求手机重新发送图片进行运算。");
           }
@@ -4286,6 +4289,66 @@ async function handleClearAndResync() {
         }
       } catch (err) {
         logSyncEvent(`❌ 清空并重置失败: ${err.message}`);
+      }
+    }
+  });
+}
+
+async function handleClearPhoneCacheOnly() {
+  const isConnected = syncStatus.value === 'connected';
+  const deviceName = activeDeviceName.value || '当前手机';
+  const confirmMsg = isConnected
+    ? `确定要清空手机 [${deviceName}] 在本电脑上的全部缩略图缓存、相册备份索引与 AI 特征数据库吗？\n\n清空后将重置该手机的已同步状态（不会立即重新下载），释放本地磁盘空间。`
+    : "确定要清空当前手机在本地的缓存与同步数据库记录吗？";
+
+  showConfirm({
+    icon: '🗑️',
+    title: t.value.link?.clearPhoneCacheTitle || '清空当前手机缓存',
+    message: confirmMsg,
+    confirmText: t.value.link?.clearCacheConfirmBtn || '确认清空',
+    danger: true,
+    onConfirm: async () => {
+      logSyncEvent(`🗑️ 正在清空设备 [${deviceName}] 的本地数据库与缓存文件...`);
+      try {
+        const success = await window.api.clearDeviceDatabase();
+        if (success) {
+          // 1. Reset frontend states
+          images.value = [];
+          thumbnailImages.value = [];
+          albumBackupImages.value = [];
+          chatMessages.value = [];
+          queue.value = [];
+          processedCount.value = 0;
+          totalCount.value = 0;
+          activeCount.value = 0;
+          similarGroups.value = [];
+          selectedDuplicateIds.value.clear();
+          thumbSyncDone.value = 0;
+          thumbSyncTotal.value = 0;
+          albumSyncDone.value = 0;
+          albumSyncTotal.value = 0;
+          
+          logSyncEvent(`✅ 设备 [${deviceName}] 本地缓存与数据库已彻底清空。`);
+
+          // 2. If connected, inform phone that synced_ids and synced_thumbnail_ids are reset to []
+          if (syncStatus.value === 'connected' && dataChannel && dataChannel.readyState === 'open') {
+            try {
+              sendSafeDataChannelPacket(dataChannel, -4, {
+                synced_ids: [],
+                synced_thumbnail_ids: [],
+                last_album_sync_date: ''
+              });
+              logSyncEvent("📤 已通知手机端重置同步状态记录。");
+            } catch (err) {
+              console.error("Failed to notify phone of cache clear:", err);
+            }
+          }
+        } else {
+          logSyncEvent("⚠️ 清空设备缓存失败，请检查数据库连接。");
+        }
+      } catch (e) {
+        console.error('[Database] Failed to clear device cache:', e);
+        logSyncEvent(`❌ 清空缓存异常: ${e.message || e}`);
       }
     }
   });
@@ -4712,18 +4775,17 @@ function requestThumbnailSync() {
 
   logSyncEvent("🧠 正在发送 AI 缩略图批量同步请求到手机...");
   
-  const buffer = new ArrayBuffer(16);
-  const view = new DataView(buffer);
-  view.setInt32(0, -6, false); // file_id = -6
-  view.setInt32(4, 0, false);
-  view.setInt32(8, 0, false);
-  view.setInt32(12, 0, false);
-  
-  dataChannel.send(buffer);
-  
   isThumbnailSyncing.value = true;
-  thumbSyncDone.value = 0;
+  thumbSyncDone.value = thumbnailImages.value.length;
   thumbSyncTotal.value = 0;
+
+  // Send -6 with payload containing current synced thumbnail IDs and force_resync flag
+  const thumbIds = thumbnailImages.value.map(img => img.id || img.name);
+  const payload = {
+    synced_thumbnail_ids: thumbIds,
+    force_resync: thumbnailImages.value.length === 0
+  };
+  sendSafeDataChannelPacket(dataChannel, -6, payload);
 
   if (thumbnailSyncTimeoutTimer) clearTimeout(thumbnailSyncTimeoutTimer);
   thumbnailSyncTimeoutTimer = setTimeout(() => {
@@ -5725,44 +5787,48 @@ function setupDataChannel(channel) {
       const payloadBytes = new Uint8Array(arrayBuffer, 16, payloadSize);
       const decoder = new TextDecoder('utf-8');
       const payloadStr = decoder.decode(payloadBytes);
-      const metadata = JSON.parse(payloadStr);
-      
-      activeMetadata[metadata.file_id] = {
-        assetId: metadata.asset_id,
-        name: metadata.name,
-        size: metadata.size,
-        latitude: metadata.latitude,
-        longitude: metadata.longitude,
-        create_date: metadata.create_date || null,
-        duration: metadata.duration || null
-      };
-
-      // Add to chatMessages only for regular files (not thumbnails, album originals, videos, or audios)
-      const isThumb = metadata.name.startsWith('thumb_');
-      const isAlbum = metadata.name.startsWith('album_') || (isAlbumSyncing.value && !isThumb);
-      const isVid = metadata.name.startsWith('video_') || /\.(mp4|mkv|mov|avi|webm)$/i.test(metadata.name);
-      const isAud = metadata.name.startsWith('audio_') || /\.(mp3|wav|m4a|ogg|flac|aac|wma)$/i.test(metadata.name);
-      if (!isThumb && !isAlbum && !isVid && !isAud && !chatMessages.value.some(m => m.id === metadata.file_id)) {
-        chatMessages.value.push({
-          id: metadata.file_id,
-          type: 'incoming',
+      try {
+        const metadata = JSON.parse(payloadStr);
+        
+        activeMetadata[metadata.file_id] = {
+          assetId: metadata.asset_id,
           name: metadata.name,
           size: metadata.size,
-          progress: 0,
-          status: 'transferring',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isImage: /\.(jpg|jpeg|png|gif|webp)$/i.test(metadata.name),
-          src: ''
-        });
-        scrollToBottom();
-      }
+          latitude: metadata.latitude,
+          longitude: metadata.longitude,
+          create_date: metadata.create_date || null,
+          duration: metadata.duration || null
+        };
 
-      // Update album sync counter when album metadata arrives
-      if (isAlbum) {
-        albumSyncDone.value++;
+        // Add to chatMessages only for regular files (not thumbnails, album originals, videos, or audios)
+        const isThumb = metadata.name.startsWith('thumb_');
+        const isAlbum = metadata.name.startsWith('album_') || (isAlbumSyncing.value && !isThumb);
+        const isVid = metadata.name.startsWith('video_') || /\.(mp4|mkv|mov|avi|webm)$/i.test(metadata.name);
+        const isAud = metadata.name.startsWith('audio_') || /\.(mp3|wav|m4a|ogg|flac|aac|wma)$/i.test(metadata.name);
+        if (!isThumb && !isAlbum && !isVid && !isAud && !chatMessages.value.some(m => m.id === metadata.file_id)) {
+          chatMessages.value.push({
+            id: metadata.file_id,
+            type: 'incoming',
+            name: metadata.name,
+            size: metadata.size,
+            progress: 0,
+            status: 'transferring',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isImage: /\.(jpg|jpeg|png|gif|webp)$/i.test(metadata.name),
+            src: ''
+          });
+          scrollToBottom();
+        }
+
+        // Update album sync counter when album metadata arrives
+        if (isAlbum) {
+          albumSyncDone.value++;
+        }
+        
+        logSyncEvent(`📝 收到文件元数据: [ID: ${metadata.file_id}] ${metadata.name} (${(metadata.size / 1024 / 1024).toFixed(2)} MB)`);
+      } catch (err) {
+        console.error("Failed to parse incoming file metadata (-5 packet):", err);
       }
-      
-      logSyncEvent(`📝 收到文件元数据: [ID: ${metadata.file_id}] ${metadata.name} (${(metadata.size / 1024 / 1024).toFixed(2)} MB)`);
       return;
     }
     
