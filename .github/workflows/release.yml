@@ -1,0 +1,299 @@
+name: 🚀 ShareCLIP Multi-Platform Cloud Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release Version (e.g. 2.1.10)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # Job 1: Build & Deploy Web Portal & WebShare to GitHub Pages
+  # ─────────────────────────────────────────────────────────────
+  build-and-deploy-web:
+    name: 🌐 Build & Deploy Web Portal
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            web/package-lock.json
+            webshare/package-lock.json
+
+      - name: Build Official Website
+        run: |
+          cd web
+          npm ci
+          npm run build
+
+      - name: Build WebShare
+        run: |
+          cd webshare
+          npm ci
+          npm run build
+
+      - name: Assemble Static Site
+        run: |
+          mkdir -p site_dist
+          cp -r web/dist/* site_dist/
+          mkdir -p site_dist/webshare
+          cp -r webshare/dist/* site_dist/webshare/
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site_dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 2: Build Android Universal APK (Linux Runner)
+  # ─────────────────────────────────────────────────────────────
+  build-android:
+    name: 📱 Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Determine Version
+        id: get_version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            TAG_VER="${{ github.event.inputs.version }}"
+          else
+            TAG_VER="${GITHUB_REF#refs/tags/}"
+          fi
+          VER_CLEAN="${TAG_VER#v}"
+          echo "VERSION=$VER_CLEAN" >> $GITHUB_OUTPUT
+          echo "Building Android for version: $VER_CLEAN"
+
+      - name: Build Android Universal APK
+        run: |
+          cd android
+          flutter pub get
+          if [ -n "${{ secrets.MIXPANEL_TOKEN }}" ]; then
+            flutter build apk --release --target-platform android-arm,android-arm64 --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=${{ secrets.MIXPANEL_TOKEN }}
+          else
+            flutter build apk --release --target-platform android-arm,android-arm64 --no-tree-shake-icons
+          fi
+          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/ShareCLIP-Android-${{ steps.get_version.outputs.VERSION }}.apk
+
+      - name: Upload Android Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-android
+          path: android/build/app/outputs/flutter-apk/ShareCLIP-Android-*.apk
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 3: Build Windows PC Installer (.exe)
+  # ─────────────────────────────────────────────────────────────
+  build-windows:
+    name: 💻 Build Windows Desktop (.exe)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: cp_clip/package-lock.json
+
+      - name: Build Windows Client
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_MIXPANEL_TOKEN: ${{ secrets.MIXPANEL_TOKEN }}
+        run: |
+          cd cp_clip
+          npm ci
+          npm run build
+          npx electron-builder --win
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: |
+            cp_clip/dist_electron/*.exe
+            cp_clip/dist_electron/*.blockmap
+            cp_clip/dist_electron/latest.yml
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 4: Build macOS Desktop (.dmg & .zip)
+  # ─────────────────────────────────────────────────────────────
+  build-macos:
+    name: 🍎 Build macOS Desktop (.dmg / .zip)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: cp_clip/package-lock.json
+
+      - name: Build macOS Client
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_MIXPANEL_TOKEN: ${{ secrets.MIXPANEL_TOKEN }}
+        run: |
+          cd cp_clip
+          npm ci
+          npm run build
+          npx electron-builder --mac
+
+      - name: Upload macOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: |
+            cp_clip/dist_electron/*.dmg
+            cp_clip/dist_electron/*.zip
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 5: Build Linux Desktop (.AppImage & .deb)
+  # ─────────────────────────────────────────────────────────────
+  build-linux:
+    name: 🐧 Build Linux Desktop (.AppImage / .deb)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 libarchive-tools rpm
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: cp_clip/package-lock.json
+
+      - name: Build Linux Client
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_MIXPANEL_TOKEN: ${{ secrets.MIXPANEL_TOKEN }}
+        run: |
+          cd cp_clip
+          npm ci
+          npm run build
+          npx electron-builder --linux
+
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: |
+            cp_clip/dist_electron/*.AppImage
+            cp_clip/dist_electron/*.deb
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 6: Aggregate All Artifacts and Publish GitHub Release
+  # ─────────────────────────────────────────────────────────────
+  publish-release:
+    name: 🚀 Publish GitHub Release
+    needs: [build-and-deploy-web, build-android, build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Determine Tag Name
+        id: tag_info
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            INPUT_VER="${{ github.event.inputs.version }}"
+            if [[ $INPUT_VER != v* ]]; then
+              FINAL_TAG="v$INPUT_VER"
+            else
+              FINAL_TAG="$INPUT_VER"
+            fi
+          else
+            FINAL_TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "RELEASE_TAG=$FINAL_TAG" >> $GITHUB_OUTPUT
+          echo "Release tag: $FINAL_TAG"
+
+      - name: Download All Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-dist-artifacts
+
+      - name: Prepare Release Directory
+        run: |
+          mkdir -p release-files
+          find all-dist-artifacts -type f -exec cp {} release-files/ \;
+          echo "==== Collected Release Files ===="
+          ls -lh release-files
+
+      - name: Read Release Notes
+        id: release_notes
+        run: |
+          if [ -f "auto_deploy/release_notes.md" ]; then
+            echo "NOTES_FILE=auto_deploy/release_notes.md" >> $GITHUB_OUTPUT
+          else
+            echo "NOTES_FILE=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_info.outputs.RELEASE_TAG }}
+          name: ShareCLIP ${{ steps.tag_info.outputs.RELEASE_TAG }}
+          body_path: ${{ steps.release_notes.outputs.NOTES_FILE }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: release-files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

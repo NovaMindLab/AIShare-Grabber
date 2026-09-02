@@ -1,90 +1,80 @@
-# 🚀 ShareCLIP Automated Deployment Guide
+# 🚀 ShareCLIP 双轨全平台自动发布体系 (Dual-Track Multi-Platform Release Guide)
 
-This documentation describes the automatic deployment pipeline configured for the **ShareCLIP** companion system. All build artifacts (Electron Windows App, Android APK, and the web portal homepage) can be automatically compiled and published to GitHub.
-
----
-
-## 📂 Deployment Assets
-
-All deployment scripts and configurations are located in the [auto_deploy/](file:///d:/AI_serach_image/image_clip_android/auto_deploy/) directory:
-1.  **[deploy.ps1](file:///d:/AI_serach_image/image_clip_android/auto_deploy/deploy.ps1)**: A PowerShell script for local Windows build automation. It compiles all three components and pushes releases directly using the GitHub CLI.
-2.  **[github-actions.yml](file:///d:/AI_serach_image/image_clip_android/auto_deploy/github-actions.yml)**: A template GitHub Actions workflow to run builds in a secure cloud runner upon tagging version releases.
+本文档详细说明 **ShareCLIP** 的全平台自动化编译、打包与发布体系。系统同时原生支持 **「本地极速发版」** 与 **「GitHub Actions 云端并行发版」** 两套发版模式，支持生成 **Windows (`.exe`)**、**macOS (`.dmg`/`.zip`)**、**Linux (`.AppImage`/`.deb`)**、**Android Universal APK (`.apk`)** 以及 **Web 官方门户** 的全套产物。
 
 ---
 
-## 🛠️ Local Deploy Script (PowerShell)
+## 🗺️ 双轨发版模式架构
 
-### Prerequisites
-Before running the local deployment script, ensure you have installed and configured the following dependencies on your Windows machine:
-1.  **Git & GitHub CLI (`gh`)**: Install GitHub CLI and authenticate:
-    ```powershell
-    gh auth login
-    ```
-2.  **Flutter SDK**: The command `flutter` must be accessible in your system path.
-3.  **Node.js (v18+) & NPM**: Required for building the web frontend and Electron desktop app.
+```mermaid
+graph TD
+    subgraph 模式一：本地发版模式 (Local Mode)
+        L1[本地终端执行] --> L2[.\auto_deploy\deploy.ps1]
+        L2 --> L3[本地编译 Web + Windows EXE + Android APK]
+        L3 --> L4[本地通过 gh cli 直传 GitHub Releases]
+    end
 
-### How to Run (Gitee & GitHub Coexistence Setup)
-If your primary codebase remote `origin` is pointing to **Gitee (码云)**, configure GitHub as a secondary remote named `github` to avoid conflicts:
-
-```bash
-# 1. Add GitHub as a secondary remote named "github"
-git remote add github https://github.com/NovaMindLab/AIShare-Grabber.git
-
-# 2. Push your main branch code to GitHub
-git push -u github master:main
+    subgraph 模式二：GitHub Actions 云端发版模式 (Cloud CI/CD Mode - 推荐)
+        C1[触发: git push tag 或 .\auto_deploy\deploy.ps1 -Cloud 或 网页一键点击] --> C2[.github/workflows/release.yml]
+        C2 --> J1[Ubuntu: Web 构建 ➔ GitHub Pages 部署]
+        C2 --> J2[Ubuntu: Android Universal APK 高速编译]
+        C2 --> J3[Windows: PC NSIS EXE 打包 + 差分 Blockmap]
+        C2 --> J4[macOS: 苹果 Universal DMG + ZIP 打包]
+        C2 --> J5[Ubuntu: Linux AppImage + DEB 打包]
+        J1 & J2 & J3 & J4 & J5 --> J6[自动聚合全部产物并发布 GitHub Release]
+    end
 ```
 
-Then, run the PowerShell script to build and deploy your app and web assets directly to GitHub:
+---
 
+## 🛠️ 模式一：本地离线编译发布 (Local Mode)
+
+适合私有调试、断网开发或需快速生成本地测试包的场景。
+
+### 运行方式：
 ```powershell
-# Execute the release script (replace tag with your version)
-.\auto_deploy\deploy.ps1 -Tag "v1.0.1" -Repo "NovaMindLab/AIShare-Grabber"
+# 1. 自动读取当前版本号并在本地完成全部编译与直传
+.\auto_deploy\deploy.ps1
+
+# 2. 或者显式指定发布标签
+.\auto_deploy\deploy.ps1 -Tag "v2.1.10"
 ```
 
-### Automation Workflow
-When executed, the script automatically completes the following tasks:
-1.  **Web Portal Build**: Generates static web pages inside `cp_clip/dist/`.
-2.  **Electron Desktop Build**: Packages the portable Windows application executable inside `cp_clip/dist_electron/`.
-3.  **Android APK Build**: Compiles the release package (`app-release.apk`) inside `android/build/app/outputs/flutter-apk/`.
-4.  **GitHub Pages Deploy**: Pushes the static web folder directly to your repo's `gh-pages` branch.
-5.  **GitHub Release**: Creates a new release under the specified tag and uploads both the PC `.exe` binary and the mobile `.apk` file as release assets.
+---
+
+## ☁️ 模式二：GitHub Actions 云端全自动发版 (Cloud Mode)
+
+**推荐主力模式**：本地 **0 算力占用**，免除本地几百兆上传带宽限制，5 个平台**云端并发编译**，约 2~3 分钟全平台产物出包完毕。
+
+### 触发方式 1：本地 PowerShell 一行命令触发
+```powershell
+# 使用 -Cloud 开关，脚本将自动同步版本号、推送到远程仓库并触发云端全平台构建
+.\auto_deploy\deploy.ps1 -Cloud
+
+# 或指定版本
+.\auto_deploy\deploy.ps1 -Tag "v2.1.10" -Cloud
+```
+
+### 触发方式 2：标准 Git Tag 推送
+```bash
+# 任何地方推送 tag 即可自动激活云端全平台编译
+git tag v2.1.10
+git push github v2.1.10
+```
+
+### 触发方式 3：GitHub 网页端 0 门槛手动运行
+1. 打开 GitHub 仓库，进入 **Actions** 标签页；
+2. 在左侧选择 **🚀 ShareCLIP Multi-Platform Cloud Release**；
+3. 点击 **Run workflow**，输入目标版本号（如 `2.1.10`），点击绿色按钮即可。
 
 ---
 
-## ☁️ Cloud CI/CD (GitHub Actions)
+## 📦 全平台产物清单 (Release Assets)
 
-To enable fully automated cloud-based releases:
-1.  Create a folder `.github/workflows/` at the root of your GitHub repository.
-2.  Copy [github-actions.yml](file:///d:/AI_serach_image/image_clip_android/auto_deploy/github-actions.yml) into that folder and rename it to `deploy.yml`.
-3.  Push the changes to GitHub (to your secondary remote):
-    ```bash
-    git add .github/workflows/deploy.yml
-    git commit -m "Add GitHub Actions deploy pipeline"
-    git push github master:main
-    ```
-4.  Go to your repository **Settings > Pages** on GitHub and set the source to **GitHub Actions** (to allow `actions/deploy-pages` to compile and publish the website automatically).
-5.  Tag a release commit locally and push the tag to GitHub:
-    ```bash
-    git tag v1.0.1
-    git push github v1.0.1
-    ```
-GitHub Actions will automatically spin up Windows and Linux virtual runners, compile the Android APK, package the Electron portable binary, deploy the homepage to GitHub Pages, and publish them as a release bundle!
-
----
-
-## 📋 Release Changelog
-
-| Version | Tag     | GitHub Release Link | Highlights |
-|---------|---------|---------------------|------------|
-| v1.0.1  | v1.0.1  | [v1.0.1](https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v1.0.1) | Added 20-language i18n support for PC EXE, Android APK, and official web portal |
-| v1.0.0  | v1.0.0  | [v1.0.0](https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v1.0.0) | Initial release — Android ↔ PC BLE/WebRTC sync, MobileCLIP AI image search |
-
-> 💡 **Tip**: The official website is live at [https://NovaMindLab.github.io/AIShare-Grabber/](https://NovaMindLab.github.io/AIShare-Grabber/)
-
----
-
-## 🔗 Related Pages
-
-- [i18n / Multi-language Support](file:///d:/AI_serach_image/image_clip_android/wiki/i18n.md)
-- [Android Client Overview](file:///d:/AI_serach_image/image_clip_android/wiki/android/README.md)
-- [PC Desktop Client Overview](file:///d:/AI_serach_image/image_clip_android/wiki/pc/README.md)
+| 平台 / 操作系统 | 生成文件命名规范 | 说明 |
+| :--- | :--- | :--- |
+| 📱 **Android** | `ShareCLIP-Android-{version}.apk` | `arm64-v8a` + `armeabi-v7a` 通用双架构安装包 |
+| 💻 **Windows** | `ShareCLIP-Setup-{version}.exe`<br>`ShareCLIP-Setup-{version}.exe.blockmap`<br>`latest.yml` | 64 位 NSIS 安装包与增量差分升级元数据 |
+| 🍎 **macOS** | `ShareCLIP-Mac-{version}-x64.dmg`<br>`ShareCLIP-Mac-{version}-arm64.dmg`<br>`ShareCLIP-Mac-{version}-arm64.zip` | 兼容 Intel 与 Apple Silicon (M1/M2/M3/M4) |
+| 🐧 **Linux** | `ShareCLIP-Linux-{version}-x64.AppImage`<br>`ShareCLIP-Linux-{version}-x64.deb` | 支持 Ubuntu/Debian 及通用 Linux 发行版 |
+| 🌐 **Web** | `https://NovaMindLab.github.io/AIShare-Grabber/` | 官方在线版与 WebShare 灵动岛画廊 |

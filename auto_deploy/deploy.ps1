@@ -9,8 +9,12 @@
 param (
     [string]$Tag = "",
     [string]$Repo = "NovaMindLab/AIShare-Grabber",
-    [switch]$AutoIncrement = $true
+    [switch]$AutoIncrement = $false,
+    [switch]$Cloud = $false,
+    [switch]$Online = $false
 )
+
+$IsCloudMode = $Cloud -or $Online
 
 $PkgJsonPath = "cp_clip/package.json"
 $WebPkgPath = "web/package.json"
@@ -18,21 +22,25 @@ $WebSharePkgPath = "webshare/package.json"
 $PubspecPath = "android/pubspec.yaml"
 
 if ([string]::IsNullOrEmpty($Tag)) {
-    if ($AutoIncrement -and (Test-Path $PkgJsonPath)) {
+    if (Test-Path $PkgJsonPath) {
         # Read current version from package.json
         $CurrentVersion = (Get-Content $PkgJsonPath -Raw | ConvertFrom-Json).version
-        # Parse major.minor.patch
-        if ($CurrentVersion -match "^(\d+)\.(\d+)\.(\d+)$") {
-            $Major = [int]$Matches[1]
-            $Minor = [int]$Matches[2]
-            $Patch = [int]$Matches[3]
-            $NewPatch = $Patch + 1
-            $NewVersion = "$Major.$Minor.$NewPatch"
-            $Tag = "v$NewVersion"
-            Write-Host "Auto-incrementing version: $CurrentVersion -> $NewVersion" -ForegroundColor Green
+        if ($AutoIncrement) {
+            # Parse major.minor.patch
+            if ($CurrentVersion -match "^(\d+)\.(\d+)\.(\d+)$") {
+                $Major = [int]$Matches[1]
+                $Minor = [int]$Matches[2]
+                $Patch = [int]$Matches[3]
+                $NewPatch = $Patch + 1
+                $NewVersion = "$Major.$Minor.$NewPatch"
+                $Tag = "v$NewVersion"
+                Write-Host "Auto-incrementing version: $CurrentVersion -> $NewVersion" -ForegroundColor Green
+            } else {
+                $Tag = "v$CurrentVersion"
+            }
         } else {
-            $Tag = "v" + (Get-Date -Format "yyyy.MM.dd-HHmm")
-            Write-Host "Current version format not matched. Generating date-based tag: $Tag" -ForegroundColor Yellow
+            $Tag = "v$CurrentVersion"
+            Write-Host "Using current version tag: $Tag" -ForegroundColor Green
         }
     } else {
         $Tag = "v" + (Get-Date -Format "yyyy.MM.dd-HHmm")
@@ -65,15 +73,14 @@ if (-not (Get-Command "gh" -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "🚀 Starting Auto-Deployment for ShareCLIP ($Tag)" -ForegroundColor Cyan
+if ($IsCloudMode) {
+    Write-Host "☁️ Starting Cloud Release Pipeline for ShareCLIP ($Tag)" -ForegroundColor Cyan
+} else {
+    Write-Host "🚀 Starting Local Auto-Deployment for ShareCLIP ($Tag)" -ForegroundColor Cyan
+}
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "Using Flutter path: $FlutterCmd" -ForegroundColor Gray
 Write-Host "Using GitHub CLI path: $GhCmd" -ForegroundColor Gray
-
-Write-Host "Closing any running instances of ShareCLIP/Electron to avoid file locks..." -ForegroundColor Yellow
-Stop-Process -Name "ShareCLIP" -Force -ErrorAction SilentlyContinue
-Stop-Process -Name "electron" -Force -ErrorAction SilentlyContinue
-Start-Sleep -Seconds 2
 
 # 0. Sync version number across all platforms
 $VersionOnly = $Tag
@@ -130,12 +137,60 @@ if (Get-Command "git" -ErrorAction SilentlyContinue) {
     if ($Diff) {
         Write-Host "Committing updates to Git..." -ForegroundColor Yellow
         git add .
-        git commit -m "feat: release $VersionOnly - Two-Stage Face Clustering, Streaming Video Posters & Cyber Hi-Fi Music Station"
+        git commit -m "chore: bump version to $VersionOnly & prepare release"
         Write-Host "Pushing updates to Gitee (origin) and GitHub (github)..." -ForegroundColor Yellow
         git push origin master
         git push github master:main
     }
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ☁️ CLOUD CI/CD RELEASE MODE (0 Local CPU, Windows/macOS/Linux/Android on GitHub)
+# ─────────────────────────────────────────────────────────────────────────────
+if ($IsCloudMode) {
+    Write-Host "`n☁️ Step: Triggering Multi-Platform Cloud Release on GitHub Actions..." -ForegroundColor Green
+    
+    # Check if tag already exists on git
+    $ExistingTags = git tag -l $Tag
+    if ($ExistingTags) {
+        Write-Host "Tag $Tag already exists locally. Pushing tag to GitHub..." -ForegroundColor Yellow
+    } else {
+        Write-Host "Creating git tag $Tag..." -ForegroundColor Yellow
+        git tag -a $Tag -m "Release $Tag"
+    }
+    
+    Write-Host "Pushing tag $Tag to GitHub..." -ForegroundColor Yellow
+    git push github $Tag --force
+    
+    # Also trigger workflow directly via gh cli if available
+    if (Get-Command $GhCmd -ErrorAction SilentlyContinue) {
+        Write-Host "Dispatching GitHub Actions workflow directly via GitHub CLI..." -ForegroundColor Cyan
+        & $GhCmd workflow run release.yml -f version=$VersionOnly --repo $Repo 2>$null
+    }
+    
+    Write-Host "`n==========================================================================" -ForegroundColor Green
+    Write-Host "🎉 Cloud Release Pipeline Successfully Triggered!" -ForegroundColor Yellow
+    Write-Host "==========================================================================" -ForegroundColor Green
+    Write-Host "✨ GitHub Actions is now building in parallel on cloud runners:" -ForegroundColor Cyan
+    Write-Host "   - 📱 Android Universal Release APK (Linux runner)" -ForegroundColor Gray
+    Write-Host "   - 💻 Windows PC Setup .exe + Differential Blockmaps (Windows runner)" -ForegroundColor Gray
+    Write-Host "   - 🍎 macOS Universal / x64 / Apple Silicon DMG + ZIP (macOS runner)" -ForegroundColor Gray
+    Write-Host "   - 🐧 Linux AppImage + DEB (Ubuntu runner)" -ForegroundColor Gray
+    Write-Host "   - 🌐 Web Portal & WebShare (GitHub Pages)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "👉 View real-time build progress at: https://github.com/$Repo/actions" -ForegroundColor Yellow
+    Write-Host "👉 Release will appear at: https://github.com/$Repo/releases/tag/$Tag" -ForegroundColor Yellow
+    Write-Host "==========================================================================" -ForegroundColor Green
+    exit 0
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 💻 LOCAL RELEASE MODE (Compiles on local machine)
+# ─────────────────────────────────────────────────────────────────────────────
+Write-Host "Closing any running instances of ShareCLIP/Electron to avoid file locks..." -ForegroundColor Yellow
+Stop-Process -Name "ShareCLIP" -Force -ErrorAction SilentlyContinue
+Stop-Process -Name "electron" -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
 
 # 1. Clean and build Web site (web/dist) & WebShare (webshare/dist)
 Write-Host "`n📁 Step 1: Building Static Website and WebShare App..." -ForegroundColor Green
