@@ -961,8 +961,8 @@ class SyncViewModel extends ChangeNotifier {
                   return;
                 }
 
-                // Process and stream video catalog in batches of 15 immediately to PC
-                const int batchSize = 15;
+                // Process and stream video catalog in batches of 2 to ensure MTU safety (< 50KB per packet, preventing SCTP channel death)
+                const int batchSize = 2;
                 final int totalChunks = (localVideos.length / batchSize).ceil();
 
                 for (int chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
