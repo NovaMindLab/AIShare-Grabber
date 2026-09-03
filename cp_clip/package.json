@@ -1,9 +1,10 @@
 {
   "name": "shareclip",
   "private": true,
-  "version": "2.1.15",
+  "version": "2.1.16",
   "description": "ShareCLIP PC Client",
   "author": "ShareCLIP Team <support@shareclip.com>",
+  "homepage": "https://novamindlab.github.io/AIShare-Grabber/",
   "type": "module",
   "main": "main.cjs",
   "scripts": {
