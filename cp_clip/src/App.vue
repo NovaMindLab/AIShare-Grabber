@@ -5424,6 +5424,7 @@ async function submitConnectionCode() {
 function setupDataChannel(channel) {
   dataChannel = channel;
   channel.binaryType = 'arraybuffer';
+  logSyncEvent("[DataChannel] setupDataChannel invoked, channel readyState: " + channel.readyState);
   
   const handleOpen = () => {
     if (syncStatus.value === 'connected') return;
@@ -5464,6 +5465,13 @@ function setupDataChannel(channel) {
     handleOpen();
   } else {
     channel.onopen = handleOpen;
+    // Safety fallback
+    setTimeout(() => {
+      if (channel.readyState === 'open' && syncStatus.value !== 'connected') {
+        logSyncEvent("[DataChannel] Fallback: channel is open but onopen didn't fire");
+        handleOpen();
+      }
+    }, 2000);
   }
   
   channel.onclose = () => {
@@ -6067,11 +6075,18 @@ onMounted(() => {
       };
 
       peerConnection.ondatachannel = (event) => {
-        if (event.channel.label === 'photo_sync') {
-          logSyncEvent("📡 监听到直连数据通道创建请求");
+        logSyncEvent("[UDP] 监听到直连数据通道创建请求: " + event.channel.label);
+            if (event.channel.label === 'photo_sync') {
           dataChannel = event.channel;
           setupDataChannel(dataChannel);
         }
+
+          peerConnection.onconnectionstatechange = () => {
+            logSyncEvent("[WebRTC] 连接状态: " + peerConnection.connectionState);
+          };
+          peerConnection.oniceconnectionstatechange = () => {
+            logSyncEvent("[WebRTC] ICE状态: " + peerConnection.iceConnectionState);
+          };
       };
       
       try {
@@ -6397,10 +6412,18 @@ onMounted(() => {
         };
 
         peerConnection.ondatachannel = (event) => {
-          if (event.channel.label === 'photo_sync') {
+          logSyncEvent("[UDP] 监听到直连数据通道创建请求: " + event.channel.label);
+            if (event.channel.label === 'photo_sync') {
             dataChannel = event.channel;
             setupDataChannel(dataChannel);
           }
+
+          peerConnection.onconnectionstatechange = () => {
+            logSyncEvent("[WebRTC] 连接状态: " + peerConnection.connectionState);
+          };
+          peerConnection.oniceconnectionstatechange = () => {
+            logSyncEvent("[WebRTC] ICE状态: " + peerConnection.iceConnectionState);
+          };
         };
       } else {
         logSyncEvent(`❌ [UDP] 来自 ${ip} 的连接请求已被拒绝。`);
@@ -6444,10 +6467,18 @@ onMounted(() => {
             }
           };
           peerConnection.ondatachannel = (event) => {
+            logSyncEvent("[UDP] 监听到直连数据通道创建请求: " + event.channel.label);
             if (event.channel.label === 'photo_sync') {
               dataChannel = event.channel;
               setupDataChannel(dataChannel);
             }
+
+          peerConnection.onconnectionstatechange = () => {
+            logSyncEvent("[WebRTC] 连接状态: " + peerConnection.connectionState);
+          };
+          peerConnection.oniceconnectionstatechange = () => {
+            logSyncEvent("[WebRTC] ICE状态: " + peerConnection.iceConnectionState);
+          };
           };
 
           try {
@@ -6547,10 +6578,18 @@ onMounted(() => {
               }
             };
             peerConnection.ondatachannel = (event) => {
-              if (event.channel.label === 'photo_sync') {
+              logSyncEvent("[UDP] 监听到直连数据通道创建请求: " + event.channel.label);
+            if (event.channel.label === 'photo_sync') {
                 dataChannel = event.channel;
                 setupDataChannel(dataChannel);
               }
+
+          peerConnection.onconnectionstatechange = () => {
+            logSyncEvent("[WebRTC] 连接状态: " + peerConnection.connectionState);
+          };
+          peerConnection.oniceconnectionstatechange = () => {
+            logSyncEvent("[WebRTC] ICE状态: " + peerConnection.iceConnectionState);
+          };
             };
 
             await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
@@ -8890,3 +8929,6 @@ function getMockClassification(url) {
 .leaflet-tile-pane {
   filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
 }
+
+
+

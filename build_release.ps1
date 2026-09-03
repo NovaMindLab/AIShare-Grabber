@@ -188,7 +188,7 @@ if ($Publish) {
         }
     }
 
-    $releaseNotes = "### ShareCLIP $tag Release`n`n- 🚀 **Face Recognition Speedup**: 3-5x faster face detection & feature extraction via sliding window queue, batched SQLite transactions, Sharp fastShrink, and zero hard sleep.`n- ⚡ **AI Classification Pipeline**: Optimized multithreaded inference pipeline with real-time live batch UI updates.`n- 📦 **Dual-Platform Builds**: Pre-built Android Universal APK and Windows PC Installer."
+    $releaseNotes = "### ShareCLIP $tag Release`n`n- 📱 **Mobile AI Category & Vector Sync**: Added offline AI categorization and instant cosine vector matching module on Android mobile client with on-demand sync from PC.`n- 📡 **WebRTC Connection Stability**: Resolved WebRTC signaling race conditions and added DataChannel fallback recovery for robust LAN sync.`n- 🚀 **Face Recognition Speedup**: High-performance face detection & feature extraction.`n- 📦 **Dual-Platform Builds**: Pre-built Android Universal APK and Windows PC Installer."
     
     Write-Host "Creating GitHub Release with assets:" -ForegroundColor Gray
     foreach ($a in $assets) {

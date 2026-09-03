@@ -15,6 +15,7 @@ import '../services/ble_signaling_client.dart';
 import '../services/http_signaling_client.dart';
 import '../services/webrtc_sync_engine.dart';
 import '../services/photo_streamer.dart';
+import '../services/ai_classification_service.dart';
 import 'package:wifi_iot/wifi_iot.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -41,6 +42,7 @@ enum TransferStatus {
 }
 
 class SyncViewModel extends ChangeNotifier {
+  static const String appVersion = '3.0.5';
   List<Map<String, dynamic>> discoveredPCs = [];
   Timer? _discoveryTimer;
   String? _mobileName;
@@ -76,7 +78,7 @@ class SyncViewModel extends ChangeNotifier {
   final Set<String> pcSyncedThumbnailIds = {};
   bool _isCleanedUp = false;
   bool _remoteAnswerApplied = false;
-  final List<Uint8List> _chunkedBufferList = [];
+  final Map<int, List<Uint8List>> _chunkedBuffers = {};
   final Map<String, List<String?>> _udpSdpChunkBuffers = {};
 
   bool isThumbnailSyncing = false;
@@ -101,12 +103,16 @@ class SyncViewModel extends ChangeNotifier {
   String lastAudioSyncDate = '';
   bool isAudioSyncPaused = false;
 
+  final AiClassificationService aiService = AiClassificationService();
+  bool isAiVectorSyncing = false;
+
   int _fileIdCounter = 100;
   Timer? _heartbeatTimer;
   DateTime _lastHeartbeatReceived = DateTime.now();
 
   SyncViewModel() {
     initDeviceUuid();
+    aiService.addListener(notifyListeners);
     _bleClient = BleSignalingClient();
     
     // Bind BLE client events
@@ -638,17 +644,18 @@ class SyncViewModel extends ChangeNotifier {
             final totalChunks = byteData.getInt32(12, Endian.big);
             final chunkData = binaryData.sublist(16);
 
-            _chunkedBufferList.add(chunkData);
+            final buffer = _chunkedBuffers.putIfAbsent(realPacketType, () => []);
+            buffer.add(chunkData);
 
             if (chunkIndex == totalChunks - 1) {
-              final totalBytesCount = _chunkedBufferList.fold<int>(0, (sum, list) => sum + list.length);
+              final totalBytesCount = buffer.fold<int>(0, (sum, list) => sum + list.length);
               final fullBytes = Uint8List(totalBytesCount);
               int currOffset = 0;
-              for (var chunk in _chunkedBufferList) {
+              for (var chunk in buffer) {
                 fullBytes.setAll(currOffset, chunk);
                 currOffset += chunk.length;
               }
-              _chunkedBufferList.clear();
+              _chunkedBuffers.remove(realPacketType);
 
               if (realPacketType == -4) {
                 final payloadStr = utf8.decode(fullBytes);
@@ -719,7 +726,39 @@ class SyncViewModel extends ChangeNotifier {
                 }
                 isThumbnailSyncing = false;
                 syncThumbnailsToAI();
+              } else if (realPacketType == -30) {
+                // AI Vector Sync Packet (Chunked)
+                try {
+                  final payloadStr = utf8.decode(fullBytes);
+                  final Map<String, dynamic> data = jsonDecode(payloadStr);
+                  await aiService.importSyncPayload(data);
+                  isAiVectorSyncing = false;
+                  logMessage("🎉 成功同步 PC AI 矢量数据: ${aiService.categoryCount} 个分类, ${aiService.syncedPhotoCount} 张照片特征向量!");
+                  notifyListeners();
+                } catch (e) {
+                  logMessage("Error parsing chunked AI vector sync payload: $e");
+                  isAiVectorSyncing = false;
+                  notifyListeners();
+                }
               }
+            }
+            return;
+          }
+
+          if (fileId == -30) {
+            // AI Vector Sync Packet (Single packet)
+            try {
+              final payloadSize = byteData.getInt32(12, Endian.big);
+              final payloadStr = utf8.decode(binaryData.sublist(16, 16 + payloadSize));
+              final Map<String, dynamic> data = jsonDecode(payloadStr);
+              await aiService.importSyncPayload(data);
+              isAiVectorSyncing = false;
+              logMessage("🎉 成功同步 PC AI 矢量数据: ${aiService.categoryCount} 个分类, ${aiService.syncedPhotoCount} 张照片特征向量!");
+              notifyListeners();
+            } catch (e) {
+              logMessage("Error parsing AI vector sync payload: $e");
+              isAiVectorSyncing = false;
+              notifyListeners();
             }
             return;
           }
@@ -2579,6 +2618,32 @@ class SyncViewModel extends ChangeNotifier {
     startScanning();
   }
 
+  /// Request on-demand AI vector and classification sync from PC (packet -29)
+  Future<void> syncAiVectorsFromPc() async {
+    if (appState != AppState.connected || _syncEngine == null) {
+      logMessage("未连接到电脑，无法同步 AI 矢量数据");
+      return;
+    }
+
+    try {
+      isAiVectorSyncing = true;
+      notifyListeners();
+      logMessage("正在向 PC 发送 AI 矢量数据同步请求 (-29)...");
+
+      final header = ByteData(16);
+      header.setInt32(0, -29, Endian.big);
+      header.setInt32(4, 0, Endian.big);
+      header.setInt32(8, 0, Endian.big);
+      header.setInt32(12, 0, Endian.big);
+
+      await _syncEngine!.sendBinary(header.buffer.asUint8List());
+    } catch (e) {
+      isAiVectorSyncing = false;
+      logMessage("请求 AI 矢量数据失败: $e");
+      notifyListeners();
+    }
+  }
+
   void cleanup() {
     _setKeepScreenOn(false);
     _heartbeatTimer?.cancel();
@@ -2598,6 +2663,7 @@ class SyncViewModel extends ChangeNotifier {
     isThumbnailSyncing = false;
     isAlbumSyncing = false;
     isAlbumSyncPaused = false;
+    _chunkedBuffers.clear();
     localImages.clear();
     localVideos.clear();
     selectedImages.clear();

@@ -114,6 +114,7 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.removeAllListeners('single-photo-predictions-updated');
     ipcRenderer.on('single-photo-predictions-updated', (event, data) => callback(data));
   },
+  getAiVectorSyncPayload: () => ipcRenderer.invoke('get-ai-vector-sync-payload'),
 
   // Similar images analysis
   getSimilarImagesGroups: (imageList, threshold) => ipcRenderer.invoke('get-similar-images-groups', { imageList, threshold }),

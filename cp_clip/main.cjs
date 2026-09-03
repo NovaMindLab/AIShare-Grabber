@@ -392,6 +392,10 @@ function createWindow() {
 
   mainWindow.setMenu(null);
 
+  mainWindow.webContents.on('console-message', (event, level, message) => {
+    writeLog('RENDERER', message);
+  });
+
   // Smoothly display window when first paint is ready
   mainWindow.once('ready-to-show', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -1520,6 +1524,56 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
   });
 
   return updatedRows;
+});
+
+ipcMain.handle('get-ai-vector-sync-payload', async () => {
+  if (!activeDeviceDb) return { categories: [], photos: [] };
+
+  // 1. Categories and their 512-d base embeddings
+  const categoriesPayload = [];
+  if (textEmbeddings && typeof textEmbeddings === 'object') {
+    for (const [name, emb] of Object.entries(textEmbeddings)) {
+      if (Array.isArray(emb) && emb.length > 0) {
+        const f32 = new Float32Array(emb);
+        const b64 = Buffer.from(f32.buffer, f32.byteOffset, f32.byteLength).toString('base64');
+        categoriesPayload.push({ name, vector: b64 });
+      }
+    }
+  }
+
+  // 2. Query all photos that have predictions or embeddings
+  const photos = await new Promise((resolve) => {
+    activeDeviceDb.all(
+      `SELECT id, predictions, embedding FROM resources WHERE (type = 'images' OR type = 'thumbnail' OR type = 'album_photo') AND (predictions IS NOT NULL OR embedding IS NOT NULL)`,
+      (err, rows) => {
+        if (err || !rows) return resolve([]);
+        const list = [];
+        for (const row of rows) {
+          let preds = [];
+          if (row.predictions) {
+            try { preds = JSON.parse(row.predictions); } catch (_) {}
+          }
+          let vectorB64 = null;
+          // Only include raw vector if photo has no pre-computed predictions
+          if (preds.length === 0 && row.embedding && Buffer.isBuffer(row.embedding)) {
+            vectorB64 = row.embedding.toString('base64');
+          }
+          list.push({
+            id: row.id,
+            predictions: preds,
+            vector: vectorB64
+          });
+        }
+        resolve(list);
+      }
+    );
+  });
+
+  return {
+    categories: categoriesPayload,
+    photos: photos,
+    timestamp: Date.now()
+  };
 });
 
 function cosineSimilarity(vecA, vecB) {

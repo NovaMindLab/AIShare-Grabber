@@ -6,6 +6,7 @@ import '../viewmodels/sync_viewmodel.dart';
 import '../main.dart';
 import 'tabs/link_tab.dart';
 import 'tabs/media_tab.dart';
+import 'tabs/ai_tab.dart';
 import 'tabs/settings_tab.dart';
 
 class HomeView extends StatefulWidget {
@@ -22,8 +23,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   late Animation<double> _pulseAnimation;
 
   final List<Widget> _tabs = const [
-    LinkTab(),
+    SizedBox.shrink(), // Index 0 displays _buildHomeTab
     MediaTab(),
+    AiTab(),
     SettingsTab(),
   ];
 
@@ -76,6 +78,11 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             icon: const Icon(Icons.photo_library_outlined, color: Color(0xFF94A3B8)),
             selectedIcon: const Icon(Icons.photo_library, color: Color(0xFFC084FC)),
             label: t.get('navMedia'),
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.auto_awesome_outlined, color: Color(0xFF94A3B8)),
+            selectedIcon: const Icon(Icons.auto_awesome, color: Color(0xFFC084FC)),
+            label: t.get('navAi'),
           ),
           NavigationDestination(
             icon: const Icon(Icons.settings_outlined, color: Color(0xFF94A3B8)),

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../services/localization_service.dart';
 import '../../services/theme_service.dart';
 import '../../themes/app_theme.dart';
-import '../../main.dart';
+import '../../viewmodels/sync_viewmodel.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({Key? key}) : super(key: key);
@@ -266,7 +266,7 @@ class SettingsTab extends StatelessWidget {
           
           Center(
             child: Text(
-              'ShareCLIP v$appVersion',
+              'ShareCLIP v${SyncViewModel.appVersion}',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                 fontSize: 12,
