@@ -1,0 +1,59 @@
+name: Deploy Website & WebShare to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy-web:
+    name: Build and Deploy Web Portal
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            web/package-lock.json
+            webshare/package-lock.json
+
+      - name: Build Official Website
+        run: |
+          cd web
+          npm ci
+          npm run build
+
+      - name: Build WebShare
+        run: |
+          cd webshare
+          npm ci
+          npm run build
+
+      - name: Assemble Static Site
+        run: |
+          mkdir -p site_dist
+          cp -r web/dist/* site_dist/
+          mkdir -p site_dist/webshare
+          cp -r webshare/dist/* site_dist/webshare/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token:${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site_dist
+          publish_branch: gh-pages
+          force_orphan: false
