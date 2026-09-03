@@ -1159,14 +1159,14 @@ ipcMain.handle('read-image-bytes', async (event, filePath) => {
   }
 });
 
-  async function computeEmbeddingInternal(imagePath) {
+async function computeEmbeddingInternal(imagePath, thumbPath = null) {
   if (imageEmbeddingsCache[imagePath]) {
     return imageEmbeddingsCache[imagePath];
   }
 
   // Offload computation to TaskManager pool
   try {
-    const result = await taskManager.computeClip(imagePath);
+    const result = await taskManager.computeClip(imagePath, thumbPath);
     const embedding = (result && result.embedding) ? result.embedding : result;
     imageEmbeddingsCache[imagePath] = embedding;
 
@@ -1176,9 +1176,9 @@ ipcMain.handle('read-image-bytes', async (event, filePath) => {
   }
 }
 
-async function classifyPhotoInternal(imagePath) {
+async function classifyPhotoInternal(imagePath, thumbPath = null) {
   try {
-    const imageEmbedding = await computeEmbeddingInternal(imagePath);
+    const imageEmbedding = await computeEmbeddingInternal(imagePath, thumbPath);
 
     if (!textEmbeddings || Object.keys(textEmbeddings).length === 0) {
       throw new Error("Text embeddings not loaded. Cannot perform classification.");
@@ -1449,8 +1449,19 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
       try {
         if (!fs.existsSync(row.path)) { done++; continue; }
 
+        let thumbPath = null;
+        if (row.type === 'thumbnail' || (row.name && row.name.startsWith('thumb_'))) {
+          thumbPath = row.path;
+        } else if (row.name) {
+          const thumbName = row.name.startsWith('album_') ? 'thumb_' + row.name.replace(/^album_/, '') : 'thumb_' + row.name;
+          const potentialThumb = path.join(app.getPath('userData'), 'thumbnail_sync', activeDeviceUuid || 'default', thumbName);
+          if (fs.existsSync(potentialThumb)) {
+            thumbPath = potentialThumb;
+          }
+        }
+
         const itemStartTime = Date.now();
-        const predictions = await classifyPhotoInternal(row.path);
+        const predictions = await classifyPhotoInternal(row.path, thumbPath);
         const itemLatency = Math.max(1, Date.now() - itemStartTime);
         lastSingleMs = itemLatency;
         totalSingleLatency += itemLatency;

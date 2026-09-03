@@ -136,17 +136,24 @@ class TaskManager {
 
     this.tier = 'Mid';
     this.maxInferenceWorkers = 2;
-    this.idleTimeoutMs = 10 * 60 * 1000;
+    this.idleTimeoutMs = 15 * 60 * 1000;
 
-    if (cpus <= 4 || memGB <= 8) {
+    if (cpus <= 2 || memGB <= 5.5) {
+      // Extreme low-end (<= 4GB RAM or <= 2 threads): conservative single worker to avoid page thrashing
       this.tier = 'Low';
       this.maxInferenceWorkers = 1;
       this.idleTimeoutMs = 3 * 60 * 1000;
-    } else if (cpus >= 8 && memGB > 16) {
+    } else if (cpus >= 8 && memGB > 15) {
+      // High tier (>= 8 threads and > 16GB RAM): 3-4 concurrent workers
       this.tier = 'High';
-      // Optimal 2-3 workers with 4-thread AVX2 vectorization yields highest throughput without L3 cache thrashing
-      this.maxInferenceWorkers = Math.min(3, Math.max(2, Math.floor(cpus / 6)));
+      this.maxInferenceWorkers = Math.min(4, Math.max(2, Math.floor(cpus / 4)));
       this.idleTimeoutMs = 30 * 60 * 1000;
+    } else {
+      // Mid tier (mainstream 6GB-15GB RAM, 4-8 threads, e.g. i5-6200U, i5-8250U 8GB):
+      // 2 sliding-window workers create a seamless decoding/inference pipeline without starving CPU
+      this.tier = 'Mid';
+      this.maxInferenceWorkers = 2;
+      this.idleTimeoutMs = 10 * 60 * 1000;
     }
     
     console.log(`[TaskManager] Hardware Sniffing Result - Tier: ${this.tier} (CPUs: ${cpus}, Mem: ${memGB.toFixed(1)}GB)`);
@@ -285,9 +292,9 @@ class TaskManager {
     );
   }
   
-  async computeClip(imagePath) {
+  async computeClip(imagePath, thumbPath = null) {
     if (!this.inferencePool) throw new Error("TaskManager not initialized");
-    const result = await this.inferencePool.executeTask({ type: 'compute_clip', imagePath });
+    const result = await this.inferencePool.executeTask({ type: 'compute_clip', imagePath, thumbPath });
     
     // Automatically populate SAB when computed
     if (result.embedding) {
