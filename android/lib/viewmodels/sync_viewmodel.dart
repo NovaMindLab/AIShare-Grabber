@@ -484,8 +484,17 @@ class SyncViewModel extends ChangeNotifier {
                   }
                 }
               } else if (data['type'] == 'ShareCLIP_Direct_Ice') {
-                 final cand = json.decode(data['candidate']);
-                 _syncEngine?.addRemoteIceCandidate(cand['sdpMid'], cand['sdpMLineIndex'], cand['candidate']);
+                 try {
+                   final cand = data['candidate'] is Map ? data['candidate'] : json.decode(data['candidate'].toString());
+                   final sdpMid = cand['sdpMid']?.toString();
+                   final sdpMLineIndex = cand['sdpMLineIndex'] is num ? (cand['sdpMLineIndex'] as num).toInt() : (cand['sdpMLineIndex'] != null ? int.tryParse(cand['sdpMLineIndex'].toString()) : null);
+                   final candidateStr = cand['candidate']?.toString();
+                   if (candidateStr != null && candidateStr.isNotEmpty) {
+                     _syncEngine?.addRemoteIceCandidate(sdpMid, sdpMLineIndex, candidateStr);
+                   }
+                 } catch (e) {
+                   debugPrint("[ViewModel] Parse direct ICE error: $e");
+                 }
               }
             } catch (_) {}
           }
@@ -658,6 +667,9 @@ class SyncViewModel extends ChangeNotifier {
               _chunkedBuffers.remove(realPacketType);
 
               if (realPacketType == -4) {
+                _handshakeAckTimer?.cancel();
+                _handshakeAckTimer = null;
+
                 final payloadStr = utf8.decode(fullBytes);
                 final Map<String, dynamic> data = jsonDecode(payloadStr);
                 final List<dynamic> syncedList = data['synced_ids'] ?? [];
@@ -674,7 +686,11 @@ class SyncViewModel extends ChangeNotifier {
                 }
 
                 lastAlbumSyncDate = data['last_album_sync_date'] ?? '';
-                logMessage("Handshake response received! PC has ${pcSyncedIds.length} files, ${pcSyncedThumbnailIds.length} thumbnails.");
+                logMessage("收到 PC 端握手确认！双向 WebRTC 通道已验证，进入传输控制台。");
+                
+                // Only enter connected screen when PC explicitly confirmed the handshake!
+                appState = AppState.connected;
+                _setKeepScreenOn(true);
                 notifyListeners();
               } else if (realPacketType == -15) {
                 try {
@@ -1454,18 +1470,39 @@ class SyncViewModel extends ChangeNotifier {
     } catch (_) {}
   }
 
+  Timer? _handshakeAckTimer;
+
+  void _startHandshakeAckTimer() {
+    _handshakeAckTimer?.cancel();
+    _handshakeAckTimer = Timer(const Duration(seconds: 15), () {
+      if (appState != AppState.connected) {
+        logMessage("⚠️ 握手确认超时 (15s)：PC 未能响应握手确认包。");
+        cleanup();
+        errorMsg = "与电脑通信握手超时，请重新扫码连接";
+        appState = AppState.failed;
+        notifyListeners();
+      }
+    });
+  }
+
   void _onDataChannelStateChanged() {
     final state = _syncEngine?.dataChannelState.value;
     logMessage("WebRTC DataChannel state: $state");
 
     if (state == RTCDataChannelState.RTCDataChannelOpen) {
-      appState = AppState.connected;
-      _setKeepScreenOn(true);
-      logMessage("WebRTC DataChannel is OPEN. Load sync album console.");
+      logMessage("WebRTC DataChannel 已开启，正在向 PC 发送身份握手，等待确认...");
       _photoStreamer = PhotoStreamer(syncEngine: _syncEngine!);
       _loadLocalGallery();
       _startHeartbeat();
       _sendHandshake();
+      _startHandshakeAckTimer();
+    } else if (state == RTCDataChannelState.RTCDataChannelClosed) {
+      if (appState == AppState.connected) {
+        logMessage("WebRTC DataChannel 已断开。");
+        cleanup();
+        appState = AppState.failed;
+        notifyListeners();
+      }
     }
   }
 
@@ -2646,6 +2683,8 @@ class SyncViewModel extends ChangeNotifier {
 
   void cleanup() {
     _setKeepScreenOn(false);
+    _handshakeAckTimer?.cancel();
+    _handshakeAckTimer = null;
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
     _discoveryTimer?.cancel();

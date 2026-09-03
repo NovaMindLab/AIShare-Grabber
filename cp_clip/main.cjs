@@ -3599,19 +3599,44 @@ ipcMain.handle('respond-to-connection-request', async (event, { ip, accept }) =>
   });
 });
 
-ipcMain.handle('send-udp-sdp', async (event, { ip, sdp, sdpType }) => {
-  if (!udpSocket) return false;
-  const payload = JSON.stringify({
-    type: 'ShareCLIP_Direct_Sdp',
-    sdp: sdp,
-    sdpType: sdpType
-  });
-  const message = Buffer.from(payload);
+ipcMain.handle('send-udp-sdp', async (event, { ip, sdp, sdpType, sessionId }) => {
+  if (!udpSocket || !sdp) return false;
+  const CHUNK_SIZE = 800;
+  const totalChunks = Math.ceil(sdp.length / CHUNK_SIZE);
+  const sid = sessionId || ('sdp_' + Date.now());
+
   return new Promise((resolve) => {
-    for (let i = 0; i < 3; i++) {
-      setTimeout(() => {
-        udpSocket.send(message, 0, message.length, 15185, ip, () => {});
-      }, i * 80);
+    if (totalChunks <= 1) {
+      const payload = JSON.stringify({
+        type: 'ShareCLIP_Direct_Sdp',
+        sdp: sdp,
+        sdpType: sdpType
+      });
+      const message = Buffer.from(payload);
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+          if (udpSocket) udpSocket.send(message, 0, message.length, 15185, ip, () => {});
+        }, i * 80);
+      }
+    } else {
+      // Chunked delivery to avoid router MTU drop (1472B limit)
+      for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
+        const chunk = sdp.substring(chunkIdx * CHUNK_SIZE, (chunkIdx + 1) * CHUNK_SIZE);
+        const payload = JSON.stringify({
+          type: 'ShareCLIP_Direct_Sdp',
+          sdpType: sdpType,
+          sessionId: sid,
+          chunkIndex: chunkIdx,
+          totalChunks: totalChunks,
+          sdpChunk: chunk
+        });
+        const message = Buffer.from(payload);
+        for (let i = 0; i < 3; i++) {
+          setTimeout(() => {
+            if (udpSocket) udpSocket.send(message, 0, message.length, 15185, ip, () => {});
+          }, i * 100 + chunkIdx * 15);
+        }
+      }
     }
     resolve(true);
   });

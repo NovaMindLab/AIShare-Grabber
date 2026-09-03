@@ -147,8 +147,8 @@ class WebRtcSyncEngine {
     }
   }
 
-  Future<void> addRemoteIceCandidate(String sdpMid, int sdpMLineIndex, String candidateStr) async {
-    if (_peerConnection == null) return;
+  Future<void> addRemoteIceCandidate(String? sdpMid, int? sdpMLineIndex, String? candidateStr) async {
+    if (_peerConnection == null || candidateStr == null || candidateStr.isEmpty) return;
     final candidate = RTCIceCandidate(candidateStr, sdpMid, sdpMLineIndex);
     try {
       final remoteDesc = await _peerConnection!.getRemoteDescription();

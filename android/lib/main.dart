@@ -13,7 +13,7 @@ import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 import 'services/analytics_service.dart';
 
-const String appVersion = '3.0.11';
+const String appVersion = '3.0.12';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -246,7 +246,7 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                               ),
                             ),
                             child: Text(
-                              'v$appVersion  ï¿½? $latestVersion',
+                              'v$appVersion  ï¿? $latestVersion',
                               style: const TextStyle(
                                 color: Color(0xFFC084FC),
                                 fontSize: 11.5,

@@ -188,7 +188,7 @@ if ($Publish) {
         }
     }
 
-    $releaseNotes = "### ShareCLIP $tag Release`n`n- 📱 **Mobile AI Category & Vector Sync**: Added offline AI categorization and instant cosine vector matching module on Android mobile client with on-demand sync from PC.`n- 📡 **WebRTC Connection Stability**: Resolved WebRTC signaling race conditions and added DataChannel fallback recovery for robust LAN sync.`n- 🚀 **Face Recognition Speedup**: High-performance face detection & feature extraction.`n- 📦 **Dual-Platform Builds**: Pre-built Android Universal APK and Windows PC Installer."
+    $releaseNotes = "### ShareCLIP $tag Release`n`n- 📡 **WebRTC Connection Decoupled & Stabilized**: Completely isolated WebRTC/UDP/HTTP networking into standalone ConnectionManager service; added MTU-safe UDP Answer SDP chunking (800B) preventing router drops.`n- 📱 **Mobile Connection State Machine Hardening**: Strictly awaits PC handshake ACK packet (-4) before transitioning to connected console, preventing premature false connections.`n- ⚡ **AI Classification Engine Optimization**: Massive speedup on dual/quad-core CPUs (i3/i5 U-series); zero GC allocation buffer pooling and CPU AVX2 multi-threading.`n- 📦 **Dual-Platform Builds**: Pre-built Android Universal APK and Windows PC Installer."
     
     Write-Host "Creating GitHub Release with assets:" -ForegroundColor Gray
     foreach ($a in $assets) {

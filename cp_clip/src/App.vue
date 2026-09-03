@@ -2827,6 +2827,7 @@ import VideoAnimeStudioModal from './components/VideoAnimeStudioModal.vue';
 import QRCode from 'qrcode';
 import { locales, languages } from './locales.js';
 import { initAnalytics, trackEvent, trackFeatureUse, identifyUser, setTelemetryOptOut, isTelemetryEnabled } from './analytics.js';
+import { connectionManager } from './services/connectionManager.js';
 
 // Localization state (Defaults to system language or 'zh')
 function getInitialLocale() {
@@ -3870,7 +3871,7 @@ const localDocs = computed(() => {
 
 // BLE Signaling and WebRTC synchronization state
 const isSyncActive = ref(false);
-const syncStatus = ref('idle'); // 'idle' | 'starting' | 'advertising' | 'handshaking' | 'connected'
+const syncStatus = connectionManager.status;
 const qrPayload = ref(null);
 const qrCanvas = ref(null);
 const syncLogs = ref([]);
@@ -4725,6 +4726,7 @@ function logSyncEvent(msg) {
 
 // Clean up WebRTC connection state
 function cleanupWebRtc() {
+  connectionManager.cleanup();
   if (disconnectGraceTimer) {
     clearTimeout(disconnectGraceTimer);
     disconnectGraceTimer = null;
@@ -6430,234 +6432,18 @@ onMounted(() => {
       }
     });
 
-    // 10. Direct SDP received (Consolidated with deduplication & candidate buffering)
-    window.api.onDirectSdpReceived(async ({ ip, sdp, sdpType }) => {
-      logSyncEvent(`📡 [UDP] 收到 WebRTC SDP ${sdpType} 自 ${ip}`);
-      activePeerIp.value = ip;
-      if (syncStatus.value !== 'connected') {
-        syncStatus.value = 'handshaking';
-        startHandshakeTimeout();
-      }
-
-      if (sdpType === 'offer') {
-        if (isProcessingOffer || hasGeneratedAnswer) {
-          logSyncEvent(`[WebRTC] 已有 Offer 在处理中或已生成 Answer，丢弃并发的重复 UDP Offer`);
-          return;
-        }
-        isProcessingOffer = true;
-        
-        try {
-          // If dataChannel is already open and connected, ignore duplicate offer
-          if (peerConnection && dataChannel && dataChannel.readyState === 'open') {
-            logSyncEvent(`[WebRTC] 直连通道已就绪，忽略重复 Offer`);
-            return;
-          }
-
-          const savedIceCandidates = [...pendingDirectIceCandidates];
-          cleanupWebRtc();
-          isProcessingOffer = true; // re-assert: cleanupWebRtc resets this
-          pendingDirectIceCandidates.push(...savedIceCandidates);
-
-          const configuration = { iceServers: [] };
-          peerConnection = new RTCPeerConnection(configuration);
-          setupPeerConnectionListeners(peerConnection);
-          peerConnection.onicecandidate = (event) => {
-            if (event.candidate) {
-              window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
-            }
-          };
-          peerConnection.ondatachannel = (event) => {
-            logSyncEvent("[UDP] 监听到直连数据通道创建请求: " + event.channel.label);
-            if (event.channel.label === 'photo_sync') {
-              dataChannel = event.channel;
-              setupDataChannel(dataChannel);
-            }
-
-          peerConnection.onconnectionstatechange = () => {
-            logSyncEvent("[WebRTC] 连接状态: " + peerConnection.connectionState);
-          };
-          peerConnection.oniceconnectionstatechange = () => {
-            logSyncEvent("[WebRTC] ICE状态: " + peerConnection.iceConnectionState);
-          };
-          };
-
-          try {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            
-            hasGeneratedAnswer = true;
-
-            // Drain queued early ICE candidates
-            if (pendingDirectIceCandidates.length > 0) {
-              for (const cand of pendingDirectIceCandidates) {
-                try { await peerConnection.addIceCandidate(cand); } catch (_) {}
-              }
-              pendingDirectIceCandidates.length = 0;
-            }
-
-            logSyncEvent(`📡 成功生成并发送 Answer SDP 到 ${ip}`);
-            await window.api.sendUdpSdp(ip, answer.sdp, 'answer');
-          } catch (err) {
-            console.warn("[WebRTC] Error setting remote offer / answer:", err);
-          }
-        } finally {
-          isProcessingOffer = false;
-        }
-      } else if (sdpType === 'answer') {
-        if (peerConnection) {
-          if (peerConnection.signalingState === 'stable') {
-            logSyncEvent(`[WebRTC] 连接已处于 Stable 状态，忽略重复 Answer`);
-            return;
-          }
-          try {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
-            if (pendingDirectIceCandidates.length > 0) {
-              for (const cand of pendingDirectIceCandidates) {
-                try { await peerConnection.addIceCandidate(cand); } catch (_) {}
-              }
-              pendingDirectIceCandidates.length = 0;
-            }
-            logSyncEvent(`📡 成功装载远端 Answer SDP`);
-          } catch (err) {
-            console.warn("[WebRTC] Error setting remote answer:", err);
-          }
-        }
+    // 10. Direct WebRTC / UDP / HTTP Signaling (Delegated to standalone ConnectionManager)
+    connectionManager.init({
+      log: logSyncEvent,
+      onDataChannel: (channel) => {
+        dataChannel = channel;
+        peerConnection = connectionManager.peerConnection;
+        setupDataChannel(channel);
+      },
+      onHandshakeTimeout: () => {
+        handleWebRtcDisconnect();
       }
     });
-
-    // 11. Direct ICE Candidate received
-    window.api.onDirectIceReceived((data) => {
-      if (!data || !data.candidate) return;
-      logSyncEvent(`📡 [UDP] 收到 ICE Candidate 自 ${data.ip || 'unknown'}`);
-      try {
-        const candidateObj = typeof data.candidate === 'string' ? JSON.parse(data.candidate) : data.candidate;
-        const iceCandidate = new RTCIceCandidate(candidateObj);
-        if (peerConnection && peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
-          peerConnection.addIceCandidate(iceCandidate).catch(() => {});
-        } else {
-          pendingDirectIceCandidates.push(iceCandidate);
-        }
-      } catch (_) {}
-    });
-
-    // 11.1 High-Speed HTTP/TCP WebRTC Signaling Received
-    if (window.api.onHttpSignalReceived) {
-      window.api.onHttpSignalReceived(async ({ reqId, ip, type, sdp, candidates }) => {
-        logSyncEvent(`🌐 [HTTP] 收到 WebRTC ${type} 自 ${ip}`);
-        activePeerIp.value = ip;
-        if (syncStatus.value !== 'connected') {
-          syncStatus.value = 'handshaking';
-          startHandshakeTimeout();
-        }
-
-        if (type === 'offer') {
-          if (isProcessingOffer || hasGeneratedAnswer) {
-            logSyncEvent(`🌐 [HTTP] 已有 Offer 在处理中或已生成 Answer，跳过重复 HTTP Offer`);
-            try {
-              await window.api.respondHttpSignal({ reqId, success: false, error: 'Duplicate offer' });
-            } catch (_) {}
-            return;
-          }
-          isProcessingOffer = true;
-          try {
-            const savedIceCandidates = [...pendingDirectIceCandidates];
-            cleanupWebRtc();
-            isProcessingOffer = true; // re-assert: cleanupWebRtc resets this
-            pendingDirectIceCandidates.push(...savedIceCandidates);
-
-            const configuration = { iceServers: [] };
-            peerConnection = new RTCPeerConnection(configuration);
-            setupPeerConnectionListeners(peerConnection);
-
-            const gatheredCandidates = [];
-            peerConnection.onicecandidate = (event) => {
-              if (event.candidate) {
-                gatheredCandidates.push(event.candidate);
-                try { window.api.sendUdpIce(ip, JSON.stringify(event.candidate)); } catch (_) {}
-              }
-            };
-            peerConnection.ondatachannel = (event) => {
-              logSyncEvent("[UDP] 监听到直连数据通道创建请求: " + event.channel.label);
-            if (event.channel.label === 'photo_sync') {
-                dataChannel = event.channel;
-                setupDataChannel(dataChannel);
-              }
-
-          peerConnection.onconnectionstatechange = () => {
-            logSyncEvent("[WebRTC] 连接状态: " + peerConnection.connectionState);
-          };
-          peerConnection.oniceconnectionstatechange = () => {
-            logSyncEvent("[WebRTC] ICE状态: " + peerConnection.iceConnectionState);
-          };
-            };
-
-            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
-            
-            if (Array.isArray(candidates)) {
-              for (const c of candidates) {
-                try {
-                  const candObj = typeof c === 'string' ? JSON.parse(c) : c;
-                  await peerConnection.addIceCandidate(new RTCIceCandidate(candObj));
-                } catch (_) {}
-              }
-            }
-
-            if (pendingDirectIceCandidates.length > 0) {
-              for (const cand of pendingDirectIceCandidates) {
-                try { await peerConnection.addIceCandidate(cand); } catch (_) {}
-              }
-              pendingDirectIceCandidates.length = 0;
-            }
-
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            hasGeneratedAnswer = true;
-
-            // Wait briefly for local host ICE candidate gathering so answer contains candidate lines
-            await new Promise((resolve) => {
-              let resolved = false;
-              const timer = setTimeout(() => {
-                if (!resolved) { resolved = true; resolve(); }
-              }, 300);
-
-              const origIceHandler = peerConnection.onicecandidate;
-              peerConnection.onicecandidate = (event) => {
-                if (origIceHandler) origIceHandler(event);
-                if (!event.candidate) {
-                  if (!resolved) { resolved = true; clearTimeout(timer); resolve(); }
-                }
-              };
-
-              if (peerConnection.iceGatheringState === 'complete') {
-                clearTimeout(timer);
-                resolve();
-              }
-            });
-
-            const finalSdp = peerConnection.localDescription?.sdp || answer.sdp;
-            logSyncEvent(`🌐 成功通过 HTTP 响应 Answer SDP 到 ${ip} (收集到 ${gatheredCandidates.length} 个 ICE)`);
-            await window.api.respondHttpSignal({
-              reqId,
-              success: true,
-              sdp: finalSdp,
-              candidates: gatheredCandidates
-            });
-          } catch (err) {
-            console.error("[WebRTC HTTP] Error handling offer:", err);
-            logSyncEvent(`❌ [HTTP] 处理 WebRTC Offer 失败: ${err.message || err}`);
-            hasGeneratedAnswer = false;
-            await window.api.respondHttpSignal({
-              reqId,
-              success: false,
-              error: err.message
-            });
-          } finally {
-            isProcessingOffer = false;
-          }
-        }
-      });
-    }
 
     // 12. Face Scan progress (Throttled via RAF for silky smooth 60fps rendering)
     let pendingFaceProgressData = null;
