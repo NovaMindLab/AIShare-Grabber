@@ -78,3 +78,27 @@ git push github v2.1.10
 | 🍎 **macOS** | `ShareCLIP-Mac-{version}-x64.dmg`<br>`ShareCLIP-Mac-{version}-arm64.dmg`<br>`ShareCLIP-Mac-{version}-arm64.zip` | 兼容 Intel 与 Apple Silicon (M1/M2/M3/M4) |
 | 🐧 **Linux** | `ShareCLIP-Linux-{version}-x64.AppImage`<br>`ShareCLIP-Linux-{version}-x64.deb` | 支持 Ubuntu/Debian 及通用 Linux 发行版 |
 | 🌐 **Web** | `https://NovaMindLab.github.io/AIShare-Grabber/` | 官方在线版与 WebShare 灵动岛画廊 |
+
+## 常见多平台云端编译排错记录 (v2.1.13 - v2.1.16)
+
+在部署 \2.1.13\ 到 \2.1.16\ 的多端云编译时，遇到并修复了以下环境依赖和打包审核限制问题：
+
+### 1. GitHub Pages 部署冲突与 404 白屏
+- **冲突排查**：由于代码库中同时存在 \elease.yml\ 和 \deploy.yml\ 且二者的环境部署策略互斥（前者构建后推送到 \gh-pages\ 分支，后者尝试强推 pages 环境受阻），导致 Action 疯狂报错（满屏红 X）。
+- **静态资源 404**：官网成功上线但白屏，因为 Vite 打包时缺失 \ase\ 路径，导致请求从 \github.io/assets\ 而非 \github.io/AIShare-Grabber/assets\ 加载。
+- **修复方案**：重构了 \deploy.yml\ 以对齐分支推送逻辑（使用 \peaceiris/actions-gh-pages@v4\），并在 \web/vite.config.js\ 中显式注入 \ase: '/AIShare-Grabber/'\。
+
+### 2. macOS 编译失败 (图标分辨率不足)
+- **报错**：\image icon.png must be at least 512x512\
+- **原因**：Electron-Builder 强制要求 macOS 的 DMG 安装包必须包含至少 512x512 像素以上的 \.png\ 或 \.icns\ 图标，而原有图标仅为 256x256。
+- **修复方案**：通过脚本将 \cp_clip/build/icon.png\ 重采样放大至 512x512，完美通过 Mac 端打包校验。
+
+### 3. Linux (.deb) 编译连环失败 (包信息不全)
+- **报错 1**：\It is required to set Linux .deb package maintainer.\
+- **报错 2**：\Please specify project homepage.\
+- **原因**：Debian 系 Linux 安装包对于基础元数据（Metadata）的审查极其严苛。必须具备格式标准的维护者邮箱，以及项目主页。
+- **修复方案**：在 \cp_clip/package.json\ 中，将 \uthor\ 字段改为规范的 \ShareCLIP Team <support@shareclip.com>\，同时添加 \homepage\ 字段，并为了双保险在 \linux\ 专属配置下显式指定 \maintainer\ 属性，最终成功跑通 AppImage 和 deb 的双线编译。
+
+### 4. Android 编译在云端失败 (缺失 Debug 证书)
+- **原因**：Android 自动化编译原本要求本地存在的 \debug.keystore\，但在 GitHub Runner 云端机器中没有该文件，导致 Gradle task 失败。
+- **修复方案**：在 \ndroid/app/build.gradle.kts\ 中使用 \if (localKeystore.exists())\ 进行软判断，在云端 CI 环境下动态降级或跳过本地专属的签名校验。

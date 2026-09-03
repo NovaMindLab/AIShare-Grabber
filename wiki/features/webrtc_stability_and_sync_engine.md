@@ -303,3 +303,14 @@ sequenceDiagram
 
 
 
+
+### 9.3 WebRTC SCTP MTU 限制与 DataChannel 强制断开问题 (v2.1.13)
+- **问题现象**：在 Android 向 PC 同步视频目录时，WebRTC 连接会突然进入“假死状态”（Zombie State）。PC 端显示  /0 没有任何进度，而 Android 端日志疯狂报错 Failed to write chunk，所有后续文件传输全部瘫痪。
+- **根本原因**：视频目录（Video Catalog）包含了海报图的 Base64 字符串，导致单次 atchSize=15 的 JSON 报文体积达到了约 300KB。而底层 C++ libwebrtc 引擎对于单次调用 sendBinary() 未分片的数据，如果超过了 SCTP Max Message Size (通常是 64KB 左右的 MTU 限制)，会**静默且暴力地关闭本地的 DataChannel**。这导致 Android 端通道关闭，而 PC 端仍在傻等。
+- **修复方案**：在 SyncViewModel._sendVideoCatalogToPC 中，将视频和音频目录同步的 atchSize 从 15 骤降至 2。这样可以保证单次发送的 JSON Payload 严格控制在 30KB 以内，远低于 SCTP 的安全分片阈值，彻底解决了视频同步导致 WebRTC 假死的顽疾。
+
+### 9.4 PC 端接收文件 ReferenceError 问题修复 (v2.1.13)
+- **问题现象**：PC 端在成功接收并通过 WebRTC 组装完大文件后，向前端 Vue 界面发送 \photo-synced\ IPC 事件时，控制台报错 \ReferenceError: duration is not defined\，导致 Vue 前端无法收到新文件的通知，界面没有反应。
+- **根本原因**：在 \cp_clip/main.cjs\ 的 \save-full-photo\ 处理器中，变量 \createDate\ 和 \duration\ 仅在块级作用域 \if (activeDeviceUuid && activeDeviceDb)\ 内通过 \const\ 定义。但随后的代码在块外尝试将它们封装并发送给 \webContents\，导致了作用域引用异常。
+- **修复方案**：将这两个变量的声明提升到外层函数作用域，赋初始值 \
+ull\ 或 \ \，确保 IPC 发送逻辑能合法访问到这几个变量。修复后，手机端发送文件可以被 PC 端成功解析并上报给前端界面，完美展示接收动态。

@@ -103,3 +103,9 @@
   1. **Android 端**：在 `SyncViewModel` 的 `syncThumbnailsToAI` 循环结束后，主动向 PC 发送一个 **完成哨兵包 (Completion Sentinel)**：`fileId = -6, totalCount = -1`。
   2. **PC 端**：在 `App.vue` 接收到 `fileId === -6` 且发现 `totalCount === -1` 时，无视当前的计数器状态，直接强制将 `isThumbnailSyncing.value` 置为 `false`，释放互斥锁。
 - **意义**：这一机制彻底解耦了传输过程中的丢包、跳过等异常情况对锁生命周期的影响，确保只要手机端遍历完成，PC 端就一定能解锁。
+
+**协议分片与手机端锁死 Bug (v2.1.12)**：
+- **触发场景**：随着相册图片数量增多，PC 端发送的 `requestThumbnailSync` 请求包中包含庞大的已同步 ID 列表，导致 JSON 体积超过 16KB，触发 WebRTC DataChannel 的 32KB `-5` 分片传输机制。而早期的 Android 端 `-5` 分片重组器中，缺乏对 `realPacketType == -6`（AI 缩略图同步信令）的支持，导致请求包被手机端**静默丢弃**。若之前曾触发异常中断，手机端的 `isThumbnailSyncing` 锁将永久处于 `true`，导致后续的同步请求（即时使用了新的原子指令包）也会被 `if (isThumbnailSyncing) return;` 拦截并卡死在 0/0。
+- **解决方案**：
+  1. **极简原子信令 (PC 端)**：彻底摒弃通过 JSON 发送冗长的已同步 ID 列表，改为仅发送 16 字节的极简二进制指令头（`fileId=-6`, `flag=-2` 表示空缓存全量），保证指令**永远不会被分片**，实现 0 延迟极速送达。
+  2. **强制解锁兜底 (Android 端)**：在接收到 PC 的 `-6` 指令（包括独立包和分片兜底包）时，在执行业务逻辑前，强行重置 `isThumbnailSyncing = false`，打破由于历史错误导致的死锁状态。同时，在 `cleanup()` 生命周期中加入对该锁的清空，确保断线重连后状态干净。
