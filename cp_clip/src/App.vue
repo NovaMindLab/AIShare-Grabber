@@ -3152,10 +3152,10 @@ function initMap() {
 
       leafletMap = L.map('map-container').setView(initialCenter, initialZoom);
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 20
+      // Switched to standard OSM due to CARTO API Key enforcement. We use CSS invert to make it dark.
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+        maxZoom: 19
       }).addTo(leafletMap);
 
       markerClusterGroup = L.markerClusterGroup({
@@ -8859,3 +8859,7 @@ function getMockClassification(url) {
   outline: none;
 }
 </style>
+/* Map Dark Theme override for standard OSM tiles */
+.leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
