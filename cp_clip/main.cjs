@@ -1308,21 +1308,80 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
   const total = rows.length;
   console.log(`[AI Reclassify] Found ${total} phone photos to reclassify.`);
 
-  // 2. Concurrent batch processing — send CONCURRENCY images in parallel
-  const CONCURRENCY = taskManager.maxInferenceWorkers || 4;
-  console.log(`[AI Reclassify] Processing ${total} photos with concurrency: ${CONCURRENCY}`);
+  // 2. Sliding-window worker queue — each worker grabs next item immediately after finishing (no idle waiting)
+  const CONCURRENCY = taskManager.maxInferenceWorkers || 3;
+  console.log(`[AI Reclassify] Processing ${total} photos with sliding-window concurrency: ${CONCURRENCY}`);
 
   const reclassifyStartTime = Date.now();
   let done = 0;
+  let taskIdx = 0;
   let lastSingleMs = 0;
   let totalSingleLatency = 0;
 
-  for (let batchStart = 0; batchStart < total; batchStart += CONCURRENCY) {
-    const batch = rows.slice(batchStart, batchStart + CONCURRENCY);
+  // Batched DB write buffer — flush every DB_FLUSH_SIZE items in a single transaction
+  const DB_FLUSH_SIZE = 50;
+  const dbWriteBuffer = [];
 
-    await Promise.all(batch.map(async (row) => {
+  const flushDbBuffer = () => {
+    if (dbWriteBuffer.length === 0 || !activeDeviceDb) return Promise.resolve();
+    const batch = dbWriteBuffer.splice(0, dbWriteBuffer.length);
+    return new Promise((resolve) => {
+      activeDeviceDb.serialize(() => {
+        activeDeviceDb.run('BEGIN TRANSACTION');
+        const stmt = activeDeviceDb.prepare(
+          `UPDATE resources SET predictions = ?, embedding = ?, face_scanned = 0 WHERE id = ?`
+        );
+        for (const item of batch) {
+          stmt.run(item.predictionsStr, item.embeddingBuffer, item.id);
+        }
+        stmt.finalize();
+        activeDeviceDb.run('COMMIT', () => {
+          // Batch notify frontend: single IPC with all items in this flush (instead of N individual IPCs)
+          event.sender.send('single-photo-predictions-updated', batch.map(item => ({ id: item.id, predictions: item.predictions })));
+          resolve();
+        });
+      });
+    });
+  };
+
+  // Progress reporting with throttle (every 10 items or 200ms minimum)
+  let lastProgressTime = 0;
+  const PROGRESS_THROTTLE_MS = 200;
+  const PROGRESS_THROTTLE_COUNT = 10;
+  let lastProgressDone = 0;
+
+  const reportProgress = (force = false) => {
+    const now = Date.now();
+    if (!force && (done - lastProgressDone) < PROGRESS_THROTTLE_COUNT && (now - lastProgressTime) < PROGRESS_THROTTLE_MS) return;
+    lastProgressTime = now;
+    lastProgressDone = done;
+
+    const elapsedMs = now - reclassifyStartTime;
+    const avgMs = done > 0 ? parseFloat((totalSingleLatency / done).toFixed(1)) : 0;
+    const remainingCount = Math.max(0, total - done);
+    const avgTimePerItem = done > 0 ? (elapsedMs / done) : 0;
+    const remainingMs = Math.round(avgTimePerItem * remainingCount);
+
+    event.sender.send('reclassify-progress', {
+      done,
+      total,
+      currentName: '',
+      singleMs: lastSingleMs,
+      avgMs,
+      elapsedMs,
+      remainingMs,
+      totalTimeMs: elapsedMs,
+      isComplete: false
+    });
+  };
+
+  // Sliding window: each "worker" loop grabs the next unprocessed item immediately
+  const workerLoop = async () => {
+    while (taskIdx < total) {
+      const idx = taskIdx++;
+      const row = rows[idx];
       try {
-        if (!fs.existsSync(row.path)) return;
+        if (!fs.existsSync(row.path)) { done++; continue; }
 
         const itemStartTime = Date.now();
         const predictions = await classifyPhotoInternal(row.path);
@@ -1331,52 +1390,38 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
         totalSingleLatency += itemLatency;
 
         const predictionsStr = JSON.stringify(predictions);
-
         let embeddingBuffer = null;
         const emb = imageEmbeddingsCache[row.path];
         if (emb && emb.buffer) {
           embeddingBuffer = Buffer.from(emb.buffer, emb.byteOffset, emb.byteLength);
         }
 
-        await new Promise((resolve, reject) => {
-          activeDeviceDb.run(
-            `UPDATE resources SET predictions = ?, embedding = ?, face_scanned = 0 WHERE id = ?`,
-            [predictionsStr, embeddingBuffer, row.id],
-            (err) => { if (err) reject(err); else resolve(); }
-          );
-        });
+        dbWriteBuffer.push({ id: row.id, predictionsStr, embeddingBuffer, predictions });
 
-        event.sender.send('single-photo-predictions-updated', { id: row.id, predictions });
-
+        // Flush DB batch when buffer is full
+        if (dbWriteBuffer.length >= DB_FLUSH_SIZE) {
+          await flushDbBuffer();
+        }
       } catch (err) {
         console.error(`[AI Reclassify] Failed for ${row.name}:`, err);
       } finally {
         done++;
       }
-    }));
 
-    const elapsedMs = Date.now() - reclassifyStartTime;
-    const avgMs = done > 0 ? parseFloat((totalSingleLatency / done).toFixed(1)) : 0;
-    const remainingCount = Math.max(0, total - done);
-    const avgTimePerBatchItem = done > 0 ? (elapsedMs / done) : 0;
-    const remainingMs = Math.round(avgTimePerBatchItem * remainingCount);
+      reportProgress();
 
-    // Report progress after each batch completes
-    event.sender.send('reclassify-progress', {
-      done,
-      total,
-      currentName: batch[batch.length - 1].name,
-      singleMs: lastSingleMs,
-      avgMs,
-      elapsedMs,
-      remainingMs,
-      totalTimeMs: elapsedMs,
-      isComplete: false
-    });
+      // Yield to event loop every 5 items with zero-delay microtask (keeps UI & IPC responsive without wasting time)
+      if (done % 5 === 0) {
+        await new Promise(resolve => setImmediate(resolve));
+      }
+    }
+  };
 
-    // Yield 100ms to Node event loop so WebRTC DataChannel heartbeats and IPC messages process smoothly
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
+  // Launch CONCURRENCY sliding workers in parallel
+  await Promise.all(Array.from({ length: CONCURRENCY }, () => workerLoop()));
+
+  // Flush any remaining DB writes
+  await flushDbBuffer();
 
   // Final progress notification with total elapsed time and final average
   const totalElapsedMs = Date.now() - reclassifyStartTime;

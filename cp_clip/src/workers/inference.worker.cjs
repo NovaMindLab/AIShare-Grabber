@@ -32,18 +32,35 @@ parentPort.on('message', async (msg) => {
           sharp.concurrency(1); // Restrict sharp threads
           sharp.cache(false); // Disable cache to prevent memory leak
         }
-        const sessionOptions = {
-          executionProviders: ['cpu'],
+        const os = require('os');
+        const cpus = os.cpus().length;
+        const intraThreads = Math.min(4, Math.max(2, Math.floor(cpus / 4)));
+        // On modern multi-core x64 CPUs (>= 8 cores), CPU AVX2/VNNI vectorization avoids PCIe bus transfer latency and runs ~2x faster than DirectML for lightweight MobileCLIP-S0 (10MB)
+        const preferCpuForClip = cpus >= 8;
+        let activeSessionOptions = {
+          executionProviders: preferCpuForClip ? ['cpu'] : ['dml', 'cpu'],
           executionMode: 'sequential',
-          intraOpNumThreads: 1,
+          intraOpNumThreads: intraThreads,
           interOpNumThreads: 1
         };
-        ortSession = await ort.InferenceSession.create(physicalModelPath, sessionOptions);
-        console.log("[Inference Worker] MobileCLIP Image Encoder ONNX model loaded successfully (CPU execution provider).");
+        try {
+          ortSession = await ort.InferenceSession.create(physicalModelPath, activeSessionOptions);
+          console.log(`[Inference Worker] MobileCLIP Image Encoder ONNX model loaded successfully (${activeSessionOptions.executionProviders.join('/')}, intraThreads: ${intraThreads}).`);
+        } catch (dmlErr) {
+          console.warn("[Inference Worker] Preferred provider failed (" + dmlErr.message + "). Falling back to CPU provider...");
+          activeSessionOptions = {
+            executionProviders: ['cpu'],
+            executionMode: 'sequential',
+            intraOpNumThreads: intraThreads,
+            interOpNumThreads: 1
+          };
+          ortSession = await ort.InferenceSession.create(physicalModelPath, activeSessionOptions);
+          console.log(`[Inference Worker] MobileCLIP Image Encoder ONNX model loaded successfully (CPU, intraThreads: ${intraThreads}).`);
+        }
 
         if (physicalScrfdModelPath && fs.existsSync(physicalScrfdModelPath)) {
           try {
-            scrfdSession = await ort.InferenceSession.create(physicalScrfdModelPath, sessionOptions);
+            scrfdSession = await ort.InferenceSession.create(physicalScrfdModelPath, activeSessionOptions);
             console.log("[Inference Worker] SCRFD Face Detection ONNX model loaded successfully.");
           } catch (e) {
             console.warn("[Inference Worker] SCRFD model load failed, face detection disabled:", e.message);
@@ -52,7 +69,7 @@ parentPort.on('message', async (msg) => {
 
         if (physicalMobilefacenetModelPath && fs.existsSync(physicalMobilefacenetModelPath)) {
           try {
-            mobilefacenetSession = await ort.InferenceSession.create(physicalMobilefacenetModelPath, sessionOptions);
+            mobilefacenetSession = await ort.InferenceSession.create(physicalMobilefacenetModelPath, activeSessionOptions);
             console.log("[Inference Worker] MobileFaceNet Face Embedding ONNX model loaded successfully.");
           } catch (e) {
             console.warn("[Inference Worker] MobileFaceNet model load failed, face embedding disabled:", e.message);
@@ -81,9 +98,9 @@ parentPort.on('message', async (msg) => {
       let timings = {};
       const tStart = performance.now();
 
-      // Real inference path
+      // Real inference path with fastShrinkOnLoad enabled for high-res photos
       const clipBuffer = await sharp(imagePath)
-        .resize(256, 256, { fit: 'cover', position: 'center' })
+        .resize(256, 256, { fit: 'cover', position: 'center', fastShrinkOnLoad: true })
         .removeAlpha()
         .toColourspace('srgb')
         .raw()
@@ -91,10 +108,14 @@ parentPort.on('message', async (msg) => {
 
       const float32Data = new Float32Array(3 * 256 * 256);
       const imageSize = 256 * 256;
+      const offsetG = imageSize;
+      const offsetB = imageSize * 2;
+      const inv255 = 1.0 / 255.0;
+      let srcIdx = 0;
       for (let i = 0; i < imageSize; i++) {
-        float32Data[i] = clipBuffer[i * 3] / 255.0;
-        float32Data[imageSize + i] = clipBuffer[i * 3 + 1] / 255.0;
-        float32Data[2 * imageSize + i] = clipBuffer[i * 3 + 2] / 255.0;
+        float32Data[i] = clipBuffer[srcIdx++] * inv255;
+        float32Data[offsetG + i] = clipBuffer[srcIdx++] * inv255;
+        float32Data[offsetB + i] = clipBuffer[srcIdx++] * inv255;
       }
 
       const tensor = new ort.Tensor('float32', float32Data, [1, 3, 256, 256]);

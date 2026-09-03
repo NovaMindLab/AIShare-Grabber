@@ -4634,10 +4634,10 @@ function startHandshakeTimeout() {
   if (handshakeTimeoutTimer) clearTimeout(handshakeTimeoutTimer);
   handshakeTimeoutTimer = setTimeout(() => {
     if (syncStatus.value === 'handshaking') {
-      logSyncEvent("⚠️ 连接协商超时：未能在 15 秒内建立 WebRTC 通道，正在重新广播...");
+      logSyncEvent("⚠️ 连接协商超时：未能在 25 秒内建立 WebRTC 通道，正在重新广播...");
       handleWebRtcDisconnect();
     }
-  }, 15000);
+  }, 25000);
 }
 
 function clearHandshakeTimeout() {
@@ -5998,15 +5998,24 @@ onMounted(() => {
     // Live single photo prediction update listener during reclassify & background AI queue
     if (window.api.onSinglePhotoPredictionsUpdated) {
       window.api.onSinglePhotoPredictionsUpdated((data) => {
-        if (data) {
-          const idx = images.value.findIndex(i => (data.id && i.id == data.id) || (data.path && i.path === data.path) || (data.name && i.name === data.name));
-          if (idx !== -1) {
-            const updated = {
-              ...images.value[idx],
-              predictions: data.predictions || [],
-              status: 'completed'
-            };
-            images.value.splice(idx, 1, updated);
+        // Support both single object (legacy) and batched array (optimized)
+        const items = Array.isArray(data) ? data : (data ? [data] : []);
+        if (items.length === 0) return;
+
+        // Build Map for O(1) lookup by id
+        const updateMap = new Map();
+        for (const item of items) {
+          if (item.id) updateMap.set(String(item.id), item.predictions || []);
+        }
+
+        // Single pass over images array — O(n) instead of O(n × batch)
+        for (let i = 0; i < images.value.length; i++) {
+          const img = images.value[i];
+          const preds = updateMap.get(String(img.id));
+          if (preds !== undefined) {
+            images.value.splice(i, 1, { ...img, predictions: preds, status: 'completed' });
+            updateMap.delete(String(img.id));
+            if (updateMap.size === 0) break;
           }
         }
       });
@@ -6087,6 +6096,9 @@ onMounted(() => {
     window.api.onRemoteIceReceived((data) => {
       if (peerConnection) {
         logSyncEvent("📡 注入远端 ICE Candidate...");
+        if (syncStatus.value === 'handshaking') {
+          startHandshakeTimeout();
+        }
         peerConnection.addIceCandidate(new RTCIceCandidate({
           sdpMid: data.sdpMid,
           sdpMLineIndex: data.sdpMLineIndex,
@@ -6102,6 +6114,7 @@ onMounted(() => {
         activePeerType.value = 'Mobile';
         if (syncStatus.value !== 'connected') {
           syncStatus.value = 'handshaking';
+          startHandshakeTimeout();
         }
       } else if (status === 'disconnected') {
         if (syncStatus.value !== 'connected') {
@@ -6693,15 +6706,29 @@ onMounted(() => {
     });
 
     window.api.onSinglePhotoPredictionsUpdated((data) => {
-      // Find and update the single photo's predictions in images.value
-      const idx = images.value.findIndex(img => img.id === data.id || img.name === data.id);
-      if (idx !== -1) {
-        images.value[idx].predictions = data.predictions;
+      // Support both single object (legacy) and batched array (optimized)
+      const items = Array.isArray(data) ? data : (data ? [data] : []);
+      if (items.length === 0) return;
+
+      // Build Map for O(1) lookup by id
+      const updateMap = new Map();
+      for (const item of items) {
+        if (item.id) updateMap.set(String(item.id), item.predictions || []);
       }
-      // Also update predictions in thumbnailImages if found
-      const thumbIdx = thumbnailImages.value.findIndex(t => t.path && t.path.includes(data.id));
-      if (thumbIdx !== -1) {
-        thumbnailImages.value[thumbIdx].predictions = data.predictions;
+
+      // Single pass over images — O(n) instead of O(n × batch)
+      for (let i = 0; i < images.value.length; i++) {
+        const preds = updateMap.get(String(images.value[i].id));
+        if (preds !== undefined) {
+          images.value[i].predictions = preds;
+        }
+      }
+      // Single pass over thumbnailImages
+      for (let i = 0; i < thumbnailImages.value.length; i++) {
+        const preds = updateMap.get(String(thumbnailImages.value[i].id));
+        if (preds !== undefined) {
+          thumbnailImages.value[i].predictions = preds;
+        }
       }
     });
 

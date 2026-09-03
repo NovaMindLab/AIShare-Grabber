@@ -144,7 +144,8 @@ class TaskManager {
       this.idleTimeoutMs = 3 * 60 * 1000;
     } else if (cpus >= 8 && memGB > 16) {
       this.tier = 'High';
-      this.maxInferenceWorkers = Math.min(6, Math.max(4, cpus - 2));
+      // Optimal 2-3 workers with 4-thread AVX2 vectorization yields highest throughput without L3 cache thrashing
+      this.maxInferenceWorkers = Math.min(3, Math.max(2, Math.floor(cpus / 6)));
       this.idleTimeoutMs = 30 * 60 * 1000;
     }
     
