@@ -1,12 +1,9 @@
 {
   "name": "shareclip",
   "private": true,
-  "version": "2.1.13",
+  "version": "2.1.15",
   "description": "ShareCLIP PC Client",
-  "author": {
-    "name": "ShareCLIP Team",
-    "email": "support@shareclip.com"
-  },
+  "author": "ShareCLIP Team <support@shareclip.com>",
   "type": "module",
   "main": "main.cjs",
   "scripts": {
@@ -160,6 +157,7 @@
       "artifactName": "${productName}-Mac-${version}-${arch}.dmg"
     },
     "linux": {
+      "maintainer": "ShareCLIP Team <support@shareclip.com>",
       "category": "Utility",
       "icon": "icon.png",
       "target": [
