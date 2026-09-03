@@ -158,7 +158,7 @@ parentPort.on('message', async (msg) => {
 
           const tScrfdPrepStart = performance.now();
           const scrfdData = await sharp(imageBuffer)
-            .resize(640, 640, { fit: 'fill' })
+            .resize(640, 640, { fit: 'fill', fastShrinkOnLoad: true })
             .removeAlpha()
             .toColourspace('srgb')
             .raw()
@@ -166,12 +166,16 @@ parentPort.on('message', async (msg) => {
           
           const scrfdFloat32 = new Float32Array(3 * 640 * 640);
           const scrfdImageSize = 640 * 640;
+          const offsetG = scrfdImageSize;
+          const offsetB = scrfdImageSize * 2;
+          const inv128 = 1.0 / 128.0;
+          let srcIdx = 0;
           
-          // Preprocess: RGB, float32, mean=127.5, std=128
+          // Optimized linear sequential memory access & multiplication
           for (let i = 0; i < scrfdImageSize; i++) {
-            scrfdFloat32[i] = (scrfdData[i * 3] - 127.5) / 128.0;
-            scrfdFloat32[scrfdImageSize + i] = (scrfdData[i * 3 + 1] - 127.5) / 128.0;
-            scrfdFloat32[2 * scrfdImageSize + i] = (scrfdData[i * 3 + 2] - 127.5) / 128.0;
+            scrfdFloat32[i] = (scrfdData[srcIdx++] - 127.5) * inv128;
+            scrfdFloat32[offsetG + i] = (scrfdData[srcIdx++] - 127.5) * inv128;
+            scrfdFloat32[offsetB + i] = (scrfdData[srcIdx++] - 127.5) * inv128;
           }
           
           const scrfdTensor = new ort.Tensor('float32', scrfdFloat32, [1, 3, 640, 640]);
@@ -319,13 +323,16 @@ parentPort.on('message', async (msg) => {
                      .raw()
                      .toBuffer({ resolveWithObject: true });
                    
-                   const faceFloat32 = new Float32Array(3 * 112 * 112);
-                   const faceImageSize = 112 * 112;
-                   for (let i = 0; i < faceImageSize; i++) {
-                     faceFloat32[i] = (faceData[i * 3] - 127.5) / 128.0;
-                     faceFloat32[faceImageSize + i] = (faceData[i * 3 + 1] - 127.5) / 128.0;
-                     faceFloat32[2 * faceImageSize + i] = (faceData[i * 3 + 2] - 127.5) / 128.0;
-                   }
+                    const faceFloat32 = new Float32Array(3 * 112 * 112);
+                    const faceImageSize = 112 * 112;
+                    const faceOffsetG = faceImageSize;
+                    const faceOffsetB = faceImageSize * 2;
+                    let faceSrcIdx = 0;
+                    for (let i = 0; i < faceImageSize; i++) {
+                      faceFloat32[i] = (faceData[faceSrcIdx++] - 127.5) * inv128;
+                      faceFloat32[faceOffsetG + i] = (faceData[faceSrcIdx++] - 127.5) * inv128;
+                      faceFloat32[faceOffsetB + i] = (faceData[faceSrcIdx++] - 127.5) * inv128;
+                    }
                    
                    const faceTensor = new ort.Tensor('float32', faceFloat32, [1, 3, 112, 112]);
                    const faceFeeds = {};

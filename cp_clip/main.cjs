@@ -598,21 +598,84 @@ async function scanFacesOnDemand(event) {
   console.log(`[Manual Scanner] Found ${total} images to scan for faces.`);
 
   const globalStart = performance.now();
-  const CONCURRENCY = taskManager.maxInferenceWorkers || 4;
+  const CONCURRENCY = taskManager.maxInferenceWorkers || 3;
+  console.log(`[Manual Scanner] Scanning ${total} images for faces with sliding concurrency: ${CONCURRENCY}`);
+
   let done = 0;
+  let taskIdx = 0;
   let totalDurationMs = 0;
   let lastDurationMs = 0;
 
-  for (let batchStart = 0; batchStart < total; batchStart += CONCURRENCY) {
-    const batch = rows.slice(batchStart, batchStart + CONCURRENCY);
+  // Batched DB write buffers — flush faces and scanned photo updates in a single transaction
+  const DB_FLUSH_SIZE = 50;
+  const pendingFaces = [];
+  const pendingScannedPhotoIds = [];
 
-    await Promise.all(batch.map(async (row) => {
+  const flushFaceDb = () => {
+    if (pendingFaces.length === 0 && pendingScannedPhotoIds.length === 0) return Promise.resolve();
+    const facesToInsert = pendingFaces.splice(0, pendingFaces.length);
+    const photosToUpdate = pendingScannedPhotoIds.splice(0, pendingScannedPhotoIds.length);
+
+    return new Promise((resolve) => {
+      activeDeviceDb.serialize(() => {
+        activeDeviceDb.run('BEGIN TRANSACTION');
+        if (facesToInsert.length > 0) {
+          const insertStmt = activeDeviceDb.prepare(
+            `INSERT OR REPLACE INTO faces (id, photo_id, path, bbox, landmarks, embedding) VALUES (?, ?, ?, ?, ?, ?)`
+          );
+          for (const f of facesToInsert) {
+            insertStmt.run(f.id, f.photoId, f.path, f.bbox, f.landmarks, f.faceBuffer);
+          }
+          insertStmt.finalize();
+        }
+
+        if (photosToUpdate.length > 0) {
+          const updateStmt = activeDeviceDb.prepare(`UPDATE resources SET face_scanned = 1 WHERE id = ?`);
+          for (const photoId of photosToUpdate) {
+            updateStmt.run(photoId);
+          }
+          updateStmt.finalize();
+        }
+
+        activeDeviceDb.run('COMMIT', resolve);
+      });
+    });
+  };
+
+  // Throttled progress reporting (every 10 items or 200ms minimum)
+  let lastProgressTime = 0;
+  const PROGRESS_THROTTLE_MS = 200;
+  const PROGRESS_THROTTLE_COUNT = 10;
+  let lastProgressDone = 0;
+
+  const reportProgress = (force = false) => {
+    if (!event) return;
+    const now = performance.now();
+    if (!force && (done - lastProgressDone) < PROGRESS_THROTTLE_COUNT && (now - lastProgressTime) < PROGRESS_THROTTLE_MS) return;
+    lastProgressTime = now;
+    lastProgressDone = done;
+
+    const avgDurationMs = done > 0 ? Math.round(totalDurationMs / done) : 0;
+    event.sender.send('face-scan-progress', {
+      done,
+      total,
+      currentName: '',
+      avgDurationMs,
+      durationMs: lastDurationMs
+    });
+  };
+
+  // Sliding window worker loop: each worker continuously grabs next image with 0 waiting
+  const workerLoop = async () => {
+    while (taskIdx < total) {
+      const idx = taskIdx++;
+      const row = rows[idx];
       let durationMs = 0;
-      let facesFound = 0;
       try {
         if (!fs.existsSync(row.path)) {
-          await new Promise((resolve) => activeDeviceDb.run(`UPDATE resources SET face_scanned = 1 WHERE id = ?`, [row.id], resolve));
-          return;
+          pendingScannedPhotoIds.push(row.id);
+          done++;
+          continue;
         }
 
         const tStart = performance.now();
@@ -622,45 +685,44 @@ async function scanFacesOnDemand(event) {
         lastDurationMs = durationMs;
 
         if (result && result.faces && Array.isArray(result.faces)) {
-          facesFound = result.faces.length;
           for (const face of result.faces) {
             const faceBuffer = face.embedding ? Buffer.from(face.embedding.buffer, face.embedding.byteOffset, face.embedding.byteLength) : null;
-            await new Promise((resolve) => {
-              activeDeviceDb.run(
-                `INSERT OR REPLACE INTO faces (id, photo_id, path, bbox, landmarks, embedding) VALUES (?, ?, ?, ?, ?, ?)`,
-                [face.id, row.id, row.path, face.bbox, face.landmarks, faceBuffer],
-                resolve
-              );
+            pendingFaces.push({
+              id: face.id,
+              photoId: row.id,
+              path: row.path,
+              bbox: face.bbox,
+              landmarks: face.landmarks,
+              faceBuffer
             });
           }
         }
+        pendingScannedPhotoIds.push(row.id);
 
-        await new Promise((resolve) => {
-          activeDeviceDb.run(`UPDATE resources SET face_scanned = 1 WHERE id = ?`, [row.id], resolve);
-        });
-
+        if (pendingScannedPhotoIds.length >= DB_FLUSH_SIZE) {
+          await flushFaceDb();
+        }
       } catch (scanErr) {
         console.error(`[Manual Scanner] Error processing ${row.path}:`, scanErr.message);
-        await new Promise((resolve) => activeDeviceDb.run(`UPDATE resources SET face_scanned = 1 WHERE id = ?`, [row.id], resolve));
+        pendingScannedPhotoIds.push(row.id);
       } finally {
         done++;
       }
-    }));
 
-    if (event) {
-      const avgDurationMs = done > 0 ? Math.round(totalDurationMs / done) : 0;
-      event.sender.send('face-scan-progress', { 
-        done, 
-        total, 
-        currentName: path.basename(batch[batch.length - 1].path),
-        avgDurationMs,
-        durationMs: lastDurationMs
-      });
+      reportProgress();
+
+      // Yield event loop every 5 items with zero-delay microtask (keeps UI & IPC responsive)
+      if (done % 5 === 0) {
+        await new Promise(resolve => setImmediate(resolve));
+      }
     }
+  };
 
-    // Yield 100ms to Node event loop so WebRTC DataChannel heartbeats and IPC messages process smoothly
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
+  // Launch sliding workers concurrently
+  await Promise.all(Array.from({ length: CONCURRENCY }, () => workerLoop()));
+
+  // Flush remaining DB writes
+  await flushFaceDb();
   
   const totalRealTime = Math.round(performance.now() - globalStart);
   if (event) {
