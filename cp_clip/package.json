@@ -3,7 +3,10 @@
   "private": true,
   "version": "2.1.13",
   "description": "ShareCLIP PC Client",
-  "author": "ShareCLIP Team",
+  "author": {
+    "name": "ShareCLIP Team",
+    "email": "support@shareclip.com"
+  },
   "type": "module",
   "main": "main.cjs",
   "scripts": {
