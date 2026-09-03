@@ -102,3 +102,19 @@ git push github v2.1.10
 ### 4. Android 编译在云端失败 (缺失 Debug 证书)
 - **原因**：Android 自动化编译原本要求本地存在的 \debug.keystore\，但在 GitHub Runner 云端机器中没有该文件，导致 Gradle task 失败。
 - **修复方案**：在 \ndroid/app/build.gradle.kts\ 中使用 \if (localKeystore.exists())\ 进行软判断，在云端 CI 环境下动态降级或跳过本地专属的签名校验。
+3. Pure Local Release Workflow
+
+---
+
+## 3. 纯本地发版工作流 (Pure Local Release Workflow)
+
+由于云端多平台编译耗时长、排队久，且受制于 GitHub 云端运行时的证书与环境差异（特别是 Android 签名的 debug.keystore 冲突问题），团队自 **v2.1.17** 确立了新的**纯本地发版策略**，彻底摒弃打 Tag 自动触发云端发版的传统做法。
+
+### 3.1 本地发版铁律
+以后每次执行发版或打包指令，必须严格遵循以下步骤：
+1. **自动全局版本递增 (Version++)**：在任何编译启动前，强制遍历并递增 android/pubspec.yaml、android/lib/main.dart、cp_clip/package.json、web/package.json 中的版本号。
+2. **云端保持静默**：修改了 .github/workflows/release.yml，彻底删除了 push tags 的触发机制，仅保留 workflow_dispatch，防止云端抢活。
+3. **本地并发编译**：仅在开发机本地，并行启动 Android Build 和 PC Build。
+4. **差分文件不可忽略**：对于 PC 端打包产物，不仅要保留 .exe 主程序，**必须同时保留** latest.yml 和 .exe.blockmap 文件，这是 Electron 增量差分升级 (Delta Update) 的命脉，缺失会导致全网客户端强制下载全量包。
+5. **本地秒级直推 Release**：本地编译结束后，直接使用 GitHub CLI 工具将本地产物作为 Release 附件直接推送到云端发行版，实现“本地秒编，云端秒发”：
+   gh release create v2.X.X cp_clip/dist_electron/ShareCLIP-Setup-2.X.X.exe cp_clip/dist_electron/ShareCLIP-Setup-2.X.X.exe.blockmap cp_clip/dist_electron/latest.yml android/build/app/outputs/flutter-apk/app-release.apk

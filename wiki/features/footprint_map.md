@@ -304,3 +304,25 @@ function initMap() {
 | [`cp_clip/src/App.vue`](file:///d:/AI_serach_image/image_clip_android/cp_clip/src/App.vue) | 地图 UI、标签切换、坐标绑定、数据映射 |
 | [`cp_clip/src/style.css`](file:///d:/AI_serach_image/image_clip_android/cp_clip/src/style.css) | 地图标记与聚类样式 |
 | [`cp_clip/src/locales.js`](file:///d:/AI_serach_image/image_clip_android/cp_clip/src/locales.js) | 多语言：`tabMap` 翻译键 |
+
+## 4. 地图底图免费开源化与暗黑模式魔法 (v2.1.17)
+
+### 4.1 CARTO API 限制危机
+在 v2.1.17 之前的版本中，足迹地图默认采用 CARTO DarkMatter 作为暗黑风格的瓦片地图源。然而，CARTO 官方近期收紧了免费策略，开始对未提供 API Key 的匿名请求进行拦截，并在所有地图瓦片上强制覆盖刺眼的 \API KEY REQUIRED\ 水印，导致地图功能近乎瘫痪。
+
+### 4.2 零成本替换与 CSS 滤镜反色方案
+为了坚持项目的完全免费开源性质并绕过复杂的 API 密钥管理，我们彻底弃用了 CARTO，并将瓦片数据源切换为全球最权威、且永久免费无限制的 **标准 OpenStreetMap (OSM)**。
+
+然而，标准 OSM 瓦片是典型的“亮色白底”风格，与 ShareCLIP 极客风的赛博暗黑 UI 严重割裂。为此，我们在前端（\App.vue\）采用了一种轻量且巧妙的纯 CSS 视觉欺骗方案：
+
+\\\css
+/* 针对 Leaflet 专门负责瓦片底图的图层面板进行反色处理 */
+.leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+\\\
+
+**该方案的绝妙之处在于：**
+1. **精准反色，不伤无辜**：由于只针对 \.leaflet-tile-pane\ 层应用 \invert(100%)\，地图背景完美变成了深邃的暗黑色，而在此之上的 \.leaflet-marker-pane\（包含用户的照片头像标记点）完全不受影响，色彩依旧真实鲜艳。
+2. **色相还原**：通过 \hue-rotate(180deg)\，原本被反相的绿地（紫色）、蓝水（橙色）再次被拉回到正常的蓝绿色系，使得暗黑地图依然保持自然的地理色彩认知。
+3. **高缩放支持**：OSM 标准瓦片最高支持至 \zoom: 19\ 级别，比之前 CARTO 的放大极限更深，更有利于查看精准到街道级别的照片分布。
