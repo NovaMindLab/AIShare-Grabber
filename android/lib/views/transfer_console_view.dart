@@ -4,6 +4,7 @@ import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/sync_viewmodel.dart';
 import '../services/localization_service.dart';
+import 'tabs/ai_tab.dart';
 
 class TransferConsoleView extends StatefulWidget {
   const TransferConsoleView({Key? key}) : super(key: key);
@@ -30,7 +31,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    _subTabController = TabController(length: 4, vsync: this);
+    _subTabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -77,6 +78,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                       labelStyle: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold),
                       tabs: [
                         Tab(text: t.get('tabMedia'), icon: const Icon(Icons.photo_library, size: 16.0)),
+                        Tab(text: t.get('tabAi'), icon: const Icon(Icons.auto_awesome, size: 16.0)),
                         Tab(text: t.get('tabMusic'), icon: const Icon(Icons.music_note, size: 16.0)),
                         Tab(text: t.get('tabDocs'), icon: const Icon(Icons.insert_drive_file, size: 16.0)),
                         Tab(text: t.get('tabQueue'), icon: const Icon(Icons.playlist_add_check, size: 16.0)),
@@ -88,6 +90,7 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                       controller: _subTabController,
                       children: [
                         _buildMediaGridContent(viewModel),
+                        const AiTab(),
                         _buildMusicPickerContent(viewModel),
                         _buildDocPickerContent(viewModel),
                         _buildQueueListContent(viewModel),
@@ -1392,6 +1395,93 @@ class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTi
                                   vm.lastAudioSyncDate.isNotEmpty
                                       ? t.get('resumeMusicSync')
                                       : t.get('startMusicBackup'),
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 14.0),
+
+                    // Card 3: 同步 PC 端 AI 矢量与分类 (Sync PC AI Vectors & Categories)
+                    Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B).withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(16.0),
+                        border: Border.all(color: const Color(0xFFC084FC).withOpacity(0.35)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6.0),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFC084FC).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                child: const Icon(Icons.auto_awesome, color: Color(0xFFC084FC), size: 18.0),
+                              ),
+                              const SizedBox(width: 10.0),
+                              Expanded(
+                                child: Text(
+                                  t.get('aiVectorSyncTitle'),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14.0,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8.0),
+                          Text(
+                            t.get('aiVectorSyncDesc'),
+                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12.0, height: 1.4),
+                          ),
+                          const SizedBox(height: 12.0),
+                          if (vm.isAiVectorSyncing) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  t.get('syncingAiVectors'),
+                                  style: const TextStyle(color: Color(0xFFC084FC), fontSize: 12.0, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(
+                                  width: 14.0,
+                                  height: 14.0,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.0,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC084FC)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF8B5CF6),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 10.0),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                                  elevation: 0,
+                                ),
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  vm.syncAiVectorsFromPc();
+                                },
+                                icon: const Icon(Icons.download_for_offline_rounded, size: 16.0),
+                                label: Text(
+                                  t.get('syncAiVectorsBtn'),
                                   style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                                 ),
                               ),

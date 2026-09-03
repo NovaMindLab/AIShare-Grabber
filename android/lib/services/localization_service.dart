@@ -128,9 +128,14 @@ class LocalizationService extends ChangeNotifier {
 
       // Transfer Console & Sync Hub
       'tabMedia': 'Media',
+      'tabAi': 'AI Album',
       'tabMusic': 'Music',
       'tabDocs': 'Docs',
       'tabQueue': 'Queue',
+      'aiVectorSyncTitle': 'Sync PC AI Vectors & Categories',
+      'aiVectorSyncDesc': 'Pull computed AI categories and feature vectors from PC for offline instant filtering and category freedom.',
+      'syncAiVectorsBtn': 'Sync AI Vectors Now',
+      'syncingAiVectors': 'Syncing AI Vectors from PC...',
       'send': 'Send',
       'receiving': 'Receiving file...',
       'transmitting': 'Transmitting file...',
@@ -272,9 +277,14 @@ class LocalizationService extends ChangeNotifier {
 
       // Transfer Console & Sync Hub
       'tabMedia': '📸 媒体',
+      'tabAi': '✨ AI相册',
       'tabMusic': '🎵 音乐',
       'tabDocs': '📄 文档',
       'tabQueue': '📥 队列',
+      'aiVectorSyncTitle': '同步 PC 端 AI 矢量与分类',
+      'aiVectorSyncDesc': '从电脑拉取已计算好的分类标准与特征向量，支持手机端离线分类自由与毫秒级筛选。',
+      'syncAiVectorsBtn': '立即拉取 AI 矢量与分类',
+      'syncingAiVectors': '正在从 PC 同步 AI 矢量数据...',
       'send': '发送',
       'receiving': '正在接收电脑文件...',
       'transmitting': '正在发送文件...',
