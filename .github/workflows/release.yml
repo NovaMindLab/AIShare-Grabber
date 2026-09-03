@@ -1,9 +1,6 @@
 name: 🚀 ShareCLIP Multi-Platform Cloud Release
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       version:
