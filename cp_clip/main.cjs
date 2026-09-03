@@ -2812,12 +2812,13 @@ ipcMain.handle('save-full-photo', async (event, { fileId, payload, metadata }) =
     filename = safeName;
   }
   
+  const createDate = metadata && metadata.create_date ? metadata.create_date : null;
+  const duration = metadata && metadata.duration ? metadata.duration : null;
+  
   // Register record in SQLite database if device is connected
   if (activeDeviceUuid && activeDeviceDb) {
     const size = fullBuffer.length;
     const syncTime = Date.now();
-    const createDate = metadata && metadata.create_date ? metadata.create_date : null;
-    const duration = metadata && metadata.duration ? metadata.duration : null;
     
     // Get the cached embedding Buffer
     let embeddingBuffer = null;
