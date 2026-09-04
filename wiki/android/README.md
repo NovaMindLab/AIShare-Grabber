@@ -49,7 +49,9 @@ stateDiagram-v2
     generatingOffer --> sendingOffer
     sendingOffer --> waitingForAnswer
     waitingForAnswer --> connectingWebRtc
-    connectingWebRtc --> connected : DataChannel open
+    connectingWebRtc --> waitingHandshakeAck : DataChannel open (Send -3 Handshake, start 15s watchdog)
+    waitingHandshakeAck --> connected : Packet -4 ACK received from PC (Verified)
+    waitingHandshakeAck --> failed : 15s Handshake Timeout / Error
     connectingWebRtc --> failed : Timeout / Error
     failed --> scanning : Retry
     failed --> home : Back to Home
@@ -69,6 +71,8 @@ stateDiagram-v2
 
 ## 📡 Protocols
 For detailed connection specifications, see:
+*   [WebRTC Connection Decoupling & Handshake State Machine](file:///d:/AI_serach_image/image_clip_android/wiki/features/connection_decoupling_and_state_machine.md)
+*   [Mobile Offline AI Classification & Vector Search](file:///d:/AI_serach_image/image_clip_android/wiki/features/mobile_offline_ai_vector_search.md)
 *   [WebRTC Stability & Multi-Device Sync Engine](file:///d:/AI_serach_image/image_clip_android/wiki/features/webrtc_stability_and_sync_engine.md)
 *   [BLE Signaling Protocol](file:///d:/AI_serach_image/image_clip_android/wiki/android/BLE_Signaling.md)
 *   [WebRTC Channel Protocol](file:///d:/AI_serach_image/image_clip_android/wiki/android/WebRTC_Protocol.md)

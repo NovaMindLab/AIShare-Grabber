@@ -33,6 +33,12 @@
 ### 9. [全屏大图预览 (Lightbox) 层级冲突与控制栏重构](file:///d:/AI_serach_image/image_clip_android/wiki/pc/lightbox_and_window_controls.md)
 *   **内容**：分析 Electron 无边框窗口自定义标题栏（`z-index: 9999`）与全屏大图（`z-index: 1000`）的层级遮挡与点击事件拦截问题。详解 `z-index: 10000` 提升、拖拽区（`-webkit-app-region: drag`）与操作区分离、高亮药丸关闭按钮 `✕ 关闭大图 (ESC)` 及窗口控制组件的无缝融合。
 
+### 10. [WebRTC 连接彻底解耦与独立 ConnectionManager 单例架构](file:///d:/AI_serach_image/image_clip_android/wiki/features/connection_decoupling_and_state_machine.md)
+*   **内容**：将 WebRTC PeerConnection、DataChannel 生命周期、ICE 队列、UDP/HTTP 双通道信令、心跳 Keepalive 及 25s 协商看门狗全部从 `App.vue` 剥离并收拢进独立单例 `ConnectionManager.js`；加入 UDP Answer SDP 800B 分片保护机制，彻底消除局域网路由器丢包与业务耦合。
+
+### 11. [双核/低配电脑 (i3/i5 U系列核显) AI 推理引擎极致优化与零碎片内存池](file:///d:/AI_serach_image/image_clip_android/wiki/features/low_end_cpu_ai_optimization.md)
+*   **内容**：针对 81.6% 存量 2核/4核 超极本机型（Intel HD 520/620 核显、4G/8G 内存），强制 CPU AVX2 算子优化、静态预分配零拷贝内存池消除 4.7GB+ 动态 malloc 与 GC 暂停，优先解码 400x400 缩略图（3ms vs 50ms），6000 张相片全量预测提速 3 倍。
+
 ---
 
 ## 🏗️ 整体系统架构图
