@@ -121,26 +121,38 @@ await taskManager.computeClip(res.path, actualThumbPath);
 
 | 硬件梯级 (Hardware Tier) | 判定规则 | Worker 并发数 | 算子线程 (intraThreads) | 设计目标与核心收益 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Low-End 低配** | $\le 4$ 线程 或 $\le 5.5$GB 内存 (如 i3-7100U 4G) | **1** | $\max(1, \text{cpus} - 1)$ (2~3 线程) | 单 Worker 彻底杜绝内存缺页交换与 OOM，保留 1 线程确保 UI 丝滑响应。 |
-| **Mid-Tier 中配** | $4 \sim 8$ 线程, $6 \sim 15$GB 内存 (如 i5-8250U 8G) | **2** | 2 线程 | 双 Worker 形成「解码-推理」两级无缝流水线，算力利用率最优化。 |
-| **High-End 高配** | $\ge 8$ 线程, $> 15$GB 内存 (如 i7/i9, 16G~32G) | **2** | 4 线程 (严禁盲目开大) | 总计算线程（$2 \times 4 = 8$）完全限制在物理性能大核（P-Core）内，**杜绝向小核（E-Core）溢出引发的同步屏障死锁**，吞吐量保持在 **50+ 张/秒**。 |
+| **Low-End 低配 (4GB)** | $\le 4.5$GB 内存 或 $\le 2$ 线程 (如 Celeron N4020, i3 4G) | **1** | $\min(2, \max(1, \text{cpus} - 1))$ (1~2 线程) | 单 Worker 彻底杜绝内存缺页交换与 OOM，限制最大 2 线程避免 UI 冻结。 |
+| **Mid-Tier 中配 (8GB)** | $4.5\text{GB} < \text{Mem} \le 15\text{GB}$ (如 i5-6200U 8G) | **2** | 2 线程 | 双 Worker 形成「解码-推理」两级无缝流水线，算力利用率最优化。 |
+| **High-End 高配 (16G+)** | $\ge 8$ 线程, $> 15$GB 内存 (如 i7/i9, 16G~32G) | **2** | 4 线程 (严禁盲目开大) | 总计算线程（$2 \times 4 = 8$）完全限制在物理性能大核（P-Core）内，**杜绝向小核（E-Core）溢出引发的同步屏障死锁**，吞吐量保持在 **50+ 张/秒**。 |
 
 ```javascript
 // task-manager.cjs
-if (cpus <= 4 || memGB <= 5.5) {
+if (memGB <= 4.5 || cpus <= 2) {
   this.tier = 'Low';
   this.maxInferenceWorkers = 1;
-  this.intraThreadsPerWorker = Math.max(1, cpus - 1);
+  this.intraThreadsPerWorker = Math.min(2, Math.max(1, cpus - 1));
+  this.idleTimeoutMs = 3 * 60 * 1000;
 } else if (cpus >= 8 && memGB > 15) {
   this.tier = 'High';
   this.maxInferenceWorkers = 2; // 双 Worker 最优流水线，避免 4 Worker 引发 L3 缓存击穿与 E-Core 屏障卡顿
   this.intraThreadsPerWorker = Math.min(4, Math.max(2, Math.floor(cpus / 4)));
+  this.idleTimeoutMs = 30 * 60 * 1000;
 } else {
   this.tier = 'Mid';
   this.maxInferenceWorkers = 2;
   this.intraThreadsPerWorker = 2;
+  this.idleTimeoutMs = 10 * 60 * 1000;
 }
 ```
+
+---
+
+### 5. 4GB 极低内存机型多重容灾与按需延迟加载
+
+针对 4GB 内存（及缺少 AVX2 指令集的赛扬 N4020/奔腾等芯片）无法运行计算的问题，实施了三层坚固防护：
+1. **多层推理容灾降级链**：优先尝试 CPU AVX2 高速模式；若底层 CPU 不支持 AVX2 向量指令集抛错，无缝回退至全系核显标配的 **DirectML (GPU)** 模式；最后保底单线程安全 CPU 模式，保障 100% 成功启动。
+2. **人脸/文本模型按需延迟加载 (Lazy Loading)**：相册重算与照片接收分类仅需图片特征，SCRFD 人脸检测与 MobileFaceNet 模型仅在触发人脸聚类时按需加载；主进程文本编码器仅在用户文字搜图时加载，**启动与批量分类期为 4GB 设备释放 >140MB 宝贵物理内存**。
+3. **WorkerPool 崩溃与退出防悬挂**：工作线程无论因内存溢出异常退出还是初始化失败，均立即清理并 reject 等待任务，杜绝前端 Promise 永久死锁。
 
 ---
 

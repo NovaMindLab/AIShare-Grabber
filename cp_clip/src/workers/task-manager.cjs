@@ -26,8 +26,18 @@ class WorkerPool {
       // Handle initialization responses
       if (msg.type === 'init_result') {
         if (!msg.success) {
-           console.warn(`[WorkerPool] Init failed for ${path.basename(this.scriptPath)}:`, msg.error || msg);
+           const errMsg = `[WorkerPool] Init failed for ${path.basename(this.scriptPath)}: ${msg.error || JSON.stringify(msg)}`;
+           console.warn(errMsg);
            this.workers = this.workers.filter(w => w !== workerObj);
+           
+           // If no other workers exist and tasks are waiting in queue, reject them to prevent hanging forever
+           if (this.workers.length === 0 && this.queue.length > 0) {
+             const initErr = new Error(errMsg);
+             while (this.queue.length > 0) {
+               const task = this.queue.shift();
+               task.reject(initErr);
+             }
+           }
         } else {
            console.log(`[WorkerPool] Init success for ${path.basename(this.scriptPath)}`);
            workerObj.initialized = true;
@@ -62,8 +72,16 @@ class WorkerPool {
       this._pumpQueue();
     });
 
-    worker.on('exit', () => {
+    worker.on('exit', (code) => {
+      if (workerObj.callbacks.size > 0) {
+        const exitErr = new Error(`[WorkerPool] Worker ${path.basename(this.scriptPath)} terminated unexpectedly (exit code ${code})`);
+        for (const resolveObj of workerObj.callbacks.values()) {
+          resolveObj.reject(exitErr);
+        }
+        workerObj.callbacks.clear();
+      }
       this.workers = this.workers.filter(w => w !== workerObj);
+      this._pumpQueue();
     });
 
     if (this.initData) {
@@ -135,20 +153,20 @@ class TaskManager {
     const memGB = os.totalmem() / (1024 ** 3);
 
     // Dynamic Hardware Sniffing & Safe Thread Budgeting:
-    // Low-end (<= 4 logical threads or <= 5.5GB RAM, e.g. i3-7100U, i5-6200U 4GB):
-    // 1 Worker, 2-3 intra threads. Single worker guarantees 0 memory thrashing and prevents OOM.
+    // Low-end (<= 4.5GB RAM or <= 2 threads, e.g. Celeron N4020, i3/i5 4GB):
+    // 1 Worker, max 2 intra threads. Single worker guarantees 0 memory thrashing and prevents OOM.
     //
-    // Mid-tier (4-8 logical threads, 6GB-15GB RAM, e.g. i5-6200U 8GB, i5-8250U 8GB):
+    // Mid-tier (4.5GB-15GB RAM, e.g. i5-6200U 8GB, i5-8250U 8GB):
     // 2 Workers, 2 intra threads per worker (4 threads total).
     //
     // High-tier (>= 8 logical threads, > 15GB RAM, e.g. i7-11800H, i9-13900H, Ryzen 7/9 16GB-32GB):
     // Exactly 2 Workers forming an interleaved 2-stage pipeline (Worker 1 decodes with Sharp while Worker 2 computes ONNX).
     // Benchmarks prove: 2 workers yield 52.4 img/s (19.1ms/img), whereas 4 workers thrash L3 cache & E-cores down to 12.5 img/s!
     // intraThreads is set to 4 per worker (total 8 threads), perfectly matching the P-cores without E-core barrier stalls!
-    if (cpus <= 4 || memGB <= 5.5) {
+    if (memGB <= 4.5 || cpus <= 2) {
       this.tier = 'Low';
       this.maxInferenceWorkers = 1;
-      this.intraThreadsPerWorker = Math.max(1, cpus - 1);
+      this.intraThreadsPerWorker = Math.min(2, Math.max(1, cpus - 1));
       this.idleTimeoutMs = 3 * 60 * 1000;
     } else if (cpus >= 8 && memGB > 15) {
       this.tier = 'High';
@@ -169,8 +187,8 @@ class TaskManager {
 
     // --- Stage 3: SharedArrayBuffer Setup ---
     if (this.tier === 'Low') {
-      this.MAX_IMAGES = 20000;  // 40MB
-      this.MAX_FACES = 10000;   // 20MB
+      this.MAX_IMAGES = 10000;  // 20MB max
+      this.MAX_FACES = 5000;    // 10MB max
     } else if (this.tier === 'Mid') {
       this.MAX_IMAGES = 50000;  // 100MB
       this.MAX_FACES = 20000;   // 40MB
@@ -180,23 +198,35 @@ class TaskManager {
     }
     
     this.DIM = 512;
-    // Allocate shared memory dynamically based on tier using WebAssembly.Memory
+    const initialPages = this.tier === 'Low' ? 8 : 16;
     const maxPages = Math.ceil((this.MAX_IMAGES * this.DIM * 4) / 65536);
-    this.wasmMemImages = new WebAssembly.Memory({ initial: 16, maximum: maxPages, shared: true });
-    this.sharedBuffer = this.wasmMemImages.buffer;
+    try {
+      this.wasmMemImages = new WebAssembly.Memory({ initial: initialPages, maximum: maxPages, shared: true });
+      this.sharedBuffer = this.wasmMemImages.buffer;
+    } catch (e) {
+      console.warn("[TaskManager] Image WebAssembly.Memory allocation failed, fallback to SharedArrayBuffer:", e.message);
+      this.sharedBuffer = new SharedArrayBuffer(maxPages * 65536);
+      this.wasmMemImages = null;
+    }
     this.floatView = new Float32Array(this.sharedBuffer);
     this.imageToIndex = new Map();
     this.nextIndex = 1; // Reserve index 0 for the query vector
 
     // Face SharedArrayBuffer Allocation
     const maxFacePages = Math.ceil((this.MAX_FACES * this.DIM * 4) / 65536);
-    this.wasmMemFaces = new WebAssembly.Memory({ initial: 16, maximum: maxFacePages, shared: true });
-    this.faceSharedBuffer = this.wasmMemFaces.buffer;
+    try {
+      this.wasmMemFaces = new WebAssembly.Memory({ initial: initialPages, maximum: maxFacePages, shared: true });
+      this.faceSharedBuffer = this.wasmMemFaces.buffer;
+    } catch (e) {
+      console.warn("[TaskManager] Face WebAssembly.Memory allocation failed, fallback to SharedArrayBuffer:", e.message);
+      this.faceSharedBuffer = new SharedArrayBuffer(maxFacePages * 65536);
+      this.wasmMemFaces = null;
+    }
     this.faceFloatView = new Float32Array(this.faceSharedBuffer);
     this.faceIdToIndex = new Map();
     this.nextFaceIndex = 0;
     
-    console.log(`[TaskManager] Allocated initial 1MB Image SAB (Max ${maxPages} pages) and 1MB Face SAB for Zero-Copy exchange.`);
+    console.log(`[TaskManager] Allocated initial ${initialPages * 64}KB Image SAB (Max ${maxPages} pages) and Face SAB for Zero-Copy exchange.`);
   }
   
   getSabIndex(imagePath) {
@@ -220,18 +250,20 @@ class TaskManager {
     const sabIndex = this.getSabIndex(imagePath);
     if (sabIndex !== -1 && embedding) {
       const requiredBytes = (sabIndex + 1) * this.DIM * 4;
-      if (requiredBytes > this.sharedBuffer.byteLength) {
+      if (requiredBytes > this.sharedBuffer.byteLength && this.wasmMemImages) {
         const pagesToGrow = Math.ceil((requiredBytes - this.sharedBuffer.byteLength) / 65536);
-        const growPages = Math.max(pagesToGrow, 100);
+        const growPages = Math.max(pagesToGrow, 50);
         try {
           this.wasmMemImages.grow(growPages);
         } catch(e) {
-          this.wasmMemImages.grow(pagesToGrow);
+          try { this.wasmMemImages.grow(pagesToGrow); } catch (_) {}
         }
         this.sharedBuffer = this.wasmMemImages.buffer; // FIX: Update buffer reference
         this.floatView = new Float32Array(this.sharedBuffer); // Refresh view
       }
-      this.floatView.set(embedding, sabIndex * this.DIM);
+      if (sabIndex * this.DIM + embedding.length <= this.floatView.length) {
+        this.floatView.set(embedding, sabIndex * this.DIM);
+      }
     }
     return sabIndex;
   }
@@ -253,30 +285,31 @@ class TaskManager {
     const sabIndex = this.getFaceSabIndex(faceId);
     if (sabIndex !== -1 && embedding) {
       const requiredBytes = (sabIndex + 1) * this.DIM * 4;
-      if (requiredBytes > this.faceSharedBuffer.byteLength) {
+      if (requiredBytes > this.faceSharedBuffer.byteLength && this.wasmMemFaces) {
         const pagesToGrow = Math.ceil((requiredBytes - this.faceSharedBuffer.byteLength) / 65536);
-        const growPages = Math.max(pagesToGrow, 100);
+        const growPages = Math.max(pagesToGrow, 50);
         try {
           this.wasmMemFaces.grow(growPages);
         } catch(e) {
-          this.wasmMemFaces.grow(pagesToGrow);
+          try { this.wasmMemFaces.grow(pagesToGrow); } catch (_) {}
         }
         this.faceSharedBuffer = this.wasmMemFaces.buffer; // FIX: Update buffer reference
         this.faceFloatView = new Float32Array(this.faceSharedBuffer); // Refresh view
       }
-      this.faceFloatView.set(embedding, sabIndex * this.DIM);
+      if (sabIndex * this.DIM + embedding.length <= this.faceFloatView.length) {
+        this.faceFloatView.set(embedding, sabIndex * this.DIM);
+      }
     }
     return sabIndex;
   }
 
   init(modelPath, scrfdModelPath = null, mobilefacenetModelPath = null) {
-    // Use the tier-based maxInferenceWorkers (e.g., up to 6 on High tier) to fully utilize CPU
-    const inferenceWorkers = this.maxInferenceWorkers || Math.max(1, Math.floor(cpus / 2) - 1);
+    const inferenceWorkers = this.maxInferenceWorkers || 1;
     
     this.inferencePool = new WorkerPool(
       path.join(__dirname, 'inference.worker.cjs'), 
       inferenceWorkers, 
-      60000,
+      this.idleTimeoutMs || 60000,
       { 
         physicalModelPath: modelPath,
         physicalScrfdModelPath: scrfdModelPath,

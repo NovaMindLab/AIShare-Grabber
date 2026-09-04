@@ -26,11 +26,67 @@ const clipFloat32 = new Float32Array(3 * CLIP_IMAGE_SIZE);
 const SCRFD_IMAGE_SIZE = 640 * 640;
 const scrfdFloat32 = new Float32Array(3 * SCRFD_IMAGE_SIZE);
 
+let physicalScrfdPath = null;
+let physicalMobilefacenetPath = null;
+let cachedActiveSessionOptions = null;
+
+async function ensureFaceSessions() {
+  if (scrfdSession && mobilefacenetSession) return true;
+  if (!ort) throw new Error("onnxruntime-node is not available");
+
+  const options = cachedActiveSessionOptions || {
+    executionProviders: ['cpu'],
+    executionMode: 'sequential',
+    intraOpNumThreads: 1,
+    interOpNumThreads: 1
+  };
+
+  if (!scrfdSession && physicalScrfdPath && fs.existsSync(physicalScrfdPath)) {
+    try {
+      scrfdSession = await ort.InferenceSession.create(physicalScrfdPath, options);
+      console.log("[Inference Worker] SCRFD Face Detection ONNX model loaded lazily on demand.");
+    } catch (e) {
+      console.warn("[Inference Worker] SCRFD model lazy load failed, trying CPU 1-thread fallback:", e.message);
+      try {
+        scrfdSession = await ort.InferenceSession.create(physicalScrfdPath, {
+          executionProviders: ['cpu'],
+          executionMode: 'sequential',
+          intraOpNumThreads: 1,
+          interOpNumThreads: 1
+        });
+      } catch (err2) {
+        console.warn("[Inference Worker] SCRFD model fallback failed:", err2.message);
+      }
+    }
+  }
+
+  if (!mobilefacenetSession && physicalMobilefacenetPath && fs.existsSync(physicalMobilefacenetPath)) {
+    try {
+      mobilefacenetSession = await ort.InferenceSession.create(physicalMobilefacenetPath, options);
+      console.log("[Inference Worker] MobileFaceNet Face Embedding ONNX model loaded lazily on demand.");
+    } catch (e) {
+      console.warn("[Inference Worker] MobileFaceNet model lazy load failed, trying CPU 1-thread fallback:", e.message);
+      try {
+        mobilefacenetSession = await ort.InferenceSession.create(physicalMobilefacenetPath, {
+          executionProviders: ['cpu'],
+          executionMode: 'sequential',
+          intraOpNumThreads: 1,
+          interOpNumThreads: 1
+        });
+      } catch (err2) {
+        console.warn("[Inference Worker] MobileFaceNet fallback failed:", err2.message);
+      }
+    }
+  }
+
+  return !!(scrfdSession && mobilefacenetSession);
+}
+
 parentPort.on('message', async (msg) => {
   if (msg.type === 'init') {
     const physicalModelPath = msg.physicalModelPath;
-    const physicalScrfdModelPath = msg.physicalScrfdModelPath;
-    const physicalMobilefacenetModelPath = msg.physicalMobilefacenetModelPath;
+    physicalScrfdPath = msg.physicalScrfdModelPath;
+    physicalMobilefacenetPath = msg.physicalMobilefacenetModelPath;
 
     if (ort && fs.existsSync(physicalModelPath)) {
       try {
@@ -41,50 +97,75 @@ parentPort.on('message', async (msg) => {
         }
         const os = require('os');
         const cpus = os.cpus().length;
-        // Optimal intra-op thread allocation:
-        // On low-end dual-core machines (<= 4 threads), cpus - 1 maximizes matrix math while keeping system responsive.
-        // On multi-core high-end machines (>= 8 threads), 4 intra-threads per worker provides peak AVX2 throughput
-        // while fitting completely within physical Performance-Cores (P-Cores) to avoid E-Core barrier synchronization lag.
         const intraThreads = msg.intraThreads || (cpus <= 4 ? Math.max(1, cpus - 1) : Math.min(4, Math.max(2, Math.floor(cpus / 4))));
-        let activeSessionOptions = {
-          executionProviders: ['cpu'],
-          executionMode: 'sequential',
-          intraOpNumThreads: intraThreads,
-          interOpNumThreads: 1
-        };
+
+        // Tiered multi-layer provider fallback:
+        // Priority 1: High-throughput CPU AVX2 (Peak speed on supported processors)
+        // Priority 2: DirectML GPU (Handles Celeron N4020/Atom without AVX2, low-end integrated graphics)
+        // Priority 3: Safe CPU single-thread mode (Minimal memory overhead resilience)
+        let sessionLoaded = false;
+        let lastError = null;
+
+        // Attempt 1: CPU with assigned intraThreads
         try {
-          ortSession = await ort.InferenceSession.create(physicalModelPath, activeSessionOptions);
-          console.log(`[Inference Worker] MobileCLIP Image Encoder ONNX model loaded successfully (CPU AVX2, intraThreads: ${intraThreads}).`);
-        } catch (dmlErr) {
-          console.warn("[Inference Worker] Preferred CPU provider failed (" + dmlErr.message + "). Falling back...");
-          activeSessionOptions = {
+          const cpuOptions = {
             executionProviders: ['cpu'],
             executionMode: 'sequential',
-            intraOpNumThreads: 1,
+            intraOpNumThreads: intraThreads,
             interOpNumThreads: 1
           };
-          ortSession = await ort.InferenceSession.create(physicalModelPath, activeSessionOptions);
-          console.log(`[Inference Worker] MobileCLIP Image Encoder ONNX model loaded (CPU fallback, intraThreads: 1).`);
+          ortSession = await ort.InferenceSession.create(physicalModelPath, cpuOptions);
+          cachedActiveSessionOptions = cpuOptions;
+          sessionLoaded = true;
+          console.log(`[Inference Worker] MobileCLIP Image Encoder ONNX model loaded successfully (CPU AVX2/SSE, intraThreads: ${intraThreads}).`);
+        } catch (cpuErr) {
+          lastError = cpuErr;
+          console.warn(`[Inference Worker] Preferred CPU provider failed (${cpuErr.message}). Trying DirectML GPU fallback...`);
         }
 
-        if (physicalScrfdModelPath && fs.existsSync(physicalScrfdModelPath)) {
+        // Attempt 2: DirectML GPU fallback
+        if (!sessionLoaded) {
           try {
-            scrfdSession = await ort.InferenceSession.create(physicalScrfdModelPath, activeSessionOptions);
-            console.log("[Inference Worker] SCRFD Face Detection ONNX model loaded successfully.");
-          } catch (e) {
-            console.warn("[Inference Worker] SCRFD model load failed, face detection disabled:", e.message);
+            const dmlOptions = {
+              executionProviders: ['dml', 'cpu'],
+              executionMode: 'sequential',
+              intraOpNumThreads: 1,
+              interOpNumThreads: 1
+            };
+            ortSession = await ort.InferenceSession.create(physicalModelPath, dmlOptions);
+            cachedActiveSessionOptions = dmlOptions;
+            sessionLoaded = true;
+            console.log(`[Inference Worker] MobileCLIP Image Encoder ONNX model loaded successfully (DirectML GPU fallback).`);
+          } catch (dmlErr) {
+            lastError = dmlErr;
+            console.warn(`[Inference Worker] DirectML fallback failed (${dmlErr.message}). Trying single-thread safe CPU...`);
           }
         }
 
-        if (physicalMobilefacenetModelPath && fs.existsSync(physicalMobilefacenetModelPath)) {
+        // Attempt 3: Safe CPU single-thread mode
+        if (!sessionLoaded) {
           try {
-            mobilefacenetSession = await ort.InferenceSession.create(physicalMobilefacenetModelPath, activeSessionOptions);
-            console.log("[Inference Worker] MobileFaceNet Face Embedding ONNX model loaded successfully.");
-          } catch (e) {
-            console.warn("[Inference Worker] MobileFaceNet model load failed, face embedding disabled:", e.message);
+            const safeOptions = {
+              executionProviders: ['cpu'],
+              executionMode: 'sequential',
+              intraOpNumThreads: 1,
+              interOpNumThreads: 1
+            };
+            ortSession = await ort.InferenceSession.create(physicalModelPath, safeOptions);
+            cachedActiveSessionOptions = safeOptions;
+            sessionLoaded = true;
+            console.log(`[Inference Worker] MobileCLIP Image Encoder ONNX model loaded successfully (Safe CPU 1-thread fallback).`);
+          } catch (safeErr) {
+            lastError = safeErr;
           }
         }
 
+        if (!sessionLoaded || !ortSession) {
+          throw new Error(`All ONNX execution providers failed to load model. Last error: ${lastError ? lastError.message : 'Unknown'}`);
+        }
+
+        // Note: SCRFD and MobileFaceNet are now loaded lazily on demand during compute_face!
+        // This saves >50MB RAM and eliminates extra thread pools during batch image reclassification.
         parentPort.postMessage({ type: 'init_result', success: true });
       } catch (err) {
         console.error("[Inference Worker] Failed to initialize Image Encoder ONNX model session:", err);
@@ -149,6 +230,7 @@ parentPort.on('message', async (msg) => {
     const imagePath = msg.imagePath;
 
     try {
+      await ensureFaceSessions();
       if (!scrfdSession || !sharp) {
         throw new Error("Face models or Sharp not initialized.");
       }

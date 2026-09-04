@@ -302,21 +302,45 @@ async function initializeAI() {
     console.error("[AI Init] TaskManager failed to initialize models:", err);
   }
 
-  // 4. Load Text Encoder ONNX Model
+  // 4. Text Encoder ONNX Model (Deferred to lazy on-demand loading to save ~92MB RAM at startup)
+  console.log("[AI Init] Text Encoder ONNX model deferred to lazy on-demand loading.");
+}
+
+let textEncoderSessionPromise = null;
+async function getTextEncoderSession() {
+  if (textEncoderSession) return textEncoderSession;
+  if (textEncoderSessionPromise) return textEncoderSessionPromise;
+
+  const onnxRuntime = getOrt();
+  const textModelPath = path.join(__dirname, 'mobileclip2_s0_text_encoder_quant.onnx');
   const physicalTextModelPath = getPhysicalPath(textModelPath);
-  if (onnxRuntime && fs.existsSync(physicalTextModelPath)) {
-    try {
-      console.log("[AI Init] Loading MobileCLIP Text Encoder ONNX model from:", physicalTextModelPath);
-      textEncoderSession = await onnxRuntime.InferenceSession.create(physicalTextModelPath, {
-        executionProviders: ['cpu']
-      });
-      console.log("[AI Init] MobileCLIP Text Encoder ONNX model loaded successfully (CPU execution provider).");
-    } catch (err) {
-      console.error("[AI Init] Failed to initialize Text Encoder ONNX model session:", err);
-    }
-  } else {
-    console.warn("[AI Init] Text Encoder ONNX model not found or onnxruntime-node missing. Search will run in mock mode.");
+
+  if (!onnxRuntime || !fs.existsSync(physicalTextModelPath)) {
+    console.warn("[AI Search] Text Encoder ONNX model not found or onnxruntime-node missing. Search will run in mock mode.");
+    return null;
   }
+
+  textEncoderSessionPromise = (async () => {
+    try {
+      console.log("[AI Search] Loading MobileCLIP Text Encoder ONNX model lazily from:", physicalTextModelPath);
+      const session = await onnxRuntime.InferenceSession.create(physicalTextModelPath, {
+        executionProviders: ['cpu'],
+        executionMode: 'sequential',
+        intraOpNumThreads: 2,
+        interOpNumThreads: 1
+      });
+      textEncoderSession = session;
+      console.log("[AI Search] MobileCLIP Text Encoder ONNX model loaded lazily successfully.");
+      return session;
+    } catch (err) {
+      console.error("[AI Search] Failed to lazily load Text Encoder ONNX model session:", err);
+      return null;
+    } finally {
+      textEncoderSessionPromise = null;
+    }
+  })();
+
+  return textEncoderSessionPromise;
 }
 
 // Math: Cosine Similarity
@@ -611,7 +635,7 @@ async function scanFacesOnDemand(event) {
   let lastDurationMs = 0;
 
   // Batched DB write buffers — flush faces and scanned photo updates in a single transaction
-  const DB_FLUSH_SIZE = 50;
+  const DB_FLUSH_SIZE = (taskManager.tier === 'Low') ? 10 : 50;
   const pendingFaces = [];
   const pendingScannedPhotoIds = [];
 
@@ -1397,7 +1421,7 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
   let totalSingleLatency = 0;
 
   // Batched DB write buffer — flush every DB_FLUSH_SIZE items in a single transaction
-  const DB_FLUSH_SIZE = 50;
+  const DB_FLUSH_SIZE = (taskManager.tier === 'Low') ? 10 : 50;
   const dbWriteBuffer = [];
 
   const flushDbBuffer = () => {
@@ -3219,7 +3243,8 @@ ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
       return [];
     }
 
-    if (!textEncoderSession || !tokenizer) {
+    const activeTextSession = await getTextEncoderSession();
+    if (!activeTextSession || !tokenizer) {
       throw new Error("AI models are not fully initialized. Cannot perform search.");
     }
 
@@ -3237,11 +3262,11 @@ ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
     const tensor = new ort.Tensor('int64', bigintData, [1, 77]);
     
     // 4. Run ONNX session
-    const inputName = textEncoderSession.inputNames[0];
+    const inputName = activeTextSession.inputNames[0];
     const feeds = {};
     feeds[inputName] = tensor;
-    const outputs = await textEncoderSession.run(feeds);
-    const outputName = textEncoderSession.outputNames[0];
+    const outputs = await activeTextSession.run(feeds);
+    const outputName = activeTextSession.outputNames[0];
     const textFeatures = outputs[outputName].data; // Float32Array (512-dim)
     
     // 5. L2 Normalize query embedding
