@@ -77,6 +77,11 @@ if (-not $NoBump) {
     }
 } else {
     Write-Host "ℹ️ [Version] Version bump skipped (-NoBump passed)." -ForegroundColor Yellow
+    $pcPkg = "$PSScriptRoot\cp_clip\package.json"
+    $curContent = Get-Content $pcPkg -Raw
+    if ($curContent -match '"version":\s*"([0-9.]+)"') {
+        $newVersion = $matches[1]
+    }
 }
 
 # 2. Resolve Token if not passed as parameter
@@ -196,6 +201,11 @@ if ($Publish) {
     }
 
     & $ghCmd release create $tag $assets --title "ShareCLIP $tag" --notes $releaseNotes --repo $Repo
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Release $tag may already exist, uploading/overwriting assets with --clobber..." -ForegroundColor Yellow
+        & $ghCmd release upload $tag $assets --repo $Repo --clobber
+        & $ghCmd release edit $tag --title "ShareCLIP $tag" --notes $releaseNotes --repo $Repo
+    }
     if ($LASTEXITCODE -eq 0) {
         Write-Host "`n🎉 Successfully published $tag to https://github.com/$Repo/releases/tag/$tag" -ForegroundColor Green
     } else {
