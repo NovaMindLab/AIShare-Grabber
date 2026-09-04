@@ -36,8 +36,8 @@
 ### 10. [WebRTC 连接彻底解耦与独立 ConnectionManager 单例架构](file:///d:/AI_serach_image/image_clip_android/wiki/features/connection_decoupling_and_state_machine.md)
 *   **内容**：将 WebRTC PeerConnection、DataChannel 生命周期、ICE 队列、UDP/HTTP 双通道信令、心跳 Keepalive 及 25s 协商看门狗全部从 `App.vue` 剥离并收拢进独立单例 `ConnectionManager.js`；加入 UDP Answer SDP 800B 分片保护机制，彻底消除局域网路由器丢包与业务耦合。
 
-### 11. [双核/低配电脑 (i3/i5 U系列核显) AI 推理引擎极致优化与零碎片内存池](file:///d:/AI_serach_image/image_clip_android/wiki/features/low_end_cpu_ai_optimization.md)
-*   **内容**：针对 81.6% 存量 2核/4核 超极本机型（Intel HD 520/620 核显、4G/8G 内存），强制 CPU AVX2 算子优化、静态预分配零拷贝内存池消除 4.7GB+ 动态 malloc 与 GC 暂停，优先解码 400x400 缩略图（3ms vs 50ms），6000 张相片全量预测提速 3 倍。
+### 11. [双核/低配电脑与 4GB 极低内存 AI 推理引擎极致优化、多层容灾与全机型分级](file:///d:/AI_serach_image/image_clip_android/wiki/features/low_end_cpu_ai_optimization.md)
+*   **内容**：针对 81.6% 存量双核/四核超极本及 4GB 内存老旧机型（如缺少 AVX2 的赛扬 N4020/N4120/Pentium），实现三级 ONNX 推理容灾降级（CPU AVX2 ➔ DirectML GPU ➔ Safe CPU）、人脸/文本模型全链路按需延迟加载（Lazy Loading 释放 >140MB 内存）、WorkerPool 异常崩溃防死锁，结合严格的 Low/Mid/High 硬件分级物理隔离与静态零拷贝内存池，解决 4GB 电脑无法启动 AI 计算的历史痛点，6000 张相片全量预测提速 3 倍且高低配互不干扰。
 
 ---
 
