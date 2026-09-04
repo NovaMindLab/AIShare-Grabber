@@ -1290,7 +1290,8 @@ async function processAiQueue() {
     const task = aiClassificationQueue.shift();
     try {
       if (fs.existsSync(task.targetPath)) {
-        const predictions = await classifyPhotoInternal(task.targetPath);
+        const thumbPath = task.isThumbnail ? task.targetPath : null;
+        const predictions = await classifyPhotoInternal(task.targetPath, thumbPath);
         const predictionsStr = JSON.stringify(predictions);
 
         let embeddingBuffer = null;
@@ -1375,8 +1376,19 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
   console.log(`[AI Reclassify] Found ${total} phone photos to reclassify.`);
 
   // 2. Sliding-window worker queue — each worker grabs next item immediately after finishing (no idle waiting)
-  const CONCURRENCY = taskManager.maxInferenceWorkers || 3;
+  const CONCURRENCY = taskManager.maxInferenceWorkers || 2;
   console.log(`[AI Reclassify] Processing ${total} photos with sliding-window concurrency: ${CONCURRENCY}`);
+
+  // Pre-load existing thumbnails into an in-memory Set to eliminate thousands of slow synchronous fs.existsSync disk calls
+  const thumbBaseDir = path.join(app.getPath('userData'), 'thumbnail_sync', activeDeviceUuid || 'default');
+  let existingThumbSet = null;
+  try {
+    if (fs.existsSync(thumbBaseDir)) {
+      existingThumbSet = new Set(fs.readdirSync(thumbBaseDir));
+    }
+  } catch (err) {
+    console.warn('[AI Reclassify] Could not read thumbnail directory:', err.message);
+  }
 
   const reclassifyStartTime = Date.now();
   let done = 0;
@@ -1452,11 +1464,10 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
         let thumbPath = null;
         if (row.type === 'thumbnail' || (row.name && row.name.startsWith('thumb_'))) {
           thumbPath = row.path;
-        } else if (row.name) {
+        } else if (row.name && existingThumbSet) {
           const thumbName = row.name.startsWith('album_') ? 'thumb_' + row.name.replace(/^album_/, '') : 'thumb_' + row.name;
-          const potentialThumb = path.join(app.getPath('userData'), 'thumbnail_sync', activeDeviceUuid || 'default', thumbName);
-          if (fs.existsSync(potentialThumb)) {
-            thumbPath = potentialThumb;
+          if (existingThumbSet.has(thumbName)) {
+            thumbPath = path.join(thumbBaseDir, thumbName);
           }
         }
 

@@ -41,12 +41,11 @@ parentPort.on('message', async (msg) => {
         }
         const os = require('os');
         const cpus = os.cpus().length;
-        // For ultra-lightweight edge models (MobileCLIP-S0 10MB, SCRFD 2.5MB, MobileFaceNet 4.5MB),
-        // ONNX Runtime CPU AVX2/FMA execution runs 3x-4x faster than integrated GPUs (Intel HD/UHD Graphics)
-        // by eliminating DirectX 12 resource allocation, D3D12 dispatch overhead, and PCIe/unified-memory ping-pong.
-        // On 2-core / 4-thread CPUs (e.g. i5-6200U/6300U/7200U/i3-7100U), 3 intra-op threads maximize
-        // matrix math throughput while leaving 1 thread for IPC and event loop responsiveness.
-        const intraThreads = cpus <= 4 ? Math.max(1, cpus - 1) : Math.min(6, Math.max(2, Math.floor(cpus / 2)));
+        // Optimal intra-op thread allocation:
+        // On low-end dual-core machines (<= 4 threads), cpus - 1 maximizes matrix math while keeping system responsive.
+        // On multi-core high-end machines (>= 8 threads), 4 intra-threads per worker provides peak AVX2 throughput
+        // while fitting completely within physical Performance-Cores (P-Cores) to avoid E-Core barrier synchronization lag.
+        const intraThreads = msg.intraThreads || (cpus <= 4 ? Math.max(1, cpus - 1) : Math.min(4, Math.max(2, Math.floor(cpus / 4))));
         let activeSessionOptions = {
           executionProviders: ['cpu'],
           executionMode: 'sequential',
@@ -110,7 +109,7 @@ parentPort.on('message', async (msg) => {
 
       // Real inference path with fastShrinkOnLoad enabled for high-res photos.
       // If a pre-generated local thumbnail exists, use it to avoid decoding 48MP raw image from disk!
-      const resolvedPath = (msg.thumbPath && fs.existsSync(msg.thumbPath)) ? msg.thumbPath : imagePath;
+      const resolvedPath = msg.thumbPath || imagePath;
       const clipBuffer = await sharp(resolvedPath)
         .resize(256, 256, { fit: 'cover', position: 'center', fastShrinkOnLoad: true })
         .removeAlpha()

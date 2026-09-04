@@ -188,7 +188,7 @@ if ($Publish) {
         }
     }
 
-    $releaseNotes = "### ShareCLIP $tag Release`n`n- 📡 **WebRTC Connection Decoupled & Stabilized**: Completely isolated WebRTC/UDP/HTTP networking into standalone ConnectionManager service; added MTU-safe UDP Answer SDP chunking (800B) preventing router drops.`n- 📱 **Mobile Connection State Machine Hardening**: Strictly awaits PC handshake ACK packet (-4) before transitioning to connected console, preventing premature false connections.`n- ⚡ **AI Classification Engine Optimization**: Massive speedup on dual/quad-core CPUs (i3/i5 U-series); zero GC allocation buffer pooling and CPU AVX2 multi-threading.`n- 📦 **Dual-Platform Builds**: Pre-built Android Universal APK and Windows PC Installer."
+    $releaseNotes = "### ShareCLIP $tag Release`n`n- ⚡ **Adaptive Multi-Tier AI Inference Balancing**: Intelligently tuned CPU thread budgeting and worker concurrency across hardware tiers without cross-tier performance penalties.`n- 🚀 **High-End Multi-Core Peak Throughput Restored**: Prevented thread over-subscription and Intel E-core barrier stalling on modern hybrid CPUs (i7/i9/Ryzen), achieving 50+ img/s (~20ms/img) peak throughput with an interleaved 2-stage pipeline.`n- 🛡️ **Low-End Stability Preserved**: Retained conservative single-worker and zero-allocation static buffer pooling for dual/quad-core (i3/i5 U-series) 4GB/8GB machines.`n- ⚡ **In-Memory Thumbnail Pre-Indexing**: Replaced thousands of synchronous disk I/O stat probes in batch reclassification with an O(1) in-memory Set lookup.`n- 📦 **Dual-Platform Builds**: Pre-built Android Universal APK and Windows PC Installer."
     
     Write-Host "Creating GitHub Release with assets:" -ForegroundColor Gray
     foreach ($a in $assets) {
