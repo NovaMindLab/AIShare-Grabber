@@ -68,11 +68,14 @@ flowchart TD
 
 针对 Node.js `worker_threads` 与 ONNX Runtime C++ 底层 OpenMP/Eigen 线程池的竞争，进行了关键参数的调优：
 
-- `intra_op_num_threads`（单个算子内部并行度）：设置为 **`1` 或 `2`**。避免单个图片推理抢占全部 CPU 核心。
-- `inter_op_num_threads`（算子图间并行度）：设置为 **`1`**。
-- `TaskManager.maxInferenceWorkers`：自适应探测宿主机逻辑核心数：
-  $$\text{Workers} = \min(4, \; \max(1, \; \text{CPU Cores} - 2))$$
-  为操作系统、Electron 渲染主线程及 WebRTC I/O 预留至少 2 个逻辑核心。
+- `intra_op_num_threads`（单个算子内部并行度）：
+  - **Low Tier ($\le 4.5$GB / $\le 2$C)**：设为 $\min(2, \max(1, \text{cpus} - 1))$，保留核心给 UI；
+  - **Mid Tier ($4.5\text{GB} \sim 15\text{GB}$)**：设为 2 线程；
+  - **High Tier ($>15$GB / $\ge 8$C)**：设为 4 线程（锁定在 P-Core 性能大核内部，杜绝溢出至 E-Core 小核引发同步屏障卡顿）。
+- `inter_op_num_threads`（算子图间并行度）：设为 `1`。
+- `TaskManager.maxInferenceWorkers`：
+  - **Low Tier**：锁定 **1 个 Worker**（杜绝 OOM 与多进程显存交换）；
+  - **Mid/High Tier**：锁定 **2 个 Worker**（构建解码与推理的 2-stage 完美重叠流水线，峰值吞吐达 **42.5 ~ 52.4 img/s**）。
 
 ---
 
