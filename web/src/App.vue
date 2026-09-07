@@ -91,15 +91,19 @@
               </a>
 
               <a 
-                :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-arm64.dmg`" 
-                class="btn btn-secondary-hero"
+                href="#download" 
+                class="btn btn-secondary-hero btn-mac-hero"
                 style="border-color: rgba(168, 85, 247, 0.4);"
-                @click="showDownloadToast(`🍏 ${t.hero.btnMac}...`)"
+                @click.prevent="openMacModal"
+                :title="t.hero.btnMac"
               >
                 <span class="btn-icon">🍎</span>
                 <div class="btn-content">
-                  <div class="btn-label-main">{{ t.hero.btnMac }}</div>
-                  <div class="btn-label-sub">macOS • Apple Silicon &amp; Intel .dmg</div>
+                  <div class="btn-label-main">
+                    {{ t.hero.btnMac }}
+                    <span class="arch-indicator-badge">M / Intel</span>
+                  </div>
+                  <div class="btn-label-sub">macOS 12+ • 点击选择芯片架构 ▾</div>
                 </div>
               </a>
 
@@ -811,21 +815,29 @@
                 >
                   {{ t.download.mac_btn_arm }}
                 </a>
-                <div class="sub-links-row">
-                  <a 
-                    :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-x64.dmg`"
-                    class="sub-dl-link"
-                    @click="showDownloadToast(`🖥️ 下载 Intel Mac DMG...`)"
-                  >
-                    {{ t.download.mac_btn_intel }}
-                  </a>
-                  <span class="sub-dl-sep">•</span>
+                <a 
+                  :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-x64.dmg`"
+                  class="btn btn-secondary btn-dl-block"
+                  style="margin-top: 8px; background: rgba(147, 51, 234, 0.18); border-color: rgba(168, 85, 247, 0.4);"
+                  @click="showDownloadToast(`🖥️ 下载 Intel Mac DMG...`)"
+                >
+                  {{ t.download.mac_btn_intel }}
+                </a>
+                <div class="sub-links-row" style="margin-top: 10px;">
                   <a 
                     :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-arm64.zip`"
                     class="sub-dl-link"
-                    @click="showDownloadToast(`📦 下载 macOS ZIP...`)"
+                    @click="showDownloadToast(`📦 下载 Apple Silicon ZIP...`)"
                   >
-                    {{ t.download.mac_btn_zip }}
+                    📦 ZIP (M系列)
+                  </a>
+                  <span class="sub-dl-sep">•</span>
+                  <a 
+                    :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-x64.zip`"
+                    class="sub-dl-link"
+                    @click="showDownloadToast(`📦 下载 Intel Mac ZIP...`)"
+                  >
+                    📦 ZIP (Intel)
                   </a>
                 </div>
               </div>
@@ -976,6 +988,109 @@
       </div>
     </transition>
 
+    <!-- ==================== MAC ARCHITECTURE SELECTION MODAL ==================== -->
+    <transition name="fade">
+      <div v-if="showMacModal" class="mac-modal-overlay" @click.self="showMacModal = false">
+        <div class="mac-modal-dialog glass-panel">
+          <!-- Modal Header -->
+          <div class="mac-modal-header">
+            <div class="mac-modal-title-wrap">
+              <span class="mac-modal-icon">🍎</span>
+              <div>
+                <h3 class="mac-modal-title">{{ t.macModal.title }}</h3>
+                <p class="mac-modal-sub">{{ t.macModal.subtitle }}</p>
+              </div>
+            </div>
+            <button class="lightbox-close-btn" @click="showMacModal = false">✕</button>
+          </div>
+
+          <!-- Architecture Choice Cards Grid -->
+          <div class="mac-modal-body">
+            <!-- Card 1: Apple Silicon -->
+            <div 
+              class="mac-arch-card" 
+              :class="{ 'card-recommended': detectedMacArch === 'arm64' }"
+            >
+              <div class="mac-arch-card-header">
+                <div class="mac-arch-icon">🍏</div>
+                <div class="mac-arch-info">
+                  <div class="mac-arch-title-row">
+                    <span class="mac-arch-name">{{ t.macModal.armTitle }}</span>
+                    <span v-if="detectedMacArch === 'arm64'" class="detected-badge">{{ t.macModal.detectedBadge }}</span>
+                    <span v-else class="arch-badge-tag arm-tag">{{ t.macModal.armBadge }}</span>
+                  </div>
+                  <p class="mac-arch-desc">{{ t.macModal.armDesc }}</p>
+                </div>
+              </div>
+
+              <div class="mac-arch-actions">
+                <a 
+                  :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-arm64.dmg`"
+                  class="btn-primary-arch"
+                  @click="showDownloadToast(`🍏 下载 Apple Silicon DMG...`); showMacModal = false;"
+                >
+                  <span>🍏</span> {{ t.macModal.armBtnDmg }}
+                  <span class="file-size-tag">158 MB</span>
+                </a>
+                <a 
+                  :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-arm64.zip`"
+                  class="sub-arch-link"
+                  @click="showDownloadToast(`📦 下载 Apple Silicon ZIP...`); showMacModal = false;"
+                >
+                  📦 {{ t.macModal.armBtnZip }}
+                </a>
+              </div>
+            </div>
+
+            <!-- Card 2: Intel Mac -->
+            <div 
+              class="mac-arch-card" 
+              :class="{ 'card-recommended': detectedMacArch === 'x64' }"
+            >
+              <div class="mac-arch-card-header">
+                <div class="mac-arch-icon">🖥️</div>
+                <div class="mac-arch-info">
+                  <div class="mac-arch-title-row">
+                    <span class="mac-arch-name">{{ t.macModal.intelTitle }}</span>
+                    <span v-if="detectedMacArch === 'x64'" class="detected-badge">{{ t.macModal.detectedBadge }}</span>
+                    <span v-else class="arch-badge-tag intel-tag">{{ t.macModal.intelBadge }}</span>
+                  </div>
+                  <p class="mac-arch-desc">{{ t.macModal.intelDesc }}</p>
+                </div>
+              </div>
+
+              <div class="mac-arch-actions">
+                <a 
+                  :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-x64.dmg`"
+                  class="btn-primary-arch btn-intel-arch"
+                  @click="showDownloadToast(`🖥️ 下载 Intel Mac DMG...`); showMacModal = false;"
+                >
+                  <span>🖥️</span> {{ t.macModal.intelBtnDmg }}
+                  <span class="file-size-tag">164 MB</span>
+                </a>
+                <a 
+                  :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-x64.zip`"
+                  class="sub-arch-link"
+                  @click="showDownloadToast(`📦 下载 Intel ZIP...`); showMacModal = false;"
+                >
+                  📦 {{ t.macModal.intelBtnZip }}
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- How to check prompt -->
+          <div class="mac-modal-footer">
+            <div class="howto-icon">💡</div>
+            <div class="howto-content">
+              <strong>{{ t.macModal.howToTitle }}</strong>
+              <p>{{ t.macModal.howToDesc }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <!-- Toast Notification -->
     <transition name="fade">
       <div v-if="toastMessage" class="toast-popup glass-panel">
@@ -1031,6 +1146,50 @@ const activeLightboxPhoto = ref(null);
 const lightboxZoom = ref(1);
 const lightboxRotate = ref(0);
 
+// macOS Architecture Modal state
+const showMacModal = ref(false);
+const detectedMacArch = ref(null); // 'arm64' | 'x64' | null
+
+function detectMacArchitecture() {
+  try {
+    const ua = navigator.userAgent || '';
+    if (!/Macintosh|Mac OS X/i.test(ua)) return;
+
+    // 1. WebGL Unmasked Renderer GPU Detection
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if (gl) {
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      if (debugInfo) {
+        const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '';
+        if (/Apple/i.test(renderer)) {
+          detectedMacArch.value = 'arm64';
+          return;
+        }
+        if (/Intel|AMD|Radeon/i.test(renderer)) {
+          detectedMacArch.value = 'x64';
+          return;
+        }
+      }
+    }
+
+    // 2. Client Hints / userAgentData (Chromium on Mac)
+    if (navigator.userAgentData?.getHighEntropyValues) {
+      navigator.userAgentData.getHighEntropyValues(['architecture']).then(hints => {
+        if (hints.architecture === 'arm') detectedMacArch.value = 'arm64';
+        else if (hints.architecture === 'x86') detectedMacArch.value = 'x64';
+      }).catch(() => {});
+    }
+  } catch (e) {
+    // Graceful fallback
+  }
+}
+
+function openMacModal() {
+  showMacModal.value = true;
+  detectMacArchitecture();
+}
+
 const t = computed(() => locales[currentLocale.value] || messages.zh);
 
 function scrollToTop() {
@@ -1055,13 +1214,19 @@ function closeLightbox() {
 }
 
 function handleKeydown(e) {
-  if (e.key === 'Escape' && activeLightboxPhoto.value) {
-    closeLightbox();
+  if (e.key === 'Escape') {
+    if (showMacModal.value) {
+      showMacModal.value = false;
+    }
+    if (activeLightboxPhoto.value) {
+      closeLightbox();
+    }
   }
 }
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
+  detectMacArchitecture();
 });
 
 onUnmounted(() => {
@@ -2701,6 +2866,286 @@ function simulateDedupCleanup() {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Hero Mac Button & Indicator */
+.btn-mac-hero {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  box-shadow: 0 8px 25px rgba(67, 56, 202, 0.35);
+  cursor: pointer;
+}
+.btn-mac-hero:hover {
+  transform: translateY(-3px);
+  background: linear-gradient(135deg, #312e81 0%, #4338ca 50%, #6366f1 100%);
+  border-color: rgba(168, 85, 247, 0.7);
+  box-shadow: 0 12px 35px rgba(99, 102, 241, 0.5);
+}
+.arch-indicator-badge {
+  display: inline-block;
+  font-size: 10.5px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: rgba(168, 85, 247, 0.25);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  margin-left: 6px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+/* macOS Architecture Modal */
+.mac-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(16px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.mac-modal-dialog {
+  max-width: 780px;
+  width: 100%;
+  border-radius: 20px;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 50px rgba(147, 51, 234, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mac-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 27, 75, 0.4);
+}
+
+.mac-modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mac-modal-icon {
+  font-size: 32px;
+}
+
+.mac-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px 0;
+}
+
+.mac-modal-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.mac-modal-body {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.mac-arch-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.mac-arch-card:hover {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(168, 85, 247, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.mac-arch-card.card-recommended {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.09);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+}
+
+.mac-arch-card-header {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mac-arch-icon {
+  font-size: 30px;
+  flex-shrink: 0;
+}
+
+.mac-arch-info {
+  flex: 1;
+}
+
+.mac-arch-title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.mac-arch-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.arch-badge-tag {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.arch-badge-tag.arm-tag {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.arch-badge-tag.intel-tag {
+  background: rgba(147, 51, 234, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(147, 51, 234, 0.4);
+}
+
+.detected-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+
+.mac-arch-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.mac-arch-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.btn-primary-arch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.btn-primary-arch:hover {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+}
+
+.btn-primary-arch.btn-intel-arch {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+}
+
+.btn-primary-arch.btn-intel-arch:hover {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+}
+
+.file-size-tag {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.85);
+  margin-left: 4px;
+}
+
+.sub-arch-link {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+  text-align: center;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.sub-arch-link:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.mac-modal-footer {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 24px;
+  background: rgba(15, 23, 42, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.howto-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.howto-content strong {
+  color: #e2e8f0;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.howto-content p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 680px) {
+  .mac-modal-body {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Footer */
