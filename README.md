@@ -17,17 +17,33 @@
     <b>🚫 No Cloud Uploads &nbsp;•&nbsp; 🔌 No USB Cables &nbsp;•&nbsp; 💳 No Subscriptions &nbsp;•&nbsp; 🔒 100% Private</b>
   </p>
 
+  <!-- 🌟 Prominent Official Website & Live Portal Callout -->
+  <p align="center">
+    <a href="https://novamindlab.github.io/AIShare-Grabber/">
+      <img src="https://img.shields.io/badge/🌐_官方网站_%2F_Official_Website-novamindlab.github.io%2FAIShare--Grabber-8b5cf6?style=for-the-badge&logo=googlechrome&logoColor=white" alt="ShareCLIP Official Website" height="42" />
+    </a>
+  </p>
+
+  <p align="center">
+    👉 <b>官方门户与全平台下载直达：<a href="https://novamindlab.github.io/AIShare-Grabber/">https://novamindlab.github.io/AIShare-Grabber/</a></b> 👈<br/>
+    <small>（支持全平台客户端一键下载、Mac 芯片架构智能检测与免安装 WebShare 在线体验）</small>
+  </p>
+
   <p align="center">
     <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/latest">
-      <img src="https://img.shields.io/badge/🖥️_Download-Windows_EXE-6366f1?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows" height="38" />
+      <img src="https://img.shields.io/badge/🖥️_Windows-EXE_Download-6366f1?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows" height="36" />
+    </a>
+    &nbsp;&nbsp;
+    <a href="https://novamindlab.github.io/AIShare-Grabber/">
+      <img src="https://img.shields.io/badge/🍎_macOS-M1~M4_%26_Intel-a855f7?style=for-the-badge&logo=apple&logoColor=white" alt="Download macOS" height="36" />
     </a>
     &nbsp;&nbsp;
     <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/latest">
-      <img src="https://img.shields.io/badge/📱_Download-Android_APK-10b981?style=for-the-badge&logo=android&logoColor=white" alt="Download Android" height="38" />
+      <img src="https://img.shields.io/badge/📱_Android-Universal_APK-10b981?style=for-the-badge&logo=android&logoColor=white" alt="Download Android" height="36" />
     </a>
     &nbsp;&nbsp;
     <a href="https://novamindlab.github.io/AIShare-Grabber/webshare/">
-      <img src="https://img.shields.io/badge/🌐_WebShare-Zero_Install-f59e0b?style=for-the-badge&logo=googlechrome&logoColor=white" alt="WebShare Online" height="38" />
+      <img src="https://img.shields.io/badge/🌐_WebShare-Zero_Install-f59e0b?style=for-the-badge&logo=googlechrome&logoColor=white" alt="WebShare Online" height="36" />
     </a>
   </p>
 
@@ -192,9 +208,12 @@ The embedded **MobileCLIP** multimodal AI maps both your query and your pictures
 
 ## 🚀 Quick Start
 
-### 📦 Option 1: Download Ready-to-Use Binaries (Recommended)
+### 📦 Option 1: Official Portal & Ready-to-Use Binaries (Recommended)
 
-1. **PC Desktop**: Download the Windows installer (`.exe`) from [GitHub Releases](https://github.com/NovaMindLab/AIShare-Grabber/releases/latest).
+🌐 **Official Website (官方网站)**: **[https://novamindlab.github.io/AIShare-Grabber/](https://novamindlab.github.io/AIShare-Grabber/)**  
+*(Visit the official portal for auto-detected hardware downloads, Mac M-Series / Intel chip selector, and interactive WebShare.)*
+
+1. **PC & Mac Desktop**: Download the Windows installer (`.exe`) or macOS installer (`.dmg` for Apple Silicon & Intel) from the [Official Website](https://novamindlab.github.io/AIShare-Grabber/) or [GitHub Releases](https://github.com/NovaMindLab/AIShare-Grabber/releases/latest).
 2. **Android Companion**: Download and install the companion APK (`.apk`) on your phone.
 3. **Connect**: Launch both apps on the same Wi-Fi network, scan the QR code on your PC screen, and start syncing!
 
@@ -287,6 +306,10 @@ flowchart LR
 
 ### 🌟 核心定位
 **ShareCLIP (原 AIShare-Grabber)** 是一款**完全面向用户、注重隐私与极速体验的开源跨端照片同步与本地 AI 相册管理软件**。
+
+> [!TIP]
+> 🌐 **官方门户与全平台下载直达**：**[https://novamindlab.github.io/AIShare-Grabber/](https://novamindlab.github.io/AIShare-Grabber/)**  
+> 官网提供各平台安装包一键下载（支持 Windows、macOS M系列 / Intel 双架构智能适配、Android 及免安装 WebShare 网页体验）。
 
 日常生活中，我们经常面临两大痛点：
 1. **传图繁琐**：手机里几百上千张旅行照片想备份到电脑，要么费劲翻找 Type-C 数据线，要么被各种网盘上传下载限速、消耗大量手机流量；

@@ -2,6 +2,9 @@
 
 Welcome to the central **ShareCLIP** documentation wiki. ShareCLIP is a premium multi-device photo synchronization and AI-powered local classification ecosystem.
 
+> [!TIP]
+> 🌐 **官方门户与在线体验（Official Website）**：**[https://novamindlab.github.io/AIShare-Grabber/](https://novamindlab.github.io/AIShare-Grabber/)**
+
 Choose a platform below to view its specific design, protocol, and deployment documentation:
 
 ---
