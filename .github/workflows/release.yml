@@ -161,15 +161,11 @@ jobs:
   # ─────────────────────────────────────────────────────────────
   build-macos:
     name: 🍎 Build macOS Desktop (${{ matrix.arch }})
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: arm64
-            os: macos-latest
-          - arch: x64
-            os: macos-13
+        arch: [arm64, x64]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -187,6 +183,16 @@ jobs:
         run: |
           cd cp_clip
           npm install
+          if [ "${{ matrix.arch }}" = "x64" ]; then
+            echo "==== Preparing x86_64 native dependencies on Apple Silicon runner ===="
+            npm install --no-save @img/sharp-darwin-x64
+            curl -sL -o sqlite3_x64.tar.gz https://github.com/TryGhost/node-sqlite3/releases/download/v6.0.1/sqlite3-v6.0.1-napi-v6-darwin-x64.tar.gz
+            tar -xzf sqlite3_x64.tar.gz
+            cp build/Release/node_sqlite3.node node_modules/sqlite3/build/Release/node_sqlite3.node
+            rm -rf build sqlite3_x64.tar.gz
+            echo "Checking architecture of node_sqlite3.node:"
+            file node_modules/sqlite3/build/Release/node_sqlite3.node
+          fi
           npm run build
           npx electron-builder --mac --${{ matrix.arch }}
 
