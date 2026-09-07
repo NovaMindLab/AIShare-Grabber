@@ -1,6 +1,9 @@
 name: 🚀 ShareCLIP Multi-Platform Cloud Release
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
@@ -154,11 +157,19 @@ jobs:
           if-no-files-found: error
 
   # ─────────────────────────────────────────────────────────────
-  # Job 4: Build macOS Desktop (.dmg & .zip)
+  # Job 4: Build macOS Desktop (.dmg & .zip for arm64 & x64)
   # ─────────────────────────────────────────────────────────────
   build-macos:
-    name: 🍎 Build macOS Desktop (.dmg / .zip)
-    runs-on: macos-latest
+    name: 🍎 Build macOS Desktop (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            os: macos-latest
+          - arch: x64
+            os: macos-13
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -168,7 +179,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Build macOS Client
+      - name: Build macOS Client (${{ matrix.arch }})
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_MIXPANEL_TOKEN: ${{ secrets.MIXPANEL_TOKEN }}
@@ -177,12 +188,12 @@ jobs:
           cd cp_clip
           npm install
           npm run build
-          npx electron-builder --mac
+          npx electron-builder --mac --${{ matrix.arch }}
 
-      - name: Upload macOS Artifact
+      - name: Upload macOS Artifact (${{ matrix.arch }})
         uses: actions/upload-artifact@v4
         with:
-          name: release-macos
+          name: release-macos-${{ matrix.arch }}
           path: |
             cp_clip/dist_electron/*.dmg
             cp_clip/dist_electron/*.zip
@@ -243,13 +254,15 @@ jobs:
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
             INPUT_VER="${{ github.event.inputs.version }}"
-            if [[ $INPUT_VER != v* ]]; then
-              FINAL_TAG="v$INPUT_VER"
-            else
-              FINAL_TAG="$INPUT_VER"
-            fi
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            INPUT_VER="${GITHUB_REF#refs/tags/}"
           else
-            FINAL_TAG="${GITHUB_REF#refs/tags/}"
+            INPUT_VER="v$(node -p "require('./cp_clip/package.json').version")"
+          fi
+          if [[ $INPUT_VER != v* ]]; then
+            FINAL_TAG="v$INPUT_VER"
+          else
+            FINAL_TAG="$INPUT_VER"
           fi
           echo "RELEASE_TAG=$FINAL_TAG" >> $GITHUB_OUTPUT
           echo "Release tag: $FINAL_TAG"
