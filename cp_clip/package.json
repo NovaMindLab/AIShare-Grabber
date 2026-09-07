@@ -134,7 +134,7 @@
                            },
                   "mac":  {
                               "category":  "public.app-category.photography",
-                              "icon":  "icon.png",
+                              "icon":  "build/icon.png",
                               "identity":  null,
                               "target":  [
                                              "dmg",
@@ -149,7 +149,7 @@
                   "linux":  {
                                 "maintainer":  "ShareCLIP Team \u003csupport@shareclip.com\u003e",
                                 "category":  "Utility",
-                                "icon":  "icon.png",
+                                "icon":  "build/icon.png",
                                 "target":  [
                                                {
                                                    "target":  "AppImage",
