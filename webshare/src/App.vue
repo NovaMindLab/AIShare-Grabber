@@ -1055,6 +1055,7 @@ async function generateQrCode() {
     await QRCode.toCanvas(qrCanvas.value, payload, {
       width: 200,
       margin: 1,
+      errorCorrectionLevel: 'L',
       color: {
         dark: '#0f172a',
         light: '#ffffff'

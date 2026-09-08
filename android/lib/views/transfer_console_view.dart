@@ -13,7 +13,7 @@ class TransferConsoleView extends StatefulWidget {
   State<TransferConsoleView> createState() => _TransferConsoleViewState();
 }
 
-class _TransferConsoleViewState extends State<TransferConsoleView> with SingleTickerProviderStateMixin {
+class _TransferConsoleViewState extends State<TransferConsoleView> with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   late TabController _subTabController;

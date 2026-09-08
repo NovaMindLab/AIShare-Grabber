@@ -131,6 +131,14 @@ if (Test-Path $AndroidMainDart) {
     [System.IO.File]::WriteAllText((Resolve-Path $AndroidMainDart), $DartContent)
 }
 
+$SyncVmDart = "android/lib/viewmodels/sync_viewmodel.dart"
+if (Test-Path $SyncVmDart) {
+    Write-Host "Updating version in $SyncVmDart to $VersionOnly" -ForegroundColor Gray
+    $DartContent = Get-Content $SyncVmDart -Raw -Encoding utf8
+    $DartContent = $DartContent -replace "static const String appVersion = '.*';", "static const String appVersion = '$VersionOnly';"
+    [System.IO.File]::WriteAllText((Resolve-Path $SyncVmDart), $DartContent)
+}
+
 # Commit and push version bump to git repositories
 if (Get-Command "git" -ErrorAction SilentlyContinue) {
     $Diff = git status --porcelain

@@ -25,24 +25,29 @@ class QrPayload {
     final Map<String, dynamic> data = json.decode(jsonStr);
     
     List<String>? parsedIps;
-    if (data['pc_ips'] != null) {
-      parsedIps = List<String>.from(data['pc_ips']);
+    final rawIps = data['ip'] ?? data['pc_ips'];
+    if (rawIps is List) {
+      parsedIps = List<String>.from(rawIps.map((e) => e.toString()));
     }
 
     int port = 15186;
-    if (data['http_port'] is int) {
-      port = data['http_port'];
-    } else if (data['http_port'] != null) {
-      port = int.tryParse(data['http_port'].toString()) ?? 15186;
+    final rawPort = data['p'] ?? data['http_port'];
+    if (rawPort is int) {
+      port = rawPort;
+    } else if (rawPort != null) {
+      port = int.tryParse(rawPort.toString()) ?? 15186;
     }
 
+    const defaultServiceUuid = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+    const defaultCharUuid = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+
     return QrPayload(
-      bleMac: data['ble_mac'] ?? '',
-      serviceUuid: data['service_uuid'] ?? '',
-      charUuid: data['char_uuid'] ?? '',
-      sessionId: data['session_id'] ?? '',
-      hotspotSsid: data['hotspotSsid'],
-      hotspotPassword: data['hotspotPassword'],
+      bleMac: (data['m'] ?? data['ble_mac'] ?? '').toString(),
+      serviceUuid: (data['u'] ?? data['service_uuid'] ?? defaultServiceUuid).toString(),
+      charUuid: (data['c'] ?? data['char_uuid'] ?? defaultCharUuid).toString(),
+      sessionId: (data['s'] ?? data['session_id'] ?? '').toString(),
+      hotspotSsid: data['hs']?.toString() ?? data['hotspotSsid']?.toString(),
+      hotspotPassword: data['hp']?.toString() ?? data['hotspotPassword']?.toString(),
       pcIps: parsedIps,
       httpPort: port,
     );

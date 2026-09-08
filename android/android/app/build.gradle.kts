@@ -33,14 +33,18 @@ android {
     signingConfigs {
         getByName("debug") {
             val localKeystore = file("debug.keystore")
-            if (localKeystore.exists()) {
-                storeFile = localKeystore
-                storePassword = "android"
-                keyAlias = "androiddebugkey"
-                keyPassword = "android"
-                enableV1Signing = true
-                enableV2Signing = true
+            if (!localKeystore.exists()) {
+                throw GradleException(
+                    "FATAL: Keystore 'debug.keystore' not found in android/app/! " +
+                    "Both local and CI builds must use this keystore to guarantee identical APK signing fingerprints."
+                )
             }
+            storeFile = localKeystore
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            enableV1Signing = true
+            enableV2Signing = true
         }
     }
 

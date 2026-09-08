@@ -1,16 +1,26 @@
-### 🚀 ShareCLIP v3.0.15 Release Notes
+### 🚀 ShareCLIP v3.0.16 Release Notes
 
-#### 🍎 macOS 双架构原生编译与兼容性彻底修复 (macOS Native Dual-Arch Packaging)
-- **修复 Intel Mac 启动 dlopen 架构不匹配崩溃**：
-  - 根因：GitHub Actions `macos-latest` 升级为 Apple Silicon (arm64)，导致 `npm install` 默认编译 arm64 版原生模块（`node_sqlite3.node` / `sharp`），而在跳过模块重编译（`npmRebuild: false`）的情况下打包 `x64` 安装包，导致 Intel Mac 启动时报错 `mach-o file, but is an incompatible architecture (have 'arm64', need 'x86_64')`。
-  - 修复方案：GitHub Actions 流水线重构为**双机型矩阵并行原生构建（Matrix Native Runners）**：
-    - **Apple Silicon (arm64)**：在 `macos-latest`（M 系列芯片）原生安装与编译 arm64 依赖，产出原生的 `ShareCLIP-Mac-3.0.15-arm64.dmg` 与 `.zip`。
-    - **Intel (x64)**：在 `macos-13`（纯 Intel Core 芯片）原生安装与编译 x86_64 依赖，产出原生的 `ShareCLIP-Mac-3.0.15-x64.dmg` 与 `.zip`。
-  - 彻底消除跨架构编译与依赖污染，全面支持 M1/M2/M3/M4 及 Intel 全系 Mac。
+#### 📱 二维码颗粒度极致优化与低端机极速秒扫 (Low-End Camera QR Code Optimization)
+- **精简二维码载荷体积（压缩率达 75%）**：
+  - 剔除固定 72 字节的 Nordic UART 静态 Service UUID 与 Characteristic UUID 常量（移动端内置协议默认解析），将 JSON 键名精简短化（`ble_mac` -> `m`, `session_id` -> `s`, `pc_ips` -> `ip`，端口与热点字段按需携带）。
+  - 载荷字符数从 240+ 字符大幅削减至 ~60 字符，并保持全版本双向兼容。
+- **降低二维码密度，码点放大 400%+**：
+  - 将容错等级设为 `errorCorrectionLevel: 'L'`，使二维码版本从高密度的 Version 8/9（53x53 矩阵，2,809 个码点）急剧下降至稀疏的 Version 2/3（25x25 矩阵，625 个码点）。
+  - PC 端二维码画布尺寸从 140px 增大至 160px（外框 184px）。单个码点像素尺寸放大近 3 倍，面积增大逾 4 倍。即使是千元低端机、老旧对焦困难机型或弱光环境下，摄像头画面只要扫到二维码即可在 50ms 内瞬间解码识别。
 
-#### 💻 全平台协同优化与构建稳健性 (Cross-Platform Enhancements)
-- **CI/CD 流水线健壮性提升**：
-  - 修复 Pages 部署工作流中 token 参数语法规范。
-  - 增强发布流水线 Tag 解析能力，支持 Git Tag 自动触发与版本号自动回退探测。
-  - 支持多工件隔离上传与统一归集发版。
-- **全端版本号同步更新至 3.0.15**（桌面端 Electron、移动端 Flutter、Web Portal 与 WebShare）。
+#### ⚡ 局域网物理真实 IP 智能过滤与直连加速 (Smart Physical IP Filtering & Fast Direct Connect)
+- **五阶多重 IP 精准筛选机制**：
+  - **Tier 1 内核路由探测**：通过 OS 内核 UDP 路由探测机制（0 流量探测网关）在 14ms 内毫秒级获取承载对外通信的主网卡真实 IP。
+  - **Tier 2 Route Metric 探测**：结合 Windows 路由表 Metric 权重探测真实默认网关所在接口。
+  - **Tier 3 虚拟适配器全量黑名单**：深度排除 VMware、VirtualBox、WSL、Hyper-V、Docker、Tap/Tun、VPN 等虚拟网卡。
+  - **Tier 4 MAC OUI 厂商指纹过滤**：根据 MAC 前缀鉴别虚拟化适配器。
+  - **Tier 5 虚拟专用网段剔除**：拦截 `192.168.56.x`、`169.254.x.x`、`100.64.x.x` 等保留子网。
+- **移动端局域网并发秒连**：
+  - 扫码后优先利用二维码中携带的高信噪比真实物理 IP 发起局域网并发探测与直连通道握手，局域网同网段下耗时从数秒降低至数百毫秒。
+
+#### 🔄 WebRTC 连接状态机与信令时序强化 (Signaling & State Machine Hardening)
+- **连接 Promise 状态复用**：PC 端在处理同一客户端并发发起的 Offer 时共享当前处理流程，避免重置或覆盖已生成的 Answer。
+- **消除两端状态不同步**：彻底解决 PC 端已就绪而手机端仍处于连接中旋转等待的问题。
+
+#### 📦 全端版本同步递增至 v3.0.16
+- 桌面端 Electron、移动端 Flutter（版本号 `3.0.16+30016`）、Web Portal 与 WebShare 全面同步。

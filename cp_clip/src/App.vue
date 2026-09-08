@@ -327,8 +327,8 @@
             </h4>
             
             <!-- QR Code Block with glow -->
-            <div style="position: relative; padding: 10px; background: white; border-radius: 14px; box-shadow: 0 4px 24px rgba(168, 85, 247, 0.25); display: flex; align-items: center; justify-content: center; width: 160px; height: 160px; box-sizing: border-box; flex-shrink: 0; transition: transform 0.25s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-              <canvas ref="qrCanvas" style="width: 140px; height: 140px; display: block; flex-shrink: 0;"></canvas>
+            <div style="position: relative; padding: 12px; background: white; border-radius: 14px; box-shadow: 0 4px 24px rgba(168, 85, 247, 0.25); display: flex; align-items: center; justify-content: center; width: 184px; height: 184px; box-sizing: border-box; flex-shrink: 0; transition: transform 0.25s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+              <canvas ref="qrCanvas" style="width: 160px; height: 160px; display: block; flex-shrink: 0;"></canvas>
             </div>
 
             <!-- SSID & Password Credentials card when Local Hotspot is active -->
@@ -336,6 +336,9 @@
               <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px;">📡 {{ t.link.hotspotRunning }}:</div>
               <div style="font-size: 13px; font-weight: 700; color: #38bdf8;">SSID: {{ hotspotSsid }}</div>
               <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-top: 2px;">密码: {{ hotspotPassword }}</div>
+            </div>
+            <div v-if="qrPayload?.pc_ips && qrPayload.pc_ips.length > 0" style="display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 11px; color: #10b981; font-weight: 500; margin-top: -4px;">
+              <span>⚡</span> 局域网直连 IP: {{ qrPayload.pc_ips.join(', ') }}
             </div>
             <p v-else style="color: var(--text-secondary); font-size: 12px; margin: 0; max-width: 320px;">{{ t.link.qrSub }}</p>
 
@@ -3877,15 +3880,64 @@ const qrCanvas = ref(null);
 const syncLogs = ref([]);
 const logTerminalRef = ref(null);
 
+// Compress QR payload to minimum bytes and set low error correction for largest dots / lowest granularity
+function formatQrPayload(payload) {
+  if (!payload) return '';
+  let obj = payload;
+  if (typeof payload === 'string') {
+    try {
+      obj = JSON.parse(payload);
+    } catch (_) {
+      return payload;
+    }
+  }
+  const compact = {};
+  if (obj.ble_mac || obj.m) compact.m = obj.ble_mac || obj.m;
+  if (obj.session_id || obj.s) compact.s = obj.session_id || obj.s;
+  
+  const ips = obj.pc_ips || obj.ip;
+  if (Array.isArray(ips)) {
+    if (ips.length > 0) compact.ip = ips;
+  } else if (ips) {
+    compact.ip = ips;
+  }
+
+  const port = obj.http_port || obj.p || obj.port;
+  if (port && port !== 15186) compact.p = port;
+
+  const ssid = obj.hotspotSsid || obj.hs;
+  if (ssid) compact.hs = ssid;
+
+  const pwd = obj.hotspotPassword || obj.hp;
+  if (pwd) compact.hp = pwd;
+
+  return JSON.stringify(compact);
+}
+
+function renderQrCode(payload) {
+  if (!qrCanvas.value) return;
+  const targetPayload = payload || qrPayload.value;
+  if (!targetPayload) return;
+  const content = formatQrPayload(targetPayload);
+  QRCode.toCanvas(
+    qrCanvas.value,
+    content,
+    {
+      width: 160,
+      margin: 1,
+      errorCorrectionLevel: 'L'
+    },
+    (error) => {
+      if (error) console.error("QR Code rendering error:", error);
+    }
+  );
+}
+
 // Watch tab and payload changes to render the QR Code reliably
 watch([currentTab, qrPayload], async () => {
   if (currentTab.value === 'link' && qrPayload.value) {
     await nextTick();
-    if (qrCanvas.value) {
-      QRCode.toCanvas(qrCanvas.value, JSON.stringify(qrPayload.value), { width: 140, margin: 1 }, (error) => {
-        if (error) console.error("QR Code rendering error:", error);
-      });
-    }
+    renderQrCode(qrPayload.value);
   }
 }, { immediate: true });
 
@@ -4653,9 +4705,7 @@ function handleWebRtcDisconnect() {
   if (isSyncActive.value) {
     syncStatus.value = 'advertising';
     nextTick(() => {
-      if (qrCanvas.value && qrPayload.value) {
-        QRCode.toCanvas(qrCanvas.value, JSON.stringify(qrPayload.value), { width: 140, margin: 1 });
-      }
+      renderQrCode(qrPayload.value);
     });
   } else {
     syncStatus.value = 'idle';
@@ -5273,19 +5323,22 @@ async function toggleSyncService() {
       try {
         const payload = await window.api.startBleServer();
         payload.http_port = httpPort;
+        let validIps = payload.pc_ips;
+        if (!validIps || validIps.length === 0) {
+          try {
+            validIps = await window.api.getValidPhysicalIps();
+            payload.pc_ips = validIps;
+          } catch (_) {}
+        }
         if (hotspotSsid.value && hotspotPassword.value) {
           payload.hotspotSsid = hotspotSsid.value;
           payload.hotspotPassword = hotspotPassword.value;
         }
         qrPayload.value = payload;
         syncStatus.value = 'advertising';
-        logSyncEvent(`GATT 广播成功! MAC: ${payload.ble_mac}, Session: ${payload.session_id}, HTTP Port: ${httpPort}`);
+        logSyncEvent(`GATT 广播成功! MAC: ${payload.ble_mac}, Session: ${payload.session_id}, 直连IP: ${(payload.pc_ips || []).join(', ') || '局域网自动探测'}, HTTP Port: ${httpPort}`);
         await nextTick();
-        if (qrCanvas.value) {
-          QRCode.toCanvas(qrCanvas.value, JSON.stringify(payload), { width: 140, margin: 1 }, (error) => {
-            if (error) logSyncEvent(`⚠️ QR Code error: ${error.message}`);
-          });
-        }
+        renderQrCode(payload);
       } catch (err) {
         logSyncEvent(`⚠️ BLE GATT 广播受限: ${err.message || err}`);
         logSyncEvent('⚡ 自动降级为【高速局域网 Wi-Fi 直连模式】，生成直连二维码...');
@@ -5313,11 +5366,7 @@ async function toggleSyncService() {
         syncStatus.value = 'advertising'; // Keep active to render QR code for mobile scanning
         logSyncEvent(`Wi-Fi 直连二维码已就绪! IP: ${localIps.join(', ') || '局域网自动探测'} (HTTP Port: ${httpPort})`);
         await nextTick();
-        if (qrCanvas.value) {
-          QRCode.toCanvas(qrCanvas.value, JSON.stringify(fallbackPayload), { width: 140, margin: 1 }, (error) => {
-            if (error) logSyncEvent(`⚠️ QR Code error: ${error.message}`);
-          });
-        }
+        renderQrCode(fallbackPayload);
       }
     } else {
       // Mock Demo Web fallback
@@ -5326,9 +5375,7 @@ async function toggleSyncService() {
       syncStatus.value = 'advertising';
       logSyncEvent("Mock 模式: 蓝牙广播模拟中...");
       await nextTick();
-      if (qrCanvas.value) {
-        QRCode.toCanvas(qrCanvas.value, JSON.stringify(qrPayload.value), { width: 140, margin: 1 });
-      }
+      renderQrCode(qrPayload.value);
     }
   }
 }
@@ -5482,9 +5529,7 @@ function setupDataChannel(channel) {
       syncStatus.value = 'advertising';
       cleanupWebRtc();
       nextTick(() => {
-        if (qrCanvas.value && qrPayload.value) {
-          QRCode.toCanvas(qrCanvas.value, JSON.stringify(qrPayload.value), { width: 140, margin: 1 });
-        }
+        renderQrCode(qrPayload.value);
       });
     }
   };
@@ -5601,6 +5646,21 @@ function setupDataChannel(channel) {
             synced_thumbnail_ids: thumbSyncedIds,
             last_album_sync_date: syncInfo.lastAlbumSyncDate || '' 
           });
+        }).catch((err) => {
+          logSyncEvent(`⚠️ 初始化设备数据库失败: ${err?.message || err}，向手机补发保底握手确认包...`);
+          activeDeviceUuid.value = deviceUuid;
+          sendSafeDataChannelPacket(channel, -4, { 
+            synced_ids: [], 
+            synced_thumbnail_ids: [],
+            last_album_sync_date: '' 
+          });
+        });
+      } else {
+        activeDeviceUuid.value = deviceUuid;
+        sendSafeDataChannelPacket(channel, -4, { 
+          synced_ids: [], 
+          synced_thumbnail_ids: [],
+          last_album_sync_date: '' 
         });
       }
       return;
@@ -6139,9 +6199,7 @@ onMounted(() => {
           if (isSyncActive.value) {
             syncStatus.value = 'advertising';
             nextTick(() => {
-              if (qrCanvas.value && qrPayload.value) {
-                QRCode.toCanvas(qrCanvas.value, JSON.stringify(qrPayload.value), { width: 140, margin: 1 });
-              }
+              renderQrCode(qrPayload.value);
             });
           }
         } else {

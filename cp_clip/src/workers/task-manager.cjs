@@ -366,7 +366,7 @@ class TaskManager {
     return result.groups;
   }
 
-  async clusterFaces(faceSabIndices, validFaces, threshold = 0.44) {
+  async clusterFaces(faceSabIndices, validFaces, threshold = 0.55) {
     if (!this.searchPool) throw new Error("TaskManager not initialized");
     const result = await this.searchPool.executeTask({
       type: 'cluster_faces',

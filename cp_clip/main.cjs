@@ -993,10 +993,10 @@ async function reclusterFacesInternal() {
     return [];
   }
 
-  // 4. Run face clustering via TaskManager Search Worker with 0.44 threshold (Two-Stage Adaptive Clustering)
+  // 4. Run face clustering via TaskManager Search Worker with 0.55 threshold (Agglomerative Average Linkage)
   const tStart = performance.now();
-  console.log(`[Face Cluster] Clustering ${validFaces.length} face crops (threshold: 0.44)...`);
-  const rawPersonClusters = await taskManager.clusterFaces(faceSabIndices, validFaces, 0.44);
+  console.log(`[Face Cluster] Clustering ${validFaces.length} face crops (threshold: 0.55)...`);
+  const rawPersonClusters = await taskManager.clusterFaces(faceSabIndices, validFaces, 0.55);
   const clusterTime = Math.round(performance.now() - tStart);
 
   // Keep valid person clusters
@@ -1887,7 +1887,7 @@ ipcMain.handle('start-ble-server', async (event) => {
       terminal: false
     });
     
-    rl.on('line', (line) => {
+    rl.on('line', async (line) => {
       console.log(`[BLE Helper Stdout]: ${line}`);
       if (mainWindow) {
         if (line.startsWith("SDP:OFFER:")) {
@@ -1915,7 +1915,7 @@ ipcMain.handle('start-ble-server', async (event) => {
           resolved = true;
           clearTimeout(timeout);
           
-          const localIps = getValidPhysicalIps();
+          const localIps = await getValidPhysicalIps();
 
           resolve({
             ble_mac: macAddress,
@@ -1995,7 +1995,7 @@ ipcMain.handle('stop-ble-server', async () => {
 });
 
 ipcMain.handle('get-valid-physical-ips', async () => {
-  return getValidPhysicalIps();
+  return await getValidPhysicalIps();
 });
 
 ipcMain.handle('get-pc-session-id', async () => {
@@ -3426,14 +3426,14 @@ function startUdpDiscoveryService() {
     }
   });
 
-  udpSocket.on('listening', () => {
+  udpSocket.on('listening', async () => {
     try {
       udpSocket.setBroadcast(true);
     } catch (e) {
       console.error("[UDP Service] Failed to set broadcast:", e);
     }
     const address = udpSocket.address();
-    const validIps = getValidPhysicalIps();
+    const validIps = await getValidPhysicalIps();
     const broadcastTargets = getBroadcastAddresses();
     console.log(`[UDP Service] Listening on ${address.address}:${address.port}`);
     console.log(`[UDP Service] Local Physical IPv4 Address(es): [${validIps.join(', ')}]`);
@@ -3451,11 +3451,22 @@ function startUdpDiscoveryService() {
   setInterval(pruneDiscoveryList, 5000);
 }
 
-function isVirtualAdapter(name) {
-  const lower = name.toLowerCase();
-  return (
+function isKnownVirtualSubnet(ip) {
+  if (!ip) return true;
+  if (ip.startsWith('127.')) return true;
+  if (ip.startsWith('169.254.')) return true;
+  if (ip.startsWith('192.168.56.')) return true; // VirtualBox default Host-Only
+  if (ip.startsWith('100.64.') || ip.startsWith('100.127.')) return true; // Tailscale CGNAT
+  if (ip.startsWith('172.17.') || ip.startsWith('172.18.')) return true; // Docker
+  return false;
+}
+
+function isVirtualAdapter(name, mac) {
+  const lower = (name || '').toLowerCase();
+  if (
     lower.includes('vmware') ||
     lower.includes('virtualbox') ||
+    lower.includes('vbox') ||
     lower.includes('vethernet') ||
     lower.includes('wsl') ||
     lower.includes('docker') ||
@@ -3472,31 +3483,165 @@ function isVirtualAdapter(name) {
     lower.includes('npcap') ||
     lower.includes('loopback') ||
     lower.includes('bluetooth') ||
-    lower.includes('hyper-v')
-  );
+    lower.includes('hyper-v') ||
+    lower.includes('clash') ||
+    lower.includes('sing-box') ||
+    lower.includes('v2ray') ||
+    lower.includes('xray') ||
+    lower.includes('mihomo') ||
+    lower.includes('warp') ||
+    lower.includes('openvpn') ||
+    lower.includes('sangfor') ||
+    lower.includes('easyconnect') ||
+    lower.includes('fortinet') ||
+    lower.includes('cisco') ||
+    lower.includes('anyconnect') ||
+    lower.includes('teredo') ||
+    lower.includes('isatap') ||
+    lower.includes('蓝牙') ||
+    lower.includes('虚拟') ||
+    lower.includes('回环')
+  ) {
+    return true;
+  }
+
+  if (mac) {
+    const cleanMac = mac.toLowerCase().replace(/[:-]/g, '');
+    if (cleanMac.startsWith('0a0027') || cleanMac.startsWith('080027')) return true; // VirtualBox
+    if (cleanMac.startsWith('000569') || cleanMac.startsWith('000c29') || cleanMac.startsWith('005056') || cleanMac.startsWith('001c14')) return true; // VMware
+    if (cleanMac.startsWith('00155d')) return true; // Hyper-V / WSL
+    if (cleanMac.startsWith('001c42')) return true; // Parallels
+    if (cleanMac.startsWith('525400')) return true; // QEMU / KVM
+    if (cleanMac === '000000000000') return true;
+  }
+
+  return false;
 }
 
-function getValidPhysicalIps() {
+function getPrimaryRouteIp() {
+  return new Promise((resolve) => {
+    let resolved = false;
+    const finish = (ip) => {
+      if (!resolved) {
+        resolved = true;
+        resolve(ip);
+      }
+    };
+
+    const timer = setTimeout(() => finish(null), 150);
+
+    try {
+      const dgram = require('dgram');
+      const socket = dgram.createSocket('udp4');
+      // Connect to common public DNS without sending actual network data.
+      // The OS kernel immediately binds socket to outbound local interface associated with default route.
+      socket.connect(53, '223.5.5.5', () => {
+        try {
+          const addr = socket.address().address;
+          socket.close();
+          clearTimeout(timer);
+          finish(addr);
+        } catch (_) {
+          finish(null);
+        }
+      });
+      socket.on('error', () => finish(null));
+    } catch (_) {
+      finish(null);
+    }
+  });
+}
+
+function getDefaultGatewayInterfaceIp() {
+  if (process.platform !== 'win32') return null;
+  try {
+    const { execSync } = require('child_process');
+    const out = execSync('route print 0.0.0.0', { encoding: 'utf8', windowsHide: true, timeout: 500 });
+    const lines = out.split('\n');
+    const routes = [];
+    for (const line of lines) {
+      const match = line.trim().match(/^0\.0\.0\.0\s+0\.0\.0\.0\s+([0-9.]+)\s+([0-9.]+)\s+(\d+)/);
+      if (match) {
+        routes.push({ gateway: match[1], interfaceIp: match[2], metric: parseInt(match[3], 10) });
+      }
+    }
+    if (routes.length > 0) {
+      routes.sort((a, b) => a.metric - b.metric);
+      return routes[0].interfaceIp;
+    }
+  } catch (_) {}
+  return null;
+}
+
+async function getValidPhysicalIps() {
   const os = require('os');
   const interfaces = os.networkInterfaces();
-  const physicalIps = [];
-  const fallbackIps = [];
+  const physicalIps = new Set();
+  const fallbackIps = new Set();
+  let hotspotIp = null;
 
-  for (const name of Object.keys(interfaces)) {
-    const isVirtual = isVirtualAdapter(name);
-    for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        if (iface.address.startsWith('169.254.')) continue;
-        if (!isVirtual) {
-          physicalIps.push(iface.address);
-        } else {
-          fallbackIps.push(iface.address);
-        }
+  let primaryIp = await getPrimaryRouteIp();
+  if (!primaryIp) {
+    primaryIp = getDefaultGatewayInterfaceIp();
+  }
+
+  for (const [name, nets] of Object.entries(interfaces)) {
+    for (const iface of nets) {
+      if (iface.family !== 'IPv4' || iface.internal) continue;
+      const ip = iface.address;
+
+      if (ip === '192.168.137.1') {
+        hotspotIp = ip;
+        continue;
+      }
+
+      if (isKnownVirtualSubnet(ip)) continue;
+
+      if (!isVirtualAdapter(name, iface.mac)) {
+        physicalIps.add(ip);
+      } else {
+        fallbackIps.add(ip);
       }
     }
   }
 
-  return physicalIps.length > 0 ? physicalIps : fallbackIps;
+  const result = [];
+
+  // 优先级 1：当前默认网关绑定的物理出网网卡 IP
+  if (primaryIp && !isKnownVirtualSubnet(primaryIp)) {
+    result.push(primaryIp);
+  }
+
+  // 优先级 2：其他真实物理网卡 IPv4（排序私有内网段）
+  const sortedPhysical = Array.from(physicalIps).sort((a, b) => {
+    const isPrivateA = a.startsWith('192.168.') || a.startsWith('10.') || a.startsWith('172.');
+    const isPrivateB = b.startsWith('192.168.') || b.startsWith('10.') || b.startsWith('172.');
+    if (isPrivateA && !isPrivateB) return -1;
+    if (!isPrivateA && isPrivateB) return 1;
+    return 0;
+  });
+
+  for (const ip of sortedPhysical) {
+    if (!result.includes(ip)) {
+      result.push(ip);
+    }
+  }
+
+  // 优先级 3：Windows 移动热点 IP
+  if (hotspotIp && !result.includes(hotspotIp)) {
+    result.push(hotspotIp);
+  }
+
+  // 兜底：若全被过滤，使用备用非虚拟网段 IP
+  if (result.length === 0) {
+    for (const ip of fallbackIps) {
+      if (!isKnownVirtualSubnet(ip) && !result.includes(ip)) {
+        result.push(ip);
+      }
+    }
+  }
+
+  return result;
 }
 
 function getBroadcastAddresses() {
@@ -3504,11 +3649,10 @@ function getBroadcastAddresses() {
   const interfaces = os.networkInterfaces();
   const addresses = [];
   
-  for (const name of Object.keys(interfaces)) {
-    if (isVirtualAdapter(name)) continue;
-    for (const net of interfaces[name]) {
+  for (const [name, nets] of Object.entries(interfaces)) {
+    for (const net of nets) {
       if (net.family === 'IPv4' && !net.internal) {
-        if (net.address.startsWith('169.254.')) continue;
+        if (isKnownVirtualSubnet(net.address) || isVirtualAdapter(name, net.mac)) continue;
         const ipSplit = net.address.split('.');
         const maskSplit = net.netmask.split('.');
         

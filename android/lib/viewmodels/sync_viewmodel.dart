@@ -42,12 +42,14 @@ enum TransferStatus {
 }
 
 class SyncViewModel extends ChangeNotifier {
-  static const String appVersion = '3.0.5';
+  static const String appVersion = '3.0.16';
   List<Map<String, dynamic>> discoveredPCs = [];
   Timer? _discoveryTimer;
   String? _mobileName;
   QrPayload? _lastScannedPayload;
+  QrPayload? get lastScannedPayload => _lastScannedPayload;
   RawDatagramSocket? _udpSocket;
+  String? _cachedSubnetBroadcast;
   // Core Engines
   late final BleSignalingClient _bleClient;
   WebRtcSyncEngine? _syncEngine;
@@ -183,16 +185,47 @@ class SyncViewModel extends ChangeNotifier {
   // Phase 1 scanned trigger
   void connectToTarget(QrPayload payload) {
     _lastScannedPayload = payload;
+
+    // Check payload pcIps, or fallback to discoveredPCs from LAN broadcast
+    List<String> validIps = List<String>.from(payload.pcIps ?? []);
+    if (validIps.isEmpty && discoveredPCs.isNotEmpty) {
+      for (final pc in discoveredPCs) {
+        if (pc['ip'] != null && !validIps.contains(pc['ip'])) {
+          validIps.add(pc['ip'].toString());
+        }
+      }
+    }
+
+    // Filter out invalid or virtual IPs (loopback, link-local, VirtualBox host-only, CGNAT)
+    validIps.removeWhere((ip) =>
+      ip.startsWith('127.') ||
+      ip.startsWith('169.254.') ||
+      ip.startsWith('192.168.56.') ||
+      ip.startsWith('100.64.') ||
+      ip.startsWith('100.127.') ||
+      ip == '0.0.0.0'
+    );
     
-    if (payload.pcIps != null && payload.pcIps!.isNotEmpty) {
-      logMessage("⚡ 扫描到电脑 IP (${payload.pcIps!.join(', ')}，HTTP 端口: ${payload.httpPort})，启动极速局域网直连信令...");
+    if (validIps.isNotEmpty) {
+      _lastScannedPayload = QrPayload(
+        bleMac: payload.bleMac,
+        serviceUuid: payload.serviceUuid,
+        charUuid: payload.charUuid,
+        sessionId: payload.sessionId,
+        hotspotSsid: payload.hotspotSsid,
+        hotspotPassword: payload.hotspotPassword,
+        pcIps: validIps,
+        httpPort: payload.httpPort,
+      );
+
+      logMessage("⚡ 扫描到电脑 IP (${validIps.join(', ')}，HTTP 端口: ${payload.httpPort})，启动极速局域网直连信令...");
       appState = AppState.connectingWebRtc;
       notifyListeners();
       _initializeWebRtc(isUdpFallback: true);
       
-      Timer(const Duration(seconds: 12), () {
+      Timer(const Duration(seconds: 10), () {
         if (appState != AppState.connected && appState != AppState.failed) {
-          logMessage("局域网直连超时 (12s)。正在尝试回退至蓝牙信令...");
+          logMessage("局域网直连超时 (10s)。正在尝试回退至蓝牙信令...");
           cleanup();
           appState = AppState.connectingBle;
           notifyListeners();
@@ -526,16 +559,20 @@ class SyncViewModel extends ChangeNotifier {
     targets.add('192.168.137.1');
     targets.add('192.168.43.1');
 
-    try {
-      final String? ip = await WiFiForIoTPlugin.getIP();
-      if (ip != null && ip.contains('.')) {
-        final parts = ip.split('.');
-        if (parts.length == 4) {
-          final prefix = '${parts[0]}.${parts[1]}.${parts[2]}';
-          targets.add('$prefix.255');
+    if (_cachedSubnetBroadcast != null) {
+      targets.add(_cachedSubnetBroadcast!);
+    } else {
+      try {
+        final String? ip = await WiFiForIoTPlugin.getIP();
+        if (ip != null && ip.contains('.')) {
+          final parts = ip.split('.');
+          if (parts.length == 4) {
+            _cachedSubnetBroadcast = '${parts[0]}.${parts[1]}.${parts[2]}.255';
+            targets.add(_cachedSubnetBroadcast!);
+          }
         }
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
 
     for (var ipStr in targets) {
       try {
@@ -587,7 +624,11 @@ class SyncViewModel extends ChangeNotifier {
   }
 
   void _initializeWebRtc({bool isUdpFallback = false}) async {
-    logMessage("GATT signaling connected. Starting local WebRTC...");
+    if (isUdpFallback) {
+      logMessage("⚡ 局域网直连信令启动，正在初始化本地 WebRTC...");
+    } else {
+      logMessage("GATT signaling connected. Starting local WebRTC...");
+    }
     appState = AppState.generatingOffer;
     notifyListeners();
 
@@ -629,6 +670,31 @@ class SyncViewModel extends ChangeNotifier {
           final byteData = ByteData.sublistView(binaryData, 0, 16);
           final fileId = byteData.getInt32(0, Endian.big);
 
+          // CRITICAL FAILSAFE: If we received ANY packet from PC over the WebRTC DataChannel,
+          // it is absolute proof that the DataChannel is fully open and PC is active.
+          if (appState != AppState.connected) {
+            logMessage("⚡ 收到来自 PC 的数据包 (fileId: $fileId)，确认双向通道畅通！");
+            _handshakeAckTimer?.cancel();
+            _handshakeAckTimer = null;
+            _handshakeRetryTimer?.cancel();
+            _handshakeRetryTimer = null;
+
+            if (_photoStreamer == null && _syncEngine != null) {
+              _photoStreamer = PhotoStreamer(syncEngine: _syncEngine!);
+              _loadLocalGallery();
+            }
+
+            appState = AppState.connected;
+            _setKeepScreenOn(true);
+            _startHeartbeat();
+            notifyListeners();
+
+            // If this wasn't the handshake ACK (-4 or chunked -5), ensure PC has our device info
+            if (fileId != -4 && fileId != -5) {
+              _sendHandshake();
+            }
+          }
+
           if (fileId == -1) {
             // Ping received from PC
             final pongHeader = ByteData(16);
@@ -669,6 +735,8 @@ class SyncViewModel extends ChangeNotifier {
               if (realPacketType == -4) {
                 _handshakeAckTimer?.cancel();
                 _handshakeAckTimer = null;
+                _handshakeRetryTimer?.cancel();
+                _handshakeRetryTimer = null;
 
                 final payloadStr = utf8.decode(fullBytes);
                 final Map<String, dynamic> data = jsonDecode(payloadStr);
@@ -691,6 +759,7 @@ class SyncViewModel extends ChangeNotifier {
                 // Only enter connected screen when PC explicitly confirmed the handshake!
                 appState = AppState.connected;
                 _setKeepScreenOn(true);
+                _startHeartbeat();
                 notifyListeners();
               } else if (realPacketType == -15) {
                 try {
@@ -781,6 +850,11 @@ class SyncViewModel extends ChangeNotifier {
 
           if (fileId == -4) {
             // Handshake Response
+            _handshakeAckTimer?.cancel();
+            _handshakeAckTimer = null;
+            _handshakeRetryTimer?.cancel();
+            _handshakeRetryTimer = null;
+
             final payloadSize = byteData.getInt32(12, Endian.big);
             final payloadStr = utf8.decode(binaryData.sublist(16, 16 + payloadSize));
             final Map<String, dynamic> data = jsonDecode(payloadStr);
@@ -799,7 +873,12 @@ class SyncViewModel extends ChangeNotifier {
 
             // Store the last album sync date for breakpoint resume
             lastAlbumSyncDate = data['last_album_sync_date'] ?? '';
-            logMessage("Handshake response received! PC has ${pcSyncedIds.length} files, ${pcSyncedThumbnailIds.length} thumbnails. Last album sync: ${lastAlbumSyncDate.isEmpty ? 'none' : lastAlbumSyncDate}");
+            logMessage("收到 PC 端握手确认！双向 WebRTC 通道已验证，进入传输控制台。PC 已有 ${pcSyncedIds.length} 个文件，${pcSyncedThumbnailIds.length} 个缩略图。");
+            
+            // Critical fix: Transition to connected state, keep screen on and start heartbeat!
+            appState = AppState.connected;
+            _setKeepScreenOn(true);
+            _startHeartbeat();
             notifyListeners();
             return;
           }
@@ -1337,7 +1416,12 @@ class SyncViewModel extends ChangeNotifier {
     _syncEngine?.connectionState.addListener(() {
       final pcState = _syncEngine?.connectionState.value;
       logMessage("WebRTC ConnectionState: $pcState");
-      if (pcState == RTCPeerConnectionState.RTCPeerConnectionStateFailed || 
+      if (pcState == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+        logMessage("WebRTC PeerConnection 建立成功 (Connected)");
+        if (_syncEngine?.currentDataChannelState == RTCDataChannelState.RTCDataChannelOpen) {
+          _onDataChannelStateChanged();
+        }
+      } else if (pcState == RTCPeerConnectionState.RTCPeerConnectionStateFailed || 
           pcState == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
         if (appState == AppState.connected) {
           errorMsg = "WebRTC connection failed/closed";
@@ -1358,39 +1442,59 @@ class SyncViewModel extends ChangeNotifier {
       if (isUdpFallback) {
          await _startUdpListener();
          
-         // 1. High-Speed HTTP/TCP Direct Signaling (Priority 1 for Non-BLE & LAN devices)
-         if (_lastScannedPayload?.pcIps != null && _lastScannedPayload!.pcIps!.isNotEmpty) {
-           logMessage("⚡ 正在通过局域网极速 TCP 信令握手连接 PC (${_lastScannedPayload!.pcIps!.join(', ')})...");
+         final pcIps = _lastScannedPayload?.pcIps;
+         bool httpSuccess = false;
+         if (pcIps != null && pcIps.isNotEmpty) {
            final httpPort = _lastScannedPayload!.httpPort;
-           HttpSignalingClient.exchangeSdp(
-             targetIps: _lastScannedPayload!.pcIps!,
-             port: httpPort,
-             offerSdp: offerSdp,
-           ).then((httpResult) {
+           logMessage("⚡ [局域网直连] 优先发起极速 HTTP 信令握手 (${pcIps.join(', ')}:$httpPort)...");
+           appState = AppState.waitingForAnswer;
+           notifyListeners();
+
+           try {
+             final httpResult = await HttpSignalingClient.exchangeSdp(
+               targetIps: pcIps,
+               port: httpPort,
+               offerSdp: offerSdp,
+             );
+
              if (httpResult != null && httpResult['sdp'] != null && appState != AppState.connected) {
-               logMessage("🎉 局域网极速信令握手成功！耗时 < 100ms");
+               httpSuccess = true;
+               logMessage("🎉 [局域网直连] 极速 HTTP 信令握手成功！耗时 < 100ms");
                _handleRemoteAnswer(httpResult['sdp'].toString());
                if (httpResult['candidates'] is List) {
                  for (final c in httpResult['candidates']) {
                    try {
                      final candMap = c is Map<String, dynamic> ? c : jsonDecode(c.toString());
-                     _syncEngine?.addRemoteIceCandidate(
-                       candMap['sdpMid']?.toString() ?? '',
-                       candMap['sdpMLineIndex'] is int ? candMap['sdpMLineIndex'] : 0,
-                       candMap['candidate']?.toString() ?? '',
-                     );
+                     final sdpMid = candMap['sdpMid']?.toString() ?? '';
+                     final sdpMLineIndex = candMap['sdpMLineIndex'] is num
+                         ? (candMap['sdpMLineIndex'] as num).toInt()
+                         : (candMap['sdpMLineIndex'] != null
+                             ? int.tryParse(candMap['sdpMLineIndex'].toString()) ?? 0
+                             : 0);
+                     final candidateStr = candMap['candidate']?.toString() ?? '';
+                     if (candidateStr.isNotEmpty) {
+                       _syncEngine?.addRemoteIceCandidate(
+                         sdpMid,
+                         sdpMLineIndex,
+                         candidateStr,
+                       );
+                     }
                    } catch (_) {}
                  }
                }
+               return; // 局域网极速直连成功！无需启动后续耗时的 UDP 广播与分片传输！
              }
-           });
+           } catch (e) {
+             logMessage("⚠️ HTTP 信令异常: $e");
+           }
          }
 
-         // 2. Dual-Track UDP Signaling (Priority 2)
-         logMessage("Sending UDP Offer SDP to PC...");
-         _sendUdpSdp(offerSdp, 'offer');
-         appState = AppState.waitingForAnswer;
-         notifyListeners();
+         if (!httpSuccess) {
+           logMessage("⚠️ HTTP 直连未在预定时限内完成，启用 UDP 双轨补充信令...");
+           _sendUdpSdp(offerSdp, 'offer');
+           appState = AppState.waitingForAnswer;
+           notifyListeners();
+         }
       } else {
          logMessage("Uploading generated Offer SDP over BLE...");
          final success = await _bleClient.sendSdp(offerSdp);
@@ -1471,12 +1575,39 @@ class SyncViewModel extends ChangeNotifier {
   }
 
   Timer? _handshakeAckTimer;
+  Timer? _handshakeRetryTimer;
+  int _handshakeRetryCount = 0;
+
+  void _startHandshakeRetries() {
+    _handshakeRetryTimer?.cancel();
+    _handshakeRetryCount = 0;
+    // Send immediate first handshake
+    _sendHandshake();
+    // Periodically retry every 1500ms in case initial WebRTC packet was dropped
+    _handshakeRetryTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) {
+      if (appState == AppState.connected || _syncEngine == null) {
+        timer.cancel();
+        _handshakeRetryTimer = null;
+        return;
+      }
+      _handshakeRetryCount++;
+      if (_handshakeRetryCount > 5) {
+        timer.cancel();
+        _handshakeRetryTimer = null;
+        return;
+      }
+      logMessage("正在补发身份握手包 (第 $_handshakeRetryCount 次)...");
+      _sendHandshake();
+    });
+  }
 
   void _startHandshakeAckTimer() {
     _handshakeAckTimer?.cancel();
     _handshakeAckTimer = Timer(const Duration(seconds: 15), () {
       if (appState != AppState.connected) {
         logMessage("⚠️ 握手确认超时 (15s)：PC 未能响应握手确认包。");
+        _handshakeRetryTimer?.cancel();
+        _handshakeRetryTimer = null;
         cleanup();
         errorMsg = "与电脑通信握手超时，请重新扫码连接";
         appState = AppState.failed;
@@ -1493,8 +1624,7 @@ class SyncViewModel extends ChangeNotifier {
       logMessage("WebRTC DataChannel 已开启，正在向 PC 发送身份握手，等待确认...");
       _photoStreamer = PhotoStreamer(syncEngine: _syncEngine!);
       _loadLocalGallery();
-      _startHeartbeat();
-      _sendHandshake();
+      _startHandshakeRetries();
       _startHandshakeAckTimer();
     } else if (state == RTCDataChannelState.RTCDataChannelClosed) {
       if (appState == AppState.connected) {
@@ -1516,6 +1646,15 @@ class SyncViewModel extends ChangeNotifier {
       }
 
       final diff = DateTime.now().difference(_lastHeartbeatReceived);
+      if (diff.inSeconds > 15) {
+        logMessage("⚠️ 心跳超时 (15s 未收到 PC 响应)，断开连接");
+        cleanup();
+        appState = AppState.failed;
+        errorMsg = "与电脑连接中断 (心跳超时)";
+        notifyListeners();
+        return;
+      }
+
       // Send periodic Ping (file_id = -1, chunk_index = 0, total_chunks = 0, payload_size = 0)
       // to keep network NAT mappings and SCTP connection actively alive
       final pingHeader = ByteData(16);
@@ -1523,7 +1662,11 @@ class SyncViewModel extends ChangeNotifier {
       pingHeader.setInt32(4, 0, Endian.big);
       pingHeader.setInt32(8, 0, Endian.big);
       pingHeader.setInt32(12, 0, Endian.big);
-      await _syncEngine?.sendBinary(pingHeader.buffer.asUint8List());
+      try {
+        await _syncEngine?.sendBinary(pingHeader.buffer.asUint8List());
+      } catch (e) {
+        debugPrint("[Heartbeat] Ping send error: $e");
+      }
     });
   }
 
@@ -2685,6 +2828,8 @@ class SyncViewModel extends ChangeNotifier {
     _setKeepScreenOn(false);
     _handshakeAckTimer?.cancel();
     _handshakeAckTimer = null;
+    _handshakeRetryTimer?.cancel();
+    _handshakeRetryTimer = null;
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
     _discoveryTimer?.cancel();
@@ -2702,7 +2847,9 @@ class SyncViewModel extends ChangeNotifier {
     isThumbnailSyncing = false;
     isAlbumSyncing = false;
     isAlbumSyncPaused = false;
+    _cachedSubnetBroadcast = null;
     _chunkedBuffers.clear();
+    _udpSdpChunkBuffers.clear();
     localImages.clear();
     localVideos.clear();
     selectedImages.clear();

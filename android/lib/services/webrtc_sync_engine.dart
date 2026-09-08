@@ -62,7 +62,13 @@ class WebRtcSyncEngine {
     debugPrint("[WebRTC] DataChannel 'photo_sync' successfully created");
   }
 
+  RTCDataChannelState? get currentDataChannelState => _dataChannel?.state;
+
   void _bindDataChannel(RTCDataChannel dc) {
+    if (dc.state == RTCDataChannelState.RTCDataChannelOpen) {
+      dataChannelState.value = RTCDataChannelState.RTCDataChannelOpen;
+    }
+
     dc.onDataChannelState = (RTCDataChannelState state) {
       debugPrint("[WebRTC] DataChannel state change: $state");
       dataChannelState.value = state;

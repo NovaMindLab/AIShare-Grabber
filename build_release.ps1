@@ -65,6 +65,12 @@ if (-not $NoBump) {
             (Get-Content $webPkg -Raw) -replace '"version":\s*"[0-9.]+"', "`"version`": `"$newVersion`"" | Set-Content $webPkg -NoNewline
         }
 
+        # Update webshare/package.json
+        $webSharePkg = "$PSScriptRoot\webshare\package.json"
+        if (Test-Path $webSharePkg) {
+            (Get-Content $webSharePkg -Raw) -replace '"version":\s*"[0-9.]+"', "`"version`": `"$newVersion`"" | Set-Content $webSharePkg -NoNewline
+        }
+
         # Update android/pubspec.yaml
         if (Test-Path $pubspec) {
             (Get-Content $pubspec -Raw) -replace 'version:\s*[0-9.+]+', "version: $newVersion+$newVersionCode" | Set-Content $pubspec -NoNewline
@@ -73,6 +79,12 @@ if (-not $NoBump) {
         # Update android/lib/main.dart
         if (Test-Path $mainDart) {
             (Get-Content $mainDart -Raw) -replace "const String appVersion = '[0-9.]+';", "const String appVersion = '$newVersion';" | Set-Content $mainDart -NoNewline
+        }
+
+        # Update android/lib/viewmodels/sync_viewmodel.dart
+        $syncVmDart = "$PSScriptRoot\android\lib\viewmodels\sync_viewmodel.dart"
+        if (Test-Path $syncVmDart) {
+            (Get-Content $syncVmDart -Raw) -replace "static const String appVersion = '[0-9.]+';", "static const String appVersion = '$newVersion';" | Set-Content $syncVmDart -NoNewline
         }
     }
 } else {

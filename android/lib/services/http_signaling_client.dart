@@ -6,7 +6,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class HttpSignalingClient {
   static final HttpClient _client = HttpClient()
-    ..connectionTimeout = const Duration(seconds: 2)
+    ..connectionTimeout = const Duration(milliseconds: 1500)
     ..idleTimeout = const Duration(seconds: 5);
 
   /// Send WebRTC Offer SDP to PC target IPs over HTTP TCP.
@@ -46,7 +46,7 @@ class HttpSignalingClient {
     }
 
     return completer.future.timeout(
-      const Duration(seconds: 5),
+      const Duration(milliseconds: 1800),
       onTimeout: () => null,
     );
   }
@@ -60,7 +60,7 @@ class HttpSignalingClient {
     try {
       final uri = Uri.parse('http://$ip:$port/api/signal');
       debugPrint('[HttpSignaling] POST offer to $uri ...');
-      final request = await _client.postUrl(uri).timeout(const Duration(seconds: 3));
+      final request = await _client.postUrl(uri).timeout(const Duration(milliseconds: 1200));
       request.headers.contentType = ContentType.json;
       
       final body = jsonEncode({
@@ -70,7 +70,7 @@ class HttpSignalingClient {
       });
       request.write(body);
 
-      final response = await request.close().timeout(const Duration(seconds: 4));
+      final response = await request.close().timeout(const Duration(milliseconds: 1500));
       if (response.statusCode == 200) {
         final respStr = await response.transform(utf8.decoder).join();
         final Map<String, dynamic> data = jsonDecode(respStr);

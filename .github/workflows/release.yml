@@ -99,17 +99,29 @@ jobs:
           fi
           VER_CLEAN="${TAG_VER#v}"
           echo "VERSION=$VER_CLEAN" >> $GITHUB_OUTPUT
-          echo "Building Android for version: $VER_CLEAN"
+          # Calculate build number: e.g. 3.0.15 -> 30015
+          IFS='.' read -r -a vparts <<< "$VER_CLEAN"
+          if [ ${#vparts[@]} -ge 3 ]; then
+            BUILD_NUM=$(( vparts[0] * 10000 + vparts[1] * 100 + vparts[2] ))
+          else
+            BUILD_NUM=30000
+          fi
+          echo "BUILD_NUMBER=$BUILD_NUM" >> $GITHUB_OUTPUT
+          echo "Building Android version: $VER_CLEAN (build-number: $BUILD_NUM)"
 
       - name: Build Android Universal APK
         run: |
           cd android
+          echo "Checking debug.keystore presence..."
+          ls -la android/app/debug.keystore
           flutter pub get
           if [ -n "${{ secrets.MIXPANEL_TOKEN }}" ]; then
-            flutter build apk --release --target-platform android-arm,android-arm64 --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=${{ secrets.MIXPANEL_TOKEN }}
+            flutter build apk --release --target-platform android-arm,android-arm64 --build-name "${{ steps.get_version.outputs.VERSION }}" --build-number "${{ steps.get_version.outputs.BUILD_NUMBER }}" --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=${{ secrets.MIXPANEL_TOKEN }}
           else
-            flutter build apk --release --target-platform android-arm,android-arm64 --no-tree-shake-icons
+            flutter build apk --release --target-platform android-arm,android-arm64 --build-name "${{ steps.get_version.outputs.VERSION }}" --build-number "${{ steps.get_version.outputs.BUILD_NUMBER }}" --no-tree-shake-icons
           fi
+          echo "Verifying APK signing certificate..."
+          keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk | grep -i -E "(SHA1|SHA256):" || true
           cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/ShareCLIP-Android-${{ steps.get_version.outputs.VERSION }}.apk
 
       - name: Upload Android Artifact

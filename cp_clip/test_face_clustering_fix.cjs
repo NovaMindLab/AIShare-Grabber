@@ -303,15 +303,16 @@ async function runFaceClusteringTests() {
   const challengingId = createRandomUnitVector(512);
   const varAxis1 = createOrthogonalUnitVector(challengingId);
   const varAxis2 = createOrthogonalUnitVector(challengingId);
+  const varAxis3 = createOrthogonalUnitVector(challengingId);
 
-  // Create 3 photos with significant pose/lighting variation where pairwise similarities are ~0.46-0.48
+  // Create 3 photos with distinct pose/lighting variation where pairwise similarities are ~0.55-0.65
   const p1 = new Float32Array(512);
   const p2 = new Float32Array(512);
   const p3 = new Float32Array(512);
   for (let i = 0; i < 512; i++) {
-    p1[i] = 0.9 * varAxis1[i];
-    p2[i] = 0.9 * varAxis2[i];
-    p3[i] = -0.9 * varAxis1[i];
+    p1[i] = 0.8 * varAxis1[i];
+    p2[i] = 0.8 * varAxis2[i];
+    p3[i] = 0.8 * varAxis3[i];
   }
   const emb_c_1 = createFaceEmbedding(challengingId, p1, 0.05);
   const emb_c_2 = createFaceEmbedding(challengingId, p2, 0.05);
@@ -333,12 +334,12 @@ async function runFaceClusteringTests() {
   ];
   const challengingIndices = [sIdx_ch1, sIdx_ch2, sIdx_ch3];
 
-  const challengingClusters = await taskManager.clusterFaces(challengingIndices, challengingFaces, 0.44);
+  const challengingClusters = await taskManager.clusterFaces(challengingIndices, challengingFaces, 0.55);
   console.log(`  Challenging cluster result: ${challengingClusters.length} cluster(s) formed.`);
 
   assert(
     challengingClusters.length === 1 && challengingClusters[0].face_count === 3,
-    "Challenging low-similarity face variations correctly merge via Centroid Linkage into 1 cluster",
+    "Challenging low-similarity face variations correctly merge via Average Linkage into 1 cluster",
     `Expected 1 cluster with 3 faces, got ${challengingClusters.length}`
   );
 

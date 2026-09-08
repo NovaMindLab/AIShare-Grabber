@@ -19,6 +19,8 @@ class ConnectionManager {
     this.isProcessingOffer = false;
     this.hasGeneratedAnswer = false;
     this.pendingDirectIceCandidates = [];
+    this._offerPromise = null;
+    this.gatheredCandidates = [];
 
     this.handshakeTimeoutTimer = null;
     this.disconnectGraceTimer = null;
@@ -111,90 +113,116 @@ class ConnectionManager {
    * 处理对端发来的 Offer SDP 并生成 Answer SDP
    */
   async handleIncomingOffer(ip, sdp, sendUdpResponse = true) {
-    if (this.isProcessingOffer || this.hasGeneratedAnswer) {
-      this.log(`[WebRTC] 已有 Offer 在处理中或已生成 Answer，跳过重复 Offer`);
-      return null;
-    }
-
     if (this.peerConnection && this.dataChannel && this.dataChannel.readyState === 'open') {
       this.log(`[WebRTC] 直连通道已处于 Open 状态，忽略重复 Offer`);
-      return null;
+      return {
+        sdp: this.peerConnection.localDescription?.sdp,
+        candidates: this.gatheredCandidates || []
+      };
+    }
+
+    // 1. 若当前已成功生成了 Answer（例如 UDP 刚生成，HTTP 毫秒级跟进或重试）
+    if (this.hasGeneratedAnswer && this.peerConnection && this.peerConnection.localDescription) {
+      this.log(`[WebRTC] 已有已生成的 Answer，直接复用返回给信令通道`);
+      const answerSdp = this.peerConnection.localDescription.sdp;
+      if (sendUdpResponse && window.api && ip) {
+        window.api.sendUdpSdp(ip, answerSdp, 'answer');
+      }
+      return {
+        sdp: answerSdp,
+        candidates: this.gatheredCandidates || []
+      };
+    }
+
+    // 2. 若正在生成 Answer 中（UDP 与 HTTP 并发到达），等待并复用进行中的 Promise
+    if (this.isProcessingOffer && this._offerPromise) {
+      this.log(`[WebRTC] 正在生成 Answer 中，等待已有生成任务完成...`);
+      const res = await this._offerPromise;
+      if (res && sendUdpResponse && window.api && ip) {
+        window.api.sendUdpSdp(ip, res.sdp, 'answer');
+      }
+      return res;
     }
 
     this.isProcessingOffer = true;
-    try {
-      const savedCandidates = [...this.pendingDirectIceCandidates];
-      this.cleanup();
-      this.isProcessingOffer = true;
-      this.pendingDirectIceCandidates.push(...savedCandidates);
+    this.gatheredCandidates = [];
 
-      const configuration = { iceServers: [] };
-      this.peerConnection = new RTCPeerConnection(configuration);
-      this._setupPeerConnectionListeners(this.peerConnection);
+    this._offerPromise = (async () => {
+      try {
+        const savedCandidates = [...this.pendingDirectIceCandidates];
+        this.cleanup();
+        this.isProcessingOffer = true;
+        this.pendingDirectIceCandidates.push(...savedCandidates);
 
-      const gatheredCandidates = [];
-      this.peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          gatheredCandidates.push(event.candidate);
-          if (sendUdpResponse && window.api) {
-            window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
+        const configuration = { iceServers: [] };
+        this.peerConnection = new RTCPeerConnection(configuration);
+        this._setupPeerConnectionListeners(this.peerConnection);
+
+        this.peerConnection.onicecandidate = (event) => {
+          if (event.candidate) {
+            this.gatheredCandidates.push(event.candidate);
+            // 无论通过何种信令通道协商，收集到的 Candidate 均同步通过 UDP 补发对端（双重保障）
+            if (window.api && ip) {
+              window.api.sendUdpIce(ip, JSON.stringify(event.candidate));
+            }
           }
-        }
-      };
+        };
 
-      this.peerConnection.ondatachannel = (event) => {
-        this.log(`[UDP] 监听到数据通道创建: ${event.channel.label}`);
-        if (event.channel.label === 'photo_sync') {
-          this.dataChannel = event.channel;
-          if (this.onDataChannelCallback) {
-            this.onDataChannelCallback(this.dataChannel);
-          } else {
-            this._bindDataChannel(this.dataChannel);
+        this.peerConnection.ondatachannel = (event) => {
+          this.log(`[UDP/HTTP] 监听到数据通道创建: ${event.channel.label}`);
+          if (event.channel.label === 'photo_sync') {
+            this.dataChannel = event.channel;
+            if (this.onDataChannelCallback) {
+              this.onDataChannelCallback(this.dataChannel);
+            } else {
+              this._bindDataChannel(this.dataChannel);
+            }
           }
+        };
+
+        await this.peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
+        const answer = await this.peerConnection.createAnswer();
+        await this.peerConnection.setLocalDescription(answer);
+
+        this.hasGeneratedAnswer = true;
+
+        // 冲刷此前排队的 ICE 候选
+        if (this.pendingDirectIceCandidates.length > 0) {
+          for (const cand of this.pendingDirectIceCandidates) {
+            try { await this.peerConnection.addIceCandidate(cand); } catch (_) {}
+          }
+          this.pendingDirectIceCandidates.length = 0;
         }
-      };
 
-      await this.peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
-      const answer = await this.peerConnection.createAnswer();
-      await this.peerConnection.setLocalDescription(answer);
-
-      this.hasGeneratedAnswer = true;
-
-      // 冲刷此前排队的 ICE 候选
-      if (this.pendingDirectIceCandidates.length > 0) {
-        for (const cand of this.pendingDirectIceCandidates) {
-          try { await this.peerConnection.addIceCandidate(cand); } catch (_) {}
-        }
-        this.pendingDirectIceCandidates.length = 0;
-      }
-
-      // 若通过 HTTP 返回，等待短暂 300ms 收集本地网卡 candidate 行
-      if (!sendUdpResponse) {
+        // 短暂等待收集本地主机 candidate (100ms 快速完成 host candidate 获取)
         await new Promise((resolve) => {
           let resolved = false;
           const timer = setTimeout(() => {
             if (!resolved) { resolved = true; resolve(); }
-          }, 300);
+          }, 100);
 
           if (this.peerConnection.iceGatheringState === 'complete') {
             clearTimeout(timer);
             resolve();
           }
         });
-      }
 
-      const finalSdp = this.peerConnection.localDescription?.sdp || answer.sdp;
-      this.log(`📡 成功生成 Answer SDP`);
-      if (sendUdpResponse && window.api) {
-        await window.api.sendUdpSdp(ip, finalSdp, 'answer');
+        const finalSdp = this.peerConnection.localDescription?.sdp || answer.sdp;
+        this.log(`📡 成功生成 Answer SDP`);
+        if (sendUdpResponse && window.api && ip) {
+          await window.api.sendUdpSdp(ip, finalSdp, 'answer');
+        }
+        return { sdp: finalSdp, candidates: this.gatheredCandidates };
+      } catch (err) {
+        this.log(`❌ [WebRTC] 处理 Offer 异常: ${err.message}`);
+        return null;
+      } finally {
+        this.isProcessingOffer = false;
+        this._offerPromise = null;
       }
-      return { sdp: finalSdp, candidates: gatheredCandidates };
-    } catch (err) {
-      this.log(`❌ [WebRTC] 处理 Offer 异常: ${err.message}`);
-      return null;
-    } finally {
-      this.isProcessingOffer = false;
-    }
+    })();
+
+    return await this._offerPromise;
   }
 
   async handleIncomingAnswer(ip, sdp) {
@@ -427,6 +455,8 @@ class ConnectionManager {
     }
     this.isProcessingOffer = false;
     this.hasGeneratedAnswer = false;
+    this._offerPromise = null;
+    this.gatheredCandidates = [];
     this.pendingDirectIceCandidates = [];
   }
 
