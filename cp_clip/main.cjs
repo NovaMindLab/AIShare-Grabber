@@ -134,6 +134,19 @@ function getSimpleTokenizer() {
   return SimpleTokenizer;
 }
 
+let conceptAligner = null;
+function getConceptAligner() {
+  if (!conceptAligner) {
+    try {
+      const { getGlobalConceptAligner } = require('./concept_aligner.cjs');
+      conceptAligner = getGlobalConceptAligner();
+    } catch (err) {
+      console.error("Critical: Failed to load concept_aligner.cjs", err);
+    }
+  }
+  return conceptAligner;
+}
+
 // Register the custom local protocol to bypass CSP and allow local file loading
 protocol.registerSchemesAsPrivileged([
   {
@@ -3249,8 +3262,15 @@ ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
     }
 
     // Real search logic using ONNX Text Encoder
+    // 0. Multi-language Visual Concept Alignment (ShareCLIP External 1.5MB Lexicon)
+    const aligner = getConceptAligner();
+    const alignedQuery = aligner ? aligner.alignQueryToPrompt(queryText) : queryText;
+    if (alignedQuery !== queryText) {
+      console.log(`[AI Search] Aligned query "${queryText}" -> "${alignedQuery}"`);
+    }
+
     // 1. Tokenize query
-    const tokenIds = tokenizer.encodeForCLIP(queryText);
+    const tokenIds = tokenizer.encodeForCLIP(alignedQuery);
     
     // 2. Convert to BigInt64Array
     const bigintData = new BigInt64Array(77);

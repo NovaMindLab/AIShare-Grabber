@@ -1,0 +1,5095 @@
+{
+  "version": "2.0.0",
+  "languages": [
+    "en",
+    "es",
+    "fr",
+    "de",
+    "ja",
+    "ko",
+    "ru",
+    "pt",
+    "it",
+    "zh",
+    "ar",
+    "vi",
+    "th",
+    "id",
+    "nl",
+    "pl",
+    "tr"
+  ],
+  "stop_words": {
+    "zh": [
+      "的",
+      "在",
+      "中",
+      "里",
+      "上的",
+      "下的",
+      "一些",
+      "一张",
+      "一张关于",
+      "照片",
+      "图片",
+      "照",
+      "图",
+      "有个",
+      "有只",
+      "一位"
+    ],
+    "en": [
+      "a",
+      "an",
+      "the",
+      "in",
+      "on",
+      "at",
+      "of",
+      "photo",
+      "picture",
+      "with",
+      "and",
+      "image",
+      "showing",
+      "taken"
+    ],
+    "es": [
+      "el",
+      "la",
+      "los",
+      "las",
+      "un",
+      "una",
+      "en",
+      "de",
+      "con",
+      "foto",
+      "imagen",
+      "fotografía"
+    ],
+    "fr": [
+      "le",
+      "la",
+      "les",
+      "un",
+      "une",
+      "dans",
+      "sur",
+      "de",
+      "photo",
+      "image",
+      "avec",
+      "cliché"
+    ],
+    "de": [
+      "der",
+      "die",
+      "das",
+      "ein",
+      "eine",
+      "in",
+      "auf",
+      "von",
+      "foto",
+      "bild",
+      "mit",
+      "aufnahme"
+    ],
+    "ja": [
+      "の",
+      "に",
+      "で",
+      "を",
+      "写真",
+      "画像",
+      "一枚",
+      "写る"
+    ],
+    "ko": [
+      "의",
+      "에",
+      "에서",
+      "사진",
+      "이미지",
+      "모습"
+    ],
+    "pt": [
+      "o",
+      "a",
+      "os",
+      "as",
+      "um",
+      "uma",
+      "em",
+      "de",
+      "com",
+      "foto",
+      "imagem"
+    ],
+    "it": [
+      "il",
+      "la",
+      "i",
+      "le",
+      "un",
+      "una",
+      "in",
+      "su",
+      "di",
+      "con",
+      "foto",
+      "immagine"
+    ],
+    "ru": [
+      "в",
+      "на",
+      "с",
+      "фото",
+      "фотография",
+      "изображение",
+      "снимок"
+    ]
+  },
+  "concepts": [
+    {
+      "id": "color_red",
+      "category": "colors",
+      "default_template": "a photo of red color, red clothing or red background",
+      "terms": {
+        "zh": [
+          "红",
+          "红色",
+          "绯红",
+          "大红",
+          "朱红",
+          "暗红",
+          "鲜红",
+          "红衣服",
+          "红衣",
+          "红裙子",
+          "红领结",
+          "深红",
+          "浅红",
+          "酒红",
+          "玫瑰红",
+          "中国红"
+        ],
+        "en": [
+          "red",
+          "crimson",
+          "scarlet",
+          "ruby",
+          "red color",
+          "red clothes",
+          "red clothing",
+          "red dress",
+          "red background",
+          "dark red",
+          "bright red",
+          "wine red"
+        ],
+        "es": [
+          "rojo",
+          "roja",
+          "rojos",
+          "rojas",
+          "carmesí",
+          "color rojo",
+          "ropa roja",
+          "vestido rojo",
+          "escarlata"
+        ],
+        "fr": [
+          "rouge",
+          "rouges",
+          "écarlate",
+          "cramoisi",
+          "couleur rouge",
+          "vêtement rouge",
+          "robe rouge"
+        ],
+        "de": [
+          "rot",
+          "rote",
+          "rotes",
+          "roter",
+          "rötlich",
+          "rote farbe",
+          "rote kleidung",
+          "rotes kleid"
+        ],
+        "ja": [
+          "赤",
+          "赤色",
+          "レッド",
+          "紅",
+          "深紅",
+          "朱色",
+          "赤い服",
+          "赤い",
+          "赤の"
+        ],
+        "ko": [
+          "빨간색",
+          "붉은색",
+          "빨강",
+          "레드",
+          "빨간 옷",
+          "빨간",
+          "붉은",
+          "주홍색"
+        ],
+        "ru": [
+          "красный",
+          "красная",
+          "красное",
+          "красные",
+          "алый",
+          "бордовый",
+          "красный цвет",
+          "красная одежда"
+        ],
+        "pt": [
+          "vermelho",
+          "vermelha",
+          "rubro",
+          "carmesim",
+          "cor vermelha",
+          "roupa vermelha"
+        ],
+        "it": [
+          "rosso",
+          "rossa",
+          "rossi",
+          "rosse",
+          "scarlatto",
+          "colore rosso",
+          "vestito rosso"
+        ],
+        "ar": [
+          "أحمر",
+          "حمراء",
+          "لون أحمر"
+        ],
+        "vi": [
+          "đỏ",
+          "màu đỏ",
+          "áo đỏ"
+        ],
+        "th": [
+          "สีแดง",
+          "แดง",
+          "เสื้อแดง"
+        ],
+        "id": [
+          "merah",
+          "warna merah",
+          "baju merah"
+        ],
+        "nl": [
+          "rood",
+          "rode",
+          "rode kleur",
+          "rode kleding"
+        ],
+        "pl": [
+          "czerwony",
+          "czerwona",
+          "czerwone",
+          "kolor czerwony"
+        ],
+        "tr": [
+          "kırmızı",
+          "kirmizi",
+          "al",
+          "kırmızı renk",
+          "kırmızı giysi"
+        ]
+      }
+    },
+    {
+      "id": "color_blue",
+      "category": "colors",
+      "default_template": "a photo with vibrant blue color, blue sky or blue ocean",
+      "terms": {
+        "zh": [
+          "蓝",
+          "蓝色",
+          "深蓝",
+          "浅蓝",
+          "天蓝",
+          "湖蓝",
+          "湛蓝",
+          "宝蓝",
+          "藏青",
+          "蓝衣服",
+          "蓝裙子",
+          "蓝天"
+        ],
+        "en": [
+          "blue",
+          "navy",
+          "azure",
+          "cyan",
+          "sky blue",
+          "royal blue",
+          "deep blue",
+          "blue color",
+          "blue clothes"
+        ],
+        "es": [
+          "azul",
+          "azules",
+          "celeste",
+          "azul marino",
+          "color azul"
+        ],
+        "fr": [
+          "bleu",
+          "bleue",
+          "bleus",
+          "bleues",
+          "azur",
+          "bleu marine",
+          "couleur bleue"
+        ],
+        "de": [
+          "blau",
+          "blaue",
+          "blaues",
+          "himmelblau",
+          "dunkelblau",
+          "blaue farbe"
+        ],
+        "ja": [
+          "青",
+          "青色",
+          "ブルー",
+          "空色",
+          "紺",
+          "紺色",
+          "水色",
+          "青い服"
+        ],
+        "ko": [
+          "파란색",
+          "파랑",
+          "푸른",
+          "청색",
+          "하늘색",
+          "남색",
+          "블루"
+        ],
+        "ru": [
+          "синий",
+          "голубой",
+          "синяя",
+          "голубая",
+          "синий цвет"
+        ],
+        "pt": [
+          "azul",
+          "azuis",
+          "celeste",
+          "azul marinho",
+          "cor azul"
+        ],
+        "it": [
+          "blu",
+          "azzurro",
+          "azzurra",
+          "colore blu"
+        ],
+        "ar": [
+          "أزرق",
+          "زرقاء",
+          "لون أزرق"
+        ],
+        "vi": [
+          "xanh dương",
+          "xanh lam",
+          "màu xanh dương"
+        ],
+        "th": [
+          "สีน้ำเงิน",
+          "สีฟ้า",
+          "ฟ้า"
+        ],
+        "id": [
+          "biru",
+          "warna biru"
+        ],
+        "nl": [
+          "blauw",
+          "blauwe",
+          "blauwe kleur"
+        ],
+        "pl": [
+          "niebieski",
+          "błękitny",
+          "kolor niebieski"
+        ],
+        "tr": [
+          "mavi",
+          "gök mavisi",
+          "mavi renk"
+        ]
+      }
+    },
+    {
+      "id": "color_green",
+      "category": "colors",
+      "default_template": "a photo of vibrant green nature foliage or green color",
+      "terms": {
+        "zh": [
+          "绿",
+          "绿色",
+          "翠绿",
+          "墨绿",
+          "草绿",
+          "浅绿",
+          "深绿",
+          "青绿",
+          "嫩绿",
+          "薄荷绿",
+          "绿衣服"
+        ],
+        "en": [
+          "green",
+          "emerald",
+          "olive",
+          "lime",
+          "dark green",
+          "light green",
+          "mint green",
+          "green color"
+        ],
+        "es": [
+          "verde",
+          "verdes",
+          "esmeralda",
+          "oliva",
+          "color verde"
+        ],
+        "fr": [
+          "vert",
+          "verte",
+          "verts",
+          "vertes",
+          "émeraude",
+          "couleur verte"
+        ],
+        "de": [
+          "grün",
+          "grüne",
+          "grünes",
+          "smaragdgrün",
+          "grüne farbe"
+        ],
+        "ja": [
+          "緑",
+          "緑色",
+          "グリーン",
+          "エメラルド",
+          "深緑",
+          "若草色"
+        ],
+        "ko": [
+          "초록색",
+          "녹색",
+          "초록",
+          "연두색",
+          "그린"
+        ],
+        "ru": [
+          "зеленый",
+          "зелёный",
+          "зеленая",
+          "изумрудный",
+          "зеленый цвет"
+        ],
+        "pt": [
+          "verde",
+          "verdes",
+          "esmeralda",
+          "cor verde"
+        ],
+        "it": [
+          "verde",
+          "verdi",
+          "smeraldo",
+          "colore verde"
+        ],
+        "ar": [
+          "أخضر",
+          "خضراء",
+          "لون أخضر"
+        ],
+        "vi": [
+          "xanh lá",
+          "xanh lục",
+          "màu xanh lá"
+        ],
+        "th": [
+          "สีเขียว",
+          "เขียว"
+        ],
+        "id": [
+          "hijau",
+          "warna hijau"
+        ],
+        "nl": [
+          "groen",
+          "groene",
+          "groene kleur"
+        ],
+        "pl": [
+          "zielony",
+          "zielona",
+          "kolor zielony"
+        ],
+        "tr": [
+          "yeşil",
+          "yesil",
+          "zümrüt",
+          "yeşil renk"
+        ]
+      }
+    },
+    {
+      "id": "color_yellow",
+      "category": "colors",
+      "default_template": "a bright photo with vivid yellow golden color",
+      "terms": {
+        "zh": [
+          "黄",
+          "黄色",
+          "金黄",
+          "亮黄",
+          "柠檬黄",
+          "土黄",
+          "浅黄",
+          "姜黄",
+          "黄衣服"
+        ],
+        "en": [
+          "yellow",
+          "golden",
+          "amber",
+          "lemon yellow",
+          "bright yellow",
+          "yellow color"
+        ],
+        "es": [
+          "amarillo",
+          "amarilla",
+          "dorado",
+          "color amarillo"
+        ],
+        "fr": [
+          "jaune",
+          "jaunes",
+          "doré",
+          "couleur jaune"
+        ],
+        "de": [
+          "gelb",
+          "gelbe",
+          "gelbes",
+          "goldgelb",
+          "gelbe farbe"
+        ],
+        "ja": [
+          "黄",
+          "黄色",
+          "イエロー",
+          "金色",
+          "山吹色"
+        ],
+        "ko": [
+          "노란색",
+          "노랑",
+          "황색",
+          "골드",
+          "옐로우"
+        ],
+        "ru": [
+          "желтый",
+          "жёлтый",
+          "желтая",
+          "золотой",
+          "желтый цвет"
+        ],
+        "pt": [
+          "amarelo",
+          "amarela",
+          "dourado",
+          "cor amarela"
+        ],
+        "it": [
+          "giallo",
+          "gialla",
+          "dorato",
+          "colore giallo"
+        ],
+        "ar": [
+          "أصفر",
+          "صفراء",
+          "لون أصفر"
+        ],
+        "vi": [
+          "vàng",
+          "màu vàng"
+        ],
+        "th": [
+          "สีเหลือง",
+          "เหลือง"
+        ],
+        "id": [
+          "kuning",
+          "warna kuning"
+        ],
+        "nl": [
+          "geel",
+          "gele",
+          "gele kleur"
+        ],
+        "pl": [
+          "żółty",
+          "zółty",
+          "kolor żółty"
+        ],
+        "tr": [
+          "sarı",
+          "sari",
+          "sarı renk"
+        ]
+      }
+    },
+    {
+      "id": "color_white",
+      "category": "colors",
+      "default_template": "a clean photo with prominent white color or white clothing",
+      "terms": {
+        "zh": [
+          "白",
+          "白色",
+          "雪白",
+          "乳白",
+          "纯白",
+          "米白",
+          "洁白",
+          "银白",
+          "白衣服",
+          "白裙子",
+          "白衬衫"
+        ],
+        "en": [
+          "white",
+          "ivory",
+          "snowy white",
+          "pure white",
+          "white color",
+          "white clothing",
+          "white dress",
+          "white shirt"
+        ],
+        "es": [
+          "blanco",
+          "blanca",
+          "blancos",
+          "blancas",
+          "color blanco",
+          "ropa blanca"
+        ],
+        "fr": [
+          "blanc",
+          "blanche",
+          "blancs",
+          "blanches",
+          "couleur blanche",
+          "vêtement blanc"
+        ],
+        "de": [
+          "weiß",
+          "weisse",
+          "weisses",
+          "schneeweiß",
+          "weiße farbe",
+          "weiße kleidung"
+        ],
+        "ja": [
+          "白",
+          "白色",
+          "ホワイト",
+          "純白",
+          "白い服",
+          "白いシャツ",
+          "真っ白"
+        ],
+        "ko": [
+          "흰색",
+          "하얀색",
+          "화이트",
+          "순백",
+          "흰 옷",
+          "하얀"
+        ],
+        "ru": [
+          "белый",
+          "белая",
+          "белое",
+          "белоснежный",
+          "белый цвет",
+          "белая одежда"
+        ],
+        "pt": [
+          "branco",
+          "branca",
+          "alvo",
+          "cor branca",
+          "roupa branca"
+        ],
+        "it": [
+          "bianco",
+          "bianca",
+          "bianchi",
+          "bianche",
+          "colore bianco",
+          "vestito bianco"
+        ],
+        "ar": [
+          "أبيض",
+          "بيضاء",
+          "لون أبيض"
+        ],
+        "vi": [
+          "trắng",
+          "màu trắng",
+          "áo trắng"
+        ],
+        "th": [
+          "สีขาว",
+          "ขาว",
+          "เสื้อขาว"
+        ],
+        "id": [
+          "putih",
+          "warna putih",
+          "baju putih"
+        ],
+        "nl": [
+          "wit",
+          "witte",
+          "witte kleur",
+          "witte kleding"
+        ],
+        "pl": [
+          "biały",
+          "biała",
+          "kolor biały"
+        ],
+        "tr": [
+          "beyaz",
+          "ak",
+          "beyaz renk",
+          "beyaz giysi"
+        ]
+      }
+    },
+    {
+      "id": "color_black",
+      "category": "colors",
+      "default_template": "a photo with deep black color or black clothing",
+      "terms": {
+        "zh": [
+          "黑",
+          "黑色",
+          "漆黑",
+          "纯黑",
+          "暗黑",
+          "炭黑",
+          "黑衣服",
+          "黑西装",
+          "黑裙子",
+          "黑夜"
+        ],
+        "en": [
+          "black",
+          "pitch black",
+          "dark black",
+          "black color",
+          "black clothing",
+          "black dress",
+          "black suit"
+        ],
+        "es": [
+          "negro",
+          "negra",
+          "negros",
+          "negras",
+          "color negro",
+          "ropa negra"
+        ],
+        "fr": [
+          "noir",
+          "noire",
+          "noirs",
+          "noires",
+          "couleur noire",
+          "vêtement noir"
+        ],
+        "de": [
+          "schwarz",
+          "schwarze",
+          "schwarzes",
+          "schwarze farbe",
+          "schwarze kleidung"
+        ],
+        "ja": [
+          "黒",
+          "黒色",
+          "ブラック",
+          "漆黒",
+          "黒い服",
+          "黒スーツ"
+        ],
+        "ko": [
+          "검은색",
+          "까만색",
+          "블랙",
+          "검정",
+          "검은 옷"
+        ],
+        "ru": [
+          "черный",
+          "чёрный",
+          "черная",
+          "чёрная",
+          "черный цвет",
+          "черная одежда"
+        ],
+        "pt": [
+          "preto",
+          "preta",
+          "negro",
+          "cor preta",
+          "roupa preta"
+        ],
+        "it": [
+          "nero",
+          "nera",
+          "neri",
+          "nere",
+          "colore nero",
+          "vestito nero"
+        ],
+        "ar": [
+          "أسود",
+          "سوداء",
+          "لون أسود"
+        ],
+        "vi": [
+          "đen",
+          "màu đen",
+          "áo đen"
+        ],
+        "th": [
+          "สีดำ",
+          "ดำ",
+          "เสื้อดำ"
+        ],
+        "id": [
+          "hitam",
+          "warna hitam",
+          "baju hitam"
+        ],
+        "nl": [
+          "zwart",
+          "zwarte",
+          "zwarte kleur"
+        ],
+        "pl": [
+          "czarny",
+          "czarna",
+          "kolor czarny"
+        ],
+        "tr": [
+          "siyah",
+          "kara",
+          "siyah renk"
+        ]
+      }
+    },
+    {
+      "id": "color_pink",
+      "category": "colors",
+      "default_template": "a lovely photo with sweet pink color or pink blossoms",
+      "terms": {
+        "zh": [
+          "粉",
+          "粉色",
+          "粉红",
+          "少女粉",
+          "樱花粉",
+          "桃红",
+          "浅粉",
+          "粉衣服"
+        ],
+        "en": [
+          "pink",
+          "rose pink",
+          "pastel pink",
+          "magenta",
+          "pink color",
+          "pink dress"
+        ],
+        "es": [
+          "rosa",
+          "rosado",
+          "rosada",
+          "color rosa"
+        ],
+        "fr": [
+          "rose",
+          "roses",
+          "couleur rose"
+        ],
+        "de": [
+          "rosa",
+          "pink",
+          "rosafarben"
+        ],
+        "ja": [
+          "ピンク",
+          "桃色",
+          "ピンク色",
+          "桜色"
+        ],
+        "ko": [
+          "분홍색",
+          "핑크",
+          "분홍",
+          "핫핑크"
+        ],
+        "ru": [
+          "розовый",
+          "розовая",
+          "розовый цвет"
+        ],
+        "pt": [
+          "rosa",
+          "rosado",
+          "cor de rosa"
+        ],
+        "it": [
+          "rosa",
+          "colore rosa"
+        ],
+        "ar": [
+          "وردي",
+          "زهري",
+          "لون وردي"
+        ],
+        "vi": [
+          "hồng",
+          "màu hồng"
+        ],
+        "th": [
+          "สีชมพู",
+          "ชมพู"
+        ],
+        "id": [
+          "merah muda",
+          "pink"
+        ],
+        "nl": [
+          "roze",
+          "roze kleur"
+        ],
+        "pl": [
+          "różowy",
+          "rozowy",
+          "kolor różowy"
+        ],
+        "tr": [
+          "pembe",
+          "pembe renk"
+        ]
+      }
+    },
+    {
+      "id": "color_purple",
+      "category": "colors",
+      "default_template": "a photo with rich purple or violet color",
+      "terms": {
+        "zh": [
+          "紫",
+          "紫色",
+          "深紫",
+          "浅紫",
+          "紫罗兰",
+          "紫衣服"
+        ],
+        "en": [
+          "purple",
+          "violet",
+          "lavender",
+          "plum",
+          "purple color"
+        ],
+        "es": [
+          "morado",
+          "morada",
+          "púrpura",
+          "violeta",
+          "color morado"
+        ],
+        "fr": [
+          "violet",
+          "violette",
+          "pourpre",
+          "couleur violette"
+        ],
+        "de": [
+          "lila",
+          "violett",
+          "purpur"
+        ],
+        "ja": [
+          "紫",
+          "紫色",
+          "パープル",
+          "バイオレット"
+        ],
+        "ko": [
+          "보라색",
+          "보라",
+          "바이올렛"
+        ],
+        "ru": [
+          "фиолетовый",
+          "сиреневый",
+          "пурпурный"
+        ],
+        "pt": [
+          "roxo",
+          "roxa",
+          "púrpura",
+          "violeta"
+        ],
+        "it": [
+          "viola",
+          "porpora",
+          "colore viola"
+        ],
+        "ar": [
+          "أرجواني",
+          "بنفسجي"
+        ],
+        "vi": [
+          "tím",
+          "màu tím"
+        ],
+        "th": [
+          "สีม่วง",
+          "ม่วง"
+        ],
+        "id": [
+          "ungu",
+          "warna ungu"
+        ],
+        "nl": [
+          "paars",
+          "paarse",
+          "violet"
+        ],
+        "pl": [
+          "fioletowy",
+          "fiolet"
+        ],
+        "tr": [
+          "mor",
+          "eflatun"
+        ]
+      }
+    },
+    {
+      "id": "hat_cap",
+      "category": "fashion",
+      "default_template": "a photo of a person wearing a hat or cap",
+      "terms": {
+        "zh": [
+          "帽子",
+          "礼帽",
+          "鸭舌帽",
+          "棒球帽",
+          "遮阳帽",
+          "学士帽",
+          "博士帽",
+          "贝雷帽",
+          "戴帽子",
+          "大沿帽"
+        ],
+        "en": [
+          "hat",
+          "cap",
+          "baseball cap",
+          "graduation cap",
+          "mortarboard",
+          "beanie",
+          "fedora",
+          "beret",
+          "sunhat",
+          "wearing a hat"
+        ],
+        "es": [
+          "sombrero",
+          "gorra",
+          "birrete",
+          "boina",
+          "gorro",
+          "con sombrero"
+        ],
+        "fr": [
+          "chapeau",
+          "casquette",
+          "toque",
+          "béret",
+          "bonnet"
+        ],
+        "de": [
+          "Hut",
+          "Mütze",
+          "Kappe",
+          "Doktorhut",
+          "Barett"
+        ],
+        "ja": [
+          "帽子",
+          "ぼうし",
+          "キャップ",
+          "ハット",
+          "角帽",
+          "ベレー帽"
+        ],
+        "ko": [
+          "모자",
+          "캡",
+          "학사모",
+          "베레모",
+          "비니"
+        ],
+        "ru": [
+          "шляпа",
+          "шапка",
+          "кепка",
+          "академическая шапочка",
+          "берет"
+        ],
+        "pt": [
+          "chapéu",
+          "chapeu",
+          "boné",
+          "bone",
+          "capelo",
+          "boina"
+        ],
+        "it": [
+          "cappello",
+          "berretto",
+          "tocco"
+        ],
+        "ar": [
+          "قبعة",
+          "طاقية"
+        ],
+        "vi": [
+          "mũ",
+          "nón",
+          "mũ cử nhân"
+        ],
+        "th": [
+          "หมวก",
+          "หมวกรับปริญญา"
+        ],
+        "id": [
+          "topi",
+          "toga"
+        ],
+        "nl": [
+          "hoed",
+          "pet",
+          "muts"
+        ],
+        "pl": [
+          "kapelusz",
+          "czapka",
+          "biret"
+        ],
+        "tr": [
+          "şapka",
+          "sapka",
+          "kep"
+        ]
+      }
+    },
+    {
+      "id": "graduation_gown",
+      "category": "fashion",
+      "default_template": "a photo of student graduate wearing graduation gown and mortarboard cap at graduation ceremony",
+      "terms": {
+        "zh": [
+          "学士服",
+          "学士袍",
+          "毕业服",
+          "毕业长袍",
+          "毕业照",
+          "硕士服",
+          "博士服",
+          "毕业典礼",
+          "拨穗",
+          "学士帽毕业照"
+        ],
+        "en": [
+          "graduation gown",
+          "graduation ceremony",
+          "academic dress",
+          "mortarboard",
+          "graduate student",
+          "graduation robe",
+          "graduation photo"
+        ],
+        "es": [
+          "toga de graduación",
+          "birrete y toga",
+          "graduación",
+          "ceremonia de graduación",
+          "foto de graduación"
+        ],
+        "fr": [
+          "robe de graduation",
+          "toque de diplômé",
+          "cérémonie de remise des diplômes",
+          "photo de promotion"
+        ],
+        "de": [
+          "Talare",
+          "Doktorhut",
+          "Abschlussfeier",
+          "Graduierung",
+          "Absolvent"
+        ],
+        "ja": [
+          "アカデミックガウン",
+          "卒業式",
+          "学士服",
+          "卒業記念写真",
+          "角帽"
+        ],
+        "ko": [
+          "학사복",
+          "학사모",
+          "졸업식",
+          "졸업 가운",
+          "졸업사진"
+        ],
+        "ru": [
+          "мантия выпускника",
+          "выпускной",
+          "академическая мантия",
+          "вручение дипломов"
+        ],
+        "pt": [
+          "beca de formatura",
+          "capelo e beca",
+          "formatura",
+          "cerimônia de formatura"
+        ],
+        "it": [
+          "toga di laurea",
+          "cerimonia di laurea",
+          "foto di laurea"
+        ],
+        "ar": [
+          "روب تخرج",
+          "حفل تخرج"
+        ],
+        "vi": [
+          "áo cử nhân",
+          "lễ tốt nghiệp",
+          "áo tốt nghiệp"
+        ],
+        "th": [
+          "ชุดครุย",
+          "รับปริญญา",
+          "พิธีรับปริญญา"
+        ],
+        "id": [
+          "baju toga",
+          "wisuda",
+          "jubah wisuda"
+        ],
+        "nl": [
+          "toga",
+          "diploma-uitreiking"
+        ],
+        "pl": [
+          "toga",
+          "uroczystość ukończenia szkoły"
+        ],
+        "tr": [
+          "cübbe",
+          "mezuniyet cübbesi",
+          "mezuniyet töreni"
+        ]
+      }
+    },
+    {
+      "id": "clothes_outfit",
+      "category": "fashion",
+      "default_template": "a photo of a person wearing stylish clothes and outfit",
+      "terms": {
+        "zh": [
+          "衣服",
+          "服装",
+          "着装",
+          "穿搭",
+          "服饰",
+          "衣服裤子",
+          "穿衣服"
+        ],
+        "en": [
+          "clothes",
+          "clothing",
+          "outfit",
+          "attire",
+          "apparel",
+          "garment",
+          "wear",
+          "wearing clothes"
+        ],
+        "es": [
+          "ropa",
+          "vestimenta",
+          "atuendo",
+          "prendas"
+        ],
+        "fr": [
+          "vêtements",
+          "habits",
+          "tenue",
+          "fringues"
+        ],
+        "de": [
+          "Kleidung",
+          "Klamotten",
+          "Outfit",
+          "Garderobe"
+        ],
+        "ja": [
+          "服",
+          "洋服",
+          "衣装",
+          "服装",
+          "ファッション",
+          "着衣"
+        ],
+        "ko": [
+          "옷",
+          "의류",
+          "의상",
+          "패션",
+          "착장"
+        ],
+        "ru": [
+          "одежда",
+          "наряд",
+          "костюм",
+          "одеяние"
+        ],
+        "pt": [
+          "roupa",
+          "vestuário",
+          "traje",
+          "roupas"
+        ],
+        "it": [
+          "vestiti",
+          "abbigliamento",
+          "abito"
+        ],
+        "ar": [
+          "ملابس",
+          "ثياب"
+        ],
+        "vi": [
+          "quần áo",
+          "trang phục"
+        ],
+        "th": [
+          "เสื้อผ้า",
+          "ชุด"
+        ],
+        "id": [
+          "pakaian",
+          "baju"
+        ],
+        "nl": [
+          "kleding",
+          "kleren"
+        ],
+        "pl": [
+          "ubranie",
+          "odzież"
+        ],
+        "tr": [
+          "giysi",
+          "kıyafet",
+          "elbise"
+        ]
+      }
+    },
+    {
+      "id": "dress_skirt",
+      "category": "fashion",
+      "default_template": "a photo of a woman or girl wearing a beautiful dress or skirt",
+      "terms": {
+        "zh": [
+          "裙子",
+          "连衣裙",
+          "长裙",
+          "短裙",
+          "礼服",
+          "晚礼服",
+          "长裙飘飘",
+          "百褶裙"
+        ],
+        "en": [
+          "dress",
+          "skirt",
+          "gown",
+          "evening dress",
+          "maxi dress",
+          "sundress",
+          "wearing a dress"
+        ],
+        "es": [
+          "vestido",
+          "falda",
+          "vestido largo",
+          "vestido de noche"
+        ],
+        "fr": [
+          "robe",
+          "jupe",
+          "robe de soirée",
+          "robe longue"
+        ],
+        "de": [
+          "Kleid",
+          "Rock",
+          "Abendkleid",
+          "Sommerkleid"
+        ],
+        "ja": [
+          "ドレス",
+          "スカート",
+          "ワンピース",
+          "ロングスカート"
+        ],
+        "ko": [
+          "드레스",
+          "치마",
+          "스커트",
+          "원피스"
+        ],
+        "ru": [
+          "платье",
+          "юбка",
+          "вечернее платье",
+          "сарафан"
+        ],
+        "pt": [
+          "vestido",
+          "saia",
+          "vestido de festa"
+        ],
+        "it": [
+          "vestito",
+          "abito",
+          "gonna",
+          "abito da sera"
+        ],
+        "ar": [
+          "فستان",
+          "تنورة"
+        ],
+        "vi": [
+          "váy",
+          "đầm",
+          "váy dài"
+        ],
+        "th": [
+          "กระโปรง",
+          "ชุดเดรส"
+        ],
+        "id": [
+          "gaun",
+          "rok",
+          "dress"
+        ],
+        "nl": [
+          "jurk",
+          "rok",
+          "avondjurk"
+        ],
+        "pl": [
+          "sukienka",
+          "spódnica"
+        ],
+        "tr": [
+          "elbise",
+          "etek",
+          "gece elbisesi"
+        ]
+      }
+    },
+    {
+      "id": "suit_formal",
+      "category": "fashion",
+      "default_template": "a formal photo of a person wearing a sharp suit and necktie",
+      "terms": {
+        "zh": [
+          "西装",
+          "正装",
+          "西服",
+          "西装革履",
+          "男士西装",
+          "燕尾服",
+          "领带"
+        ],
+        "en": [
+          "suit",
+          "business suit",
+          "tuxedo",
+          "formal suit",
+          "blazer",
+          "tie",
+          "necktie",
+          "suit and tie"
+        ],
+        "es": [
+          "traje",
+          "esmoquin",
+          "corbata",
+          "traje formal"
+        ],
+        "fr": [
+          "costume",
+          "smoking",
+          "cravate",
+          "costume cravate"
+        ],
+        "de": [
+          "Anzug",
+          "Smoking",
+          "Krawatte",
+          "Business-Anzug"
+        ],
+        "ja": [
+          "スーツ",
+          "背広",
+          "タキシード",
+          "ネクタイ",
+          "正装"
+        ],
+        "ko": [
+          "정장",
+          "수트",
+          "턱시도",
+          "넥타이"
+        ],
+        "ru": [
+          "костюм",
+          "смокинг",
+          "галстук",
+          "деловой костюм"
+        ],
+        "pt": [
+          "terno",
+          "smoking",
+          "gravata",
+          "fato"
+        ],
+        "it": [
+          "completo",
+          "smoking",
+          "cravatta",
+          "abito formale"
+        ],
+        "ar": [
+          "بدلة",
+          "ربطة عنق"
+        ],
+        "vi": [
+          "bộ vest",
+          "com lê",
+          "cà vạt"
+        ],
+        "th": [
+          "สูท",
+          "ชุดสูท",
+          "เนคไท"
+        ],
+        "id": [
+          "jas",
+          "setelan jas",
+          "dasi"
+        ],
+        "nl": [
+          "pak",
+          "kostuum",
+          "stropdas"
+        ],
+        "pl": [
+          "garnitur",
+          "smoking",
+          "krawat"
+        ],
+        "tr": [
+          "takım elbise",
+          "smokin",
+          "kravat"
+        ]
+      }
+    },
+    {
+      "id": "shirt_top",
+      "category": "fashion",
+      "default_template": "a photo of a person wearing a casual shirt or t-shirt",
+      "terms": {
+        "zh": [
+          "衬衫",
+          "白衬衫",
+          "短袖",
+          "T恤",
+          "上衣",
+          "卫衣",
+          "毛衣",
+          "长袖"
+        ],
+        "en": [
+          "shirt",
+          "white shirt",
+          "t-shirt",
+          "tee",
+          "top",
+          "hoodie",
+          "sweater",
+          "sweatshirt"
+        ],
+        "es": [
+          "camisa",
+          "camiseta",
+          "remera",
+          "blusa",
+          "suéter"
+        ],
+        "fr": [
+          "chemise",
+          "t-shirt",
+          "haut",
+          "sweat",
+          "pull"
+        ],
+        "de": [
+          "Hemd",
+          "T-Shirt",
+          "Pullover",
+          "Hoodie",
+          "Bluse"
+        ],
+        "ja": [
+          "シャツ",
+          "白シャツ",
+          "Tシャツ",
+          "トップス",
+          "パーカー",
+          "セーター"
+        ],
+        "ko": [
+          "셔츠",
+          "흰 셔츠",
+          "티셔츠",
+          "후드티",
+          "스웨터"
+        ],
+        "ru": [
+          "рубашка",
+          "футболка",
+          "кофта",
+          "толстовка",
+          "свитер"
+        ],
+        "pt": [
+          "camisa",
+          "camiseta",
+          "blusa",
+          "moletom"
+        ],
+        "it": [
+          "camicia",
+          "maglietta",
+          "t-shirt",
+          "felpa",
+          "maglione"
+        ],
+        "ar": [
+          "قميص",
+          "تي شيرت"
+        ],
+        "vi": [
+          "áo sơ mi",
+          "áo thun",
+          "áo phông"
+        ],
+        "th": [
+          "เสื้อเชิ้ต",
+          "เสื้อยืด"
+        ],
+        "id": [
+          "kemeja",
+          "kaos",
+          "t-shirt"
+        ],
+        "nl": [
+          "overhemd",
+          "shirt",
+          "trui"
+        ],
+        "pl": [
+          "koszula",
+          "koszulka",
+          "sweter"
+        ],
+        "tr": [
+          "gömlek",
+          "tişört",
+          "kazak"
+        ]
+      }
+    },
+    {
+      "id": "coat_jacket",
+      "category": "fashion",
+      "default_template": "a photo of a person wearing a warm coat or stylish jacket",
+      "terms": {
+        "zh": [
+          "大衣",
+          "外套",
+          "夹克",
+          "羽绒服",
+          "风衣",
+          "棉服",
+          "皮衣",
+          "大棉袄"
+        ],
+        "en": [
+          "coat",
+          "jacket",
+          "overcoat",
+          "down jacket",
+          "parka",
+          "trench coat",
+          "leather jacket",
+          "winter coat"
+        ],
+        "es": [
+          "abrigo",
+          "chaqueta",
+          "cazadora",
+          "plumífero",
+          "gabardina"
+        ],
+        "fr": [
+          "manteau",
+          "veste",
+          "doudoune",
+          "blouson",
+          "trench"
+        ],
+        "de": [
+          "Mantel",
+          "Jacke",
+          "Daunenjacke",
+          "Lederjacke",
+          "Wintermantel"
+        ],
+        "ja": [
+          "コート",
+          "ジャケット",
+          "ダウンジャケット",
+          "ジャンパー",
+          "トレンチコート"
+        ],
+        "ko": [
+          "코트",
+          "자켓",
+          "패딩",
+          "점퍼",
+          "바람막이"
+        ],
+        "ru": [
+          "пальто",
+          "куртка",
+          "пуховик",
+          "пиджак",
+          "плащ"
+        ],
+        "pt": [
+          "casaco",
+          "jaqueta",
+          "sobretudo",
+          "doudoune"
+        ],
+        "it": [
+          "cappotto",
+          "giacca",
+          "piumino",
+          "giubbotto"
+        ],
+        "ar": [
+          "معطف",
+          "سترة"
+        ],
+        "vi": [
+          "áo khoác",
+          "áo ấm",
+          "áo phao"
+        ],
+        "th": [
+          "เสื้อโค้ท",
+          "เสื้อแจ็คเก็ต",
+          "เสื้อกันหนาว"
+        ],
+        "id": [
+          "mantel",
+          "jaket"
+        ],
+        "nl": [
+          "jas",
+          "winterjas",
+          "jack"
+        ],
+        "pl": [
+          "płaszcz",
+          "kurtka"
+        ],
+        "tr": [
+          "kaban",
+          "ceket",
+          "mont",
+          "palto"
+        ]
+      }
+    },
+    {
+      "id": "glasses_eyewear",
+      "category": "fashion",
+      "default_template": "a portrait of a person wearing glasses or sunglasses",
+      "terms": {
+        "zh": [
+          "眼镜",
+          "墨镜",
+          "太阳镜",
+          "近视镜",
+          "黑框眼镜",
+          "戴眼镜"
+        ],
+        "en": [
+          "glasses",
+          "sunglasses",
+          "spectacles",
+          "eyewear",
+          "shades",
+          "wearing glasses"
+        ],
+        "es": [
+          "gafas",
+          "lentes",
+          "anteojos",
+          "gafas de sol"
+        ],
+        "fr": [
+          "lunettes",
+          "lunettes de soleil"
+        ],
+        "de": [
+          "Brille",
+          "Sonnenbrille"
+        ],
+        "ja": [
+          "眼鏡",
+          "メガネ",
+          "めがね",
+          "サングラス"
+        ],
+        "ko": [
+          "안경",
+          "선글라스",
+          "안경 쓴"
+        ],
+        "ru": [
+          "очки",
+          "солнцезащитные очки"
+        ],
+        "pt": [
+          "óculos",
+          "oculos",
+          "óculos de sol"
+        ],
+        "it": [
+          "occhiali",
+          "occhiali da sole"
+        ],
+        "ar": [
+          "نظارة",
+          "نظارات شمسية"
+        ],
+        "vi": [
+          "kính",
+          "kính râm",
+          "kính mắt"
+        ],
+        "th": [
+          "แว่นตา",
+          "แว่นกันแดด"
+        ],
+        "id": [
+          "kacamata",
+          "kacamata hitam"
+        ],
+        "nl": [
+          "bril",
+          "zonnebril"
+        ],
+        "pl": [
+          "okulary",
+          "okulary przeciwsłoneczne"
+        ],
+        "tr": [
+          "gözlük",
+          "gozluk",
+          "güneş gözlüğü"
+        ]
+      }
+    },
+    {
+      "id": "ancient_costume_hanfu",
+      "category": "portrait",
+      "default_template": "a photo of a person wearing ancient traditional costume, Chinese hanfu or historical period drama outfit",
+      "terms": {
+        "zh": [
+          "古装",
+          "汉服",
+          "古风",
+          "古装剧",
+          "长袍古装",
+          "侠客",
+          "仙侠",
+          "古代衣服",
+          "古装男子",
+          "古装女子",
+          "道袍"
+        ],
+        "en": [
+          "ancient costume",
+          "traditional costume",
+          "hanfu",
+          "historical clothing",
+          "period drama",
+          "wuxia",
+          "chinese robe",
+          "oriental attire"
+        ],
+        "es": [
+          "traje tradicional",
+          "traje antiguo",
+          "hanfu",
+          "vestimenta histórica"
+        ],
+        "fr": [
+          "costume traditionnel",
+          "hanfu",
+          "costume d'époque",
+          "tenue historique"
+        ],
+        "de": [
+          "traditionelles Gewand",
+          "historisches Kostüm",
+          "Hanfu"
+        ],
+        "ja": [
+          "古装",
+          "時代劇",
+          "漢服",
+          "伝統衣装",
+          "着物",
+          "和服",
+          "武侠"
+        ],
+        "ko": [
+          "한복",
+          "고대 의상",
+          "전통 의상",
+          "사극 의상",
+          "한푸"
+        ],
+        "ru": [
+          "традиционный костюм",
+          "исторический костюм",
+          "ханьфу",
+          "старинный наряд"
+        ],
+        "pt": [
+          "traje tradicional",
+          "roupa de época",
+          "hanfu"
+        ],
+        "it": [
+          "costume tradizionale",
+          "abito storico",
+          "hanfu"
+        ],
+        "ar": [
+          "زي تقليدي",
+          "ملابس تاريخية"
+        ],
+        "vi": [
+          "cổ trang",
+          "hán phục",
+          "trang phục truyền thống"
+        ],
+        "th": [
+          "ชุดโบราณ",
+          "ชุดจีนโบราณ",
+          "ชุดฮั่นฝู"
+        ],
+        "id": [
+          "kostum kuno",
+          "pakaian tradisional",
+          "hanfu"
+        ],
+        "nl": [
+          "traditionele kleding",
+          "historisch kostuum"
+        ],
+        "pl": [
+          "strój tradycyjny",
+          "kostium historyczny"
+        ],
+        "tr": [
+          "geleneksel kıyafet",
+          "tarihi kostüm"
+        ]
+      }
+    },
+    {
+      "id": "man_guy",
+      "category": "portrait",
+      "default_template": "a photo portrait of a handsome man or guy",
+      "terms": {
+        "zh": [
+          "男人",
+          "男生",
+          "男士",
+          "帅哥",
+          "青年男性",
+          "大叔",
+          "男子",
+          "男演员",
+          "男孩纸"
+        ],
+        "en": [
+          "man",
+          "guy",
+          "male",
+          "handsome man",
+          "gentleman",
+          "young man"
+        ],
+        "es": [
+          "hombre",
+          "chico",
+          "varón",
+          "muchacho",
+          "caballero"
+        ],
+        "fr": [
+          "homme",
+          "gars",
+          "jeune homme",
+          "monsieur"
+        ],
+        "de": [
+          "Mann",
+          "Typ",
+          "Herr",
+          "junger Mann"
+        ],
+        "ja": [
+          "男性",
+          "男",
+          "男の人",
+          "イケメン",
+          "男子"
+        ],
+        "ko": [
+          "남자",
+          "남성",
+          "훈남",
+          "청년"
+        ],
+        "ru": [
+          "мужчина",
+          "парень",
+          "молодой человек"
+        ],
+        "pt": [
+          "homem",
+          "rapaz",
+          "moço",
+          "cavalheiro"
+        ],
+        "it": [
+          "uomo",
+          "ragazzo",
+          "signore"
+        ],
+        "ar": [
+          "رجل",
+          "شاب"
+        ],
+        "vi": [
+          "đàn ông",
+          "nam giới",
+          "chàng trai"
+        ],
+        "th": [
+          "ผู้ชาย",
+          "ชาย",
+          "หนุ่ม"
+        ],
+        "id": [
+          "pria",
+          "laki-laki",
+          "cowok"
+        ],
+        "nl": [
+          "man",
+          "jongeman"
+        ],
+        "pl": [
+          "mężczyzna",
+          "facet"
+        ],
+        "tr": [
+          "erkek",
+          "adam",
+          "delikanlı"
+        ]
+      }
+    },
+    {
+      "id": "woman_girl",
+      "category": "portrait",
+      "default_template": "a beautiful portrait photo of a woman or girl",
+      "terms": {
+        "zh": [
+          "女人",
+          "女生",
+          "女士",
+          "美女",
+          "少女",
+          "姑娘",
+          "女孩",
+          "女子",
+          "年轻女子",
+          "漂亮姑娘"
+        ],
+        "en": [
+          "woman",
+          "girl",
+          "female",
+          "lady",
+          "pretty woman",
+          "young woman",
+          "beautiful girl"
+        ],
+        "es": [
+          "mujer",
+          "chica",
+          "dama",
+          "muchacha",
+          "hermosa mujer"
+        ],
+        "fr": [
+          "femme",
+          "fille",
+          "dame",
+          "jeune femme",
+          "belle femme"
+        ],
+        "de": [
+          "Frau",
+          "Mädchen",
+          "Dame",
+          "junge Frau"
+        ],
+        "ja": [
+          "女性",
+          "女",
+          "女の人",
+          "美女",
+          "少女",
+          "女の子"
+        ],
+        "ko": [
+          "여자",
+          "여성",
+          "미녀",
+          "소녀",
+          "여인"
+        ],
+        "ru": [
+          "женщина",
+          "девушка",
+          "дама",
+          "красивая девушка"
+        ],
+        "pt": [
+          "mulher",
+          "garota",
+          "menina",
+          "dama",
+          "moça"
+        ],
+        "it": [
+          "donna",
+          "ragazza",
+          "signora"
+        ],
+        "ar": [
+          "امرأة",
+          "فتاة",
+          "سيدة"
+        ],
+        "vi": [
+          "phụ nữ",
+          "cô gái",
+          "nữ giới"
+        ],
+        "th": [
+          "ผู้หญิง",
+          "หญิงสาว",
+          "สาว"
+        ],
+        "id": [
+          "wanita",
+          "perempuan",
+          "cewek"
+        ],
+        "nl": [
+          "vrouw",
+          "meisje",
+          "dame"
+        ],
+        "pl": [
+          "kobieta",
+          "dziewczyna"
+        ],
+        "tr": [
+          "kadın",
+          "kadin",
+          "kız",
+          "bayan"
+        ]
+      }
+    },
+    {
+      "id": "baby_child",
+      "category": "portrait",
+      "default_template": "a cute photo of a baby child or infant toddler",
+      "terms": {
+        "zh": [
+          "宝宝",
+          "婴儿",
+          "小婴儿",
+          "小宝宝",
+          "新生儿",
+          "小娃"
+        ],
+        "en": [
+          "baby",
+          "infant",
+          "toddler",
+          "newborn",
+          "cute baby"
+        ],
+        "es": [
+          "bebé",
+          "bebe",
+          "recién nacido",
+          "nene"
+        ],
+        "fr": [
+          "bébé",
+          "bebe",
+          "nouveau-né",
+          "nourrisson",
+          "bébé qui dort"
+        ],
+        "de": [
+          "Baby",
+          "Säugling",
+          "Neugeborenes",
+          "Kleinkind"
+        ],
+        "ja": [
+          "赤ちゃん",
+          "あかちゃん",
+          "ベビー",
+          "乳児",
+          "幼児"
+        ],
+        "ko": [
+          "아기",
+          "아기사진",
+          "신생아",
+          "유아"
+        ],
+        "ru": [
+          "малыш",
+          "младенец",
+          "новорожденный"
+        ],
+        "pt": [
+          "bebê",
+          "bebe",
+          "recém-nascido"
+        ],
+        "it": [
+          "neonato",
+          "bambino",
+          "bebè",
+          "piccolo"
+        ],
+        "ar": [
+          "طفل رضيع",
+          "مولود جديد"
+        ],
+        "vi": [
+          "em bé",
+          "trẻ sơ sinh"
+        ],
+        "th": [
+          "ทารก",
+          "เด็กทารก"
+        ],
+        "id": [
+          "bayi",
+          "anak bayi"
+        ],
+        "nl": [
+          "baby",
+          "peuter",
+          "pasgeborene"
+        ],
+        "pl": [
+          "niemowlę",
+          "noworodek"
+        ],
+        "tr": [
+          "bebek",
+          "yeni doğan"
+        ]
+      }
+    },
+    {
+      "id": "child_kid",
+      "category": "portrait",
+      "default_template": "a heartwarming photo of a cute happy child or kid smiling",
+      "terms": {
+        "zh": [
+          "小孩",
+          "儿童",
+          "小朋友",
+          "小男孩",
+          "小女孩",
+          "男童",
+          "女童",
+          "可爱的孩子",
+          "小宝"
+        ],
+        "en": [
+          "child",
+          "kid",
+          "children",
+          "little boy",
+          "little girl",
+          "happy kid",
+          "cute child"
+        ],
+        "es": [
+          "niño",
+          "niña",
+          "niños",
+          "infante",
+          "chiquillo"
+        ],
+        "fr": [
+          "enfant",
+          "enfants",
+          "gosse",
+          "gamin",
+          "petit garçon",
+          "petite fille"
+        ],
+        "de": [
+          "Kind",
+          "Kinder",
+          "Junge",
+          "Mädchen",
+          "Kleinkind"
+        ],
+        "ja": [
+          "子供",
+          "こども",
+          "子ども",
+          "児童",
+          "男の子",
+          "女の子"
+        ],
+        "ko": [
+          "어린이",
+          "아이",
+          "꼬마",
+          "소년",
+          "소녀"
+        ],
+        "ru": [
+          "ребенок",
+          "дети",
+          "мальчик",
+          "девочка",
+          "малыш"
+        ],
+        "pt": [
+          "criança",
+          "crianças",
+          "menino",
+          "menina",
+          "garoto"
+        ],
+        "it": [
+          "bambino",
+          "bambina",
+          "bambini",
+          "ragazzino"
+        ],
+        "ar": [
+          "طفل",
+          "أطفال"
+        ],
+        "vi": [
+          "trẻ em",
+          "đứa trẻ",
+          "bé gái",
+          "bé trai"
+        ],
+        "th": [
+          "เด็ก",
+          "เด็กน้อย"
+        ],
+        "id": [
+          "anak",
+          "anak-anak",
+          "bocah"
+        ],
+        "nl": [
+          "kind",
+          "kinderen",
+          "jongetje",
+          "meisje"
+        ],
+        "pl": [
+          "dziecko",
+          "dzieci"
+        ],
+        "tr": [
+          "çocuk",
+          "cocuk",
+          "küçük çocuk"
+        ]
+      }
+    },
+    {
+      "id": "group_photo",
+      "category": "portrait",
+      "default_template": "a group photo of friends, family or colleagues smiling together",
+      "terms": {
+        "zh": [
+          "合影",
+          "合照",
+          "全家福",
+          "聚会照",
+          "集体照",
+          "团体照",
+          "大家一起",
+          "同框"
+        ],
+        "en": [
+          "group photo",
+          "group portrait",
+          "family photo",
+          "group of people",
+          "party photo",
+          "together with friends"
+        ],
+        "es": [
+          "foto grupal",
+          "foto de grupo",
+          "foto familiar",
+          "reunión"
+        ],
+        "fr": [
+          "photo de groupe",
+          "photo de famille",
+          "portrait de groupe"
+        ],
+        "de": [
+          "Gruppenfoto",
+          "Familienfoto",
+          "Gruppenbild"
+        ],
+        "ja": [
+          "集合写真",
+          "集合",
+          "記念撮影",
+          "グループ写真",
+          "家族写真"
+        ],
+        "ko": [
+          "단체사진",
+          "가족사진",
+          "단체샷",
+          "모임 사진"
+        ],
+        "ru": [
+          "групповое фото",
+          "семейное фото",
+          "коллективное фото"
+        ],
+        "pt": [
+          "foto de grupo",
+          "foto em família",
+          "foto com amigos"
+        ],
+        "it": [
+          "foto di gruppo",
+          "foto di famiglia"
+        ],
+        "ar": [
+          "صورة جماعية",
+          "صورة عائلية"
+        ],
+        "vi": [
+          "ảnh tập thể",
+          "ảnh nhóm",
+          "ảnh gia đình"
+        ],
+        "th": [
+          "ภาพหมู่",
+          "รูปครอบครัว"
+        ],
+        "id": [
+          "foto bersama",
+          "foto keluarga",
+          "foto grup"
+        ],
+        "nl": [
+          "groepsfoto",
+          "familiefoto"
+        ],
+        "pl": [
+          "zdjęcie grupowe",
+          "zdjęcie rodzinne"
+        ],
+        "tr": [
+          "grup fotoğrafı",
+          "aile fotoğrafı"
+        ]
+      }
+    },
+    {
+      "id": "anime_illustration",
+      "category": "art",
+      "default_template": "a vibrant anime manga illustration drawing of anime characters in Japanese animation style",
+      "terms": {
+        "zh": [
+          "动漫",
+          "二次元",
+          "二次元人物",
+          "动漫头像",
+          "动漫壁纸",
+          "插画",
+          "插图",
+          "动漫美女",
+          "动漫少年",
+          "手绘二次元",
+          "漫画",
+          "原画"
+        ],
+        "en": [
+          "anime",
+          "manga",
+          "anime character",
+          "anime art",
+          "anime illustration",
+          "anime wallpaper",
+          "japanese cartoon",
+          "otaku artwork"
+        ],
+        "es": [
+          "anime",
+          "manga",
+          "dibujo animado",
+          "ilustración anime",
+          "personaje de anime"
+        ],
+        "fr": [
+          "anime",
+          "manga",
+          "dessin animé",
+          "illustration anime"
+        ],
+        "de": [
+          "Anime",
+          "Manga",
+          "Zeichentrick",
+          "Anime-Illustration"
+        ],
+        "ja": [
+          "アニメ",
+          "マンガ",
+          "漫画",
+          "イラスト",
+          "二次元",
+          "アニメキャラクター",
+          "絵",
+          "萌え"
+        ],
+        "ko": [
+          "애니메이션",
+          "애니",
+          "만화",
+          "일러스트",
+          "이차원",
+          "웹툰"
+        ],
+        "ru": [
+          "аниме",
+          "манга",
+          "аниме арт",
+          "иллюстрация аниме"
+        ],
+        "pt": [
+          "anime",
+          "mangá",
+          "desenho animado",
+          "ilustração anime"
+        ],
+        "it": [
+          "anime",
+          "manga",
+          "illustrazione anime"
+        ],
+        "ar": [
+          "أنمي",
+          "مانغا",
+          "رسوم متحركة"
+        ],
+        "vi": [
+          "anime",
+          "manga",
+          "hoạt hình Nhật Bản",
+          "tranh anime"
+        ],
+        "th": [
+          "อนิเมะ",
+          "มังงะ",
+          "การ์ตูนญี่ปุ่น"
+        ],
+        "id": [
+          "anime",
+          "manga",
+          "kartun jepang",
+          "ilustrasi anime"
+        ],
+        "nl": [
+          "anime",
+          "manga",
+          "japanse animatie"
+        ],
+        "pl": [
+          "anime",
+          "manga",
+          "ilustracja anime"
+        ],
+        "tr": [
+          "anime",
+          "manga",
+          "japon animasyonu"
+        ]
+      }
+    },
+    {
+      "id": "mountain_landscape",
+      "category": "landscape",
+      "default_template": "a majestic landscape of high mountain peaks, mountain range, Mount Fuji or snowy summits",
+      "terms": {
+        "zh": [
+          "山",
+          "高山",
+          "山峰",
+          "雪山",
+          "富士山",
+          "远山",
+          "山脉",
+          "山峦",
+          "山景",
+          "群山",
+          "山谷",
+          "悬崖"
+        ],
+        "en": [
+          "mountain",
+          "mountains",
+          "mountain peak",
+          "mount fuji",
+          "snow mountain",
+          "alpine",
+          "mountain range",
+          "summit",
+          "cliff"
+        ],
+        "es": [
+          "montaña",
+          "montañas",
+          "pico",
+          "monte fuji",
+          "cordillera",
+          "cumbre"
+        ],
+        "fr": [
+          "montagne",
+          "montagnes",
+          "sommet",
+          "mont fuji",
+          "chaîne de montagnes"
+        ],
+        "de": [
+          "Berg",
+          "Berge",
+          "Gebirge",
+          "Gipfel",
+          "Mount Fuji",
+          "Schneebedeckte Berge"
+        ],
+        "ja": [
+          "山",
+          "山々",
+          "富士山",
+          "山頂",
+          "雪山",
+          "登山",
+          "山脈"
+        ],
+        "ko": [
+          "산",
+          "산봉우리",
+          "설산",
+          "후지산",
+          "산맥",
+          "등산"
+        ],
+        "ru": [
+          "гора",
+          "горы",
+          "вершина",
+          "Фудзи",
+          "снежные горы",
+          "горный хребет"
+        ],
+        "pt": [
+          "montanha",
+          "montanhas",
+          "pico",
+          "monte fuji",
+          "cordilheira"
+        ],
+        "it": [
+          "montagna",
+          "montagne",
+          "vetta",
+          "cima",
+          "monte fuji"
+        ],
+        "ar": [
+          "جبل",
+          "جبال",
+          "قمة الجبل"
+        ],
+        "vi": [
+          "núi",
+          "ngọn núi",
+          "núi tuyết",
+          "núi Phú Sĩ"
+        ],
+        "th": [
+          "ภูเขา",
+          "เขา",
+          "ยอดเขา",
+          "ภูเขาไฟฟูจิ"
+        ],
+        "id": [
+          "gunung",
+          "pegunungan",
+          "puncak gunung"
+        ],
+        "nl": [
+          "berg",
+          "bergen",
+          "bergtop"
+        ],
+        "pl": [
+          "góra",
+          "góry",
+          "szczyt górski"
+        ],
+        "tr": [
+          "dağ",
+          "dag",
+          "dağlar",
+          "fuji dağı"
+        ]
+      }
+    },
+    {
+      "id": "sky_clouds",
+      "category": "landscape",
+      "default_template": "a breathtaking clear blue sky with fluffy white clouds",
+      "terms": {
+        "zh": [
+          "天空",
+          "蓝天",
+          "白云",
+          "云朵",
+          "碧空",
+          "晴空",
+          "晴天",
+          "云海",
+          "阴天",
+          "万里无云"
+        ],
+        "en": [
+          "sky",
+          "blue sky",
+          "clouds",
+          "white clouds",
+          "cloudy sky",
+          "sunny sky",
+          "clear sky",
+          "overcast"
+        ],
+        "es": [
+          "cielo",
+          "cielo azul",
+          "nubes",
+          "nubes blancas"
+        ],
+        "fr": [
+          "ciel",
+          "ciel bleu",
+          "nuages",
+          "nuages blancs"
+        ],
+        "de": [
+          "Himmel",
+          "blauer Himmel",
+          "Wolken",
+          "weiße Wolken"
+        ],
+        "ja": [
+          "空",
+          "青空",
+          "雲",
+          "白い雲",
+          "大空",
+          "晴天"
+        ],
+        "ko": [
+          "하늘",
+          "파란 하늘",
+          "구름",
+          "흰 구름"
+        ],
+        "ru": [
+          "небо",
+          "голубое небо",
+          "облака",
+          "белые облака"
+        ],
+        "pt": [
+          "céu",
+          "ceu",
+          "céu azul",
+          "nuvens"
+        ],
+        "it": [
+          "cielo",
+          "cielo blu",
+          "nuvole",
+          "nuvole bianche"
+        ],
+        "ar": [
+          "سماء",
+          "سماء زرقاء",
+          "غيوم",
+          "سحاب"
+        ],
+        "vi": [
+          "bầu trời",
+          "trời xanh",
+          "mây trắng"
+        ],
+        "th": [
+          "ท้องฟ้า",
+          "ฟ้าใส",
+          "ก้อนเมฆ"
+        ],
+        "id": [
+          "langit",
+          "langit biru",
+          "awan",
+          "awan putih"
+        ],
+        "nl": [
+          "hemel",
+          "blauwe lucht",
+          "wolken"
+        ],
+        "pl": [
+          "niebo",
+          "błękitne niebo",
+          "chmury"
+        ],
+        "tr": [
+          "gökyüzü",
+          "mavi gökyüzü",
+          "bulutlar"
+        ]
+      }
+    },
+    {
+      "id": "sea_ocean",
+      "category": "landscape",
+      "default_template": "a scenic view of the deep blue sea ocean with waves and horizon",
+      "terms": {
+        "zh": [
+          "海",
+          "大海",
+          "海洋",
+          "海面",
+          "海水",
+          "海浪",
+          "碧海",
+          "海平线"
+        ],
+        "en": [
+          "sea",
+          "ocean",
+          "deep blue sea",
+          "ocean waves",
+          "marine water",
+          "seashore"
+        ],
+        "es": [
+          "mar",
+          "océano",
+          "olas del mar",
+          "costa marina"
+        ],
+        "fr": [
+          "mer",
+          "océan",
+          "vagues de l'océan"
+        ],
+        "de": [
+          "Meer",
+          "Ozean",
+          "Meereswellen"
+        ],
+        "ja": [
+          "海",
+          "うみ",
+          "大海",
+          "波",
+          "海洋"
+        ],
+        "ko": [
+          "바다",
+          "대양",
+          "파도"
+        ],
+        "ru": [
+          "море",
+          "океан",
+          "морские волны"
+        ],
+        "pt": [
+          "mar",
+          "oceano",
+          "ondas do mar"
+        ],
+        "it": [
+          "mare",
+          "oceano",
+          "onde del mare"
+        ],
+        "ar": [
+          "بحر",
+          "محيط",
+          "أمواج"
+        ],
+        "vi": [
+          "biển",
+          "đại dương",
+          "sóng biển"
+        ],
+        "th": [
+          "ทะเล",
+          "มหาสมุทร",
+          "คลื่น"
+        ],
+        "id": [
+          "laut",
+          "samudra",
+          "ombak laut"
+        ],
+        "nl": [
+          "zee",
+          "oceaan",
+          "golven"
+        ],
+        "pl": [
+          "morze",
+          "ocean",
+          "fale morskie"
+        ],
+        "tr": [
+          "deniz",
+          "okyanus",
+          "deniz dalgaları"
+        ]
+      }
+    },
+    {
+      "id": "beach_sand",
+      "category": "landscape",
+      "default_template": "a sunny tropical sandy beach with seashore and palm trees",
+      "terms": {
+        "zh": [
+          "海滩",
+          "沙滩",
+          "海边",
+          "海岸",
+          "沙滩海景",
+          "金沙滩",
+          "海滩边"
+        ],
+        "en": [
+          "beach",
+          "sandy beach",
+          "seashore",
+          "coastline",
+          "tropical beach"
+        ],
+        "es": [
+          "playa",
+          "orilla del mar",
+          "costa arenosa"
+        ],
+        "fr": [
+          "plage",
+          "bord de mer",
+          "côte sablonneuse"
+        ],
+        "de": [
+          "Strand",
+          "Sandstrand",
+          "Meeresküste"
+        ],
+        "ja": [
+          "ビーチ",
+          "砂浜",
+          "海岸",
+          "浜辺"
+        ],
+        "ko": [
+          "해변",
+          "모래사장",
+          "해수욕장"
+        ],
+        "ru": [
+          "пляж",
+          "песчаный пляж",
+          "побережье"
+        ],
+        "pt": [
+          "praia",
+          "beira-mar",
+          "costa de areia"
+        ],
+        "it": [
+          "spiaggia",
+          "riva del mare",
+          "costa"
+        ],
+        "ar": [
+          "شاطئ",
+          "ساحل رملي"
+        ],
+        "vi": [
+          "bãi biển",
+          "bờ biển"
+        ],
+        "th": [
+          "ชายหาด",
+          "หาดทราย"
+        ],
+        "id": [
+          "pantai",
+          "pantai berpasir"
+        ],
+        "nl": [
+          "strand",
+          "zandstrand"
+        ],
+        "pl": [
+          "plaża",
+          "wybrzeże"
+        ],
+        "tr": [
+          "plaj",
+          "kumsal",
+          "sahil"
+        ]
+      }
+    },
+    {
+      "id": "snow_winter",
+      "category": "landscape",
+      "default_template": "a winter wonderland photo of snow, snowfall, icy trees or snowy ground",
+      "terms": {
+        "zh": [
+          "雪",
+          "下雪",
+          "雪景",
+          "积雪",
+          "大雪",
+          "冬雪",
+          "冰雪",
+          "白雪",
+          "雪地",
+          "堆雪人",
+          "滑雪"
+        ],
+        "en": [
+          "snow",
+          "snowing",
+          "snowy landscape",
+          "snowfall",
+          "winter snow",
+          "ice",
+          "frost",
+          "snowy field"
+        ],
+        "es": [
+          "nieve",
+          "nevando",
+          "paisaje nevado",
+          "invierno"
+        ],
+        "fr": [
+          "neige",
+          "chute de neige",
+          "paysage enneigé",
+          "hiver"
+        ],
+        "de": [
+          "Schnee",
+          "Schneelandschaft",
+          "Schneefall",
+          "Winter"
+        ],
+        "ja": [
+          "雪",
+          "ゆき",
+          "雪景色",
+          "降雪",
+          "積雪",
+          "冬景色"
+        ],
+        "ko": [
+          "눈",
+          "설경",
+          "눈경치",
+          "눈꽃",
+          "폭설",
+          "겨울"
+        ],
+        "ru": [
+          "снег",
+          "снегопад",
+          "зимний пейзаж",
+          "сугробы",
+          "зима"
+        ],
+        "pt": [
+          "neve",
+          "nevando",
+          "paisagem com neve",
+          "inverno"
+        ],
+        "it": [
+          "neve",
+          "nevicata",
+          "paesaggio innevato",
+          "inverno"
+        ],
+        "ar": [
+          "ثلج",
+          "تساقط الثلوج",
+          "شتاء"
+        ],
+        "vi": [
+          "tuyết",
+          "tuyết rơi",
+          "mùa đông tuyết"
+        ],
+        "th": [
+          "หิมะ",
+          "หิมะตก"
+        ],
+        "id": [
+          "salju",
+          "musim salju"
+        ],
+        "nl": [
+          "sneeuw",
+          "sneeuwlandschap",
+          "winter"
+        ],
+        "pl": [
+          "śnieg",
+          "snieg",
+          "śnieżny krajobraz"
+        ],
+        "tr": [
+          "kar",
+          "kar yağışı",
+          "kış"
+        ]
+      }
+    },
+    {
+      "id": "sunset_sunrise",
+      "category": "landscape",
+      "default_template": "a breathtaking sunset or sunrise landscape with golden sky",
+      "terms": {
+        "zh": [
+          "日落",
+          "夕阳",
+          "日出",
+          "傍晚",
+          "晚霞",
+          "朝霞",
+          "黄昏"
+        ],
+        "en": [
+          "sunset",
+          "sunrise",
+          "dusk",
+          "dawn",
+          "golden hour",
+          "twilight"
+        ],
+        "es": [
+          "atardecer",
+          "puesta de sol",
+          "amanecer",
+          "crepúsculo"
+        ],
+        "fr": [
+          "coucher de soleil",
+          "lever de soleil",
+          "crépuscule"
+        ],
+        "de": [
+          "Sonnenuntergang",
+          "Sonnenaufgang",
+          "Abendrot",
+          "Dämmerung"
+        ],
+        "ja": [
+          "夕日",
+          "夕暮れ",
+          "夕焼け",
+          "日の入り",
+          "日の出",
+          "朝焼け",
+          "夕日の海"
+        ],
+        "ko": [
+          "일몰",
+          "노을",
+          "석양",
+          "일출",
+          "해질녘"
+        ],
+        "ru": [
+          "закат",
+          "рассвет",
+          "вечерняя заря"
+        ],
+        "pt": [
+          "pôr do sol",
+          "por do sol",
+          "nascer do sol",
+          "entardecer"
+        ],
+        "it": [
+          "tramonto",
+          "alba",
+          "crepuscolo"
+        ],
+        "ar": [
+          "غروب الشمس",
+          "شروق الشمس"
+        ],
+        "vi": [
+          "hoàng hôn",
+          "bình minh"
+        ],
+        "th": [
+          "พระอาทิตย์ตก",
+          "พระอาทิตย์ขึ้น"
+        ],
+        "id": [
+          "matahari terbenam",
+          "matahari terbit",
+          "senja"
+        ],
+        "nl": [
+          "zonsondergang",
+          "zonsopgang"
+        ],
+        "pl": [
+          "zachód słońca",
+          "wschód słońca"
+        ],
+        "tr": [
+          "gün batımı",
+          "gun batimi",
+          "gün doğumu"
+        ]
+      }
+    },
+    {
+      "id": "night_stars_moon",
+      "category": "landscape",
+      "default_template": "a night landscape photo of dark starry sky, full moon or glowing city night lights",
+      "terms": {
+        "zh": [
+          "夜",
+          "夜景",
+          "夜晚",
+          "夜空",
+          "星空",
+          "星星",
+          "月亮",
+          "满月",
+          "月夜",
+          "银河",
+          "深夜",
+          "明月"
+        ],
+        "en": [
+          "night",
+          "night sky",
+          "night view",
+          "starry sky",
+          "stars",
+          "moon",
+          "full moon",
+          "milky way",
+          "night city lights"
+        ],
+        "es": [
+          "noche",
+          "cielo nocturno",
+          "estrellas",
+          "luna",
+          "luna llena",
+          "vista nocturna"
+        ],
+        "fr": [
+          "nuit",
+          "ciel étoilé",
+          "étoiles",
+          "lune",
+          "pleine lune",
+          "vue nocturne"
+        ],
+        "de": [
+          "Nacht",
+          "Sternenhimmel",
+          "Sterne",
+          "Mond",
+          "Vollmond",
+          "Nachtansicht"
+        ],
+        "ja": [
+          "夜",
+          "夜景",
+          "夜空",
+          "星空",
+          "星",
+          "月",
+          "満月",
+          "天の川"
+        ],
+        "ko": [
+          "밤",
+          "야경",
+          "밤하늘",
+          "별",
+          "별자리",
+          "달",
+          "보름달",
+          "은하수"
+        ],
+        "ru": [
+          "ночь",
+          "ночное небо",
+          "звезды",
+          "звёзды",
+          "луна",
+          "полнолуние",
+          "ночной город"
+        ],
+        "pt": [
+          "noite",
+          "céu estrelado",
+          "estrelas",
+          "lua",
+          "lua cheia",
+          "luzes da noite"
+        ],
+        "it": [
+          "notte",
+          "cielo stellato",
+          "stelle",
+          "luna",
+          "luna piena",
+          "vista notturna"
+        ],
+        "ar": [
+          "ليل",
+          "ليلة",
+          "سماء الليل",
+          "نجوم",
+          "قمر"
+        ],
+        "vi": [
+          "đêm",
+          "cảnh đêm",
+          "bầu trời đêm",
+          "sao",
+          "mặt trăng"
+        ],
+        "th": [
+          "กลางคืน",
+          "ดาว",
+          "ดวงจันทร์",
+          "วิวกลางคืน"
+        ],
+        "id": [
+          "malam",
+          "langit malam",
+          "bintang",
+          "bulan"
+        ],
+        "nl": [
+          "nacht",
+          "sterrenhemel",
+          "maan",
+          "volle maan"
+        ],
+        "pl": [
+          "noc",
+          "nocne niebo",
+          "gwiazdy",
+          "księżyc"
+        ],
+        "tr": [
+          "gece",
+          "gece gökyüzü",
+          "yıldızlar",
+          "ay",
+          "dolunay"
+        ]
+      }
+    },
+    {
+      "id": "flowers_plants",
+      "category": "nature",
+      "default_template": "a colorful close-up photo of blooming flowers or flower bouquet",
+      "terms": {
+        "zh": [
+          "花",
+          "鲜花",
+          "花朵",
+          "花丛",
+          "花瓣",
+          "玫瑰",
+          "樱花",
+          "郁金香",
+          "向日葵",
+          "荷花",
+          "菊花",
+          "桃花",
+          "一束花"
+        ],
+        "en": [
+          "flower",
+          "flowers",
+          "blossom",
+          "blooming flowers",
+          "rose",
+          "cherry blossom",
+          "sunflower",
+          "tulip",
+          "lotus",
+          "bouquet"
+        ],
+        "es": [
+          "flor",
+          "flores",
+          "rosa",
+          "girasol",
+          "tulipán",
+          "ramo de flores"
+        ],
+        "fr": [
+          "fleur",
+          "fleurs",
+          "rose",
+          "tournesol",
+          "tulipe",
+          "bouquet de fleurs"
+        ],
+        "de": [
+          "Blume",
+          "Blumen",
+          "Blüte",
+          "Rose",
+          "Sonnenblume",
+          "Tulpe",
+          "Blumenstrauß"
+        ],
+        "ja": [
+          "花",
+          "お花",
+          "花束",
+          "バラ",
+          "桜",
+          "ひまわり",
+          "チューリップ",
+          "開花"
+        ],
+        "ko": [
+          "꽃",
+          "꽃송이",
+          "꽃다발",
+          "장미",
+          "벚꽃",
+          "해바라기",
+          "튤립"
+        ],
+        "ru": [
+          "цветок",
+          "цветы",
+          "роза",
+          "подсолнух",
+          "тюльпан",
+          "букет цветов"
+        ],
+        "pt": [
+          "flor",
+          "flores",
+          "rosa",
+          "girassol",
+          "buquê"
+        ],
+        "it": [
+          "fiore",
+          "fiori",
+          "rosa",
+          "girasole",
+          "tulipano",
+          "bouquet"
+        ],
+        "ar": [
+          "زهرة",
+          "زهور",
+          "ورد",
+          "ورود"
+        ],
+        "vi": [
+          "hoa",
+          "bông hoa",
+          "hoa hồng",
+          "bó hoa"
+        ],
+        "th": [
+          "ดอกไม้",
+          "ดอกกุหลาบ",
+          "ช่อดอกไม้"
+        ],
+        "id": [
+          "bunga",
+          "mawar",
+          "buket bunga"
+        ],
+        "nl": [
+          "bloem",
+          "bloemen",
+          "roos",
+          "bloemenboeket"
+        ],
+        "pl": [
+          "kwiat",
+          "kwiaty",
+          "róża",
+          "bukiet"
+        ],
+        "tr": [
+          "çiçek",
+          "cicek",
+          "çiçekler",
+          "gül",
+          "buket"
+        ]
+      }
+    },
+    {
+      "id": "trees_forest",
+      "category": "nature",
+      "default_template": "a green lush forest with tall trees and foliage",
+      "terms": {
+        "zh": [
+          "树",
+          "大树",
+          "树木",
+          "森林",
+          "树林",
+          "丛林",
+          "枫叶",
+          "红叶",
+          "落叶",
+          "树叶"
+        ],
+        "en": [
+          "tree",
+          "trees",
+          "forest",
+          "woods",
+          "foliage",
+          "leaves",
+          "autumn leaves",
+          "green trees"
+        ],
+        "es": [
+          "árbol",
+          "arbol",
+          "árboles",
+          "bosque",
+          "hojas"
+        ],
+        "fr": [
+          "arbre",
+          "arbres",
+          "forêt",
+          "feuilles"
+        ],
+        "de": [
+          "Baum",
+          "Bäume",
+          "Wald",
+          "Forst",
+          "Blätter"
+        ],
+        "ja": [
+          "木",
+          "樹木",
+          "森",
+          "森林",
+          "紅葉",
+          "葉っぱ"
+        ],
+        "ko": [
+          "나무",
+          "숲",
+          "삼림",
+          "단풍",
+          "나뭇잎"
+        ],
+        "ru": [
+          "дерево",
+          "деревья",
+          "лес",
+          "листва"
+        ],
+        "pt": [
+          "árvore",
+          "arvore",
+          "árvores",
+          "floresta",
+          "folhas"
+        ],
+        "it": [
+          "albero",
+          "alberi",
+          "foresta",
+          "bosco",
+          "foglie"
+        ],
+        "ar": [
+          "شجرة",
+          "أشجار",
+          "غابة"
+        ],
+        "vi": [
+          "cây",
+          "cây cối",
+          "rừng"
+        ],
+        "th": [
+          "ต้นไม้",
+          "ป่า"
+        ],
+        "id": [
+          "pohon",
+          "hutan",
+          "pepohonan"
+        ],
+        "nl": [
+          "boom",
+          "bomen",
+          "bos"
+        ],
+        "pl": [
+          "drzewo",
+          "drzewa",
+          "las"
+        ],
+        "tr": [
+          "ağaç",
+          "agac",
+          "ağaçlar",
+          "orman"
+        ]
+      }
+    },
+    {
+      "id": "dog_pet",
+      "category": "pets",
+      "default_template": "a clear photo of a dog or puppy pet",
+      "terms": {
+        "zh": [
+          "狗",
+          "狗狗",
+          "小狗",
+          "小狗勾",
+          "犬",
+          "金毛",
+          "哈士奇",
+          "柯基",
+          "柴犬",
+          "贵宾犬",
+          "拉布拉多",
+          "边牧",
+          "泰迪",
+          "萨摩耶",
+          "小汪"
+        ],
+        "en": [
+          "dog",
+          "puppy",
+          "hound",
+          "canine",
+          "golden retriever",
+          "husky",
+          "corgi",
+          "poodle",
+          "labrador",
+          "shepherd",
+          "cute dog"
+        ],
+        "es": [
+          "perro",
+          "perrito",
+          "cachorro",
+          "can",
+          "golden retriever",
+          "pastor alemán"
+        ],
+        "fr": [
+          "chien",
+          "chiot",
+          "canin",
+          "golden retriever",
+          "berger allemand"
+        ],
+        "de": [
+          "Hund",
+          "Welpe",
+          "Hündchen",
+          "Schäferhund",
+          "Dackel",
+          "Mops"
+        ],
+        "ja": [
+          "犬",
+          "いぬ",
+          "イヌ",
+          "子犬",
+          "ワンちゃん",
+          "柴犬",
+          "ゴールデンレトリバー"
+        ],
+        "ko": [
+          "개",
+          "강아지",
+          "댕댕이",
+          "멍멍이",
+          "골든리트리버",
+          "시바견"
+        ],
+        "ru": [
+          "собака",
+          "щенок",
+          "пес",
+          "пёс",
+          "овчарка",
+          "хаски"
+        ],
+        "pt": [
+          "cachorro",
+          "cão",
+          "cao",
+          "filhote",
+          "cachorrinho"
+        ],
+        "it": [
+          "cane",
+          "cucciolo",
+          "cagnolino"
+        ],
+        "ar": [
+          "كلب",
+          "جرو"
+        ],
+        "vi": [
+          "chó",
+          "chó con",
+          "cún"
+        ],
+        "th": [
+          "สุนัخ",
+          "หมา",
+          "ลูกสุนัข"
+        ],
+        "id": [
+          "anjing",
+          "anak anjing"
+        ],
+        "nl": [
+          "hond",
+          "puppy",
+          "hondje"
+        ],
+        "pl": [
+          "pies",
+          "szczeniak",
+          "piesek"
+        ],
+        "tr": [
+          "köpek",
+          "yavru köpek",
+          "kopek"
+        ]
+      }
+    },
+    {
+      "id": "cat_pet",
+      "category": "pets",
+      "default_template": "a clear photo of a cute cat or kitten",
+      "terms": {
+        "zh": [
+          "猫",
+          "猫咪",
+          "小猫",
+          "喵喵",
+          "加菲猫",
+          "蓝猫",
+          "橘猫",
+          "英短",
+          "美短",
+          "布偶猫",
+          "波斯猫",
+          "小猫咪",
+          "喵星人"
+        ],
+        "en": [
+          "cat",
+          "kitten",
+          "kitty",
+          "feline",
+          "furry cat",
+          "cute cat"
+        ],
+        "es": [
+          "gato",
+          "gatito",
+          "gata",
+          "felino",
+          "michi"
+        ],
+        "fr": [
+          "chat",
+          "chaton",
+          "félin",
+          "minou"
+        ],
+        "de": [
+          "Katze",
+          "Kätzchen",
+          "Kater",
+          "Mieze"
+        ],
+        "ja": [
+          "猫",
+          "ねこ",
+          "ネコ",
+          "子猫",
+          "にゃんこ"
+        ],
+        "ko": [
+          "고양이",
+          "야옹이",
+          "아기고양이",
+          "길고양이"
+        ],
+        "ru": [
+          "кот",
+          "кошка",
+          "котенок",
+          "котёнок",
+          "котик"
+        ],
+        "pt": [
+          "gato",
+          "gatinho",
+          "gata",
+          "felino"
+        ],
+        "it": [
+          "gatto",
+          "gattino",
+          "micio",
+          "felino"
+        ],
+        "ar": [
+          "قط",
+          "قطة",
+          "بسة"
+        ],
+        "vi": [
+          "mèo",
+          "mèo con"
+        ],
+        "th": [
+          "แมว",
+          "ลูกแมว"
+        ],
+        "id": [
+          "kucing",
+          "anak kucing"
+        ],
+        "nl": [
+          "kat",
+          "katje",
+          "poes"
+        ],
+        "pl": [
+          "kot",
+          "kotek",
+          "kotka"
+        ],
+        "tr": [
+          "kedi",
+          "yavru kedi"
+        ]
+      }
+    },
+    {
+      "id": "car_vehicle",
+      "category": "vehicles",
+      "default_template": "a photo of an automobile car or vehicle on the road",
+      "terms": {
+        "zh": [
+          "车",
+          "汽车",
+          "轿车",
+          "小轿车",
+          "跑车",
+          "越野车",
+          "私家车",
+          "车辆",
+          "大巴",
+          "卡车"
+        ],
+        "en": [
+          "car",
+          "automobile",
+          "vehicle",
+          "sedan",
+          "suv",
+          "sports car",
+          "traffic"
+        ],
+        "es": [
+          "coche",
+          "auto",
+          "carro",
+          "vehículo",
+          "automóvil"
+        ],
+        "fr": [
+          "voiture",
+          "automobile",
+          "véhicule",
+          "auto"
+        ],
+        "de": [
+          "Auto",
+          "PKW",
+          "Fahrzeug",
+          "Wagen",
+          "Automobil"
+        ],
+        "ja": [
+          "車",
+          "くるま",
+          "自動車",
+          "乗用車",
+          "カー"
+        ],
+        "ko": [
+          "자동차",
+          "차",
+          "승용차"
+        ],
+        "ru": [
+          "машина",
+          "автомобиль",
+          "авто"
+        ],
+        "pt": [
+          "carro",
+          "automóvel",
+          "veículo",
+          "viatura"
+        ],
+        "it": [
+          "macchina",
+          "auto",
+          "automobile",
+          "veicolo"
+        ],
+        "ar": [
+          "سيارة",
+          "مركبة"
+        ],
+        "vi": [
+          "ô tô",
+          "xe hơi"
+        ],
+        "th": [
+          "รถยนต์",
+          "รถ"
+        ],
+        "id": [
+          "mobil",
+          "kendaraan"
+        ],
+        "nl": [
+          "auto",
+          "wagen"
+        ],
+        "pl": [
+          "samochód",
+          "auto"
+        ],
+        "tr": [
+          "araba",
+          "otomobil",
+          "araç"
+        ]
+      }
+    },
+    {
+      "id": "airplane_flight",
+      "category": "vehicles",
+      "default_template": "a clear photo of an airplane flying or aircraft",
+      "terms": {
+        "zh": [
+          "飞机",
+          "客机",
+          "民航",
+          "民航机",
+          "战机",
+          "客机机翼",
+          "航班",
+          "大飞机"
+        ],
+        "en": [
+          "airplane",
+          "aeroplane",
+          "plane",
+          "aircraft",
+          "flight",
+          "jetliner",
+          "airliner"
+        ],
+        "es": [
+          "avión",
+          "avion",
+          "aeroplano",
+          "aeronave",
+          "vuelo"
+        ],
+        "fr": [
+          "avion",
+          "aéronef",
+          "vol",
+          "avion de ligne"
+        ],
+        "de": [
+          "Flugzeug",
+          "Flieger",
+          "Luftfahrzeug",
+          "Airliner"
+        ],
+        "ja": [
+          "飛行機",
+          "ひこうき",
+          "航空機",
+          "旅客機",
+          "フライト"
+        ],
+        "ko": [
+          "비행기",
+          "항공기",
+          "여객기"
+        ],
+        "ru": [
+          "самолет",
+          "самолёт",
+          "авиалайнер",
+          "воздушное судно"
+        ],
+        "pt": [
+          "avião",
+          "aviao",
+          "aeronave",
+          "voo"
+        ],
+        "it": [
+          "aereo",
+          "aeroplano",
+          "velivolo"
+        ],
+        "ar": [
+          "طائرة",
+          "طيارة"
+        ],
+        "vi": [
+          "máy bay",
+          "phi cơ"
+        ],
+        "th": [
+          "เครื่องบิน"
+        ],
+        "id": [
+          "pesawat",
+          "pesawat terbang"
+        ],
+        "nl": [
+          "vliegtuig",
+          "vliegtuigen"
+        ],
+        "pl": [
+          "samolot"
+        ],
+        "tr": [
+          "uçak",
+          "ucak"
+        ]
+      }
+    },
+    {
+      "id": "receipt_document",
+      "category": "documents",
+      "default_template": "a photo of paper document, bill, receipt, invoice or text page",
+      "terms": {
+        "zh": [
+          "发票",
+          "票据",
+          "收据",
+          "账单",
+          "小票",
+          "发票单",
+          "收条",
+          "文档",
+          "合同",
+          "单据",
+          "报销单",
+          "凭单"
+        ],
+        "en": [
+          "receipt",
+          "invoice",
+          "bill",
+          "ticket",
+          "document",
+          "paper text",
+          "voucher",
+          "contract"
+        ],
+        "es": [
+          "recibo",
+          "factura",
+          "cuenta",
+          "boleto",
+          "documento",
+          "comprobante",
+          "tique"
+        ],
+        "fr": [
+          "facture",
+          "reçu",
+          "recu",
+          "ticket de caisse",
+          "addition",
+          "document",
+          "quittance"
+        ],
+        "de": [
+          "Rechnung",
+          "Quittung",
+          "Beleg",
+          "Kassenbon",
+          "Ticket",
+          "Dokument"
+        ],
+        "ja": [
+          "領収書",
+          "レシート",
+          "請求書",
+          "伝票",
+          "書類",
+          "チケット"
+        ],
+        "ko": [
+          "영수증",
+          "청구서",
+          "전표",
+          "서류",
+          "문서",
+          "티켓"
+        ],
+        "ru": [
+          "квитанция",
+          "чек",
+          "счет",
+          "счёт",
+          "накладная",
+          "документ"
+        ],
+        "pt": [
+          "recibo",
+          "fatura",
+          "nota fiscal",
+          "comprovante",
+          "documento",
+          "bilhete"
+        ],
+        "it": [
+          "ricevuta",
+          "fattura",
+          "scontrino",
+          "conto",
+          "documento",
+          "biglietto"
+        ],
+        "ar": [
+          "فاتورة",
+          "إيصال",
+          "وصل"
+        ],
+        "vi": [
+          "hóa đơn",
+          "biên lai",
+          "chứng từ"
+        ],
+        "th": [
+          "ใบเสร็จ",
+          "ใบแจ้งหนี้"
+        ],
+        "id": [
+          "kuitansi",
+          "struk",
+          "faktur",
+          "tagihan"
+        ],
+        "nl": [
+          "rekening",
+          "bonnetje",
+          "factuur",
+          "kwitantie"
+        ],
+        "pl": [
+          "paragon",
+          "faktura",
+          "rachunek"
+        ],
+        "tr": [
+          "makbuz",
+          "fatura",
+          "fiş",
+          "fis"
+        ]
+      }
+    },
+    {
+      "id": "screenshot_screen",
+      "category": "documents",
+      "default_template": "a digital screenshot of mobile phone screen, app UI, chat or computer display",
+      "terms": {
+        "zh": [
+          "截图",
+          "截屏",
+          "屏幕截图",
+          "手机截图",
+          "聊天记录",
+          "微信截图",
+          "电脑截图",
+          "网页截图"
+        ],
+        "en": [
+          "screenshot",
+          "screen capture",
+          "screen grab",
+          "mobile screen",
+          "app interface",
+          "chat screenshot"
+        ],
+        "es": [
+          "captura de pantalla",
+          "pantallazo",
+          "captura"
+        ],
+        "fr": [
+          "capture d'écran",
+          "capture decran",
+          "screenshot"
+        ],
+        "de": [
+          "Screenshot",
+          "Bildschirmfoto",
+          "Bildschirmaufnahme"
+        ],
+        "ja": [
+          "スクリーンショット",
+          "スクショ",
+          "画面キャプチャ"
+        ],
+        "ko": [
+          "스크린샷",
+          "캡처",
+          "화면캡처",
+          "스샷"
+        ],
+        "ru": [
+          "скриншот",
+          "снимок экрана",
+          "скрин"
+        ],
+        "pt": [
+          "captura de tela",
+          "print screen",
+          "screenshot"
+        ],
+        "it": [
+          "screenshot",
+          "cattura schermo"
+        ],
+        "ar": [
+          "لقطة شاشة",
+          "سيلفي الشاشة"
+        ],
+        "vi": [
+          "ảnh chụp màn hình",
+          "ảnh màn hình"
+        ],
+        "th": [
+          "ภาพหน้าจอ",
+          "แคปหน้าจอ"
+        ],
+        "id": [
+          "tangkapan layar",
+          "screenshot"
+        ],
+        "nl": [
+          "schermafbeelding",
+          "screenshot"
+        ],
+        "pl": [
+          "zrzut ekranu",
+          "screenshot"
+        ],
+        "tr": [
+          "ekran görüntüsü",
+          "ekran resmi"
+        ]
+      }
+    },
+    {
+      "id": "food_meal",
+      "category": "food",
+      "default_template": "a delicious meal dish of appetizing culinary food on table",
+      "terms": {
+        "zh": [
+          "美食",
+          "菜肴",
+          "大餐",
+          "好吃的",
+          "午餐",
+          "晚餐",
+          "早餐",
+          "菜品",
+          "小吃",
+          "好吃的菜",
+          "炒菜",
+          "火锅",
+          "烧烤"
+        ],
+        "en": [
+          "food",
+          "meal",
+          "dish",
+          "cuisine",
+          "dinner",
+          "lunch",
+          "breakfast",
+          "delicious eating",
+          "culinary"
+        ],
+        "es": [
+          "comida",
+          "platillo",
+          "almuerzo",
+          "cena",
+          "desayuno",
+          "plato",
+          "gastronomía"
+        ],
+        "fr": [
+          "nourriture",
+          "repas",
+          "plat",
+          "déjeuner",
+          "dîner",
+          "cuisine",
+          "gastronomie"
+        ],
+        "de": [
+          "Essen",
+          "Gericht",
+          "Mahlzeit",
+          "Speise",
+          "Mittagessen",
+          "Abendessen",
+          "Frühstück"
+        ],
+        "ja": [
+          "料理",
+          "ご飯",
+          "グルメ",
+          "食事",
+          "ランチ",
+          "ディナー",
+          "朝食",
+          "美味しいもの"
+        ],
+        "ko": [
+          "음식",
+          "요리",
+          "식사",
+          "점심",
+          "저녁",
+          "맛있는 음식",
+          "밥"
+        ],
+        "ru": [
+          "еда",
+          "блюдо",
+          "пища",
+          "обед",
+          "ужин",
+          "завтрак",
+          "кухня"
+        ],
+        "pt": [
+          "comida",
+          "refeição",
+          "prato",
+          "almoço",
+          "jantar",
+          "gastronomia"
+        ],
+        "it": [
+          "cibo",
+          "piatto",
+          "pasto",
+          "pranzo",
+          "cena",
+          "colazione",
+          "cucina"
+        ],
+        "ar": [
+          "طعام",
+          "وجبة",
+          "أكل"
+        ],
+        "vi": [
+          "thức ăn",
+          "món ăn",
+          "bữa ăn"
+        ],
+        "th": [
+          "อาหาร",
+          "มื้ออาหาร"
+        ],
+        "id": [
+          "makanan",
+          "hidangan",
+          "santapan"
+        ],
+        "nl": [
+          "eten",
+          "maaltijd",
+          "gerecht"
+        ],
+        "pl": [
+          "jedzenie",
+          "posiłek",
+          "danie"
+        ],
+        "tr": [
+          "yemek",
+          "öğün",
+          "yiyecek"
+        ]
+      }
+    }
+  ],
+  "modifiers": [
+    {
+      "id": "red_mod",
+      "type": "color",
+      "prompt_fragment": "in vivid red color or red clothing",
+      "terms": {
+        "zh": [
+          "红",
+          "红色",
+          "大红",
+          "绯红",
+          "鲜红",
+          "朱红",
+          "暗红",
+          "酒红"
+        ],
+        "en": [
+          "red",
+          "crimson",
+          "scarlet",
+          "ruby"
+        ],
+        "es": [
+          "rojo",
+          "roja"
+        ],
+        "fr": [
+          "rouge"
+        ],
+        "de": [
+          "rot",
+          "rote"
+        ],
+        "ja": [
+          "赤",
+          "赤色",
+          "赤い"
+        ],
+        "ko": [
+          "빨간",
+          "붉은",
+          "빨간색"
+        ],
+        "ru": [
+          "красный",
+          "красная",
+          "алый"
+        ],
+        "pt": [
+          "vermelho",
+          "vermelha"
+        ],
+        "it": [
+          "rosso",
+          "rossa"
+        ]
+      }
+    },
+    {
+      "id": "blue_mod",
+      "type": "color",
+      "prompt_fragment": "in vivid blue color or blue lighting",
+      "terms": {
+        "zh": [
+          "蓝",
+          "蓝色",
+          "深蓝",
+          "浅蓝",
+          "天蓝",
+          "湖蓝"
+        ],
+        "en": [
+          "blue",
+          "navy",
+          "cyan",
+          "azure"
+        ],
+        "es": [
+          "azul",
+          "celeste"
+        ],
+        "fr": [
+          "bleu",
+          "azur"
+        ],
+        "de": [
+          "blau"
+        ],
+        "ja": [
+          "青",
+          "青色",
+          "青い"
+        ],
+        "ko": [
+          "파란",
+          "푸른",
+          "파란색"
+        ],
+        "ru": [
+          "синий",
+          "голубой"
+        ],
+        "pt": [
+          "azul"
+        ],
+        "it": [
+          "blu",
+          "azzurro"
+        ]
+      }
+    },
+    {
+      "id": "green_mod",
+      "type": "color",
+      "prompt_fragment": "in fresh green color or green natural background",
+      "terms": {
+        "zh": [
+          "绿",
+          "绿色",
+          "翠绿",
+          "草绿",
+          "青绿"
+        ],
+        "en": [
+          "green",
+          "emerald",
+          "olive"
+        ],
+        "es": [
+          "verde"
+        ],
+        "fr": [
+          "vert"
+        ],
+        "de": [
+          "grün"
+        ],
+        "ja": [
+          "緑",
+          "緑色",
+          "緑の"
+        ],
+        "ko": [
+          "초록",
+          "녹색",
+          "초록색"
+        ],
+        "ru": [
+          "зеленый",
+          "зелёный"
+        ],
+        "pt": [
+          "verde"
+        ],
+        "it": [
+          "verde"
+        ]
+      }
+    },
+    {
+      "id": "white_mod",
+      "type": "color",
+      "prompt_fragment": "in clean white color or white attire",
+      "terms": {
+        "zh": [
+          "白",
+          "白色",
+          "纯白",
+          "雪白"
+        ],
+        "en": [
+          "white",
+          "snowy white",
+          "pure white"
+        ],
+        "es": [
+          "blanco",
+          "blanca"
+        ],
+        "fr": [
+          "blanc",
+          "blanche"
+        ],
+        "de": [
+          "weiß"
+        ],
+        "ja": [
+          "白",
+          "白色",
+          "白い"
+        ],
+        "ko": [
+          "하얀",
+          "흰색",
+          "하얀색"
+        ],
+        "ru": [
+          "белый",
+          "белая"
+        ],
+        "pt": [
+          "branco",
+          "branca"
+        ],
+        "it": [
+          "bianco",
+          "bianca"
+        ]
+      }
+    },
+    {
+      "id": "black_mod",
+      "type": "color",
+      "prompt_fragment": "in deep black color or black clothing",
+      "terms": {
+        "zh": [
+          "黑",
+          "黑色",
+          "漆黑",
+          "暗黑"
+        ],
+        "en": [
+          "black",
+          "pitch black",
+          "dark"
+        ],
+        "es": [
+          "negro",
+          "negra"
+        ],
+        "fr": [
+          "noir",
+          "noire"
+        ],
+        "de": [
+          "schwarz"
+        ],
+        "ja": [
+          "黒",
+          "黒色",
+          "黒い"
+        ],
+        "ko": [
+          "검은",
+          "까만",
+          "검은색"
+        ],
+        "ru": [
+          "черный",
+          "чёрный"
+        ],
+        "pt": [
+          "preto",
+          "preta"
+        ],
+        "it": [
+          "nero",
+          "nera"
+        ]
+      }
+    },
+    {
+      "id": "sky_mod",
+      "type": "spatial",
+      "prompt_fragment": "in the blue sky with clouds",
+      "terms": {
+        "zh": [
+          "在天空中",
+          "在天上",
+          "天空中的",
+          "天上飞的",
+          "飞在空中",
+          "蓝天背景"
+        ],
+        "en": [
+          "in the sky",
+          "flying in the sky",
+          "against the blue sky",
+          "in the air"
+        ],
+        "es": [
+          "en el cielo",
+          "volando en el cielo"
+        ],
+        "fr": [
+          "dans le ciel",
+          "volant dans le ciel"
+        ],
+        "de": [
+          "am Himmel",
+          "im Himmel"
+        ],
+        "ja": [
+          "空を飛ぶ",
+          "空の",
+          "空に",
+          "空中"
+        ],
+        "ko": [
+          "하늘에서",
+          "하늘을 나는",
+          "하늘"
+        ],
+        "ru": [
+          "в небе",
+          "в воздухе",
+          "летящий в небе"
+        ]
+      }
+    },
+    {
+      "id": "grass_mod",
+      "type": "spatial",
+      "prompt_fragment": "on the green grass lawn outdoors",
+      "terms": {
+        "zh": [
+          "在草地上",
+          "在草丛中",
+          "草坪上",
+          "草地里的",
+          "在草坪"
+        ],
+        "en": [
+          "on the grass",
+          "on the lawn",
+          "in the meadow",
+          "on green field"
+        ],
+        "es": [
+          "en el pasto",
+          "en la hierba",
+          "en el césped"
+        ],
+        "fr": [
+          "sur l'herbe",
+          "sur la pelouse"
+        ],
+        "de": [
+          "auf dem Rasen",
+          "auf der Wiese",
+          "im Gras"
+        ],
+        "ja": [
+          "芝生の上で",
+          "草の上に",
+          "芝生"
+        ],
+        "ko": [
+          "풀밭에서",
+          "잔디밭에서",
+          "잔디 위의"
+        ],
+        "ru": [
+          "на траве",
+          "на газоне",
+          "на лужайке"
+        ]
+      }
+    },
+    {
+      "id": "beach_mod",
+      "type": "spatial",
+      "prompt_fragment": "on the sandy beach by the ocean",
+      "terms": {
+        "zh": [
+          "在沙滩上",
+          "在海滩上",
+          "沙滩边的",
+          "在海边"
+        ],
+        "en": [
+          "on the beach",
+          "on the sand",
+          "by the ocean"
+        ],
+        "es": [
+          "en la playa",
+          "en la orilla del mar"
+        ],
+        "fr": [
+          "sur la plage",
+          "au bord de la mer"
+        ],
+        "de": [
+          "am Strand",
+          "auf dem Sand"
+        ],
+        "ja": [
+          "砂浜で",
+          "ビーチで",
+          "海辺で"
+        ],
+        "ko": [
+          "해변에서",
+          "모래사장에서",
+          "바닷가에서"
+        ],
+        "ru": [
+          "на пляже",
+          "на песчаном берегу"
+        ]
+      }
+    },
+    {
+      "id": "cute_mod",
+      "type": "attribute",
+      "prompt_fragment": "cute furry and adorable",
+      "terms": {
+        "zh": [
+          "可爱的",
+          "可可爱爱",
+          "呆萌",
+          "萌萌的",
+          "好萌"
+        ],
+        "en": [
+          "cute",
+          "adorable",
+          "sweet",
+          "lovely"
+        ],
+        "es": [
+          "lindo",
+          "tierno",
+          "adorable"
+        ],
+        "fr": [
+          "mignon",
+          "mignonne",
+          "adorable"
+        ],
+        "de": [
+          "süß",
+          "niedlich",
+          "herzig"
+        ],
+        "ja": [
+          "可愛い",
+          "かわいい",
+          "キュートな"
+        ],
+        "ko": [
+          "귀여운",
+          "사랑스러운"
+        ],
+        "ru": [
+          "милый",
+          "очаровательный"
+        ]
+      }
+    }
+  ]
+}

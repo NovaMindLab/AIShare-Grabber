@@ -43,12 +43,15 @@
 在不同芯片架构上的实测推理时延基准：
 
 ```mermaid
-bar
-    title 不同硬件环境单图推理时延对比 (ms, 越短越好)
-    x-axis ["Intel i5-1240P (CPU)", "AMD 7840HS (CPU)", "Apple M2 (CPU)", "RTX 4060 (DirectML)", "iPhone 15 Pro (NPU A17)"]
-    y-axis "推理时延 (ms)"
-    "MobileCLIP2-S0" : [76.2, 41.0, 34.8, 14.2, 3.2]
-    "OpenAI CLIP (ViT-B/32)" : [1450.0, 890.0, 720.0, 48.0, 26.5]
+flowchart TD
+    subgraph S1 ["单图推理时延对比 (ms, 越短越快)"]
+        H1["iPhone 15 Pro (NPU A17) ➔ 3.2 ms (能效极致)"]
+        H2["RTX 4060 (DirectML GPU) ➔ 14.2 ms (极速)"]
+        H3["Apple M2 (CPU) ➔ 34.8 ms (流畅)"]
+        H4["AMD 7840HS (CPU AVX2) ➔ 41.0 ms (流畅)"]
+        H5["Intel i5-1240P (CPU AVX2) ➔ 76.2 ms (基准 ~13 FPS)"]
+        H6["OpenAI CLIP ViT-B/32 (参考对比) ➔ 720 ~ 1450 ms (极慢 ❌)"]
+    end
 ```
 
 - **iPhone / 移动端 NPU (CoreML)**：单图推理仅需 **3.2 ms**，能效比极高；

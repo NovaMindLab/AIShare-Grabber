@@ -41,7 +41,7 @@ Details the Electron main lifecycle process, ONNX AI classification model integr
 *   [02. 图像分类精度与速度](file:///d:/AI_serach_image/image_clip_android/wiki_work/02_image_classification_accuracy_and_latency.md): Top-1 (70.4%) / Top-5 准确率、召回率、F1-Score 及单图 76ms 全链路耗时拆解。
 *   [03. 新推理框架替代可行性](file:///d:/AI_serach_image/image_clip_android/wiki_work/03_inference_framework_migration_feasibility.md): 算子覆盖度、跨平台稳定性及 DirectML ➔ CPU 自动热降级防御。
 *   [04. 多线程与多任务并发](file:///d:/AI_serach_image/image_clip_android/wiki_work/04_multithreading_and_task_concurrency.md): 独立 Session 隔离、线程池竞争防卫与 SharedArrayBuffer 零拷贝无锁单写多读。
-*   [05. Prompt 设计与多语言支持](file:///d:/AI_serach_image/image_clip_android/wiki_work/05_prompt_engineering_and_multilingual.md): 官方推荐集成模板工程 (Ensembling)、Softmax 温度系数调校 ($T=0.01$) 与 20+ 语言对齐。
+*   [05. MobileCLIP2-S0 国外多语言发版](file:///d:/AI_serach_image/image_clip_android/wiki_work/05_prompt_engineering_and_multilingual.md): 海外 20+ 语言支持、多语言 vs 单英语体积量化对比、Prompt 模板工程与温度校准。
 *   [06. 安装包体积评估与竞品对比](file:///d:/AI_serach_image/image_clip_android/wiki_work/06_installer_bundle_size_and_competitor_analysis.md): 整包控制在 ~168MB（目标 ≤200MB），横评 Immich (2.5G) 与 Mylio (420M)。
 *   [07. MobileCLIP2-S0 指标复核](file:///d:/AI_serach_image/image_clip_android/wiki_work/07_mobileclip2_s0_metrics_and_evaluation.md): 2025 TMLR SOTA 指标复现、重参数化折叠与 INT8 导出验证。
 *   [08. 桌面端架构选型对比](file:///d:/AI_serach_image/image_clip_android/wiki_work/08_desktop_framework_selection_electron_tauri_flutter.md): Electron vs Tauri vs Flutter 性能、体积、AI 生态与迁移成本模型。

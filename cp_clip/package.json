@@ -60,6 +60,8 @@
                                 "main.cjs",
                                 "preload.cjs",
                                 "tokenizer.cjs",
+                                "concept_aligner.cjs",
+                                "international_lexicon.json",
                                 "merges.txt",
                                 "text_embeddings.json",
                                 "mobileclip2_s0_image_encoder.onnx",

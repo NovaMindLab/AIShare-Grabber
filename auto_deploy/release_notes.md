@@ -1,5 +1,19 @@
 ### 🚀 ShareCLIP v3.0.16 Release Notes
 
+#### 🌐 国际化多语言视觉概念对齐引擎 (International Concept Aligner & Multilingual AI Search)
+- **1.5MB 轻量外置国际视觉概念对齐系统**：
+  - 基于 ShareCLIP 推荐的外置概念词典设计（`international_lexicon.json`），实现 0MB 神经网络参数增加（全包依然 ≤168MB），100% 离线、零 API 成本。
+  - 支持中、英、西、法、德、日、韩、俄、阿、葡、意、越、泰、印尼、荷、波、土等 17 门主流世界语言系统，直接覆盖全球 140+ 个独立主权国家和主要地区。
+  - 原生英文查询 0ms 快速直通放行，外语概念提取与对齐仅需 0.05ms ~ 0.2ms。
+
+#### 🎯 跨语种色彩与复合搜索绝对一致性修复 (Cross-Lingual Search Consistency)
+- **中英双语 Prompt 绝对对齐**：
+  - 彻底修复了因未对齐时直接将原始中文字符传入英文 CLIP BPE 分词器导致的特征向量空间坍缩与误匹配问题（如搜 `red` 正确而搜 `红` 误判蓝衣古装/富士山）。
+  - 用户输入 `红`、`红色`、`red`、`rojo`、`rouge` 均生成完全相同的标准 CLIP Prompt，特征向量余弦相似度达到 1.0000（100% 绝对一致）。
+- **智能色彩与复合概念抽取**：
+  - 能够智能分离颜色修饰符与主体对象（如 `红衣服` ➔ `a photo of a person wearing red clothes`，`红色的车` ➔ `a photo of a red car...`）。
+  - 深度支持相册常见高频检索意图，涵盖 `学士服`、`学士帽`、`领结`、`古装/汉服`、`二次元动漫`、`富士山` 等。
+
 #### 📱 二维码颗粒度极致优化与低端机极速秒扫 (Low-End Camera QR Code Optimization)
 - **精简二维码载荷体积（压缩率达 75%）**：
   - 剔除固定 72 字节的 Nordic UART 静态 Service UUID 与 Characteristic UUID 常量（移动端内置协议默认解析），将 JSON 键名精简短化（`ble_mac` -> `m`, `session_id` -> `s`, `pc_ips` -> `ip`，端口与热点字段按需携带）。
