@@ -1970,8 +1970,8 @@
                 style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; display: flex; gap: 18px; align-items: center;"
               >
                 <!-- Thumbnail -->
-                <div style="position: relative; width: 140px; height: 78px; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: #000;">
-                  <img v-if="task.thumbnail" :src="task.thumbnail" style="width: 100%; height: 100%; object-fit: cover;" />
+                <div style="position: relative; width: 140px; height: 78px; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: #1e293b;">
+                  <img v-if="task.thumbnail" :src="getYtMediaSrc(task.thumbnail)" style="width: 100%; height: 100%; object-fit: cover;" />
                   <div style="position: absolute; top: 4px; left: 4px; background: rgba(99, 102, 241, 0.9); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;">
                     {{ task.resolution }}
                   </div>
@@ -2066,10 +2066,16 @@
                 <!-- Cover Image Poster with Play Overlay -->
                 <div 
                   @click="openYtFile(item.filePath)"
-                  style="position: relative; width: 130px; height: 74px; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: #000; cursor: pointer;"
+                  style="position: relative; width: 130px; height: 74px; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: #1e293b; cursor: pointer; display: flex; align-items: center; justify-content: center;"
                   title="点击播放"
                 >
-                  <img v-if="item.thumbnail" :src="item.thumbnail.startsWith('http') ? item.thumbnail : ('file://' + item.thumbnail.replace(/\\/g, '/'))" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <img 
+                    v-if="item.thumbnail" 
+                    :src="getYtMediaSrc(item.thumbnail)" 
+                    @error="onThumbnailError($event, item)" 
+                    style="width: 100%; height: 100%; object-fit: cover;" 
+                  />
+                  <span v-else style="font-size: 24px; color: var(--text-muted);">🎬</span>
                   <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
                     <span style="font-size: 24px; color: #fff;">▶️</span>
                   </div>
@@ -6277,6 +6283,28 @@ function setupDataChannel(channel) {
 }
 
 // YT-DLP Download & Task Management Handlers
+const getYtMediaSrc = (thumb) => {
+  if (!thumb) return '';
+  if (thumb.startsWith('http://') || thumb.startsWith('https://')) {
+    return thumb;
+  }
+  const cleanPath = thumb.replace(/\\/g, '/');
+  // Safe URI encoding for spaces and special symbols
+  return encodeURI(`local:///${cleanPath}`);
+};
+
+const onThumbnailError = (event, item) => {
+  if (item && item.url && !event.target.dataset.triedYt) {
+    event.target.dataset.triedYt = 'true';
+    const match = item.url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+    if (match && match[1]) {
+      event.target.src = `https://i.ytimg.com/vi/${match[1]}/hqdefault.jpg`;
+      return;
+    }
+  }
+  event.target.style.display = 'none';
+};
+
 const formatFileSize = (bytes) => {
   if (!bytes || isNaN(bytes) || bytes <= 0) return '0 B';
   const k = 1024;
