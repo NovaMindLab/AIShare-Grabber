@@ -39,6 +39,12 @@
 ### 11. [双核/低配电脑与 4GB 极低内存 AI 推理引擎极致优化、多层容灾与全机型分级](file:///d:/AI_serach_image/image_clip_android/wiki/features/low_end_cpu_ai_optimization.md)
 *   **内容**：针对 81.6% 存量双核/四核超极本及 4GB 内存老旧机型（如缺少 AVX2 的赛扬 N4020/N4120/Pentium），实现三级 ONNX 推理容灾降级（CPU AVX2 ➔ DirectML GPU ➔ Safe CPU）、人脸/文本模型全链路按需延迟加载（Lazy Loading 释放 >140MB 内存）、WorkerPool 异常崩溃防死锁，结合严格的 Low/Mid/High 硬件分级物理隔离与静态零拷贝内存池，解决 4GB 电脑无法启动 AI 计算的历史痛点，6000 张相片全量预测提速 3 倍且高低配互不干扰。
 
+### 12. [多站点 4K 视频解析下载器、独立 HTML5 Electron 播放器窗口与高对比度界面体系](file:///d:/AI_serach_image/image_clip_android/wiki/features/yt_dlp_video_downloader_and_player.md)
+*   **内容**：彻底解耦外部系统播放器慢启动痛点，构建独立无边框 HTML5 Video 播放器窗口（支持 GPU 硬件加速、Range 206 局部流式缓冲、画中画置顶 Pin 与全键盘快捷键）；集成 yt-dlp 4K 极速解析下载内核，支持 YouTube、Bilibili、抖音、快手、Twitter/X 等 1000+ 平台，内置智能剪贴板文案提取清洗正则与 FFmpeg DASH 音视频自动无损混流封装；重构 v4.0.0 浅色/深色双主题高对比度自适应设计体系（WCAG 2.1 AA 标准）。
+
+### 13. [全球化全自动推广、开源赞助体系与极客包管理器分发飞轮](file:///d:/AI_serach_image/image_clip_android/wiki/features/automated_promotion_and_growth_engine.md)
+*   **内容**：全方位落地 5 大增长引擎——GitHub 官方 Sponsors / Buy Me a Coffee / Patreon 全渠道赞助变现体系；WebShare 纯网页端内置自裂变引流挂件（Product-Led Growth, PLG）；GitHub Actions CI/CD 自动发版多渠道宣发流水线（自动生成发布 Markdown 与 Discord/Telegram 社区广播）；Windows 极客包管理器自动感知（Scoop & WinGet 清单与 SHA256 自动计算工具）；以及全套顶级公域社区（AlternativeTo、Reddit、Hacker News、Product Hunt、Awesome Lists）打榜物料与程序化 SEO（sitemap.xml / robots.txt）。
+
 ---
 
 ## 🏗️ 整体系统架构图
