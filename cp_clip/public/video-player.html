@@ -530,6 +530,15 @@
       }, 500);
     }
 
+    function formatMediaUrl(url) {
+      if (!url) return '';
+      if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:') || url.startsWith('local://')) {
+        return url;
+      }
+      let clean = url.replace(/^file:\/\/\/?/i, '').replace(/\\/g, '/').replace(/^\/+/, '');
+      return `local:///${encodeURI(clean)}`;
+    }
+
     // Load Video Source
     function loadVideoSource(payload) {
       if (!payload) return;
@@ -542,14 +551,11 @@
       }
 
       if (poster) {
-        const cleanPoster = poster.replace(/\\/g, '/').replace(/^\/+/, '');
-        video.poster = poster.startsWith('http') ? poster : `local:///${encodeURI(cleanPoster)}`;
+        video.poster = formatMediaUrl(poster);
       }
 
       if (filePath) {
-        const cleanPath = filePath.replace(/\\/g, '/').replace(/^\/+/, '');
-        const videoSrc = filePath.startsWith('http') ? filePath : `local:///${encodeURI(cleanPath)}`;
-        video.src = videoSrc;
+        video.src = formatMediaUrl(filePath);
         video.play().catch(() => {});
         btnPlayPause.textContent = '⏸️';
       }

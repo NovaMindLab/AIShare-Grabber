@@ -2764,7 +2764,125 @@ ipcMain.handle('install-update', async (event, filePath) => {
 });
 
 // -------------------------------------------------------------------------------
+// FFmpeg Resolution Helper
+// -------------------------------------------------------------------------------
+function resolveFFmpegPaths() {
+  const isWin = process.platform === 'win32';
+  const ffmpegExe = isWin ? 'ffmpeg.exe' : 'ffmpeg';
+  const ffprobeExe = isWin ? 'ffprobe.exe' : 'ffprobe';
+
+  const candidateDirs = [
+    path.join(process.resourcesPath || __dirname, 'bin'),
+    path.join(__dirname, 'bin'),
+    path.join(process.resourcesPath || __dirname),
+    path.join(__dirname),
+    path.join(typeof app !== 'undefined' && app.getAppPath ? app.getAppPath() : __dirname, 'bin')
+  ];
+
+  if (isWin) {
+    if (process.env.LOCALAPPDATA) {
+      candidateDirs.push(
+        path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Links'),
+        path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Packages')
+      );
+    }
+    if (process.env.USERPROFILE) {
+      candidateDirs.push(
+        path.join(process.env.USERPROFILE, 'scoop', 'shims'),
+        path.join(process.env.USERPROFILE, 'scoop', 'apps', 'ffmpeg', 'current', 'bin')
+      );
+    }
+    candidateDirs.push(
+      'C:\\ProgramData\\chocolatey\\bin',
+      'C:\\ffmpeg\\bin',
+      'C:\\Program Files\\ffmpeg\\bin'
+    );
+  }
+
+  let resolvedFfmpeg = null;
+  let resolvedFfprobe = null;
+
+  for (const dir of candidateDirs) {
+    if (!resolvedFfmpeg) {
+      const f = path.join(dir, ffmpegExe);
+      if (fs.existsSync(f)) resolvedFfmpeg = f;
+    }
+    if (!resolvedFfprobe) {
+      const f = path.join(dir, ffprobeExe);
+      if (fs.existsSync(f)) resolvedFfprobe = f;
+    }
+  }
+
+  // System PATH lookup fallback (where / which) if not located in common directories
+  if (!resolvedFfmpeg || !resolvedFfprobe) {
+    try {
+      const cp = require('child_process');
+      const lookupCmd = isWin ? 'where' : 'which';
+      if (!resolvedFfmpeg) {
+        const out = cp.execSync(`${lookupCmd} ${ffmpegExe}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim().split(/\r?\n/)[0];
+        if (out && fs.existsSync(out)) resolvedFfmpeg = out;
+      }
+      if (!resolvedFfprobe) {
+        const out = cp.execSync(`${lookupCmd} ${ffprobeExe}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim().split(/\r?\n/)[0];
+        if (out && fs.existsSync(out)) resolvedFfprobe = out;
+      }
+    } catch (_) {}
+  }
+
+  return {
+    ffmpegPath: resolvedFfmpeg || (process.env.FFMPEG_PATH || 'ffmpeg'),
+    ffprobePath: resolvedFfprobe || (process.env.FFPROBE_PATH || 'ffprobe')
+  };
+}
+
+function getFFmpegDirectory() {
+  try {
+    const { ffmpegPath } = resolveFFmpegPaths();
+    if (ffmpegPath && fs.existsSync(ffmpegPath)) {
+      const stat = fs.statSync(ffmpegPath);
+      return stat.isDirectory() ? ffmpegPath : path.dirname(ffmpegPath);
+    }
+  } catch (e) {
+    console.warn('[YT-DLP] Failed to resolve FFmpeg directory:', e.message);
+  }
+  return null;
+}
+
+const YT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+
+function detectExtractor(info, url) {
+  const raw = info?.extractor_key || info?.extractor || '';
+  if (raw) {
+    const low = raw.toLowerCase();
+    if (low.includes('bilibili')) return 'BiliBili';
+    if (low.includes('douyin')) return 'Douyin';
+    if (low.includes('youtube')) return 'YouTube';
+    if (low.includes('twitter') || low.includes('x')) return 'Twitter';
+    if (low.includes('kuaishou')) return 'Kuaishou';
+    if (low.includes('tiktok')) return 'TikTok';
+    if (low.includes('instagram')) return 'Instagram';
+    if (low.includes('weibo')) return 'Weibo';
+    if (low.includes('xiaohongshu')) return 'Xiaohongshu';
+    return raw;
+  }
+  if (url) {
+    const lowUrl = url.toLowerCase();
+    if (lowUrl.includes('bilibili.com') || lowUrl.includes('b23.tv')) return 'BiliBili';
+    if (lowUrl.includes('douyin.com') || lowUrl.includes('iesdouyin.com')) return 'Douyin';
+    if (lowUrl.includes('youtube.com') || lowUrl.includes('youtu.be')) return 'YouTube';
+    if (lowUrl.includes('twitter.com') || lowUrl.includes('x.com')) return 'Twitter';
+    if (lowUrl.includes('kuaishou.com') || lowUrl.includes('kwai.com')) return 'Kuaishou';
+    if (lowUrl.includes('tiktok.com')) return 'TikTok';
+    if (lowUrl.includes('instagram.com')) return 'Instagram';
+    if (lowUrl.includes('weibo.com') || lowUrl.includes('weibo.cn')) return 'Weibo';
+    if (lowUrl.includes('xiaohongshu.com') || lowUrl.includes('xhslink.com')) return 'Xiaohongshu';
+  }
+  return '';
+}
+
+// -------------------------------------------------------------------------------
 // YT-DLP Integration
+// -------------------------------------------------------------------------------
 const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
 
 async function ensureYtDlp(event) {
@@ -2805,7 +2923,16 @@ function getYtHistory() {
 function saveYtHistory(list) {
   try {
     const filePath = getYtHistoryFilePath();
-    fs.writeFileSync(filePath, JSON.stringify(list, null, 2), 'utf8');
+    const sanitized = (list || []).map(item => {
+      if (!item.extractor && item.info) {
+        item.extractor = item.info.extractor || item.info.extractor_key || '';
+      }
+      if (!item.extractor && item.url) {
+        item.extractor = detectExtractor(null, item.url) || '';
+      }
+      return item;
+    });
+    fs.writeFileSync(filePath, JSON.stringify(sanitized, null, 2), 'utf8');
   } catch (e) {
     console.error('[YT-DLP] Failed to save history:', e);
   }
@@ -2820,7 +2947,18 @@ ipcMain.handle('yt-get-info', async (event, url) => {
     if (event) event.sender.send('yt-progress', { status: 'Parsing video information...', progress: 0 });
     
     return new Promise((resolve) => {
-      const args = ['-J', '--no-playlist', url];
+      const args = [
+        '-J',
+        '--no-playlist',
+        '--user-agent', YT_USER_AGENT,
+        '--no-check-certificates'
+      ];
+      const ffmpegDir = getFFmpegDirectory();
+      if (ffmpegDir) {
+        args.push('--ffmpeg-location', ffmpegDir);
+      }
+      args.push(url);
+
       const child = require('child_process').spawn(ytPath, args);
       const outputChunks = [];
       let errOutput = '';
@@ -2837,12 +2975,23 @@ ipcMain.handle('yt-get-info', async (event, url) => {
             const cleanOutput = output.substring(jsonStart);
             const info = JSON.parse(cleanOutput);
             
+            const extractor = detectExtractor(info, url) || info.extractor_key || info.extractor || '';
+
             // Extract all available video resolutions and audio
             const availableHeights = new Set();
             let maxAudioSize = 0;
             (info.formats || []).forEach(f => {
-              if (f.height && f.vcodec && f.vcodec !== 'none') {
-                availableHeights.add(f.height);
+              let h = f.height;
+              if (!h && f.resolution) {
+                const parts = f.resolution.split('x').map(x => parseInt(x.trim(), 10)).filter(x => !isNaN(x));
+                if (parts.length === 2) h = Math.min(parts[0], parts[1]);
+              }
+              if (!h && f.format_note) {
+                const m = f.format_note.match(/(\d{3,4})p/);
+                if (m) h = parseInt(m[1], 10);
+              }
+              if (h && f.vcodec && f.vcodec !== 'none') {
+                availableHeights.add(h);
               }
               if ((!f.vcodec || f.vcodec === 'none') && f.acodec && f.acodec !== 'none') {
                 const s = f.filesize || f.filesize_approx || 0;
@@ -2864,10 +3013,25 @@ ipcMain.handle('yt-get-info', async (event, url) => {
             };
 
             sortedHeights.forEach(h => {
-              const matchingFmts = (info.formats || []).filter(f => f.height === h && f.vcodec && f.vcodec !== 'none');
+              const matchingFmts = (info.formats || []).filter(f => {
+                let fh = f.height;
+                if (!fh && f.resolution) {
+                  const parts = f.resolution.split('x').map(x => parseInt(x.trim(), 10)).filter(x => !isNaN(x));
+                  if (parts.length === 2) fh = Math.min(parts[0], parts[1]);
+                }
+                if (!fh && f.format_note) {
+                  const m = f.format_note.match(/(\d{3,4})p/);
+                  if (m) fh = parseInt(m[1], 10);
+                }
+                return fh === h && f.vcodec && f.vcodec !== 'none';
+              });
               const bestFmt = matchingFmts.sort((a, b) => (b.filesize || b.filesize_approx || 0) - (a.filesize || a.filesize_approx || 0))[0];
               const videoSize = bestFmt ? (bestFmt.filesize || bestFmt.filesize_approx || 0) : 0;
-              const totalEstimatedSize = videoSize > 0 ? (videoSize + maxAudioSize) : 0;
+              const hasAudio = bestFmt && bestFmt.acodec && bestFmt.acodec !== 'none';
+              const fallbackInfoSize = info.filesize || info.filesize_approx || 0;
+              const totalEstimatedSize = videoSize > 0 
+                ? (hasAudio ? videoSize : (videoSize + maxAudioSize))
+                : fallbackInfoSize;
 
               resolutions.push({
                 id: `video_${h}`,
@@ -2906,6 +3070,18 @@ ipcMain.handle('yt-get-info', async (event, url) => {
                 isRecommended: true,
                 recommended: true
               });
+            } else {
+              resolutions.unshift({
+                id: 'best_quality',
+                height: 1080,
+                label: '⚡ 最佳画质 (自动最佳)',
+                formatSpec: 'bestvideo+bestaudio/best',
+                filesize: info.filesize || info.filesize_approx || 0,
+                ext: 'mp4',
+                type: 'video',
+                isRecommended: true,
+                recommended: true
+              });
             }
 
             resolve({
@@ -2916,6 +3092,7 @@ ipcMain.handle('yt-get-info', async (event, url) => {
               duration: info.duration || 0,
               uploader: info.uploader || info.channel || '',
               webpage_url: info.webpage_url || url,
+              extractor: extractor || info.extractor_key || info.extractor || '',
               resolutions: resolutions.length > 0 ? resolutions : [
                 { id: 'best', height: 1080, label: 'Auto (Best)', formatSpec: 'best', ext: 'mp4', type: 'video' }
               ]
@@ -2936,7 +3113,7 @@ ipcMain.handle('yt-get-info', async (event, url) => {
   }
 });
 
-ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution, title, thumbnail, duration }) => {
+ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution, title, thumbnail, duration, extractor, info }) => {
   try {
     const ytPath = await ensureYtDlp(event);
     const destDir = outputDir || path.join(app.getPath('downloads'), 'ShareCLIP_Video');
@@ -2950,6 +3127,13 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
       '--newline',
       '-o', path.join(destDir, '%(title)s.%(ext)s'),
     ];
+
+    const ffmpegDir = getFFmpegDirectory();
+    if (ffmpegDir) {
+      args.push('--ffmpeg-location', ffmpegDir);
+    }
+    args.push('--user-agent', YT_USER_AGENT);
+    args.push('--no-check-certificates');
 
     if (isAudio) {
       args.push('-x', '--audio-format', 'mp3');
@@ -3053,10 +3237,13 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
             }
           }
 
+          const resolvedExtractor = extractor || (info && (info.extractor_key || info.extractor)) || detectExtractor(info, url) || '';
+
           const completedRecord = {
             id: currentTaskId,
             title: title || path.basename(finalFile || 'Downloaded Video'),
             url,
+            extractor: resolvedExtractor,
             resolution: resolution?.label || '1080p',
             thumbnail: localThumb || thumbnail || '',
             webThumbnail: thumbnail || '',
@@ -4361,59 +4548,6 @@ ipcMain.handle('get-http-signaling-port', () => {
 // ==================== VIDEO ANIMEGAN TRANSFORMATION IPCS ====================
 const VideoAnimeConverter = require('./src/workers/video-anime-converter.cjs');
 let activeAnimeConverter = null;
-
-function resolveFFmpegPaths() {
-  const isWin = process.platform === 'win32';
-  const ffmpegExe = isWin ? 'ffmpeg.exe' : 'ffmpeg';
-  const ffprobeExe = isWin ? 'ffprobe.exe' : 'ffprobe';
-
-  const candidateDirs = [
-    path.join(process.resourcesPath || __dirname, 'bin'),
-    path.join(__dirname, 'bin'),
-    path.join(process.resourcesPath || __dirname),
-    path.join(__dirname),
-    path.join(typeof app !== 'undefined' && app.getAppPath ? app.getAppPath() : __dirname, 'bin')
-  ];
-
-  if (isWin) {
-    if (process.env.LOCALAPPDATA) {
-      candidateDirs.push(
-        path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Links'),
-        path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Packages')
-      );
-    }
-    if (process.env.USERPROFILE) {
-      candidateDirs.push(
-        path.join(process.env.USERPROFILE, 'scoop', 'shims'),
-        path.join(process.env.USERPROFILE, 'scoop', 'apps', 'ffmpeg', 'current', 'bin')
-      );
-    }
-    candidateDirs.push(
-      'C:\\ProgramData\\chocolatey\\bin',
-      'C:\\ffmpeg\\bin',
-      'C:\\Program Files\\ffmpeg\\bin'
-    );
-  }
-
-  let resolvedFfmpeg = null;
-  let resolvedFfprobe = null;
-
-  for (const dir of candidateDirs) {
-    if (!resolvedFfmpeg) {
-      const f = path.join(dir, ffmpegExe);
-      if (fs.existsSync(f)) resolvedFfmpeg = f;
-    }
-    if (!resolvedFfprobe) {
-      const f = path.join(dir, ffprobeExe);
-      if (fs.existsSync(f)) resolvedFfprobe = f;
-    }
-  }
-
-  return {
-    ffmpegPath: resolvedFfmpeg || (process.env.FFMPEG_PATH || 'ffmpeg'),
-    ffprobePath: resolvedFfprobe || (process.env.FFPROBE_PATH || 'ffprobe')
-  };
-}
 
 function resolveAnimeModelPath(style) {
   const filename = `animegan_${style}.onnx`;

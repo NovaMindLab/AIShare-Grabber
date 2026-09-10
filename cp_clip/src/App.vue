@@ -1818,7 +1818,7 @@
                 <input 
                   v-model="ytUrl" 
                   type="text" 
-                  placeholder="在此粘贴视频链接 (支持 YouTube, Bilibili, 抖音, 快手, Twitter/X 等)..." 
+                  placeholder="在此粘贴视频链接 (支持 Bilibili、抖音、快手、YouTube、Twitter/X、小红书等 1000+ 平台)..." 
                   style="flex: 1; background: transparent; border: none; outline: none; color: #f8fafc; font-size: 14px; font-family: inherit;"
                   :disabled="ytParsing"
                   @keyup.enter="parseYtVideo"
@@ -1870,7 +1870,15 @@
                     <h3 style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 0 0 8px 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                       {{ ytVideoInfo.title }}
                     </h3>
-                    <div style="display: flex; gap: 16px; font-size: 12px; color: #94a3b8; margin-bottom: 16px;">
+                    <div style="display: flex; gap: 12px; align-items: center; font-size: 12px; color: #94a3b8; margin-bottom: 16px; flex-wrap: wrap;">
+                      <span 
+                        v-if="getPlatformBadge(ytVideoInfo?.webpage_url || ytUrl)" 
+                        :style="getPlatformBadge(ytVideoInfo?.webpage_url || ytUrl).style"
+                        style="padding: 2px 8px; border-radius: 5px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"
+                      >
+                        <span>{{ getPlatformBadge(ytVideoInfo?.webpage_url || ytUrl).icon }}</span>
+                        <span>{{ getPlatformBadge(ytVideoInfo?.webpage_url || ytUrl).name }}</span>
+                      </span>
                       <span v-if="ytVideoInfo.uploader">👤 {{ ytVideoInfo.uploader }}</span>
                       <span v-if="ytVideoInfo.duration">⏱️ 时长: {{ formatDuration(ytVideoInfo.duration) }}</span>
                     </div>
@@ -2086,6 +2094,14 @@
                     {{ item.title }}
                   </div>
                   <div style="display: flex; gap: 10px; align-items: center; font-size: 12px; color: #94a3b8; flex-wrap: wrap;">
+                    <span 
+                      v-if="getPlatformBadge(item)" 
+                      :style="getPlatformBadge(item).style"
+                      style="padding: 2px 8px; border-radius: 5px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"
+                    >
+                      <span>{{ getPlatformBadge(item).icon }}</span>
+                      <span>{{ getPlatformBadge(item).name }}</span>
+                    </span>
                     <span 
                       style="padding: 2px 8px; border-radius: 5px; font-weight: 700; font-size: 11px;"
                       :style="getResBadgeStyle(item.resolution)"
@@ -2785,6 +2801,19 @@
               {{ currentViewingIndex + 1 }} / {{ currentViewingList.length }}
             </span>
             
+            <!-- Independent Window Play Button for Videos -->
+            <button 
+              v-if="selectedItemType === 'video'"
+              @click="openVideoPlayer(selectedImage); closeDetails()" 
+              title="在独立窗口中播放此视频"
+              style="display: flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 99px; background: rgba(99, 102, 241, 0.16); border: 1px solid rgba(99, 102, 241, 0.35); color: #c7d2fe; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+              onmouseover="this.style.background='rgba(99,102,241,0.32)'; this.style.borderColor='rgba(99,102,241,0.6)'; this.style.color='#fff'; this.style.transform='scale(1.04)';"
+              onmouseout="this.style.background='rgba(99, 102, 241, 0.16)'; this.style.borderColor='rgba(99, 102, 241, 0.35)'; this.style.color='#c7d2fe'; this.style.transform='scale(1)';"
+            >
+              <span>🗗</span>
+              <span>独立窗口播放</span>
+            </button>
+
             <!-- Prominent Lightbox Close Button -->
             <button 
               @click="closeDetails" 
@@ -2857,7 +2886,9 @@
                   :src="selectedImage.src" 
                   controls 
                   autoplay 
-                  style="max-width: 85vw; max-height: 74vh; object-fit: contain; border-radius: 10px; box-shadow: 0 24px 60px rgba(0,0,0,0.75);"
+                  @dblclick="openVideoPlayer(selectedImage)"
+                  title="双击在独立窗口中播放"
+                  style="max-width: 85vw; max-height: 74vh; object-fit: contain; border-radius: 10px; box-shadow: 0 24px 60px rgba(0,0,0,0.75); cursor: pointer;"
                 ></video>
                 
                 <div v-else-if="selectedItemType === 'audio'" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; width: 100%; padding: 40px;">
@@ -5427,14 +5458,15 @@ function stopVideoSync() {
 }
 
 function openVideoPlayer(video) {
-  if (hasApi && window.api?.openVideoWindow && video) {
-    const filePath = video.path || video.fullPath || video.src || '';
-    const title = video.name || video.title || '视频播放';
-    const poster = video.thumbnail || video.poster || '';
+  const v = (video && video.value) ? video.value : video;
+  if (hasApi && window.api?.openVideoWindow && v) {
+    const filePath = v.path || v.fullPath || v.src || '';
+    const title = v.name || v.title || '视频播放';
+    const poster = v.thumbnail || v.poster || '';
     window.api.openVideoWindow({ filePath, title, poster });
     return;
   }
-  activePlayingVideo.value = video;
+  activePlayingVideo.value = v;
 }
 
 function popOutVideoPlayer() {
@@ -6333,11 +6365,17 @@ const formatDuration = (seconds) => {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
+function extractVideoUrl(text) {
+  if (!text) return '';
+  const match = text.match(/https?:\/\/[^\s"'<>]+/i);
+  return match ? match[0] : text.trim();
+}
+
 const pasteFromClipboard = async () => {
   try {
     const text = await navigator.clipboard.readText();
     if (text) {
-      ytUrl.value = text.trim();
+      ytUrl.value = extractVideoUrl(text);
     }
   } catch (e) {
     console.warn('Failed to read clipboard:', e);
@@ -6346,6 +6384,12 @@ const pasteFromClipboard = async () => {
 
 const parseYtVideo = async () => {
   if (!ytUrl.value || ytParsing.value) return;
+
+  const cleanUrl = extractVideoUrl(ytUrl.value);
+  if (cleanUrl !== ytUrl.value) {
+    ytUrl.value = cleanUrl;
+  }
+
   ytParsing.value = true;
   ytParseError.value = '';
   ytProgress.value = { status: '正在探测与分析视频流地址及元数据...', progress: 0 };
@@ -6353,7 +6397,7 @@ const parseYtVideo = async () => {
   ytSelectedResolution.value = null;
 
   try {
-    const res = await window.api.getYtVideoInfo(ytUrl.value.trim());
+    const res = await window.api.getYtVideoInfo(cleanUrl);
     if (res && res.success) {
       ytVideoInfo.value = res;
       // Default to recommended resolution or first resolution
@@ -6428,6 +6472,7 @@ const startYtDownload = async () => {
   const cleanPayload = {
     taskId,
     url: newTask.url,
+    extractor: String(videoInfo.extractor || ''),
     resolution: {
       id: resolution.id,
       label: resolution.label,
@@ -6533,6 +6578,48 @@ const getResBadgeStyle = (res) => {
   if (s.includes('2k') || s.includes('1440') || s.includes('1080')) return 'background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.35);';
   if (s.includes('mp3') || s.includes('audio') || s.includes('音频')) return 'background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35);';
   return 'background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35);';
+};
+
+const getPlatformBadge = (itemOrUrl) => {
+  if (!itemOrUrl) return null;
+  let url = '';
+  let title = '';
+  if (typeof itemOrUrl === 'string') {
+    url = itemOrUrl;
+  } else if (typeof itemOrUrl === 'object') {
+    url = itemOrUrl.url || itemOrUrl.webpage_url || itemOrUrl.sourceUrl || itemOrUrl.webThumbnail || '';
+    title = itemOrUrl.title || itemOrUrl.name || '';
+  }
+  const extractor = (typeof itemOrUrl === 'object' && itemOrUrl?.extractor) ? itemOrUrl.extractor : '';
+  const target = `${url} ${title} ${extractor}`.toLowerCase();
+
+  let badge = null;
+  if (target.includes('bilibili.com') || target.includes('b23.tv') || target.includes('b站') || target.includes('bilibili')) {
+    badge = { name: 'Bilibili', icon: '📺', color: '#fb7299', bg: 'rgba(251, 114, 153, 0.15)', border: 'rgba(251, 114, 153, 0.35)' };
+  } else if (target.includes('youtube.com') || target.includes('youtu.be') || target.includes('油管')) {
+    badge = { name: 'YouTube', icon: '▶️', color: '#f87171', bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.35)' };
+  } else if (target.includes('douyin.com') || target.includes('iesdouyin.com') || target.includes('tiktok.com') || target.includes('抖音')) {
+    badge = { name: '抖音 / TikTok', icon: '🎵', color: '#22d3ee', bg: 'rgba(34, 211, 238, 0.15)', border: 'rgba(34, 211, 238, 0.35)' };
+  } else if (target.includes('kuaishou.com') || target.includes('gifshow.com') || target.includes('chenzhongtech.com') || target.includes('快手')) {
+    badge = { name: '快手', icon: '⚡', color: '#fb923c', bg: 'rgba(249, 115, 22, 0.15)', border: 'rgba(249, 115, 22, 0.35)' };
+  } else if (target.includes('twitter.com') || target.includes('x.com') || target.includes('t.co')) {
+    badge = { name: 'Twitter / X', icon: '𝕏', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', border: 'rgba(56, 189, 248, 0.35)' };
+  } else if (target.includes('xiaohongshu.com') || target.includes('xhslink.com') || target.includes('小红书')) {
+    badge = { name: '小红书', icon: '📕', color: '#fb7185', bg: 'rgba(244, 63, 94, 0.15)', border: 'rgba(244, 63, 94, 0.35)' };
+  } else if (target.includes('weibo.com') || target.includes('weibo.cn') || target.includes('微博')) {
+    badge = { name: '微博', icon: '👁️', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.35)' };
+  } else if (target.includes('instagram.com')) {
+    badge = { name: 'Instagram', icon: '📷', color: '#e879f9', bg: 'rgba(232, 121, 249, 0.15)', border: 'rgba(232, 121, 249, 0.35)' };
+  } else if (target.includes('facebook.com') || target.includes('fb.watch')) {
+    badge = { name: 'Facebook', icon: '🌐', color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)', border: 'rgba(96, 165, 250, 0.35)' };
+  } else if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+    badge = { name: '网络视频', icon: '🌐', color: '#a5b4fc', bg: 'rgba(99, 102, 241, 0.15)', border: 'rgba(99, 102, 241, 0.35)' };
+  }
+  
+  if (badge) {
+    badge.style = `background: ${badge.bg}; color: ${badge.color}; border: 1px solid ${badge.border};`;
+  }
+  return badge;
 };
 
 const formatItemTime = (ts) => {
