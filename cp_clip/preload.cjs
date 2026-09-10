@@ -151,7 +151,10 @@ contextBridge.exposeInMainWorld('api', {
 
   // YT-DLP Downloader
   getYtVideoInfo: (url) => ipcRenderer.invoke('yt-get-info', url),
-  downloadYtVideo: (params) => ipcRenderer.invoke('yt-download', typeof params === 'string' ? { url: params } : params),
+  downloadYtVideo: (params) => {
+    const clean = typeof params === 'string' ? { url: params } : JSON.parse(JSON.stringify(params));
+    return ipcRenderer.invoke('yt-download', clean);
+  },
   cancelYtDownload: (taskId) => ipcRenderer.invoke('yt-cancel-download', taskId),
   getYtHistory: () => ipcRenderer.invoke('yt-get-history'),
   deleteYtHistory: (id, deleteFile) => ipcRenderer.invoke('yt-delete-history', { id, deleteFile }),

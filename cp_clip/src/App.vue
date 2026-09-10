@@ -1982,14 +1982,19 @@
                   <!-- Progress Track -->
                   <div style="width: 100%; height: 7px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
                     <div 
-                      :style="{ width: (task.progress || 0) + '%', height: '100%', background: 'linear-gradient(90deg, #6366f1, #38bdf8)', transition: 'width 0.3s ease' }"
+                      :style="{
+                        width: (task.progress || 0) + '%',
+                        height: '100%',
+                        background: task.error ? '#ef4444' : 'linear-gradient(90deg, #6366f1, #38bdf8)',
+                        transition: 'width 0.3s ease'
+                      }"
                     ></div>
                   </div>
 
                   <!-- Details row (Status, Size, Speed, ETA) -->
                   <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; gap: 8px;">
-                    <span>{{ task.status || '下载中...' }}</span>
-                    <div style="display: flex; gap: 14px;">
+                    <span :style="{ color: task.error ? '#f87171' : 'var(--text-muted)', fontWeight: task.error ? '600' : 'normal' }">{{ task.status || '下载中...' }}</span>
+                    <div v-if="!task.error" style="display: flex; gap: 14px;">
                       <span v-if="task.size">📦 {{ task.size }}</span>
                       <span v-if="task.speed">⚡ {{ task.speed }}</span>
                       <span v-if="task.eta">⏱️ 剩余 {{ task.eta }}</span>
@@ -2003,9 +2008,9 @@
                     class="btn btn-secondary" 
                     style="padding: 6px 14px; font-size: 12px; color: #f87171; border-color: rgba(239, 68, 68, 0.3);"
                     @click="cancelYtTask(task.id)"
-                    title="取消下载"
+                    :title="task.error ? '移除记录' : '取消下载'"
                   >
-                    ✕ 取消
+                    {{ task.error ? '✕ 移除' : '✕ 取消' }}
                   </button>
                 </div>
               </div>
@@ -6324,7 +6329,13 @@ const goForwardWebview = () => { if (ytWebviewRef.value && ytWebviewRef.value.ca
 const reloadWebview = () => { if (ytWebviewRef.value) ytWebviewRef.value.reload(); };
 
 const startYtDownload = async () => {
-  if (!ytUrl.value || !ytVideoInfo.value || !ytSelectedResolution.value) return;
+  if (!ytUrl.value || !ytVideoInfo.value) return;
+
+  // Auto fallback to first resolution if not selected
+  if (!ytSelectedResolution.value && ytVideoInfo.value?.resolutions?.length > 0) {
+    ytSelectedResolution.value = ytVideoInfo.value.resolutions[0];
+  }
+  if (!ytSelectedResolution.value) return;
 
   const taskId = `yt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const resolution = ytSelectedResolution.value;
@@ -6333,40 +6344,61 @@ const startYtDownload = async () => {
   const newTask = {
     id: taskId,
     url: ytUrl.value.trim(),
-    title: videoInfo.title,
-    thumbnail: videoInfo.thumbnail,
-    duration: videoInfo.duration,
-    resolution: resolution.label,
+    title: videoInfo.title || 'Video',
+    thumbnail: videoInfo.thumbnail || '',
+    duration: videoInfo.duration || 0,
+    resolution: resolution.label || '1080p',
     progress: 0,
     status: '正在连接下载节点...',
     size: resolution.filesize > 0 ? formatFileSize(resolution.filesize) : '',
     speed: '',
-    eta: ''
+    eta: '',
+    error: null
   };
 
   ytActiveTasks.value.unshift(newTask);
   // Auto switch to downloading tab to give instant visual feedback
   ytSubTab.value = 'downloading';
 
-  try {
-    const res = await window.api.downloadYtVideo({
-      taskId,
-      url: newTask.url,
-      resolution,
-      title: newTask.title,
-      thumbnail: newTask.thumbnail,
-      duration: newTask.duration
-    });
+  // Sanitize payload to pure POJO to prevent Vue reactive Proxy clone errors across Electron IPC
+  const cleanPayload = {
+    taskId,
+    url: newTask.url,
+    resolution: {
+      id: resolution.id,
+      label: resolution.label,
+      formatSpec: resolution.formatSpec,
+      filesize: resolution.filesize,
+      type: resolution.type,
+      height: resolution.height
+    },
+    title: String(newTask.title || ''),
+    thumbnail: String(newTask.thumbnail || ''),
+    duration: Number(newTask.duration || 0)
+  };
 
-    ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== taskId);
+  try {
+    const res = await window.api.downloadYtVideo(cleanPayload);
+
     if (res && res.success) {
+      ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== taskId);
       await loadYtHistory();
-    } else if (res && !res.success) {
-      console.error('Download error:', res.error);
+    } else {
+      const errMsg = (res && res.error) ? res.error : '下载未能正常完成';
+      console.error('Download error:', errMsg);
+      const task = ytActiveTasks.value.find(t => t.id === taskId);
+      if (task) {
+        task.status = `❌ 下载失败: ${errMsg}`;
+        task.error = errMsg;
+      }
     }
   } catch (err) {
     console.error('Download exception:', err);
-    ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== taskId);
+    const task = ytActiveTasks.value.find(t => t.id === taskId);
+    if (task) {
+      task.status = `❌ 异常: ${err.message || err}`;
+      task.error = err.message || String(err);
+    }
   }
 };
 
