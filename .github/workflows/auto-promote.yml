@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag to promote (e.g. v3.0.17)'
+        description: 'Version tag to promote (e.g. v4.0.0)'
         required: false
         default: ''
 
@@ -29,7 +29,7 @@ jobs:
           elif [ -n "${{ github.event.release.tag_name }}" ]; then
             TAG_VER="${{ github.event.release.tag_name }}"
           else
-            TAG_VER="v3.0.17"
+            TAG_VER="v4.0.0"
           fi
           CLEAN_VER="${TAG_VER#v}"
           echo "TAG=$TAG_VER" >> $GITHUB_OUTPUT

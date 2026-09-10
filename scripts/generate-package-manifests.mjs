@@ -3,7 +3,7 @@ import path from 'path';
 import crypto from 'crypto';
 import https from 'https';
 
-const version = process.argv[2] || '3.0.17';
+const version = process.argv[2] || '4.0.0';
 const cleanVer = version.replace(/^v/, '');
 const repo = 'NovaMindLab/AIShare-Grabber';
 const installerUrl = `https://github.com/${repo}/releases/download/v${cleanVer}/ShareCLIP-Setup-${cleanVer}.exe`;
