@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
+PackageIdentifier: NovaMindLab.ShareCLIP
+PackageVersion: 3.0.17
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: 1.6.0
+---
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+PackageIdentifier: NovaMindLab.ShareCLIP
+PackageVersion: 3.0.17
+PackageLocale: en-US
+Publisher: NovaMindLab
+PublisherUrl: https://github.com/NovaMindLab
+PublisherSupportUrl: https://github.com/NovaMindLab/AIShare-Grabber/issues
+PackageName: ShareCLIP
+PackageUrl: https://novamindlab.github.io/AIShare-Grabber/
+License: MIT
+LicenseUrl: https://github.com/NovaMindLab/AIShare-Grabber/blob/main/LICENSE
+ShortDescription: Private P2P AirDrop Alternative, Local AI Photo Search & 4K Multi-Site Video Downloader
+Description: |
+  ShareCLIP is a 100% private, cross-platform media suite.
+  - High-speed local Wi-Fi / WebRTC P2P sync between Android and PC/Mac (AirDrop Alternative).
+  - 100% On-Device AI Photo Search using Apple MobileCLIP, facial recognition & geolocation map.
+  - Universal 4K Multi-Site Video Downloader supporting YouTube, Bilibili, Douyin, TikTok, Twitter/X with detached HTML5 player window.
+  - Zero cloud reliance, zero subscriptions, complete data sovereignty.
+Moniker: shareclip
+Tags:
+  - airdrop
+  - p2p
+  - photo-sync
+  - ai-gallery
+  - video-downloader
+  - yt-dlp
+  - privacy
+  - webrtc
+ReleaseNotesUrl: https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v3.0.17
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0
+---
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: NovaMindLab.ShareCLIP
+PackageVersion: 3.0.17
+InstallerType: nullsoft
+InstallModes:
+  - interactive
+  - silent
+  - silentWithProgress
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v3.0.17/ShareCLIP-Setup-3.0.17.exe
+    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000 # auto-calculated via scripts/generate-package-manifests.mjs
+    Scope: user
+ManifestType: installer
+ManifestVersion: 1.6.0

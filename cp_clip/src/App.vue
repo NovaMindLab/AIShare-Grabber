@@ -2640,9 +2640,25 @@
                     <span class="info-badge">Vite 8</span>
                     <span class="info-badge">ONNX Runtime Node</span>
                   </div>
-                  <div style="margin-top: 12px; display: flex; gap: 8px;">
+                  <div style="margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap;">
                     <button class="dp-btn dp-open" @click="openLogFolder">
-                      📄 打开本地运行日志目录 (Open Log Folder)
+                      📄 打开本地运行日志 (Open Logs)
+                    </button>
+                    <button 
+                      class="dp-btn" 
+                      style="background: rgba(244, 63, 94, 0.16); border: 1px solid rgba(244, 63, 94, 0.35); color: #fda4af;"
+                      @click="window.open('https://github.com/sponsors/NovaMindLab', '_blank')"
+                      title="Sponsor on GitHub"
+                    >
+                      💖 赞助项目 (Sponsor)
+                    </button>
+                    <button 
+                      class="dp-btn" 
+                      style="background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); color: #f8fafc;"
+                      @click="window.open('https://github.com/NovaMindLab/AIShare-Grabber', '_blank')"
+                      title="Star on GitHub"
+                    >
+                      ⭐ Star on GitHub
                     </button>
                   </div>
                 </div>

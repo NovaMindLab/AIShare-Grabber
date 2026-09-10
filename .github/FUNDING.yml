@@ -1,0 +1,7 @@
+# GitHub Sponsors and Community Funding Configuration
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+github: [NovaMindLab]
+patreon: shareclip
+buy_me_a_coffee: shareclip
+custom: ['https://novamindlab.github.io/AIShare-Grabber/#donate']

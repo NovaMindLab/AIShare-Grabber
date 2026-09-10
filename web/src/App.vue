@@ -44,6 +44,17 @@
             ⭐ <span style="font-weight: 700;">GitHub</span>
           </a>
 
+          <!-- Sponsor Button -->
+          <a 
+            href="https://github.com/sponsors/NovaMindLab" 
+            target="_blank" 
+            class="btn nav-btn"
+            style="background: rgba(244, 63, 94, 0.16); border: 1px solid rgba(244, 63, 94, 0.35); color: #fda4af; font-weight: 700;"
+            title="Sponsor on GitHub"
+          >
+            💖 <span>Sponsor</span>
+          </a>
+
           <!-- Dropdown Language Selector -->
           <div class="lang-select-wrapper">
             <select v-model="currentLocale" class="lang-select">
@@ -1114,6 +1125,8 @@
         <div class="footer-right">
           <a href="https://github.com/NovaMindLab/AIShare-Grabber" target="_blank" class="footer-link">{{ t.footer.repo }}</a>
           <a :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${appVersion}`" target="_blank" class="footer-link">{{ t.footer.release }} ({{ appVersion }})</a>
+          <a href="https://github.com/sponsors/NovaMindLab" target="_blank" class="footer-link" style="color: #fda4af;">💖 GitHub Sponsors</a>
+          <a href="https://www.buymeacoffee.com/shareclip" target="_blank" class="footer-link" style="color: #fde047;">☕ Buy Me a Coffee</a>
           <a href="https://github.com/NovaMindLab/AIShare-Grabber/blob/main/LICENSE" target="_blank" class="footer-link">{{ t.footer.license }}</a>
         </div>
       </div>

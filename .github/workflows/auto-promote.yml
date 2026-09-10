@@ -1,0 +1,85 @@
+name: 📢 Automated Release Promotion & Distribution
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to promote (e.g. v3.0.17)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  generate-promotion-assets:
+    name: 🚀 Generate Promotion Broadcasts & Badges
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Determine Version
+        id: ver
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            TAG_VER="${{ github.event.inputs.version }}"
+          elif [ -n "${{ github.event.release.tag_name }}" ]; then
+            TAG_VER="${{ github.event.release.tag_name }}"
+          else
+            TAG_VER="v3.0.17"
+          fi
+          CLEAN_VER="${TAG_VER#v}"
+          echo "TAG=$TAG_VER" >> $GITHUB_OUTPUT
+          echo "CLEAN=$CLEAN_VER" >> $GITHUB_OUTPUT
+          echo "Promoting version: $TAG_VER ($CLEAN_VER)"
+
+      - name: Generate Multi-Channel Promotion Markdown
+        run: |
+          mkdir -p .github/promotion_output
+          cat << 'EOF' > .github/promotion_output/release_announcement.md
+          # 🚀 ShareCLIP ${{ steps.ver.outputs.TAG }} Released!
+
+          > **The All-in-One Local-First Media Suite**: Private P2P AirDrop Alternative, On-Device AI Photo Search (MobileCLIP) & 4K Multi-Site Video Downloader.
+
+          [![GitHub Stars](https://img.shields.io/github/stars/NovaMindLab/AIShare-Grabber?style=social)](https://github.com/NovaMindLab/AIShare-Grabber)
+          [![Release](https://img.shields.io/github/v/release/NovaMindLab/AIShare-Grabber?color=6366f1)](https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }})
+          [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/NovaMindLab/AIShare-Grabber)
+
+          ### 📦 Instant Downloads
+          * 💻 [Windows 64-bit Installer (.exe)](https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${{ steps.ver.outputs.TAG }}/ShareCLIP-Setup-${{ steps.ver.outputs.CLEAN }}.exe)
+          * 📱 [Android Universal APK (.apk)](https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${{ steps.ver.outputs.TAG }}/ShareCLIP-Android-${{ steps.ver.outputs.CLEAN }}.apk)
+          * 🍎 [macOS Apple Silicon & Intel (.dmg)](https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }})
+          * 🐧 [Linux AppImage & Deb](https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }})
+          * 🌐 [Web Portal & WebShare P2P](https://novamindlab.github.io/AIShare-Grabber/)
+
+          ### 🌟 What's New in ${{ steps.ver.outputs.TAG }}
+          - 🎬 **Independent Electron Video Player Window**: Detached frameless HTML5 player with always-on-top picture-in-picture, smooth Range streaming & keyboard shortcuts.
+          - 🌐 **Multi-Site 4K Video Downloader**: Universal downloader supporting YouTube, Bilibili, Douyin, TikTok, Kuaishou, Twitter/X, Xiaohongshu with anti-bot evasion & automatic FFmpeg DASH audio-video merging.
+          - 🔍 **Share Text Auto-Extractor**: Automatically parses clean video URLs from complex social media share captions.
+          - 🔒 **100% On-Device Privacy**: No accounts, zero cloud subscriptions, end-to-end local Wi-Fi / WebRTC P2P sync.
+
+          💬 **Join our Community & Star on GitHub**: https://github.com/NovaMindLab/AIShare-Grabber
+          EOF
+
+      - name: Broadcast to Discord Webhook (if configured)
+        if: env.DISCORD_WEBHOOK != ''
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{\"content\":\"📢 **ShareCLIP ${{ steps.ver.outputs.TAG }} Released!**\n\nPrivate P2P AirDrop Alternative + Local AI Photo Search + 4K Multi-Site Video Downloader!\n\n👉 Download now: https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }}\n🌟 Star on GitHub: https://github.com/NovaMindLab/AIShare-Grabber\"}" \
+               $DISCORD_WEBHOOK || true
+
+      - name: Broadcast to Telegram Channel (if configured)
+        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          TEXT="🚀 *ShareCLIP ${{ steps.ver.outputs.TAG }} Released!*%0A%0AThe All-in-One Local-First Media Suite (AirDrop Alternative + Local AI + 4K Downloader)%0A%0A📦 [Download Release](https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }})%0A⭐ [Star on GitHub](https://github.com/NovaMindLab/AIShare-Grabber)"
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+               -d "chat_id=${TELEGRAM_CHAT_ID}&text=${TEXT}&parse_mode=Markdown" || true

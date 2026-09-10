@@ -374,6 +374,40 @@
           <div v-if="liveLogs.length === 0" class="log-empty">暂无运行日志...</div>
         </div>
       </section>
+
+      <!-- Section F: Viral Growth & Attribution Banner (Product-Led Growth) -->
+      <footer class="viral-growth-bar glass-panel">
+        <div class="viral-content">
+          <div class="viral-badge">
+            <span class="pulse-dot"></span>
+            <span>⚡ 100% 本地 P2P 直连 · 零云端隐私泄露</span>
+          </div>
+          <div class="viral-title">
+            由 <strong>ShareCLIP</strong> 开源跨平台媒体套件强力驱动
+          </div>
+          <div class="viral-desc">
+            无需数据线 · 40MB/s 局域网极速直连 · MobileCLIP 离线 AI 语义搜索 · 4K 多站点视频极速下载
+          </div>
+        </div>
+        <div class="viral-actions">
+          <a 
+            href="https://novamindlab.github.io/AIShare-Grabber/" 
+            target="_blank" 
+            class="btn-viral-download"
+            title="免费下载 PC / Mac / Android 客户端"
+          >
+            <span>🚀 免费下载全平台客户端</span>
+          </a>
+          <a 
+            href="https://github.com/NovaMindLab/AIShare-Grabber" 
+            target="_blank" 
+            class="btn-viral-star"
+            title="在 GitHub 给我们一个 Star ⭐"
+          >
+            <span>⭐ Star on GitHub</span>
+          </a>
+        </div>
+      </footer>
     </main>
 
     <!-- 3. Official Google Photos 1:1 Full-Screen Immersive Viewer -->
@@ -2411,5 +2445,116 @@ function formatBytes(bytes) {
   }
   .nav-prev { left: 10px; }
   .nav-next { right: 10px; }
+  .viral-growth-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ── Viral Growth & PLG Attribution Banner ───────────────── */
+.viral-growth-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 28px;
+  margin-top: 36px;
+  margin-bottom: 24px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.45) 0%, rgba(15, 23, 42, 0.75) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.viral-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 3px 10px;
+  border-radius: 99px;
+  margin-bottom: 6px;
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+  animation: pulse-glow 1.5s infinite;
+}
+
+.viral-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 4px;
+}
+
+.viral-title strong {
+  background: linear-gradient(90deg, #a855f7, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.viral-desc {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.viral-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-viral-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  transition: all 0.2s ease;
+}
+
+.btn-viral-download:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(99, 102, 241, 0.6);
+  color: #ffffff;
+}
+
+.btn-viral-star {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-viral-star:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  transform: translateY(-2px);
 }
 </style>
