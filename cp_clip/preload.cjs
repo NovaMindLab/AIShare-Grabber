@@ -151,7 +151,12 @@ contextBridge.exposeInMainWorld('api', {
 
   // YT-DLP Downloader
   getYtVideoInfo: (url) => ipcRenderer.invoke('yt-get-info', url),
-  downloadYtVideo: (url, outputDir, formatId) => ipcRenderer.invoke('yt-download', { url, outputDir, formatId }),
+  downloadYtVideo: (params) => ipcRenderer.invoke('yt-download', typeof params === 'string' ? { url: params } : params),
+  cancelYtDownload: (taskId) => ipcRenderer.invoke('yt-cancel-download', taskId),
+  getYtHistory: () => ipcRenderer.invoke('yt-get-history'),
+  deleteYtHistory: (id, deleteFile) => ipcRenderer.invoke('yt-delete-history', { id, deleteFile }),
+  openYtVideoFile: (filePath) => ipcRenderer.invoke('yt-open-file', filePath),
+  openYtVideoFolder: (filePath) => ipcRenderer.invoke('yt-open-folder', filePath),
   onYtProgress: (callback) => {
     ipcRenderer.removeAllListeners('yt-progress');
     ipcRenderer.on('yt-progress', (event, data) => callback(data));

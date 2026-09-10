@@ -1737,126 +1737,382 @@
 
         <!-- 5.1 YT-DLP DOWNLODER TAB -->
         <div v-else-if="currentTab === 'yt-dlp'" style="width: 100%; box-sizing: border-box; text-align: left; display: flex; flex-direction: column; height: 100%;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+          <!-- Header & Multi-Tab Controls -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 18px; flex-wrap: wrap; gap: 16px;">
             <div>
               <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                {{ t.ytDlp?.title || '📺 视频解析与下载 (YT-DLP)' }}
+                {{ t.ytDlp?.title || '📺 网页视频解析与下载 (yt-dlp)' }}
               </h2>
               <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">
-                {{ t.ytDlp?.subtitle || '基于强大的跨平台解析引擎。支持全球数百个主流视频网站的无损解析和一键下载。' }}
+                {{ t.ytDlp?.subtitle || '支持 YouTube, Bilibili, 抖音, 快手, Twitter/X 等全球 1000+ 视频平台的无水印高清解析与下载。' }}
               </p>
             </div>
             
-            <div style="display: flex; background: rgba(255,255,255,0.05); padding: 4px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
-              <div 
-                @click="ytMode = 'link'" 
-                style="padding: 6px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s;"
-                :style="{ background: ytMode === 'link' ? 'var(--primary)' : 'transparent', color: ytMode === 'link' ? '#fff' : 'var(--text-secondary)' }"
+            <!-- Three Primary Tabs: Parse / Downloading / Completed -->
+            <div style="display: flex; background: rgba(255,255,255,0.06); padding: 4px; border-radius: 10px; border: 1px solid var(--border-color); gap: 4px;">
+              <button 
+                @click="ytSubTab = 'parse'" 
+                style="padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 7px; border: none; transition: all 0.2s; display: flex; align-items: center; gap: 6px;"
+                :style="{ background: ytSubTab === 'parse' ? 'var(--primary)' : 'transparent', color: ytSubTab === 'parse' ? '#fff' : 'var(--text-secondary)' }"
               >
-                {{ t.ytDlp?.linkMode || '🔗 粘贴链接解析' }}
-              </div>
-              <div 
-                @click="ytMode = 'browser'" 
-                style="padding: 6px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s;"
-                :style="{ background: ytMode === 'browser' ? 'var(--primary)' : 'transparent', color: ytMode === 'browser' ? '#fff' : 'var(--text-secondary)' }"
+                <span>{{ t.ytDlp?.tabParse || '🔗 视频解析' }}</span>
+              </button>
+
+              <button 
+                @click="ytSubTab = 'downloading'" 
+                style="padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 7px; border: none; transition: all 0.2s; display: flex; align-items: center; gap: 6px;"
+                :style="{ background: ytSubTab === 'downloading' ? 'var(--primary)' : 'transparent', color: ytSubTab === 'downloading' ? '#fff' : 'var(--text-secondary)' }"
               >
-                {{ t.ytDlp?.browserMode || '🌐 内嵌浏览器嗅探' }}
-              </div>
+                <span>{{ t.ytDlp?.tabDownloading || '⏳ 正在下载' }}</span>
+                <span v-if="ytActiveTasks.length > 0" style="background: #ef4444; color: #fff; font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 700;">{{ ytActiveTasks.length }}</span>
+              </button>
+
+              <button 
+                @click="ytSubTab = 'completed'" 
+                style="padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 7px; border: none; transition: all 0.2s; display: flex; align-items: center; gap: 6px;"
+                :style="{ background: ytSubTab === 'completed' ? 'var(--primary)' : 'transparent', color: ytSubTab === 'completed' ? '#fff' : 'var(--text-secondary)' }"
+              >
+                <span>{{ t.ytDlp?.tabCompleted || '✅ 已完成' }}</span>
+                <span v-if="ytHistory.length > 0" style="background: rgba(255,255,255,0.2); color: #fff; font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 600;">{{ ytHistory.length }}</span>
+              </button>
             </div>
           </div>
 
-          <!-- Link Download Mode -->
-          <div v-if="ytMode === 'link'" class="glass-panel" style="padding: 24px; margin-bottom: 24px;">
-            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-              <input 
-                v-model="ytUrl" 
-                type="text" 
-                :placeholder="t.ytDlp?.urlPlaceholder || '在此粘贴视频链接 (例如: https://www.youtube.com/watch?v=...)'" 
-                style="flex: 1; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px 16px; border-radius: var(--border-radius-sm); outline: none; font-size: 14px; transition: all 0.3s;"
-                :disabled="ytDownloading"
-                @keyup.enter="parseYtVideo"
-              />
-              <button 
-                class="btn btn-primary" 
-                style="padding: 12px 24px; font-size: 14px; white-space: nowrap; font-weight: 600;"
-                @click="parseYtVideo"
-                :disabled="ytDownloading || !ytUrl"
-              >
-                {{ t.ytDlp?.parseBtn || '⚡ 快速解析' }}
+          <!-- TAB 1: PARSE & DOWNLOAD -->
+          <div v-if="ytSubTab === 'parse'" style="display: flex; flex-direction: column; flex: 1;">
+            <!-- Sub Mode Toggle (Link Mode vs Embedded Browser Mode) -->
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 14px;">
+              <div style="display: flex; background: rgba(0,0,0,0.25); padding: 3px; border-radius: 8px; border: 1px solid var(--border-color); gap: 4px;">
+                <button 
+                  @click="ytMode = 'link'" 
+                  style="padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; border: none; transition: all 0.2s;"
+                  :style="{ background: ytMode === 'link' ? 'var(--primary)' : 'transparent', color: ytMode === 'link' ? '#fff' : 'var(--text-secondary)' }"
+                >
+                  {{ t.ytDlp?.linkMode || '🔗 粘贴链接解析' }}
+                </button>
+                <button 
+                  @click="ytMode = 'browser'" 
+                  style="padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; border: none; transition: all 0.2s;"
+                  :style="{ background: ytMode === 'browser' ? 'var(--primary)' : 'transparent', color: ytMode === 'browser' ? '#fff' : 'var(--text-secondary)' }"
+                >
+                  {{ t.ytDlp?.browserMode || '🌐 内嵌浏览器嗅探' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Link Mode Content -->
+            <div v-if="ytMode === 'link'" class="glass-panel" style="padding: 24px; margin-bottom: 24px;">
+              <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                <input 
+                  v-model="ytUrl" 
+                  type="text" 
+                  :placeholder="t.ytDlp?.urlPlaceholder || '在此粘贴视频链接 (例如: https://www.youtube.com/watch?v=...)'" 
+                  style="flex: 1; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); color: var(--text-primary); padding: 13px 18px; border-radius: var(--border-radius-sm); outline: none; font-size: 14px; transition: all 0.3s;"
+                  :disabled="ytParsing"
+                  @keyup.enter="parseYtVideo"
+                />
+                <button 
+                  class="btn btn-secondary" 
+                  style="padding: 12px 18px; font-size: 13px; white-space: nowrap; font-weight: 600;"
+                  @click="pasteFromClipboard"
+                  title="从剪贴板粘贴"
+                >
+                  📋 粘贴
+                </button>
+                <button 
+                  class="btn btn-primary" 
+                  style="padding: 12px 26px; font-size: 14px; white-space: nowrap; font-weight: 600;"
+                  @click="parseYtVideo"
+                  :disabled="ytParsing || !ytUrl"
+                >
+                  {{ ytParsing ? '⏳ 正在解析...' : (t.ytDlp?.parseBtn || '⚡ 快速解析') }}
+                </button>
+              </div>
+
+              <!-- Parsing Status Feedback -->
+              <div v-if="ytProgress && ytParsing" style="background: rgba(0,0,0,0.3); border-radius: var(--border-radius-sm); padding: 14px 18px; margin-bottom: 18px; display: flex; align-items: center; gap: 12px;">
+                <span class="spinner" style="width: 18px; height: 18px; border: 2px solid var(--primary); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+                <span style="color: var(--text-primary); font-size: 13px; font-weight: 500;">{{ ytProgress.status }}</span>
+              </div>
+
+              <div v-if="ytParseError" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 12px 16px; border-radius: var(--border-radius-sm); font-size: 13px; margin-bottom: 18px;">
+                ⚠️ {{ ytParseError }}
+              </div>
+
+              <!-- Video Info Card with Cover & Resolution Selector -->
+              <div v-if="ytVideoInfo" style="background: rgba(15, 23, 42, 0.6); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; display: flex; gap: 24px; flex-wrap: wrap;">
+                <!-- Left: Video Cover Thumbnail Poster -->
+                <div style="position: relative; width: 260px; height: 146px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #000; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
+                  <img v-if="ytVideoInfo.thumbnail" :src="ytVideoInfo.thumbnail" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <div v-if="ytVideoInfo.duration" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600;">
+                    {{ formatDuration(ytVideoInfo.duration) }}
+                  </div>
+                </div>
+
+                <!-- Right: Metadata & Resolution Options -->
+                <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                      {{ ytVideoInfo.title }}
+                    </h3>
+                    <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+                      <span v-if="ytVideoInfo.uploader">👤 {{ ytVideoInfo.uploader }}</span>
+                      <span v-if="ytVideoInfo.duration">⏱️ 时长: {{ formatDuration(ytVideoInfo.duration) }}</span>
+                    </div>
+
+                    <!-- Resolution Pill Selection Grid -->
+                    <div style="margin-bottom: 16px;">
+                      <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; display: flex; justify-content: space-between;">
+                        <span>🎯 {{ t.ytDlp?.selectResolution || '选择清晰度 / 下载规格' }}:</span>
+                        <span style="color: var(--primary); font-weight: 500;">{{ ytSelectedResolution?.label }}</span>
+                      </div>
+
+                      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <button 
+                          v-for="res in ytVideoInfo.resolutions" 
+                          :key="res.id"
+                          type="button"
+                          @click="ytSelectedResolution = res"
+                          style="padding: 7px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; border: 1px solid;"
+                          :style="{
+                            background: ytSelectedResolution?.id === res.id ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                            borderColor: ytSelectedResolution?.id === res.id ? 'var(--primary)' : 'rgba(255, 255, 255, 0.1)',
+                            color: ytSelectedResolution?.id === res.id ? '#fff' : 'var(--text-secondary)'
+                          }"
+                        >
+                          <span>{{ res.label }}</span>
+                          <span v-if="res.filesize > 0" style="font-size: 10px; opacity: 0.75; font-weight: normal;">
+                            ({{ formatFileSize(res.filesize) }})
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Download Button Bar -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                    <span style="font-size: 12px; color: var(--text-muted);">
+                      🖼️ 下载将自动内嵌高清海报封面至 MP4 视频
+                    </span>
+                    <button 
+                      class="btn btn-primary" 
+                      style="padding: 10px 24px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;"
+                      @click="startYtDownload"
+                    >
+                      <span>🚀 开始极速下载</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Browser Download Mode (Webview) -->
+            <div v-if="ytMode === 'browser'" class="glass-panel" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 0; min-height: 500px;">
+              <div style="display: flex; gap: 12px; padding: 12px 16px; background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--border-color); align-items: center;">
+                <button class="btn btn-secondary" style="padding: 6px 12px;" @click="goBackWebview">←</button>
+                <button class="btn btn-secondary" style="padding: 6px 12px;" @click="goForwardWebview">→</button>
+                <button class="btn btn-secondary" style="padding: 6px 12px;" @click="reloadWebview">↻</button>
+                <div style="flex: 1; padding: 6px 12px; background: rgba(255,255,255,0.05); border-radius: 4px; font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  YouTube Mobile (内嵌嗅探浏览器)
+                </div>
+                <button class="btn btn-primary" style="padding: 6px 18px; font-weight: 600;" @click="parseCurrentWebview">
+                  ✨ {{ t.ytDlp?.parseBtn || '解析当前页视频' }}
+                </button>
+              </div>
+              <webview 
+                ref="ytWebviewRef" 
+                src="https://m.youtube.com" 
+                style="flex: 1; width: 100%; height: 100%; border: none;"
+                useragent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+              ></webview>
+            </div>
+          </div>
+
+          <!-- TAB 2: DOWNLOADING TASKS LIST -->
+          <div v-else-if="ytSubTab === 'downloading'" class="glass-panel" style="padding: 24px; flex: 1; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0;">
+                正在下载中的任务 ({{ ytActiveTasks.length }})
+              </h3>
+              <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" @click="window.api.openDownloadFolder()">
+                📁 {{ t.ytDlp?.openFolder || '打开下载目录' }}
               </button>
             </div>
 
-            <!-- Video Info & Download Options -->
-            <div v-if="ytVideoInfo" style="display: flex; gap: 16px; background: rgba(0,0,0,0.2); padding: 16px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); margin-bottom: 16px;">
-              <img v-if="ytVideoInfo.thumbnail" :src="ytVideoInfo.thumbnail" style="width: 160px; height: 90px; object-fit: cover; border-radius: 4px;" />
-              <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                  <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                    {{ ytVideoInfo.title }}
+            <!-- Empty State -->
+            <div v-if="ytActiveTasks.length === 0" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--text-muted); text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+              <div style="font-size: 15px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">
+                {{ t.ytDlp?.emptyDownloading || '暂无正在下载的任务' }}
+              </div>
+              <p style="font-size: 13px; max-width: 400px; margin: 0 0 20px 0;">
+                点击上方【🔗 视频解析】标签，粘贴任何视频链接并选择清晰度，即可在此实时监控下载！
+              </p>
+              <button class="btn btn-primary" style="padding: 8px 20px; font-size: 13px;" @click="ytSubTab = 'parse'">
+                前往添加下载任务
+              </button>
+            </div>
+
+            <!-- Task List -->
+            <div v-else style="display: flex; flex-direction: column; gap: 14px; overflow-y: auto;">
+              <div 
+                v-for="task in ytActiveTasks" 
+                :key="task.id"
+                style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; display: flex; gap: 18px; align-items: center;"
+              >
+                <!-- Thumbnail -->
+                <div style="position: relative; width: 140px; height: 78px; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: #000;">
+                  <img v-if="task.thumbnail" :src="task.thumbnail" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <div style="position: absolute; top: 4px; left: 4px; background: rgba(99, 102, 241, 0.9); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;">
+                    {{ task.resolution }}
                   </div>
-                  <div style="font-size: 12px; color: var(--text-muted);">时长: {{ Math.floor(ytVideoInfo.duration / 60) }}:{{ String(ytVideoInfo.duration % 60).padStart(2, '0') }}</div>
                 </div>
-                
-                <div style="display: flex; gap: 12px; align-items: center; margin-top: 12px;">
-                  <select v-model="ytSelectedFormat" style="background: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px; outline: none; font-size: 13px; max-width: 250px;">
-                    <option v-for="fmt in ytVideoInfo.formats" :key="fmt.format_id" :value="fmt.format_id">
-                      {{ fmt.resolution }} ({{ fmt.ext }}) - {{ fmt.note || '有声' }} - {{ fmt.filesize ? (fmt.filesize / 1024 / 1024).toFixed(1) + 'MB' : '未知大小' }}
-                    </option>
-                  </select>
-                  <button class="btn btn-primary" style="padding: 6px 16px; font-size: 13px;" @click="startYtDownload" :disabled="ytDownloading">
-                    {{ ytDownloading ? '下载中...' : (t.ytDlp?.downloadBtn || '🚀 开始极速下载') }}
+
+                <!-- Info & Progress Bar -->
+                <div style="flex: 1; min-width: 0;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%;">
+                      {{ task.title }}
+                    </div>
+                    <span style="font-size: 13px; font-weight: 700; color: var(--primary);">
+                      {{ (task.progress || 0).toFixed(1) }}%
+                    </span>
+                  </div>
+
+                  <!-- Progress Track -->
+                  <div style="width: 100%; height: 7px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+                    <div 
+                      :style="{ width: (task.progress || 0) + '%', height: '100%', background: 'linear-gradient(90deg, #6366f1, #38bdf8)', transition: 'width 0.3s ease' }"
+                    ></div>
+                  </div>
+
+                  <!-- Details row (Status, Size, Speed, ETA) -->
+                  <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; gap: 8px;">
+                    <span>{{ task.status || '下载中...' }}</span>
+                    <div style="display: flex; gap: 14px;">
+                      <span v-if="task.size">📦 {{ task.size }}</span>
+                      <span v-if="task.speed">⚡ {{ task.speed }}</span>
+                      <span v-if="task.eta">⏱️ 剩余 {{ task.eta }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action: Cancel Button -->
+                <div>
+                  <button 
+                    class="btn btn-secondary" 
+                    style="padding: 6px 14px; font-size: 12px; color: #f87171; border-color: rgba(239, 68, 68, 0.3);"
+                    @click="cancelYtTask(task.id)"
+                    title="取消下载"
+                  >
+                    ✕ 取消
                   </button>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div v-if="ytProgress" style="background: rgba(0,0,0,0.3); border-radius: var(--border-radius-sm); padding: 16px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
-                <span style="color: var(--text-primary); font-weight: 500;">{{ ytProgress.status }}</span>
-                <span style="color: var(--primary);" v-if="ytProgress.progress > 0">{{ ytProgress.progress.toFixed(1) }}%</span>
+          <!-- TAB 3: COMPLETED DOWNLOADS LIST -->
+          <div v-else-if="ytSubTab === 'completed'" class="glass-panel" style="padding: 24px; flex: 1; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+              <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0;">
+                已完成视频列表 ({{ ytHistory.length }})
+              </h3>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" @click="window.api.openDownloadFolder()">
+                  📁 打开下载文件夹
+                </button>
+                <button v-if="ytHistory.length > 0" class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" @click="clearAllYtHistory">
+                  🧹 清空记录
+                </button>
               </div>
-              
-              <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 8px;">
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="ytHistory.length === 0" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--text-muted); text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
+              <div style="font-size: 15px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">
+                {{ t.ytDlp?.emptyCompleted || '暂无已完成的下载记录' }}
+              </div>
+              <p style="font-size: 13px; max-width: 400px; margin: 0 0 20px 0;">
+                下载完成后的视频会在此处生成归档海报，可一键调用系统播放器播放或查看对应文件夹。
+              </p>
+              <button class="btn btn-primary" style="padding: 8px 20px; font-size: 13px;" @click="ytSubTab = 'parse'">
+                前往下载视频
+              </button>
+            </div>
+
+            <!-- Completed Grid / List -->
+            <div v-else style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto;">
+              <div 
+                v-for="item in ytHistory" 
+                :key="item.id"
+                style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px 18px; display: flex; gap: 18px; align-items: center; transition: all 0.2s;"
+              >
+                <!-- Cover Image Poster with Play Overlay -->
                 <div 
-                  :style="{ width: (ytProgress.progress || 0) + '%', height: '100%', background: 'var(--primary)', transition: 'width 0.3s ease' }"
-                ></div>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
-                <span>{{ ytProgress.size ? 'Size: ' + ytProgress.size : '' }}</span>
-                <div style="display: flex; gap: 16px;">
-                  <span>{{ ytProgress.speed ? 'Speed: ' + ytProgress.speed : '' }}</span>
-                  <span>{{ ytProgress.eta ? 'ETA: ' + ytProgress.eta : '' }}</span>
+                  @click="openYtFile(item.filePath)"
+                  style="position: relative; width: 130px; height: 74px; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: #000; cursor: pointer;"
+                  title="点击播放"
+                >
+                  <img v-if="item.thumbnail" :src="item.thumbnail.startsWith('http') ? item.thumbnail : ('file://' + item.thumbnail.replace(/\\/g, '/'))" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
+                    <span style="font-size: 24px; color: #fff;">▶️</span>
+                  </div>
+                  <div v-if="item.duration" style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); color: #fff; font-size: 10px; padding: 1px 4px; border-radius: 3px;">
+                    {{ formatDuration(item.duration) }}
+                  </div>
+                </div>
+
+                <!-- Video Title & Meta -->
+                <div style="flex: 1; min-width: 0;">
+                  <div 
+                    @click="openYtFile(item.filePath)"
+                    style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;"
+                    :title="item.title"
+                  >
+                    {{ item.title }}
+                  </div>
+                  <div style="display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--text-muted); flex-wrap: wrap;">
+                    <span style="background: rgba(99, 102, 241, 0.2); color: #818cf8; padding: 2px 7px; border-radius: 4px; font-weight: 600;">
+                      {{ item.resolution }}
+                    </span>
+                    <span v-if="item.fileSize > 0">💾 {{ formatFileSize(item.fileSize) }}</span>
+                    <span>🕒 {{ new Date(item.completedAt).toLocaleString() }}</span>
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.7;">
+                    📂 {{ item.filePath }}
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                  <button 
+                    class="btn btn-primary" 
+                    style="padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 4px;"
+                    @click="openYtFile(item.filePath)"
+                  >
+                    <span>▶️ 播放</span>
+                  </button>
+                  <button 
+                    class="btn btn-secondary" 
+                    style="padding: 6px 12px; font-size: 12px;"
+                    @click="openYtFolder(item.filePath)"
+                    title="在文件夹中显示"
+                  >
+                    📁 目录
+                  </button>
+                  <button 
+                    class="btn btn-secondary" 
+                    style="padding: 6px 10px; font-size: 12px; color: #f87171;"
+                    @click="deleteYtHistoryItem(item.id)"
+                    title="删除记录"
+                  >
+                    🗑️
+                  </button>
                 </div>
               </div>
             </div>
-            
-            <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
-              <button class="btn btn-secondary" @click="window.api.openDownloadFolder()">
-                📁 {{ t.settings?.downloadPathOpen || '打开系统下载目录' }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Browser Download Mode -->
-          <div v-if="ytMode === 'browser'" class="glass-panel" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 0; min-height: 400px;">
-            <div style="display: flex; gap: 12px; padding: 12px 16px; background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--border-color); align-items: center;">
-              <button class="btn btn-secondary" style="padding: 6px 12px;" @click="goBackWebview">←</button>
-              <button class="btn btn-secondary" style="padding: 6px 12px;" @click="goForwardWebview">→</button>
-              <button class="btn btn-secondary" style="padding: 6px 12px;" @click="reloadWebview">↻</button>
-              <div style="flex: 1; padding: 6px 12px; background: rgba(255,255,255,0.05); border-radius: 4px; font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                YouTube Mobile (内嵌)
-              </div>
-              <button class="btn btn-primary" style="padding: 6px 16px; font-weight: 600;" @click="parseCurrentWebview">
-                ✨ {{ t.ytDlp?.parseBtn || '解析当前页视频' }}
-              </button>
-            </div>
-            <webview 
-              ref="ytWebviewRef" 
-              src="https://m.youtube.com" 
-              style="flex: 1; width: 100%; height: 100%; border: none;"
-              useragent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
-            ></webview>
           </div>
         </div>
 
@@ -3077,12 +3333,17 @@ watch(currentTab, (newTab) => {
 });
 
 // YT-DLP State
+const ytSubTab = ref('parse'); // 'parse' | 'downloading' | 'completed'
 const ytUrl = ref('');
 const ytMode = ref('link'); // 'link' | 'browser'
+const ytParsing = ref(false);
+const ytParseError = ref('');
 const ytVideoInfo = ref(null);
-const ytSelectedFormat = ref('best');
+const ytSelectedResolution = ref(null);
 const ytProgress = ref(null);
 const ytDownloading = ref(false);
+const ytActiveTasks = ref([]);
+const ytHistory = ref([]);
 const ytWebviewRef = ref(null);
 const activeDeviceUuid = ref(null);
 const activeDeviceName = ref('');
@@ -5982,30 +6243,78 @@ function setupDataChannel(channel) {
   };
 }
 
-// YT-DLP Download Handler
+// YT-DLP Download & Task Management Handlers
+const formatFileSize = (bytes) => {
+  if (!bytes || isNaN(bytes) || bytes <= 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+const formatDuration = (seconds) => {
+  if (!seconds || isNaN(seconds) || seconds <= 0) return '00:00';
+  const sec = Math.floor(seconds);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
+
+const pasteFromClipboard = async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text) {
+      ytUrl.value = text.trim();
+    }
+  } catch (e) {
+    console.warn('Failed to read clipboard:', e);
+  }
+};
+
 const parseYtVideo = async () => {
-  if (!ytUrl.value) return;
-  ytDownloading.value = true;
-  ytProgress.value = { status: 'Parsing video information...', progress: 0 };
+  if (!ytUrl.value || ytParsing.value) return;
+  ytParsing.value = true;
+  ytParseError.value = '';
+  ytProgress.value = { status: '正在探测与分析视频流地址及元数据...', progress: 0 };
   ytVideoInfo.value = null;
-  const res = await window.api.getYtVideoInfo(ytUrl.value);
-  ytDownloading.value = false;
-  if (res.success) {
-    ytVideoInfo.value = res;
-    ytSelectedFormat.value = res.formats[0]?.format_id || 'best';
+  ytSelectedResolution.value = null;
+
+  try {
+    const res = await window.api.getYtVideoInfo(ytUrl.value.trim());
+    if (res && res.success) {
+      ytVideoInfo.value = res;
+      // Default to recommended resolution or first resolution
+      if (res.resolutions && res.resolutions.length > 0) {
+        ytSelectedResolution.value = res.resolutions.find(r => r.isRecommended || r.recommended) || res.resolutions[0];
+      }
+      ytProgress.value = null;
+    } else {
+      ytParseError.value = (res && res.error) ? res.error : '解析失败，请检查视频链接或网络连接';
+      ytProgress.value = null;
+    }
+  } catch (err) {
+    ytParseError.value = err.message || '解析请求出现异常';
     ytProgress.value = null;
-  } else {
-    ytProgress.value = { status: 'Parsing Failed: ' + res.error, progress: 0 };
+  } finally {
+    ytParsing.value = false;
   }
 };
 
 const parseCurrentWebview = () => {
   if (ytWebviewRef.value) {
-    const url = ytWebviewRef.value.getURL();
-    if (url) {
-      ytUrl.value = url;
-      ytMode.value = 'link'; // Switch back to link mode to show parse UI
-      parseYtVideo();
+    try {
+      const url = ytWebviewRef.value.getURL();
+      if (url) {
+        ytUrl.value = url;
+        ytMode.value = 'link'; // Switch back to link mode to show parse UI
+        parseYtVideo();
+      }
+    } catch (e) {
+      console.warn('Failed to get webview URL:', e);
     }
   }
 };
@@ -6015,17 +6324,102 @@ const goForwardWebview = () => { if (ytWebviewRef.value && ytWebviewRef.value.ca
 const reloadWebview = () => { if (ytWebviewRef.value) ytWebviewRef.value.reload(); };
 
 const startYtDownload = async () => {
-  if (!ytUrl.value || !ytVideoInfo.value) return;
-  ytDownloading.value = true;
-  ytProgress.value = { status: 'Initializing...', progress: 0 };
-  const res = await window.api.downloadYtVideo(ytUrl.value, '', ytSelectedFormat.value);
-  ytDownloading.value = false;
-  if (res.success) {
-    ytProgress.value = { status: 'Download Complete! Saved to: ' + res.destDir, progress: 100 };
-    setTimeout(() => { ytProgress.value = null; ytVideoInfo.value = null; ytUrl.value = ''; }, 5000);
-  } else {
-    ytProgress.value = { status: 'Failed: ' + res.error, progress: 0 };
+  if (!ytUrl.value || !ytVideoInfo.value || !ytSelectedResolution.value) return;
+
+  const taskId = `yt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const resolution = ytSelectedResolution.value;
+  const videoInfo = ytVideoInfo.value;
+
+  const newTask = {
+    id: taskId,
+    url: ytUrl.value.trim(),
+    title: videoInfo.title,
+    thumbnail: videoInfo.thumbnail,
+    duration: videoInfo.duration,
+    resolution: resolution.label,
+    progress: 0,
+    status: '正在连接下载节点...',
+    size: resolution.filesize > 0 ? formatFileSize(resolution.filesize) : '',
+    speed: '',
+    eta: ''
+  };
+
+  ytActiveTasks.value.unshift(newTask);
+  // Auto switch to downloading tab to give instant visual feedback
+  ytSubTab.value = 'downloading';
+
+  try {
+    const res = await window.api.downloadYtVideo({
+      taskId,
+      url: newTask.url,
+      resolution,
+      title: newTask.title,
+      thumbnail: newTask.thumbnail,
+      duration: newTask.duration
+    });
+
+    ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== taskId);
+    if (res && res.success) {
+      await loadYtHistory();
+    } else if (res && !res.success) {
+      console.error('Download error:', res.error);
+    }
+  } catch (err) {
+    console.error('Download exception:', err);
+    ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== taskId);
   }
+};
+
+const cancelYtTask = async (taskId) => {
+  try {
+    await window.api.cancelYtDownload(taskId);
+  } catch (e) {
+    console.warn('Failed to cancel task:', e);
+  }
+  ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== taskId);
+};
+
+const loadYtHistory = async () => {
+  if (!window.api?.getYtHistory) return;
+  try {
+    const history = await window.api.getYtHistory();
+    if (Array.isArray(history)) {
+      ytHistory.value = history;
+    }
+  } catch (e) {
+    console.warn('Failed to load yt history:', e);
+  }
+};
+
+const deleteYtHistoryItem = async (id) => {
+  if (!window.api?.deleteYtHistory) return;
+  try {
+    const res = await window.api.deleteYtHistory(id, false);
+    if (res && res.success && res.history) {
+      ytHistory.value = res.history;
+    } else {
+      ytHistory.value = ytHistory.value.filter(h => h.id !== id);
+    }
+  } catch (e) {
+    console.warn('Failed to delete yt history:', e);
+  }
+};
+
+const clearAllYtHistory = async () => {
+  for (const item of [...ytHistory.value]) {
+    await deleteYtHistoryItem(item.id);
+  }
+  ytHistory.value = [];
+};
+
+const openYtFile = async (filePath) => {
+  if (!filePath || !window.api?.openYtVideoFile) return;
+  await window.api.openYtVideoFile(filePath);
+};
+
+const openYtFolder = async (filePath) => {
+  if (!window.api?.openYtVideoFolder) return;
+  await window.api.openYtVideoFolder(filePath);
 };
 
 // Register listeners on mount
@@ -6044,9 +6438,27 @@ onMounted(() => {
     // Check for updates in the background on startup
     checkAppUpdates();
 
+    // Load YT-DLP history
+    loadYtHistory();
+
     // YT-DLP progress listener
     window.api.onYtProgress((data) => {
-      ytProgress.value = data;
+      if (data && data.taskId) {
+        const task = ytActiveTasks.value.find(t => t.id === data.taskId);
+        if (task) {
+          if (data.progress !== undefined) task.progress = data.progress;
+          if (data.status) task.status = data.status;
+          if (data.size) task.size = data.size;
+          if (data.speed) task.speed = data.speed;
+          if (data.eta) task.eta = data.eta;
+        }
+        if (data.status === 'Completed' && data.record) {
+          ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== data.taskId);
+          loadYtHistory();
+        }
+      } else {
+        ytProgress.value = data;
+      }
     });
 
     // Decoupled background AI queue progress listener

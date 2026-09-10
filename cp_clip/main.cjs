@@ -2779,12 +2779,41 @@ async function ensureYtDlp(event) {
   return ytDlpPath;
 }
 
+// Persistent Download History
+function getYtHistoryFilePath() {
+  return path.join(app.getPath('userData'), 'yt_download_history.json');
+}
+
+function getYtHistory() {
+  const filePath = getYtHistoryFilePath();
+  if (fs.existsSync(filePath)) {
+    try {
+      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch (e) {
+      console.error('[YT-DLP] Failed to read history:', e);
+    }
+  }
+  return [];
+}
+
+function saveYtHistory(list) {
+  try {
+    const filePath = getYtHistoryFilePath();
+    fs.writeFileSync(filePath, JSON.stringify(list, null, 2), 'utf8');
+  } catch (e) {
+    console.error('[YT-DLP] Failed to save history:', e);
+  }
+}
+
+// Active downloading tasks tracking
+const activeYtDownloads = new Map();
+
 ipcMain.handle('yt-get-info', async (event, url) => {
   try {
     const ytPath = await ensureYtDlp(event);
     if (event) event.sender.send('yt-progress', { status: 'Parsing video information...', progress: 0 });
     
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const args = ['-J', '--no-playlist', url];
       const child = require('child_process').spawn(ytPath, args);
       const outputChunks = [];
@@ -2797,45 +2826,93 @@ ipcMain.handle('yt-get-info', async (event, url) => {
         if (code === 0) {
           try {
             const output = Buffer.concat(outputChunks).toString('utf8');
-            // Find the start of the JSON object, in case of warnings
             const jsonStart = output.indexOf('{');
             if (jsonStart === -1) throw new Error('No JSON object found in output');
             const cleanOutput = output.substring(jsonStart);
-            
             const info = JSON.parse(cleanOutput);
             
-            const validFormats = (info.formats || []).filter(f => {
-              const hasVideo = f.vcodec && f.vcodec !== 'none';
-              const hasAudio = f.acodec && f.acodec !== 'none';
-              if (hasVideo && hasAudio) return true;
-              if (!hasVideo && hasAudio) return true;
-              return false;
-            }).map(f => ({
-              format_id: f.format_id,
-              ext: f.ext,
-              resolution: f.resolution || 'Audio',
-              note: f.format_note || '',
-              vcodec: f.vcodec,
-              acodec: f.acodec,
-              filesize: f.filesize || f.filesize_approx || 0
-            })).sort((a, b) => b.filesize - a.filesize);
-            
-            const uniqueFormats = [];
-            const seenRes = new Set();
-            for (const f of validFormats) {
-              const key = f.resolution === 'Audio' ? 'Audio-' + f.ext : f.resolution;
-              if (!seenRes.has(key)) {
-                seenRes.add(key);
-                uniqueFormats.push(f);
+            // Extract all available video resolutions and audio
+            const availableHeights = new Set();
+            let maxAudioSize = 0;
+            (info.formats || []).forEach(f => {
+              if (f.height && f.vcodec && f.vcodec !== 'none') {
+                availableHeights.add(f.height);
               }
+              if ((!f.vcodec || f.vcodec === 'none') && f.acodec && f.acodec !== 'none') {
+                const s = f.filesize || f.filesize_approx || 0;
+                if (s > maxAudioSize) maxAudioSize = s;
+              }
+            });
+
+            const sortedHeights = Array.from(availableHeights).sort((a, b) => b - a);
+            const resolutions = [];
+
+            const getResLabel = (h) => {
+              if (h >= 2160) return '4K 超高清 (2160p)';
+              if (h >= 1440) return '2K 极清 (1440p)';
+              if (h >= 1080) return '1080p 全高清';
+              if (h >= 720) return '720p 高清';
+              if (h >= 480) return '480p 标清';
+              if (h >= 360) return '360p 流畅';
+              return `${h}p`;
+            };
+
+            sortedHeights.forEach(h => {
+              const matchingFmts = (info.formats || []).filter(f => f.height === h && f.vcodec && f.vcodec !== 'none');
+              const bestFmt = matchingFmts.sort((a, b) => (b.filesize || b.filesize_approx || 0) - (a.filesize || a.filesize_approx || 0))[0];
+              const videoSize = bestFmt ? (bestFmt.filesize || bestFmt.filesize_approx || 0) : 0;
+              const totalEstimatedSize = videoSize > 0 ? (videoSize + maxAudioSize) : 0;
+
+              resolutions.push({
+                id: `video_${h}`,
+                height: h,
+                label: getResLabel(h),
+                formatSpec: `bestvideo[height<=${h}]+bestaudio/best[height<=${h}]/best`,
+                fps: bestFmt?.fps || null,
+                vcodec: bestFmt?.vcodec || '',
+                filesize: totalEstimatedSize,
+                ext: 'mp4',
+                type: 'video'
+              });
+            });
+
+            // Audio-only option
+            resolutions.push({
+              id: 'audio_only',
+              height: 0,
+              label: '🎵 仅提取音频 (MP3 高音质)',
+              formatSpec: 'bestaudio/best',
+              filesize: maxAudioSize,
+              ext: 'mp3',
+              type: 'audio'
+            });
+
+            // Default Best Quality option at top
+            if (sortedHeights.length > 0) {
+              resolutions.unshift({
+                id: 'best_quality',
+                height: sortedHeights[0],
+                label: `⚡ 最佳画质 (${getResLabel(sortedHeights[0])})`,
+                formatSpec: 'bestvideo+bestaudio/best',
+                filesize: resolutions[0]?.filesize || 0,
+                ext: 'mp4',
+                type: 'video',
+                isRecommended: true,
+                recommended: true
+              });
             }
 
             resolve({
               success: true,
-              title: info.title,
-              thumbnail: info.thumbnail,
-              duration: info.duration,
-              formats: uniqueFormats.length > 0 ? uniqueFormats : [{ format_id: 'best', resolution: 'Auto (Best)', note: 'default', ext: 'mp4' }]
+              id: info.id || '',
+              title: info.title || 'Untitled Video',
+              thumbnail: info.thumbnail || '',
+              duration: info.duration || 0,
+              uploader: info.uploader || info.channel || '',
+              webpage_url: info.webpage_url || url,
+              resolutions: resolutions.length > 0 ? resolutions : [
+                { id: 'best', height: 1080, label: 'Auto (Best)', formatSpec: 'best', ext: 'mp4', type: 'video' }
+              ]
             });
           } catch (e) {
             console.error('[YT-DLP PARSE ERR]', e.message);
@@ -2853,44 +2930,81 @@ ipcMain.handle('yt-get-info', async (event, url) => {
   }
 });
 
-ipcMain.handle('yt-download', async (event, { url, outputDir, formatId }) => {
+ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution, title, thumbnail, duration }) => {
   try {
     const ytPath = await ensureYtDlp(event);
     const destDir = outputDir || path.join(app.getPath('downloads'), 'ShareCLIP_Video');
     if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
 
-    return new Promise((resolve, reject) => {
-      const fmt = formatId || 'best';
-      const args = [
-        '-f', fmt,
-        '-o', path.join(destDir, '%(title)s.%(ext)s'),
-        '--no-playlist',
-        url
-      ];
-      
-      console.log(`[YT-DLP] Spawning: ${ytPath} ${args.join(' ')}`);
-      event.sender.send('yt-progress', { status: 'Extracting video info...', progress: 0 });
+    const currentTaskId = taskId || `yt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const isAudio = resolution?.type === 'audio' || resolution?.id === 'audio_only';
+
+    const args = [
+      '--no-playlist',
+      '--newline',
+      '-o', path.join(destDir, '%(title)s.%(ext)s'),
+    ];
+
+    if (isAudio) {
+      args.push('-x', '--audio-format', 'mp3');
+      args.push('-f', 'bestaudio/best');
+    } else {
+      const fmt = resolution?.formatSpec || 'bestvideo+bestaudio/best';
+      args.push('-f', fmt);
+      args.push('--merge-output-format', 'mp4');
+    }
+
+    // Embed and write thumbnail cover
+    args.push('--embed-thumbnail');
+    args.push('--write-thumbnail');
+    args.push('--convert-thumbnails', 'jpg');
+
+    args.push(url);
+
+    console.log(`[YT-DLP] Task ${currentTaskId} Spawning: ${ytPath} ${args.join(' ')}`);
+
+    return new Promise((resolve) => {
+      event.sender.send('yt-progress', {
+        taskId: currentTaskId,
+        status: 'Starting download...',
+        progress: 0
+      });
 
       const child = require('child_process').spawn(ytPath, args);
+      activeYtDownloads.set(currentTaskId, { child, url, title, thumbnail, destDir });
+
+      let detectedFilePath = '';
+      let lastProgress = 0;
 
       child.stdout.on('data', (data) => {
         const text = data.toString();
+        
+        // Detect destination or merged file path
+        const fileMatch = text.match(/(?:Destination:|Merging formats into|Adding thumbnail to)\s+"?([^"\r\n]+)"?/);
+        if (fileMatch && fileMatch[1]) {
+          const p = fileMatch[1].trim();
+          if (p.endsWith('.mp4') || p.endsWith('.mp3') || p.endsWith('.mkv') || p.endsWith('.webm')) {
+            detectedFilePath = p;
+          }
+        }
+
         const match = text.match(/\[download\]\s+([\d\.]+)%\s+of\s+~?([\d\.]+[A-Za-z]+)(?:\s+at\s+([^ ]+))?(?:\s+ETA\s+([^ ]+))?/);
         if (match) {
+          lastProgress = parseFloat(match[1]);
           event.sender.send('yt-progress', {
+            taskId: currentTaskId,
             status: 'Downloading',
-            progress: parseFloat(match[1]),
+            progress: lastProgress,
             size: match[2],
             speed: match[3] || 'N/A',
             eta: match[4] || 'N/A'
           });
-        } else if (text.includes('[ExtractAudio]') || text.includes('[Merger]')) {
-          event.sender.send('yt-progress', { status: 'Merging/Processing...', progress: 100 });
-        } else if (text.includes('[info]') || text.includes('[youtube]')) {
-          const cleanText = text.trim();
-          if (cleanText.length > 5 && cleanText.length < 100) {
-             event.sender.send('yt-progress', { status: cleanText, progress: 0 });
-          }
+        } else if (text.includes('[ExtractAudio]') || text.includes('[Merger]') || text.includes('[EmbedThumbnail]')) {
+          event.sender.send('yt-progress', {
+            taskId: currentTaskId,
+            status: 'Merging & Embedding Cover...',
+            progress: 100
+          });
         }
       });
 
@@ -2899,20 +3013,132 @@ ipcMain.handle('yt-download', async (event, { url, outputDir, formatId }) => {
       });
 
       child.on('close', (code) => {
+        activeYtDownloads.delete(currentTaskId);
         if (code === 0) {
-          resolve({ success: true, destDir });
+          // If detectedFilePath is empty, find newest file in destDir
+          let finalFile = detectedFilePath;
+          if (!finalFile || !fs.existsSync(finalFile)) {
+            try {
+              const files = fs.readdirSync(destDir).map(f => ({
+                name: f,
+                full: path.join(destDir, f),
+                mtime: fs.statSync(path.join(destDir, f)).mtimeMs
+              })).filter(f => f.name.endsWith('.mp4') || f.name.endsWith('.mp3') || f.name.endsWith('.mkv'))
+                .sort((a, b) => b.mtime - a.mtime);
+              if (files.length > 0) finalFile = files[0].full;
+            } catch (e) {}
+          }
+
+          let fileSize = 0;
+          if (finalFile && fs.existsSync(finalFile)) {
+            try { fileSize = fs.statSync(finalFile).size; } catch(e) {}
+          }
+
+          // Also check for local thumbnail file (.jpg)
+          let localThumb = '';
+          if (finalFile) {
+            const baseNoExt = finalFile.substring(0, finalFile.lastIndexOf('.'));
+            const possibleJpg = baseNoExt + '.jpg';
+            if (fs.existsSync(possibleJpg)) localThumb = possibleJpg;
+          }
+
+          const completedRecord = {
+            id: currentTaskId,
+            title: title || path.basename(finalFile || 'Downloaded Video'),
+            url,
+            resolution: resolution?.label || '1080p',
+            thumbnail: localThumb || thumbnail || '',
+            filePath: finalFile || '',
+            fileName: path.basename(finalFile || ''),
+            fileSize,
+            duration: duration || 0,
+            destDir,
+            completedAt: Date.now()
+          };
+
+          // Save to history
+          const history = getYtHistory();
+          history.unshift(completedRecord);
+          if (history.length > 200) history.length = 200;
+          saveYtHistory(history);
+
+          event.sender.send('yt-progress', {
+            taskId: currentTaskId,
+            status: 'Completed',
+            progress: 100,
+            record: completedRecord
+          });
+
+          resolve({ success: true, destDir, record: completedRecord });
         } else {
           resolve({ success: false, error: `yt-dlp exited with code ${code}` });
         }
       });
       
       child.on('error', (err) => {
+        activeYtDownloads.delete(currentTaskId);
         resolve({ success: false, error: err.message });
       });
     });
   } catch (err) {
     return { success: false, error: err.message };
   }
+});
+
+ipcMain.handle('yt-cancel-download', async (event, taskId) => {
+  const task = activeYtDownloads.get(taskId);
+  if (task && task.child) {
+    try {
+      task.child.kill('SIGTERM');
+      setTimeout(() => {
+        try { task.child.kill('SIGKILL'); } catch(e) {}
+      }, 800);
+    } catch (e) {}
+    activeYtDownloads.delete(taskId);
+    return { success: true };
+  }
+  return { success: false, error: 'Task not active' };
+});
+
+ipcMain.handle('yt-get-history', async () => {
+  return getYtHistory();
+});
+
+ipcMain.handle('yt-delete-history', async (event, { id, deleteFile }) => {
+  try {
+    let history = getYtHistory();
+    const item = history.find(h => h.id === id);
+    if (item && deleteFile && item.filePath && fs.existsSync(item.filePath)) {
+      try { fs.unlinkSync(item.filePath); } catch(e) {}
+      const baseNoExt = item.filePath.substring(0, item.filePath.lastIndexOf('.'));
+      const jpg = baseNoExt + '.jpg';
+      if (fs.existsSync(jpg)) { try { fs.unlinkSync(jpg); } catch(e) {} }
+    }
+    history = history.filter(h => h.id !== id);
+    saveYtHistory(history);
+    return { success: true, history };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('yt-open-file', async (event, filePath) => {
+  if (filePath && fs.existsSync(filePath)) {
+    shell.openPath(filePath);
+    return { success: true };
+  }
+  return { success: false, error: 'File not found' };
+});
+
+ipcMain.handle('yt-open-folder', async (event, filePath) => {
+  if (filePath && fs.existsSync(filePath)) {
+    shell.showItemInFolder(filePath);
+    return { success: true };
+  }
+  const defDir = path.join(app.getPath('downloads'), 'ShareCLIP_Video');
+  if (!fs.existsSync(defDir)) fs.mkdirSync(defDir, { recursive: true });
+  shell.openPath(defDir);
+  return { success: true };
 });
 
 // -------------------------------------------------------------------------------
