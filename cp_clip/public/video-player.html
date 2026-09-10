@@ -542,12 +542,13 @@
       }
 
       if (poster) {
-        video.poster = poster.startsWith('http') ? poster : `local:///${poster.replace(/\\/g, '/')}`;
+        const cleanPoster = poster.replace(/\\/g, '/').replace(/^\/+/, '');
+        video.poster = poster.startsWith('http') ? poster : `local:///${encodeURI(cleanPoster)}`;
       }
 
       if (filePath) {
-        const cleanPath = filePath.replace(/\\/g, '/');
-        const videoSrc = filePath.startsWith('http') ? filePath : `local:///${cleanPath}`;
+        const cleanPath = filePath.replace(/\\/g, '/').replace(/^\/+/, '');
+        const videoSrc = filePath.startsWith('http') ? filePath : `local:///${encodeURI(cleanPath)}`;
         video.src = videoSrc;
         video.play().catch(() => {});
         btnPlayPause.textContent = '⏸️';

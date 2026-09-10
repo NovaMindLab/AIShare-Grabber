@@ -3040,12 +3040,17 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
             try { fileSize = fs.statSync(finalFile).size; } catch(e) {}
           }
 
-          // Also check for local thumbnail file (.jpg)
+          // Also check for local thumbnail file (.jpg, .jpeg, .webp, .png)
           let localThumb = '';
           if (finalFile) {
             const baseNoExt = finalFile.substring(0, finalFile.lastIndexOf('.'));
-            const possibleJpg = baseNoExt + '.jpg';
-            if (fs.existsSync(possibleJpg)) localThumb = possibleJpg;
+            for (const ext of ['.jpg', '.jpeg', '.webp', '.png']) {
+              const possibleImg = baseNoExt + ext;
+              if (fs.existsSync(possibleImg)) {
+                localThumb = possibleImg;
+                break;
+              }
+            }
           }
 
           const completedRecord = {
@@ -3054,6 +3059,7 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
             url,
             resolution: resolution?.label || '1080p',
             thumbnail: localThumb || thumbnail || '',
+            webThumbnail: thumbnail || '',
             filePath: finalFile || '',
             fileName: path.basename(finalFile || ''),
             fileSize,

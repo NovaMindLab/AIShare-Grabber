@@ -1746,25 +1746,17 @@
 
         <!-- 5.1 YT-DLP DOWNLODER TAB -->
         <div v-else-if="currentTab === 'yt-dlp'" style="width: 100%; box-sizing: border-box; text-align: left; display: flex; flex-direction: column; height: 100%;">
-          <!-- Header & Multi-Tab Controls -->
-          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 18px; flex-wrap: wrap; gap: 16px;">
-            <div>
-              <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                {{ t.ytDlp?.title || '📺 网页视频解析与下载 (yt-dlp)' }}
-              </h2>
-              <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">
-                {{ t.ytDlp?.subtitle || '支持 YouTube, Bilibili, 抖音, 快手, Twitter/X 等全球 1000+ 视频平台的无水印高清解析与下载。' }}
-              </p>
-            </div>
-            
+          
+          <!-- Modern Top Bar: Segmented Tabs on Left, Context Actions on Right -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); gap: 16px; flex-wrap: wrap;">
             <!-- Three Primary Tabs: Parse / Downloading / Completed -->
-            <div style="display: flex; background: rgba(255,255,255,0.06); padding: 4px; border-radius: 10px; border: 1px solid var(--border-color); gap: 4px;">
+            <div style="display: flex; background: rgba(0, 0, 0, 0.35); padding: 4px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.08); gap: 4px;">
               <button 
                 @click="ytSubTab = 'parse'" 
                 style="padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 7px; border: none; transition: all 0.2s; display: flex; align-items: center; gap: 6px;"
                 :style="{ background: ytSubTab === 'parse' ? 'var(--primary)' : 'transparent', color: ytSubTab === 'parse' ? '#fff' : 'var(--text-secondary)' }"
               >
-                <span>{{ t.ytDlp?.tabParse || '🔗 视频解析' }}</span>
+                <span>🔗 视频解析</span>
               </button>
 
               <button 
@@ -1772,7 +1764,7 @@
                 style="padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 7px; border: none; transition: all 0.2s; display: flex; align-items: center; gap: 6px;"
                 :style="{ background: ytSubTab === 'downloading' ? 'var(--primary)' : 'transparent', color: ytSubTab === 'downloading' ? '#fff' : 'var(--text-secondary)' }"
               >
-                <span>{{ t.ytDlp?.tabDownloading || '⏳ 正在下载' }}</span>
+                <span>⏳ 正在下载</span>
                 <span v-if="ytActiveTasks.length > 0" style="background: #ef4444; color: #fff; font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 700;">{{ ytActiveTasks.length }}</span>
               </button>
 
@@ -1781,99 +1773,113 @@
                 style="padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 7px; border: none; transition: all 0.2s; display: flex; align-items: center; gap: 6px;"
                 :style="{ background: ytSubTab === 'completed' ? 'var(--primary)' : 'transparent', color: ytSubTab === 'completed' ? '#fff' : 'var(--text-secondary)' }"
               >
-                <span>{{ t.ytDlp?.tabCompleted || '✅ 已完成' }}</span>
-                <span v-if="ytHistory.length > 0" style="background: rgba(255,255,255,0.2); color: #fff; font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 600;">{{ ytHistory.length }}</span>
+                <span>✅ 已完成</span>
+                <span v-if="ytHistory.length > 0" style="background: rgba(255, 255, 255, 0.15); color: #e2e8f0; font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 600;">{{ ytHistory.length }}</span>
+              </button>
+            </div>
+
+            <!-- Right Controls depending on Active Tab -->
+            <!-- If Parse Tab: Mode Switcher -->
+            <div v-if="ytSubTab === 'parse'" style="display: flex; background: rgba(0, 0, 0, 0.35); padding: 3px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08); gap: 4px;">
+              <button 
+                @click="ytMode = 'link'" 
+                style="padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; border: none; transition: all 0.2s;"
+                :style="{ background: ytMode === 'link' ? 'rgba(255, 255, 255, 0.12)' : 'transparent', color: ytMode === 'link' ? '#fff' : 'var(--text-secondary)' }"
+              >
+                🔗 链接解析
+              </button>
+              <button 
+                @click="ytMode = 'browser'" 
+                style="padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; border: none; transition: all 0.2s;"
+                :style="{ background: ytMode === 'browser' ? 'rgba(255, 255, 255, 0.12)' : 'transparent', color: ytMode === 'browser' ? '#fff' : 'var(--text-secondary)' }"
+              >
+                🌐 嗅探浏览器
+              </button>
+            </div>
+
+            <!-- If Downloading or Completed Tab: Directory and Manage Actions -->
+            <div v-else style="display: flex; gap: 8px; align-items: center;">
+              <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px;" @click="window.api.openDownloadFolder()">
+                <span>📁 打开下载文件夹</span>
+              </button>
+              <button v-if="ytSubTab === 'completed' && ytHistory.length > 0" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; color: #94a3b8;" @click="clearAllYtHistory" title="清空全部已完成记录">
+                <span>🧹 清空记录</span>
               </button>
             </div>
           </div>
 
           <!-- TAB 1: PARSE & DOWNLOAD -->
           <div v-if="ytSubTab === 'parse'" style="display: flex; flex-direction: column; flex: 1;">
-            <!-- Sub Mode Toggle (Link Mode vs Embedded Browser Mode) -->
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 14px;">
-              <div style="display: flex; background: rgba(0,0,0,0.25); padding: 3px; border-radius: 8px; border: 1px solid var(--border-color); gap: 4px;">
-                <button 
-                  @click="ytMode = 'link'" 
-                  style="padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; border: none; transition: all 0.2s;"
-                  :style="{ background: ytMode === 'link' ? 'var(--primary)' : 'transparent', color: ytMode === 'link' ? '#fff' : 'var(--text-secondary)' }"
-                >
-                  {{ t.ytDlp?.linkMode || '🔗 粘贴链接解析' }}
-                </button>
-                <button 
-                  @click="ytMode = 'browser'" 
-                  style="padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; border: none; transition: all 0.2s;"
-                  :style="{ background: ytMode === 'browser' ? 'var(--primary)' : 'transparent', color: ytMode === 'browser' ? '#fff' : 'var(--text-secondary)' }"
-                >
-                  {{ t.ytDlp?.browserMode || '🌐 内嵌浏览器嗅探' }}
-                </button>
-              </div>
-            </div>
-
             <!-- Link Mode Content -->
-            <div v-if="ytMode === 'link'" class="glass-panel" style="padding: 24px; margin-bottom: 24px;">
-              <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+            <div v-if="ytMode === 'link'" style="display: flex; flex-direction: column; flex: 1;">
+              <!-- Sleek Search/URL Input Box -->
+              <div style="position: relative; display: flex; align-items: center; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 6px 8px 6px 16px; margin-bottom: 20px; transition: all 0.2s; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+                <span style="font-size: 16px; margin-right: 12px; opacity: 0.6;">🔗</span>
                 <input 
                   v-model="ytUrl" 
                   type="text" 
-                  :placeholder="t.ytDlp?.urlPlaceholder || '在此粘贴视频链接 (例如: https://www.youtube.com/watch?v=...)'" 
-                  style="flex: 1; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); color: var(--text-primary); padding: 13px 18px; border-radius: var(--border-radius-sm); outline: none; font-size: 14px; transition: all 0.3s;"
+                  placeholder="在此粘贴视频链接 (支持 YouTube, Bilibili, 抖音, 快手, Twitter/X 等)..." 
+                  style="flex: 1; background: transparent; border: none; outline: none; color: #f8fafc; font-size: 14px; font-family: inherit;"
                   :disabled="ytParsing"
                   @keyup.enter="parseYtVideo"
                 />
-                <button 
-                  class="btn btn-secondary" 
-                  style="padding: 12px 18px; font-size: 13px; white-space: nowrap; font-weight: 600;"
-                  @click="pasteFromClipboard"
-                  title="从剪贴板粘贴"
-                >
-                  📋 粘贴
-                </button>
-                <button 
-                  class="btn btn-primary" 
-                  style="padding: 12px 26px; font-size: 14px; white-space: nowrap; font-weight: 600;"
-                  @click="parseYtVideo"
-                  :disabled="ytParsing || !ytUrl"
-                >
-                  {{ ytParsing ? '⏳ 正在解析...' : (t.ytDlp?.parseBtn || '⚡ 快速解析') }}
-                </button>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <button 
+                    class="btn btn-secondary" 
+                    style="padding: 8px 14px; font-size: 12px; font-weight: 600; border-radius: 8px;"
+                    @click="pasteFromClipboard"
+                    title="从剪贴板粘贴"
+                  >
+                    📋 粘贴
+                  </button>
+                  <button 
+                    class="btn btn-primary" 
+                    style="padding: 9px 22px; font-size: 13px; font-weight: 600; border-radius: 8px; display: flex; align-items: center; gap: 6px;"
+                    @click="parseYtVideo"
+                    :disabled="ytParsing || !ytUrl"
+                  >
+                    <span v-if="ytParsing" class="spinner" style="width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+                    <span>{{ ytParsing ? '正在解析...' : '⚡ 快速解析' }}</span>
+                  </button>
+                </div>
               </div>
 
               <!-- Parsing Status Feedback -->
-              <div v-if="ytProgress && ytParsing" style="background: rgba(0,0,0,0.3); border-radius: var(--border-radius-sm); padding: 14px 18px; margin-bottom: 18px; display: flex; align-items: center; gap: 12px;">
-                <span class="spinner" style="width: 18px; height: 18px; border: 2px solid var(--primary); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
-                <span style="color: var(--text-primary); font-size: 13px; font-weight: 500;">{{ ytProgress.status }}</span>
+              <div v-if="ytProgress && ytParsing" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 10px; padding: 12px 18px; margin-bottom: 18px; display: flex; align-items: center; gap: 12px;">
+                <span class="spinner" style="width: 16px; height: 16px; border: 2px solid var(--primary); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+                <span style="color: #cbd5e1; font-size: 13px; font-weight: 500;">{{ ytProgress.status }}</span>
               </div>
 
-              <div v-if="ytParseError" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 12px 16px; border-radius: var(--border-radius-sm); font-size: 13px; margin-bottom: 18px;">
-                ⚠️ {{ ytParseError }}
+              <div v-if="ytParseError" style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 18px; display: flex; align-items: center; gap: 8px;">
+                <span>⚠️ {{ ytParseError }}</span>
               </div>
 
-              <!-- Video Info Card with Cover & Resolution Selector -->
-              <div v-if="ytVideoInfo" style="background: rgba(15, 23, 42, 0.6); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; display: flex; gap: 24px; flex-wrap: wrap;">
-                <!-- Left: Video Cover Thumbnail Poster -->
-                <div style="position: relative; width: 260px; height: 146px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #000; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
-                  <img v-if="ytVideoInfo.thumbnail" :src="ytVideoInfo.thumbnail" style="width: 100%; height: 100%; object-fit: cover;" />
-                  <div v-if="ytVideoInfo.duration" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600;">
+              <!-- Video Detail & Resolution Selector Card -->
+              <div v-if="ytVideoInfo" style="background: rgba(15, 23, 42, 0.7); padding: 22px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; display: flex; gap: 24px; flex-wrap: wrap; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                <!-- Left: Video Cover Poster -->
+                <div style="position: relative; width: 260px; height: 146px; flex-shrink: 0; border-radius: 10px; overflow: hidden; background: #1e293b; box-shadow: 0 8px 24px rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.08);">
+                  <img v-if="ytVideoInfo.thumbnail" :src="getYtMediaSrc(ytVideoInfo.thumbnail)" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <div v-if="ytVideoInfo.duration" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); color: #fff; font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 600;">
                     {{ formatDuration(ytVideoInfo.duration) }}
                   </div>
                 </div>
 
-                <!-- Right: Metadata & Resolution Options -->
+                <!-- Right: Metadata & Resolution Chips -->
                 <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; justify-content: space-between;">
                   <div>
-                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 0 0 8px 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                       {{ ytVideoInfo.title }}
                     </h3>
-                    <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+                    <div style="display: flex; gap: 16px; font-size: 12px; color: #94a3b8; margin-bottom: 16px;">
                       <span v-if="ytVideoInfo.uploader">👤 {{ ytVideoInfo.uploader }}</span>
                       <span v-if="ytVideoInfo.duration">⏱️ 时长: {{ formatDuration(ytVideoInfo.duration) }}</span>
                     </div>
 
                     <!-- Resolution Pill Selection Grid -->
                     <div style="margin-bottom: 16px;">
-                      <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; display: flex; justify-content: space-between;">
-                        <span>🎯 {{ t.ytDlp?.selectResolution || '选择清晰度 / 下载规格' }}:</span>
-                        <span style="color: var(--primary); font-weight: 500;">{{ ytSelectedResolution?.label }}</span>
+                      <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>🎯 选择清晰度 / 下载规格:</span>
+                        <span style="color: #818cf8; font-weight: 700;">{{ ytSelectedResolution?.label }}</span>
                       </div>
 
                       <div style="display: flex; flex-wrap: wrap; gap: 8px;">
@@ -1882,11 +1888,12 @@
                           :key="res.id"
                           type="button"
                           @click="ytSelectedResolution = res"
-                          style="padding: 7px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; border: 1px solid;"
+                          style="padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; border: 1px solid;"
                           :style="{
-                            background: ytSelectedResolution?.id === res.id ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                            borderColor: ytSelectedResolution?.id === res.id ? 'var(--primary)' : 'rgba(255, 255, 255, 0.1)',
-                            color: ytSelectedResolution?.id === res.id ? '#fff' : 'var(--text-secondary)'
+                            background: ytSelectedResolution?.id === res.id ? 'rgba(99, 102, 241, 0.28)' : 'rgba(255, 255, 255, 0.04)',
+                            borderColor: ytSelectedResolution?.id === res.id ? '#6366f1' : 'rgba(255, 255, 255, 0.08)',
+                            color: ytSelectedResolution?.id === res.id ? '#fff' : 'var(--text-secondary)',
+                            transform: ytSelectedResolution?.id === res.id ? 'scale(1.02)' : 'none'
                           }"
                         >
                           <span>{{ res.label }}</span>
@@ -1899,13 +1906,13 @@
                   </div>
 
                   <!-- Download Button Bar -->
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
-                    <span style="font-size: 12px; color: var(--text-muted);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08);">
+                    <span style="font-size: 12px; color: #94a3b8;">
                       🖼️ 下载将自动内嵌高清海报封面至 MP4 视频
                     </span>
                     <button 
                       class="btn btn-primary" 
-                      style="padding: 10px 24px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;"
+                      style="padding: 10px 26px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border-radius: 8px;"
                       @click="startYtDownload"
                     >
                       <span>🚀 开始极速下载</span>
@@ -1925,7 +1932,7 @@
                   YouTube Mobile (内嵌嗅探浏览器)
                 </div>
                 <button class="btn btn-primary" style="padding: 6px 18px; font-weight: 600;" @click="parseCurrentWebview">
-                  ✨ {{ t.ytDlp?.parseBtn || '解析当前页视频' }}
+                  ✨ 解析当前页视频
                 </button>
               </div>
               <webview 
@@ -1938,26 +1945,17 @@
           </div>
 
           <!-- TAB 2: DOWNLOADING TASKS LIST -->
-          <div v-else-if="ytSubTab === 'downloading'" class="glass-panel" style="padding: 24px; flex: 1; display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-              <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0;">
-                正在下载中的任务 ({{ ytActiveTasks.length }})
-              </h3>
-              <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" @click="window.api.openDownloadFolder()">
-                📁 {{ t.ytDlp?.openFolder || '打开下载目录' }}
-              </button>
-            </div>
-
+          <div v-else-if="ytSubTab === 'downloading'" style="flex: 1; display: flex; flex-direction: column;">
             <!-- Empty State -->
             <div v-if="ytActiveTasks.length === 0" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--text-muted); text-align: center;">
-              <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-              <div style="font-size: 15px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">
-                {{ t.ytDlp?.emptyDownloading || '暂无正在下载的任务' }}
+              <div style="font-size: 44px; margin-bottom: 14px;">⏳</div>
+              <div style="font-size: 15px; font-weight: 600; color: #e2e8f0; margin-bottom: 6px;">
+                暂无正在下载的任务
               </div>
-              <p style="font-size: 13px; max-width: 400px; margin: 0 0 20px 0;">
-                点击上方【🔗 视频解析】标签，粘贴任何视频链接并选择清晰度，即可在此实时监控下载！
+              <p style="font-size: 13px; max-width: 400px; margin: 0 0 20px 0; color: #94a3b8;">
+                点击上方【🔗 视频解析】标签，粘贴任何视频链接并选择清晰度，即可在此实时监控下载进度！
               </p>
-              <button class="btn btn-primary" style="padding: 8px 20px; font-size: 13px;" @click="ytSubTab = 'parse'">
+              <button class="btn btn-primary" style="padding: 8px 22px; font-size: 13px; border-radius: 8px;" @click="ytSubTab = 'parse'">
                 前往添加下载任务
               </button>
             </div>
@@ -1967,12 +1965,12 @@
               <div 
                 v-for="task in ytActiveTasks" 
                 :key="task.id"
-                style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; display: flex; gap: 18px; align-items: center;"
+                style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; display: flex; gap: 18px; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,0.25);"
               >
                 <!-- Thumbnail -->
-                <div style="position: relative; width: 140px; height: 78px; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: #1e293b;">
+                <div style="position: relative; width: 140px; height: 78px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #1e293b; border: 1px solid rgba(255,255,255,0.08);">
                   <img v-if="task.thumbnail" :src="getYtMediaSrc(task.thumbnail)" style="width: 100%; height: 100%; object-fit: cover;" />
-                  <div style="position: absolute; top: 4px; left: 4px; background: rgba(99, 102, 241, 0.9); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;">
+                  <div style="position: absolute; top: 4px; left: 4px; background: rgba(99, 102, 241, 0.9); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px;">
                     {{ task.resolution }}
                   </div>
                 </div>
@@ -1980,7 +1978,7 @@
                 <!-- Info & Progress Bar -->
                 <div style="flex: 1; min-width: 0;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%;">
+                    <div style="font-size: 14px; font-weight: 600; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%;">
                       {{ task.title }}
                     </div>
                     <span style="font-size: 13px; font-weight: 700; color: var(--primary);">
@@ -2015,7 +2013,7 @@
                 <div>
                   <button 
                     class="btn btn-secondary" 
-                    style="padding: 6px 14px; font-size: 12px; color: #f87171; border-color: rgba(239, 68, 68, 0.3);"
+                    style="padding: 7px 14px; font-size: 12px; color: #f87171; border-color: rgba(239, 68, 68, 0.3); border-radius: 8px;"
                     @click="cancelYtTask(task.id)"
                     :title="task.error ? '移除记录' : '取消下载'"
                   >
@@ -2027,47 +2025,35 @@
           </div>
 
           <!-- TAB 3: COMPLETED DOWNLOADS LIST -->
-          <div v-else-if="ytSubTab === 'completed'" class="glass-panel" style="padding: 24px; flex: 1; display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
-              <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0;">
-                已完成视频列表 ({{ ytHistory.length }})
-              </h3>
-              <div style="display: flex; gap: 10px;">
-                <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" @click="window.api.openDownloadFolder()">
-                  📁 打开下载文件夹
-                </button>
-                <button v-if="ytHistory.length > 0" class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" @click="clearAllYtHistory">
-                  🧹 清空记录
-                </button>
-              </div>
-            </div>
-
+          <div v-else-if="ytSubTab === 'completed'" style="flex: 1; display: flex; flex-direction: column;">
             <!-- Empty State -->
             <div v-if="ytHistory.length === 0" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--text-muted); text-align: center;">
-              <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
-              <div style="font-size: 15px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">
-                {{ t.ytDlp?.emptyCompleted || '暂无已完成的下载记录' }}
+              <div style="font-size: 44px; margin-bottom: 14px;">🎬</div>
+              <div style="font-size: 15px; font-weight: 600; color: #e2e8f0; margin-bottom: 6px;">
+                暂无已完成的下载记录
               </div>
-              <p style="font-size: 13px; max-width: 400px; margin: 0 0 20px 0;">
-                下载完成后的视频会在此处生成归档海报，可一键调用系统播放器播放或查看对应文件夹。
+              <p style="font-size: 13px; max-width: 400px; margin: 0 0 20px 0; color: #94a3b8;">
+                下载完成后的视频会在此处生成海报卡片，点击即可在独立播放器窗口中播放。
               </p>
-              <button class="btn btn-primary" style="padding: 8px 20px; font-size: 13px;" @click="ytSubTab = 'parse'">
+              <button class="btn btn-primary" style="padding: 8px 22px; font-size: 13px; border-radius: 8px;" @click="ytSubTab = 'parse'">
                 前往下载视频
               </button>
             </div>
 
-            <!-- Completed Grid / List -->
+            <!-- Completed List of Video Cards -->
             <div v-else style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto;">
               <div 
                 v-for="item in ytHistory" 
                 :key="item.id"
-                style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px 18px; display: flex; gap: 18px; align-items: center; transition: all 0.2s;"
+                style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 18px; display: flex; gap: 18px; align-items: center; transition: all 0.2s;"
+                onmouseenter="this.style.borderColor='rgba(99, 102, 241, 0.4)'; this.style.background='rgba(30, 41, 59, 0.65)'"
+                onmouseleave="this.style.borderColor='rgba(255,255,255,0.08)'; this.style.background='rgba(15, 23, 42, 0.65)'"
               >
                 <!-- Cover Image Poster with Play Overlay -->
                 <div 
                   @click="openYtFile(item.filePath)"
-                  style="position: relative; width: 130px; height: 74px; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: #1e293b; cursor: pointer; display: flex; align-items: center; justify-content: center;"
-                  title="点击播放"
+                  style="position: relative; width: 140px; height: 80px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #1e293b; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08);"
+                  title="点击在独立窗口中播放"
                 >
                   <img 
                     v-if="item.thumbnail" 
@@ -2075,11 +2061,15 @@
                     @error="onThumbnailError($event, item)" 
                     style="width: 100%; height: 100%; object-fit: cover;" 
                   />
-                  <span v-else style="font-size: 24px; color: var(--text-muted);">🎬</span>
-                  <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
-                    <span style="font-size: 24px; color: #fff;">▶️</span>
+                  <span v-else style="font-size: 26px; color: #64748b;">🎬</span>
+                  <!-- Play Hover Mask Overlay -->
+                  <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
+                    <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(99, 102, 241, 0.9); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 14px rgba(99, 102, 241, 0.6);">
+                      <span style="font-size: 16px; color: #fff; margin-left: 2px;">▶</span>
+                    </div>
                   </div>
-                  <div v-if="item.duration" style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); color: #fff; font-size: 10px; padding: 1px 4px; border-radius: 3px;">
+                  <!-- Duration Pill in Corner -->
+                  <div v-if="item.duration" style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600;">
                     {{ formatDuration(item.duration) }}
                   </div>
                 </div>
@@ -2088,35 +2078,47 @@
                 <div style="flex: 1; min-width: 0;">
                   <div 
                     @click="openYtFile(item.filePath)"
-                    style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;"
+                    style="font-size: 15px; font-weight: 600; color: #f8fafc; margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: color 0.15s;"
+                    onmouseenter="this.style.color='#818cf8'"
+                    onmouseleave="this.style.color='#f8fafc'"
                     :title="item.title"
                   >
                     {{ item.title }}
                   </div>
-                  <div style="display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--text-muted); flex-wrap: wrap;">
-                    <span style="background: rgba(99, 102, 241, 0.2); color: #818cf8; padding: 2px 7px; border-radius: 4px; font-weight: 600;">
+                  <div style="display: flex; gap: 10px; align-items: center; font-size: 12px; color: #94a3b8; flex-wrap: wrap;">
+                    <span 
+                      style="padding: 2px 8px; border-radius: 5px; font-weight: 700; font-size: 11px;"
+                      :style="getResBadgeStyle(item.resolution)"
+                    >
                       {{ item.resolution }}
                     </span>
-                    <span v-if="item.fileSize > 0">💾 {{ formatFileSize(item.fileSize) }}</span>
-                    <span>🕒 {{ new Date(item.completedAt).toLocaleString() }}</span>
+                    <span v-if="item.fileSize > 0" style="color: #cbd5e1;">💾 {{ formatFileSize(item.fileSize) }}</span>
+                    <span style="color: #64748b;">•</span>
+                    <span style="color: #94a3b8;">🕒 {{ formatItemTime(item.completedAt) }}</span>
                   </div>
-                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.7;">
-                    📂 {{ item.filePath }}
+                  <div 
+                    @click="openYtFolder(item.filePath)"
+                    style="font-size: 11px; color: #64748b; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: color 0.15s;"
+                    onmouseenter="this.style.color='#a5b4fc'"
+                    onmouseleave="this.style.color='#64748b'"
+                    title="在文件夹中显示"
+                  >
+                    📁 {{ item.filePath }}
                   </div>
                 </div>
 
                 <!-- Action Buttons -->
-                <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
                   <button 
                     class="btn btn-primary" 
-                    style="padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 4px;"
+                    style="padding: 7px 16px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; border-radius: 8px;"
                     @click="openYtFile(item.filePath)"
                   >
-                    <span>▶️ 播放</span>
+                    <span>▶ 播放</span>
                   </button>
                   <button 
                     class="btn btn-secondary" 
-                    style="padding: 6px 12px; font-size: 12px;"
+                    style="padding: 7px 12px; font-size: 13px; border-radius: 8px;"
                     @click="openYtFolder(item.filePath)"
                     title="在文件夹中显示"
                   >
@@ -2124,11 +2126,11 @@
                   </button>
                   <button 
                     class="btn btn-secondary" 
-                    style="padding: 6px 10px; font-size: 12px; color: #f87171;"
+                    style="padding: 7px 10px; font-size: 13px; color: #ef4444; border-color: rgba(239, 68, 68, 0.25); border-radius: 8px;"
                     @click="deleteYtHistoryItem(item.id)"
                     title="删除记录"
                   >
-                    🗑️
+                    🗑
                   </button>
                 </div>
               </div>
@@ -6285,15 +6287,21 @@ function setupDataChannel(channel) {
 // YT-DLP Download & Task Management Handlers
 const getYtMediaSrc = (thumb) => {
   if (!thumb) return '';
-  if (thumb.startsWith('http://') || thumb.startsWith('https://')) {
+  if (thumb.startsWith('http://') || thumb.startsWith('https://') || thumb.startsWith('data:')) {
     return thumb;
   }
-  const cleanPath = thumb.replace(/\\/g, '/');
-  // Safe URI encoding for spaces and special symbols
-  return encodeURI(`local:///${cleanPath}`);
+  if (thumb.startsWith('local://')) return thumb;
+  let cleanPath = thumb.replace(/^file:\/\/\/?/i, '');
+  cleanPath = cleanPath.replace(/\\/g, '/').replace(/^\/+/, '');
+  return `local:///${encodeURI(cleanPath)}`;
 };
 
 const onThumbnailError = (event, item) => {
+  if (!event || !event.target) return;
+  if (item && item.webThumbnail && event.target.src !== item.webThumbnail) {
+    event.target.src = item.webThumbnail;
+    return;
+  }
   if (item && item.url && !event.target.dataset.triedYt) {
     event.target.dataset.triedYt = 'true';
     const match = item.url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
@@ -6517,6 +6525,22 @@ const openYtFile = async (filePath) => {
 const openYtFolder = async (filePath) => {
   if (!window.api?.openYtVideoFolder) return;
   await window.api.openYtVideoFolder(filePath);
+};
+
+const getResBadgeStyle = (res) => {
+  const s = String(res || '').toLowerCase();
+  if (s.includes('4k') || s.includes('2160')) return 'background: rgba(234, 179, 8, 0.18); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.35);';
+  if (s.includes('2k') || s.includes('1440') || s.includes('1080')) return 'background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.35);';
+  if (s.includes('mp3') || s.includes('audio') || s.includes('音频')) return 'background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35);';
+  return 'background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35);';
+};
+
+const formatItemTime = (ts) => {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    return `${d.getFullYear()}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  } catch (e) { return ''; }
 };
 
 // Register listeners on mount
