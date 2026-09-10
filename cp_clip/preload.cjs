@@ -179,5 +179,17 @@ contextBridge.exposeInMainWorld('api', {
   // Window controls
   minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
   maximizeWindow: () => ipcRenderer.invoke('window-maximize'),
-  closeWindow: () => ipcRenderer.invoke('window-close')
+  closeWindow: () => ipcRenderer.invoke('window-close'),
+
+  // Dedicated Video Player Window APIs
+  openVideoWindow: (videoData) => ipcRenderer.invoke('open-video-window', JSON.parse(JSON.stringify(videoData || {}))),
+  getCurrentVideo: () => ipcRenderer.invoke('get-current-video'),
+  videoWindowMinimize: () => ipcRenderer.invoke('video-window-minimize'),
+  videoWindowMaximize: () => ipcRenderer.invoke('video-window-maximize'),
+  videoWindowClose: () => ipcRenderer.invoke('video-window-close'),
+  videoWindowToggleTop: () => ipcRenderer.invoke('video-window-toggle-top'),
+  onVideoWindowLoad: (callback) => {
+    ipcRenderer.removeAllListeners('video-player:load');
+    ipcRenderer.on('video-player:load', (event, data) => callback(data));
+  }
 });

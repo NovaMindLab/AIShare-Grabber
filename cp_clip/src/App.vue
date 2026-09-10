@@ -1135,7 +1135,16 @@
           <transition name="modal-fade">
             <div v-if="activePlayingVideo" class="video-player-overlay" @click.self="closeVideoPlayer">
               <div class="video-player-modal glass-panel">
-                <!-- Floating Minimalist Close Button Only -->
+                <!-- Floating Buttons -->
+                <button 
+                  v-if="hasApi && window.api?.openVideoWindow" 
+                  class="vp-floating-close-btn" 
+                  style="right: 56px; font-size: 14px;" 
+                  @click="popOutVideoPlayer" 
+                  title="在独立窗口中播放"
+                >
+                  🗗
+                </button>
                 <button class="vp-floating-close-btn" @click="closeVideoPlayer" title="关闭视频 (ESC)">✕</button>
 
                 <!-- Video Viewport -->
@@ -5410,7 +5419,26 @@ function stopVideoSync() {
 }
 
 function openVideoPlayer(video) {
+  if (hasApi && window.api?.openVideoWindow && video) {
+    const filePath = video.path || video.fullPath || video.src || '';
+    const title = video.name || video.title || '视频播放';
+    const poster = video.thumbnail || video.poster || '';
+    window.api.openVideoWindow({ filePath, title, poster });
+    return;
+  }
   activePlayingVideo.value = video;
+}
+
+function popOutVideoPlayer() {
+  if (activePlayingVideo.value && window.api?.openVideoWindow) {
+    const video = activePlayingVideo.value;
+    window.api.openVideoWindow({
+      filePath: video.path || video.fullPath || video.src || '',
+      title: video.name || video.title || '视频播放',
+      poster: video.thumbnail || video.poster || ''
+    });
+    closeVideoPlayer();
+  }
 }
 
 function closeVideoPlayer() {
@@ -6445,8 +6473,17 @@ const clearAllYtHistory = async () => {
 };
 
 const openYtFile = async (filePath) => {
-  if (!filePath || !window.api?.openYtVideoFile) return;
-  await window.api.openYtVideoFile(filePath);
+  if (!filePath) return;
+  if (hasApi && window.api?.openVideoWindow) {
+    const item = ytHistory.value.find(h => h.filePath === filePath);
+    const title = item?.title || filePath.split(/[\\/]/).pop();
+    const poster = item?.thumbnail || '';
+    window.api.openVideoWindow({ filePath, title, poster });
+    return;
+  }
+  if (window.api?.openYtVideoFile) {
+    await window.api.openYtVideoFile(filePath);
+  }
 };
 
 const openYtFolder = async (filePath) => {

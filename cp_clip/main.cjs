@@ -536,27 +536,33 @@ app.whenReady().then(async () => {
         }
       }
 
-      // Read file content
-      const buffer = fs.readFileSync(filePath);
-      
-      // Determine content type
-      const mimeTypes = {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.webp': 'image/webp',
-        '.gif': 'image/gif',
-        '.bmp': 'image/bmp'
-      };
-      const ext = path.extname(filePath).toLowerCase();
-      const contentType = mimeTypes[ext] || 'application/octet-stream';
-
-      return new Response(buffer, {
-        headers: {
-          'content-type': contentType,
-          'access-control-allow-origin': '*'
-        }
-      });
+      // Use net.fetch with file:// URL for streaming, video Range header support & automatic MIME detection
+      try {
+        const { pathToFileURL } = require('url');
+        return await net.fetch(pathToFileURL(filePath).toString());
+      } catch (fetchErr) {
+        // Fallback to readFileSync
+        const buffer = fs.readFileSync(filePath);
+        const mimeTypes = {
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.png': 'image/png',
+          '.webp': 'image/webp',
+          '.gif': 'image/gif',
+          '.bmp': 'image/bmp',
+          '.mp4': 'video/mp4',
+          '.webm': 'video/webm',
+          '.mp3': 'audio/mpeg'
+        };
+        const ext = path.extname(filePath).toLowerCase();
+        const contentType = mimeTypes[ext] || 'application/octet-stream';
+        return new Response(buffer, {
+          headers: {
+            'content-type': contentType,
+            'access-control-allow-origin': '*'
+          }
+        });
+      }
     } catch (e) {
       console.error("Protocol local load error:", e);
       return new Response("Error", { status: 500 });
@@ -3122,9 +3128,123 @@ ipcMain.handle('yt-delete-history', async (event, { id, deleteFile }) => {
   }
 });
 
+// ── Dedicated Video Player BrowserWindow Manager ─────────────────────────
+let videoPlayerWindow = null;
+let currentPlayingVideoData = null;
+
+function openVideoPlayerWindow(videoData) {
+  currentPlayingVideoData = videoData || {};
+  const isDev = process.env.NODE_ENV === 'development';
+  const playerDevUrl = 'http://127.0.0.1:5173/video-player.html';
+  const playerProdFile = path.join(__dirname, 'dist', 'video-player.html');
+
+  if (videoPlayerWindow && !videoPlayerWindow.isDestroyed()) {
+    if (videoPlayerWindow.isMinimized()) videoPlayerWindow.restore();
+    videoPlayerWindow.show();
+    videoPlayerWindow.focus();
+    videoPlayerWindow.webContents.send('video-player:load', currentPlayingVideoData);
+    return;
+  }
+
+  videoPlayerWindow = new BrowserWindow({
+    width: 960,
+    height: 580,
+    minWidth: 480,
+    minHeight: 320,
+    center: true,
+    title: videoData?.title || 'ShareCLIP 视频播放器',
+    icon: path.join(__dirname, fs.existsSync(path.join(__dirname, 'icon.ico')) ? 'icon.ico' : 'icon.png'),
+    backgroundColor: '#0b0f19',
+    show: false,
+    frame: false,
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      backgroundThrottling: false
+    }
+  });
+
+  videoPlayerWindow.setMenu(null);
+
+  videoPlayerWindow.once('ready-to-show', () => {
+    if (videoPlayerWindow && !videoPlayerWindow.isDestroyed()) {
+      videoPlayerWindow.show();
+      videoPlayerWindow.focus();
+      videoPlayerWindow.webContents.send('video-player:load', currentPlayingVideoData);
+    }
+  });
+
+  if (isDev) {
+    videoPlayerWindow.loadURL(playerDevUrl).catch(err => {
+      console.warn('[Video Player] Failed to load dev URL, fallback to file:', err.message);
+      if (fs.existsSync(playerProdFile)) {
+        videoPlayerWindow.loadFile(playerProdFile);
+      } else {
+        videoPlayerWindow.loadFile(path.join(__dirname, 'public', 'video-player.html'));
+      }
+    });
+  } else {
+    videoPlayerWindow.loadFile(playerProdFile);
+  }
+
+  videoPlayerWindow.on('closed', () => {
+    videoPlayerWindow = null;
+  });
+}
+
+ipcMain.handle('open-video-window', async (event, videoData) => {
+  openVideoPlayerWindow(videoData);
+  return { success: true };
+});
+
+ipcMain.handle('get-current-video', async () => {
+  return currentPlayingVideoData;
+});
+
+ipcMain.handle('video-window-minimize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win && !win.isDestroyed()) win.minimize();
+  return true;
+});
+
+ipcMain.handle('video-window-maximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win && !win.isDestroyed()) {
+    if (win.isMaximized()) {
+      win.unmaximize();
+      return false;
+    } else {
+      win.maximize();
+      return true;
+    }
+  }
+  return false;
+});
+
+ipcMain.handle('video-window-close', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win && !win.isDestroyed()) win.close();
+  return true;
+});
+
+ipcMain.handle('video-window-toggle-top', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win && !win.isDestroyed()) {
+    const isTop = !win.isAlwaysOnTop();
+    win.setAlwaysOnTop(isTop);
+    return isTop;
+  }
+  return false;
+});
+
 ipcMain.handle('yt-open-file', async (event, filePath) => {
   if (filePath && fs.existsSync(filePath)) {
-    shell.openPath(filePath);
+    openVideoPlayerWindow({
+      filePath,
+      title: path.basename(filePath)
+    });
     return { success: true };
   }
   return { success: false, error: 'File not found' };
