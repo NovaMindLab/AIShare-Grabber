@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://novamindlab.github.io/AIShare-Grabber/sitemap.xml
