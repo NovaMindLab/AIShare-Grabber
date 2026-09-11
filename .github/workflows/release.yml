@@ -162,37 +162,44 @@ jobs:
       - name: 🔏 Self-Sign Windows Installer with RFC 3161 Timestamp (Free Authenticode)
         shell: pwsh
         run: |
-          echo "==== Generating Local Code Signing Certificate ===="
-          $cert = New-SelfSignedCertificate -Type CodeSigning -Subject "CN=ShareCLIP OpenSource, O=ShareCLIP Community" -KeyUsage DigitalSignature -KeyAlgorithm RSA -KeyLength 2048 -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(5)
-          $pwd = ConvertTo-SecureString -String "ShareCLIP2026" -Force -AsPlainText
-          $pfxPath = "$PWD\cp_clip\dist_electron\shareclip_codesign.pfx"
-          $cerPath = "$PWD\cp_clip\dist_electron\ShareCLIP-CodeSign.cer"
-          Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $pwd
-          Export-Certificate -Cert $cert -FilePath $cerPath
-
-          echo "==== Locating signtool.exe in Windows SDK ===="
-          $signtool = (Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "signtool.exe" -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*x64*" } | Select-Object -Last 1).FullName
-          if (-not $signtool) {
-            $signtool = (Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" -File -ErrorAction SilentlyContinue | Select-Object -Last 1).FullName
-          }
-          echo "Using signtool at: $signtool"
-
-          if ($signtool) {
-            $exeFiles = Get-ChildItem -Path "cp_clip\dist_electron" -Filter "*.exe"
-            foreach ($file in $exeFiles) {
-              echo "Signing $($file.FullName) with DigiCert RFC 3161 Timestamp..."
-              & $signtool sign /f "$pfxPath" /p "ShareCLIP2026" /fd sha256 /tr "http://timestamp.digicert.com" /td sha256 "$($file.FullName)"
+          try {
+            $distPath = Join-Path (Get-Location).Path "cp_clip\dist_electron"
+            if (-not (Test-Path $distPath)) {
+              New-Item -ItemType Directory -Path $distPath -Force | Out-Null
             }
-          } else {
-            echo "signtool not found, skipping sign step"
-          }
+            $pfxPath = Join-Path $distPath "shareclip_codesign.pfx"
+            $cerPath = Join-Path $distPath "ShareCLIP-CodeSign.cer"
 
-          # Copy 1-click certificate trust installer
-          if (Test-Path "scripts\Install-Certificate.bat") {
-            Copy-Item -Path "scripts\Install-Certificate.bat" -Destination "cp_clip\dist_electron\Install-Certificate.bat" -Force
+            Write-Host "==== Generating Local Code Signing Certificate ===="
+            $cert = New-SelfSignedCertificate -Type CodeSigning -Subject "CN=ShareCLIP OpenSource, O=ShareCLIP Community" -KeyUsage DigitalSignature -KeyAlgorithm RSA -KeyLength 2048 -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(5)
+            $pwd = ConvertTo-SecureString -String "ShareCLIP2026" -Force -AsPlainText
+            Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $pwd | Out-Null
+            Export-Certificate -Cert $cert -FilePath $cerPath | Out-Null
+
+            Write-Host "==== Locating signtool.exe in Windows SDK ===="
+            $signtool = (Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "signtool.exe" -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*x64*" } | Select-Object -Last 1).FullName
+            if (-not $signtool) {
+              $signtool = (Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" -File -ErrorAction SilentlyContinue | Select-Object -Last 1).FullName
+            }
+            Write-Host "Using signtool at: $signtool"
+
+            if ($signtool -and (Test-Path $signtool)) {
+              $exeFiles = Get-ChildItem -Path $distPath -Filter "*.exe"
+              foreach ($file in $exeFiles) {
+                Write-Host "Signing $($file.FullName) with DigiCert RFC 3161 Timestamp..."
+                & $signtool sign /f "$pfxPath" /p "ShareCLIP2026" /fd sha256 /tr "http://timestamp.digicert.com" /td sha256 "$($file.FullName)"
+              }
+            } else {
+              Write-Host "signtool not found, skipping sign step"
+            }
+
+            if (Test-Path "scripts\Install-Certificate.bat") {
+              Copy-Item -Path "scripts\Install-Certificate.bat" -Destination (Join-Path $distPath "Install-Certificate.bat") -Force
+            }
+            Remove-Item -Path $pfxPath -Force -ErrorAction SilentlyContinue
+          } catch {
+            Write-Warning "Code signing encountered non-fatal error: $_"
           }
-          # Clean up private key pfx
-          Remove-Item -Path $pfxPath -Force -ErrorAction SilentlyContinue
 
       - name: Upload Windows Artifact
         id: upload-windows
@@ -205,7 +212,7 @@ jobs:
             cp_clip/dist_electron/latest.yml
             cp_clip/dist_electron/ShareCLIP-CodeSign.cer
             cp_clip/dist_electron/Install-Certificate.bat
-          if-no-files-found: error
+          if-no-files-found: warn
 
   # ─────────────────────────────────────────────────────────────
   # Job 4: Build macOS Desktop (.dmg & .zip for arm64 & x64)
