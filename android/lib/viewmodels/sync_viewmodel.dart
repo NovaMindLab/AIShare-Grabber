@@ -42,7 +42,7 @@ enum TransferStatus {
 }
 
 class SyncViewModel extends ChangeNotifier {
-  static const String appVersion = '3.0.16';
+  static const String appVersion = '4.0.2';
   List<Map<String, dynamic>> discoveredPCs = [];
   Timer? _discoveryTimer;
   String? _mobileName;
