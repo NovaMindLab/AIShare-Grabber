@@ -45,6 +45,12 @@
 ### 13. [全球化全自动推广、开源赞助体系与极客包管理器分发飞轮](file:///d:/AI_serach_image/image_clip_android/wiki/features/automated_promotion_and_growth_engine.md)
 *   **内容**：全方位落地 5 大增长引擎——GitHub 官方 Sponsors / Buy Me a Coffee / Patreon 全渠道赞助变现体系；WebShare 纯网页端内置自裂变引流挂件（Product-Led Growth, PLG）；GitHub Actions CI/CD 自动发版多渠道宣发流水线（自动生成发布 Markdown 与 Discord/Telegram 社区广播）；Windows 极客包管理器自动感知（Scoop & WinGet 清单与 SHA256 自动计算工具）；以及全套顶级公域社区（AlternativeTo、Reddit、Hacker News、Product Hunt、Awesome Lists）打榜物料与程序化 SEO（sitemap.xml / robots.txt）。
 
+### 14. [Electron 差分更新（增量升级）深度排查、本地缓存净化与防降级加固架构](file:///d:/AI_serach_image/image_clip_android/wiki/features/differential_update_and_cache_purging.md)
+*   **内容**：深度还原 Electron 差分升级报错回退全量 148MB 安装包的四大根因（本地 Blockmap 脏缓存版本脱节、141MB 磁盘搬运 12s 看门狗超时误杀、Azure/GitHub CDN 501 报错、无自愈机制），构建 `sanitizeUpdaterCache()` 自动净化闭环与 60s 弹性看门狗，实测由 148.78 MB 骤降至 7.64 MB，节省 94.87% 带宽。
+
+### 15. [跨平台视频下载后处理排查、便携 FFmpeg 自愈与 GitHub 免费公有代码签名架构](file:///d:/AI_serach_image/image_clip_android/wiki/features/code_signing_and_ffmpeg_resilience.md)
+*   **内容**：还原 yt-dlp 在缺少 FFmpeg 时视频下载到达 100% 后处理报错 exit code 1 的深层诱因，落地 `ensureFFmpeg` 本地便携版自动拉取、路径沙箱注入与单流自适应优雅降级；构建 GitHub Actions Win/Mac 双平台免费公有签名组合拳（Windows Authenticode 时间戳自签名 + 一键信任脚本、macOS Ad-hoc 签名与 Sequoia Gatekeeper 一键修复脚本、以及全平台 Linux 基金会 Sigstore Rekor Artifact Attestations 供应链透明存证）。
+
 ---
 
 ## 🏗️ 整体系统架构图

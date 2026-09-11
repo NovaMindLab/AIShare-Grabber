@@ -2518,6 +2518,31 @@ ipcMain.handle('get-log-path', async () => {
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
+autoUpdater.disableWebInstaller = true;
+
+// Sanitizes electron-updater cache to avoid stale blockmap / checksum mismatches
+function sanitizeUpdaterCache() {
+  try {
+    const cacheDir = path.join(process.env.LOCALAPPDATA || app.getPath('userData'), 'shareclip-updater');
+    if (fs.existsSync(cacheDir)) {
+      // Removing local current.blockmap ensures electron-updater always fetches the
+      // pristine official blockmap matching the currently running version directly from GitHub,
+      // avoiding cache poisoning / desynchronization that causes sha512 mismatch.
+      const blockmapFile = path.join(cacheDir, 'current.blockmap');
+      if (fs.existsSync(blockmapFile)) {
+        fs.unlinkSync(blockmapFile);
+        console.log('[Updater Cache] Removed cached current.blockmap for pristine remote alignment.');
+      }
+      const pendingDir = path.join(cacheDir, 'pending');
+      if (fs.existsSync(pendingDir)) {
+        fs.rmSync(pendingDir, { recursive: true, force: true });
+        console.log('[Updater Cache] Cleaned up pending update directory.');
+      }
+    }
+  } catch (e) {
+    console.warn('[Updater Cache] Failed to sanitize updater cache:', e.message);
+  }
+}
 
 let updateDownloadEventSender = null;
 let lastUpdateProgressInfo = {
@@ -2532,7 +2557,7 @@ autoUpdater.on('download-progress', (progressObj) => {
   const percent = Math.round(progressObj.percent);
   const transferredMB = (progressObj.transferred / (1024 * 1024)).toFixed(2);
   const totalMB = (progressObj.total / (1024 * 1024)).toFixed(2);
-  // Full installer size is ~96.5 MB. If progressObj.total < 40 MB, it's a differential patch!
+  // Full installer size is ~96-160 MB. If progressObj.total < 40 MB, it's a differential patch!
   const isDifferential = progressObj.total > 0 && progressObj.total < 40 * 1024 * 1024;
   
   lastUpdateProgressInfo = {
@@ -2563,6 +2588,7 @@ function isNewVersionAvailable(current, latest) {
 
 ipcMain.handle('check-for-updates', async () => {
   const currentVersion = app.getVersion();
+  sanitizeUpdaterCache();
   
   // Method 1: autoUpdater check
   try {
@@ -2632,16 +2658,18 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
   try {
     console.log('[Update Download] Starting download...');
     updateDownloadEventSender = event.sender;
+    sanitizeUpdaterCache();
     
     // Attempt 1: autoUpdater
     let success = false;
     try {
       await new Promise((resolve, reject) => {
-        let timeout = setTimeout(() => reject(new Error("autoUpdater download timeout (12s idle)")), 12000);
+        // Differential updates need to copy 100MB+ locally and negotiate CDN ranges, allow 60s idle timeout
+        let timeout = setTimeout(() => reject(new Error("autoUpdater download timeout (60s idle)")), 60000);
         
         const progressHandler = () => {
           clearTimeout(timeout);
-          timeout = setTimeout(() => reject(new Error("autoUpdater download timeout (12s idle)")), 12000);
+          timeout = setTimeout(() => reject(new Error("autoUpdater download timeout (60s idle)")), 60000);
         };
         autoUpdater.on('download-progress', progressHandler);
         
@@ -2653,6 +2681,7 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
         autoUpdater.once('error', (err) => { 
           clearTimeout(timeout); 
           autoUpdater.removeListener('download-progress', progressHandler);
+          console.error('[Update Download] autoUpdater internal error:', err.message);
           reject(err); 
         });
         
@@ -2764,14 +2793,29 @@ ipcMain.handle('install-update', async (event, filePath) => {
 });
 
 // -------------------------------------------------------------------------------
-// FFmpeg Resolution Helper
+// FFmpeg Resolution Helper & Portable Downloader
 // -------------------------------------------------------------------------------
+const FFMPEG_WINDOWS_URL = 'https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-win32-x64';
+const FFMPEG_MAC_ARM_URL = 'https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-darwin-arm64';
+const FFMPEG_MAC_X64_URL = 'https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-darwin-x64';
+const FFMPEG_LINUX_X64_URL = 'https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-linux-x64';
+
+let isDownloadingFFmpeg = false;
+
 function resolveFFmpegPaths() {
   const isWin = process.platform === 'win32';
   const ffmpegExe = isWin ? 'ffmpeg.exe' : 'ffmpeg';
   const ffprobeExe = isWin ? 'ffprobe.exe' : 'ffprobe';
 
+  let userBinDir = null;
+  try {
+    if (typeof app !== 'undefined' && app.getPath) {
+      userBinDir = path.join(app.getPath('userData'), 'bin');
+    }
+  } catch (_) {}
+
   const candidateDirs = [
+    ...(userBinDir ? [userBinDir] : []),
     path.join(process.resourcesPath || __dirname, 'bin'),
     path.join(__dirname, 'bin'),
     path.join(process.resourcesPath || __dirname),
@@ -2830,8 +2874,8 @@ function resolveFFmpegPaths() {
   }
 
   return {
-    ffmpegPath: resolvedFfmpeg || (process.env.FFMPEG_PATH || 'ffmpeg'),
-    ffprobePath: resolvedFfprobe || (process.env.FFPROBE_PATH || 'ffprobe')
+    ffmpegPath: resolvedFfmpeg || (process.env.FFMPEG_PATH || ''),
+    ffprobePath: resolvedFfprobe || (process.env.FFPROBE_PATH || '')
   };
 }
 
@@ -2847,6 +2891,70 @@ function getFFmpegDirectory() {
   }
   return null;
 }
+
+async function ensureFFmpeg(event) {
+  const { ffmpegPath } = resolveFFmpegPaths();
+  if (ffmpegPath && fs.existsSync(ffmpegPath)) {
+    return ffmpegPath;
+  }
+  const binDir = path.join(app.getPath('userData'), 'bin');
+  if (!fs.existsSync(binDir)) {
+    fs.mkdirSync(binDir, { recursive: true });
+  }
+  const isWin = process.platform === 'win32';
+  const isMac = process.platform === 'darwin';
+  const targetName = isWin ? 'ffmpeg.exe' : 'ffmpeg';
+  const destPath = path.join(binDir, targetName);
+
+  if (fs.existsSync(destPath)) {
+    return destPath;
+  }
+
+  if (isDownloadingFFmpeg) {
+    console.log('[FFmpeg] FFmpeg download already in progress, skipping duplicate request.');
+    return null;
+  }
+
+  isDownloadingFFmpeg = true;
+  let downloadUrl = FFMPEG_WINDOWS_URL;
+  if (isMac) {
+    downloadUrl = process.arch === 'arm64' ? FFMPEG_MAC_ARM_URL : FFMPEG_MAC_X64_URL;
+  } else if (!isWin) {
+    downloadUrl = FFMPEG_LINUX_X64_URL;
+  }
+
+  try {
+    console.log(`[FFmpeg] Downloading portable FFmpeg core from ${downloadUrl} to ${destPath}`);
+    if (event && !event.sender.isDestroyed()) {
+      event.sender.send('yt-progress', { status: '正在静默准备便携版 FFmpeg 编解码器...', progress: 0 });
+    }
+    await downloadFile(downloadUrl, destPath, (progress) => {
+      if (event && !event.sender.isDestroyed()) {
+        event.sender.send('yt-progress', { status: `正在拉取编解码器: ${progress}%`, progress });
+      }
+    });
+    if (!isWin) {
+      try { fs.chmodSync(destPath, 0o755); } catch (_) {}
+    }
+    console.log(`[FFmpeg] Successfully provisioned portable FFmpeg at: ${destPath}`);
+    return destPath;
+  } catch (err) {
+    console.warn('[FFmpeg] Failed to download portable FFmpeg:', err.message);
+    try { if (fs.existsSync(destPath)) fs.unlinkSync(destPath); } catch (_) {}
+    return null;
+  } finally {
+    isDownloadingFFmpeg = false;
+  }
+}
+
+ipcMain.handle('ensure-ffmpeg', async (event) => {
+  try {
+    const result = await ensureFFmpeg(event);
+    return { success: !!result, path: result };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
 
 const YT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
@@ -3128,26 +3236,47 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
       '-o', path.join(destDir, '%(title)s.%(ext)s'),
     ];
 
+    if (process.platform === 'win32') {
+      args.push('--windows-filenames');
+    }
+
     const ffmpegDir = getFFmpegDirectory();
     if (ffmpegDir) {
       args.push('--ffmpeg-location', ffmpegDir);
-    }
-    args.push('--user-agent', YT_USER_AGENT);
-    args.push('--no-check-certificates');
+      args.push('--user-agent', YT_USER_AGENT);
+      args.push('--no-check-certificates');
 
-    if (isAudio) {
-      args.push('-x', '--audio-format', 'mp3');
-      args.push('-f', 'bestaudio/best');
+      if (isAudio) {
+        args.push('-x', '--audio-format', 'mp3');
+        args.push('-f', 'bestaudio/best');
+      } else {
+        const fmt = resolution?.formatSpec || 'bestvideo+bestaudio/best';
+        args.push('-f', fmt);
+        args.push('--merge-output-format', 'mp4');
+      }
+
+      // Embed and write thumbnail cover
+      args.push('--embed-thumbnail');
+      args.push('--write-thumbnail');
+      args.push('--convert-thumbnails', 'jpg');
     } else {
-      const fmt = resolution?.formatSpec || 'bestvideo+bestaudio/best';
-      args.push('-f', fmt);
-      args.push('--merge-output-format', 'mp4');
-    }
+      console.warn('[YT-DLP] FFmpeg is not found on this system. Activating single-stream fallback to prevent exit code 1 crash.');
+      // Auto-trigger background download of portable FFmpeg for future requests
+      ensureFFmpeg(event).catch(e => console.warn('[FFmpeg] Background auto-download failed:', e.message));
 
-    // Embed and write thumbnail cover
-    args.push('--embed-thumbnail');
-    args.push('--write-thumbnail');
-    args.push('--convert-thumbnails', 'jpg');
+      args.push('--user-agent', YT_USER_AGENT);
+      args.push('--no-check-certificates');
+
+      if (isAudio) {
+        args.push('-f', 'bestaudio/best');
+      } else {
+        // Fall back to best pre-merged container with audio to avoid needing ffmpeg merge
+        args.push('-f', 'best[ext=mp4]/best');
+      }
+
+      // Write cover image without requiring ffmpeg conversion or embedding
+      args.push('--write-thumbnail');
+    }
 
     args.push(url);
 
@@ -3165,6 +3294,7 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
 
       let detectedFilePath = '';
       let lastProgress = 0;
+      let stderrChunks = [];
 
       child.stdout.on('data', (data) => {
         const text = data.toString();
@@ -3199,7 +3329,9 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
       });
 
       child.stderr.on('data', (data) => {
-        console.error(`[YT-DLP ERR] ${data}`);
+        const str = data.toString();
+        stderrChunks.push(str);
+        console.error(`[YT-DLP ERR] ${str}`);
       });
 
       child.on('close', (code) => {
@@ -3270,7 +3402,19 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
 
           resolve({ success: true, destDir, record: completedRecord });
         } else {
-          resolve({ success: false, error: `yt-dlp exited with code ${code}` });
+          let detailedError = `yt-dlp exited with code ${code}`;
+          const fullErr = stderrChunks.join('');
+          const lines = fullErr.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+          const errLines = lines.filter(l => l.toUpperCase().includes('ERROR:'));
+          if (errLines.length > 0) {
+            detailedError = errLines[errLines.length - 1].replace(/^ERROR:\s*/i, '');
+          } else if (lines.length > 0) {
+            detailedError = lines[lines.length - 1];
+          }
+          if (detailedError.includes('ffmpeg not found') || detailedError.includes('ffprobe and ffmpeg not found')) {
+            detailedError = '检测到系统中缺少 FFmpeg 编解码器组件，已为您自动触发后台下载，请稍候重试。';
+          }
+          resolve({ success: false, error: detailedError });
         }
       });
       

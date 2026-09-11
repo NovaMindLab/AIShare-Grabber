@@ -15,6 +15,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  attestations: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -158,7 +159,43 @@ jobs:
           npm run build
           npx electron-builder --win
 
+      - name: 🔏 Self-Sign Windows Installer with RFC 3161 Timestamp (Free Authenticode)
+        shell: pwsh
+        run: |
+          echo "==== Generating Local Code Signing Certificate ===="
+          $cert = New-SelfSignedCertificate -Type CodeSigning -Subject "CN=ShareCLIP OpenSource, O=ShareCLIP Community" -KeyUsage DigitalSignature -KeyAlgorithm RSA -KeyLength 2048 -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(5)
+          $pwd = ConvertTo-SecureString -String "ShareCLIP2026" -Force -AsPlainText
+          $pfxPath = "$PWD\cp_clip\dist_electron\shareclip_codesign.pfx"
+          $cerPath = "$PWD\cp_clip\dist_electron\ShareCLIP-CodeSign.cer"
+          Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $pwd
+          Export-Certificate -Cert $cert -FilePath $cerPath
+
+          echo "==== Locating signtool.exe in Windows SDK ===="
+          $signtool = (Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "signtool.exe" -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*x64*" } | Select-Object -Last 1).FullName
+          if (-not $signtool) {
+            $signtool = (Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" -File -ErrorAction SilentlyContinue | Select-Object -Last 1).FullName
+          }
+          echo "Using signtool at: $signtool"
+
+          if ($signtool) {
+            $exeFiles = Get-ChildItem -Path "cp_clip\dist_electron" -Filter "*.exe"
+            foreach ($file in $exeFiles) {
+              echo "Signing $($file.FullName) with DigiCert RFC 3161 Timestamp..."
+              & $signtool sign /f "$pfxPath" /p "ShareCLIP2026" /fd sha256 /tr "http://timestamp.digicert.com" /td sha256 "$($file.FullName)"
+            }
+          } else {
+            echo "signtool not found, skipping sign step"
+          }
+
+          # Copy 1-click certificate trust installer
+          if (Test-Path "scripts\Install-Certificate.bat") {
+            Copy-Item -Path "scripts\Install-Certificate.bat" -Destination "cp_clip\dist_electron\Install-Certificate.bat" -Force
+          }
+          # Clean up private key pfx
+          Remove-Item -Path $pfxPath -Force -ErrorAction SilentlyContinue
+
       - name: Upload Windows Artifact
+        id: upload-windows
         uses: actions/upload-artifact@v4
         with:
           name: release-windows
@@ -166,6 +203,8 @@ jobs:
             cp_clip/dist_electron/*.exe
             cp_clip/dist_electron/*.blockmap
             cp_clip/dist_electron/latest.yml
+            cp_clip/dist_electron/ShareCLIP-CodeSign.cer
+            cp_clip/dist_electron/Install-Certificate.bat
           if-no-files-found: error
 
   # ─────────────────────────────────────────────────────────────
@@ -209,6 +248,17 @@ jobs:
           npm run build
           npx electron-builder --mac --${{ matrix.arch }}
 
+      - name: 🍎 Enforce macOS Ad-hoc Codesigning & Gatekeeper Helper
+        run: |
+          echo "==== Verifying / Applying Ad-hoc Codesign on Mac outputs ===="
+          find cp_clip/dist_electron -maxdepth 3 -name "*.app" -exec codesign --force --deep -s - {} \; 2>/dev/null || true
+          
+          # Copy macOS Gatekeeper bypass script
+          if [ -f "scripts/Fix_App_Damage.command" ]; then
+            cp scripts/Fix_App_Damage.command cp_clip/dist_electron/Fix_App_Damage.command
+            chmod +x cp_clip/dist_electron/Fix_App_Damage.command
+          fi
+
       - name: Upload macOS Artifact (${{ matrix.arch }})
         uses: actions/upload-artifact@v4
         with:
@@ -216,6 +266,7 @@ jobs:
           path: |
             cp_clip/dist_electron/*.dmg
             cp_clip/dist_electron/*.zip
+            cp_clip/dist_electron/Fix_App_Damage.command
           if-no-files-found: error
 
   # ─────────────────────────────────────────────────────────────
@@ -297,6 +348,11 @@ jobs:
           find all-dist-artifacts -type f -exec cp {} release-files/ \;
           echo "==== Collected Release Files ===="
           ls -lh release-files
+
+      - name: 🔏 Generate GitHub Artifact Attestations (Sigstore Public Code Signing)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'release-files/*'
 
       - name: Read Release Notes
         id: release_notes

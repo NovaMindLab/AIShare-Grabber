@@ -164,6 +164,7 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.removeAllListeners('yt-progress');
     ipcRenderer.on('yt-progress', (event, data) => callback(data));
   },
+  ensureFFmpeg: () => ipcRenderer.invoke('ensure-ffmpeg'),
 
   // Video AnimeGAN Transformation APIs
   checkVideoAnimeEnv: () => ipcRenderer.invoke('video-anime:check-env'),

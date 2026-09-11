@@ -1,40 +1,33 @@
-### 🚀 ShareCLIP v3.0.16 Release Notes
+### 🚀 ShareCLIP v4.0.1 Release Notes
 
-#### 🌐 国际化多语言视觉概念对齐引擎 (International Concept Aligner & Multilingual AI Search)
-- **1.5MB 轻量外置国际视觉概念对齐系统**：
-  - 基于 ShareCLIP 推荐的外置概念词典设计（`international_lexicon.json`），实现 0MB 神经网络参数增加（全包依然 ≤168MB），100% 离线、零 API 成本。
-  - 支持中、英、西、法、德、日、韩、俄、阿、葡、意、越、泰、印尼、荷、波、土等 17 门主流世界语言系统，直接覆盖全球 140+ 个独立主权国家和主要地区。
-  - 原生英文查询 0ms 快速直通放行，外语概念提取与对齐仅需 0.05ms ~ 0.2ms。
+#### 🎬 4K 视频下载后处理增强与便携版 FFmpeg 自动静默拉取 (Video Downloader Resilience & FFmpeg Self-Healing)
+- **便携版 FFmpeg 零侵入自动静默拉取与自愈**：
+  - 针对干净新机或未配置系统环境 PATH 的用户，`ensureFFmpeg()` 探针机制在后台静默拉取单文件免安装 FFmpeg 便携包至应用安全沙箱区（`userData/bin`），即刻完成就绪闭环，无需用户手动配置环境变量。
+- **无 FFmpeg 极端场景动态优雅降级**：
+  - 若系统既无本地 FFmpeg 且尚未拉取完成，`yt-download` 引擎动态自适应降级：自动采用预合并单流提取策略（`best[ext=mp4]/best`），关闭需要 FFmpeg 的海报转码与音视频后处理合并参数，原画封面直接落盘，**彻底根除下载进度到达 100% 后因缺乏混流器抛出 `exit code 1` 致命退出的历史痛点**。
+- **Windows 特殊字符文件名清洗与全中文友好错误提示**：
+  - 强制注入 `--windows-filenames`，自动过滤标题中包含的冒号、斜杠、管道符等非法字符；深度捕获底层 `stderr` 错误流，将网络断开、格式限制等晦涩日志转换为用户易懂的中文交互提示。
 
-#### 🎯 跨语种色彩与复合搜索绝对一致性修复 (Cross-Lingual Search Consistency)
-- **中英双语 Prompt 绝对对齐**：
-  - 彻底修复了因未对齐时直接将原始中文字符传入英文 CLIP BPE 分词器导致的特征向量空间坍缩与误匹配问题（如搜 `red` 正确而搜 `红` 误判蓝衣古装/富士山）。
-  - 用户输入 `红`、`红色`、`red`、`rojo`、`rouge` 均生成完全相同的标准 CLIP Prompt，特征向量余弦相似度达到 1.0000（100% 绝对一致）。
-- **智能色彩与复合概念抽取**：
-  - 能够智能分离颜色修饰符与主体对象（如 `红衣服` ➔ `a photo of a person wearing red clothes`，`红色的车` ➔ `a photo of a red car...`）。
-  - 深度支持相册常见高频检索意图，涵盖 `学士服`、`学士帽`、`领结`、`古装/汉服`、`二次元动漫`、`富士山` 等。
+---
 
-#### 📱 二维码颗粒度极致优化与低端机极速秒扫 (Low-End Camera QR Code Optimization)
-- **精简二维码载荷体积（压缩率达 75%）**：
-  - 剔除固定 72 字节的 Nordic UART 静态 Service UUID 与 Characteristic UUID 常量（移动端内置协议默认解析），将 JSON 键名精简短化（`ble_mac` -> `m`, `session_id` -> `s`, `pc_ips` -> `ip`，端口与热点字段按需携带）。
-  - 载荷字符数从 240+ 字符大幅削减至 ~60 字符，并保持全版本双向兼容。
-- **降低二维码密度，码点放大 400%+**：
-  - 将容错等级设为 `errorCorrectionLevel: 'L'`，使二维码版本从高密度的 Version 8/9（53x53 矩阵，2,809 个码点）急剧下降至稀疏的 Version 2/3（25x25 矩阵，625 个码点）。
-  - PC 端二维码画布尺寸从 140px 增大至 160px（外框 184px）。单个码点像素尺寸放大近 3 倍，面积增大逾 4 倍。即使是千元低端机、老旧对焦困难机型或弱光环境下，摄像头画面只要扫到二维码即可在 50ms 内瞬间解码识别。
+#### 🔏 Windows & macOS 免费公有签名体系与全球透明度存证 (Dual-Platform Free Public Code Signing)
+- **Windows RFC 3161 Authenticode 证书自签与一键信任**：
+  - CI/CD 构建流中自动生成专属代码签名根证书与私钥，调用 Windows SDK `signtool.exe` 并连接 DigiCert 权威时间戳服务器，为 `ShareCLIP.exe` 及安装程序签署长期有效的 Authenticode 签名；
+  - 发布资产自动内嵌配套一键安装信任脚本（`Install-Certificate.bat`），管理员权限双击即可自动将公钥证书导入受信任的根证书颁发机构与受信任人，彻底消除 Windows SmartScreen “未知发布者”红色安全阻拦。
+- **macOS 深度 Ad-hoc 签名与 Sequoia 隔离修复脚本**：
+  - 桌面端打包配置启用 `mac.identity: "-"`，自动递归执行 `codesign --force --deep -s -`，赋予所有二进制与动态库合法 Mach-O 代码签名；
+  - 自动内嵌配套一键隔离修复脚本（`Fix_App_Damage.command`），针对 macOS 15 Sequoia 严格安全沙箱，用户双击即可自动执行 `xattr -cr` 抹除下载隔离标记（`com.apple.quarantine`），彻底杜绝“App 已损坏，移至废纸篓”系统拦截。
+- **Linux 基金会 Sigstore & Rekor 全球公共存证 (Build Provenance Attestations)**：
+  - CI/CD 流水线接入 GitHub 官方 `actions/attest-build-provenance@v2`，对 Windows、macOS 及 Linux 全量 Release 产物计算 SHA-256 摘要，并将不可篡改的加密 Provenance 签名存入 Rekor 公共透明日志，用户可使用 GitHub CLI `gh attestation verify` 验证软件由官方工作流原生构建。
 
-#### ⚡ 局域网物理真实 IP 智能过滤与直连加速 (Smart Physical IP Filtering & Fast Direct Connect)
-- **五阶多重 IP 精准筛选机制**：
-  - **Tier 1 内核路由探测**：通过 OS 内核 UDP 路由探测机制（0 流量探测网关）在 14ms 内毫秒级获取承载对外通信的主网卡真实 IP。
-  - **Tier 2 Route Metric 探测**：结合 Windows 路由表 Metric 权重探测真实默认网关所在接口。
-  - **Tier 3 虚拟适配器全量黑名单**：深度排除 VMware、VirtualBox、WSL、Hyper-V、Docker、Tap/Tun、VPN 等虚拟网卡。
-  - **Tier 4 MAC OUI 厂商指纹过滤**：根据 MAC 前缀鉴别虚拟化适配器。
-  - **Tier 5 虚拟专用网段剔除**：拦截 `192.168.56.x`、`169.254.x.x`、`100.64.x.x` 等保留子网。
-- **移动端局域网并发秒连**：
-  - 扫码后优先利用二维码中携带的高信噪比真实物理 IP 发起局域网并发探测与直连通道握手，局域网同网段下耗时从数秒降低至数百毫秒。
+---
 
-#### 🔄 WebRTC 连接状态机与信令时序强化 (Signaling & State Machine Hardening)
-- **连接 Promise 状态复用**：PC 端在处理同一客户端并发发起的 Offer 时共享当前处理流程，避免重置或覆盖已生成的 Answer。
-- **消除两端状态不同步**：彻底解决 PC 端已就绪而手机端仍处于连接中旋转等待的问题。
+#### 📦 全生态大版本同步升级至 v4.0.1
+- **全平台多端版本号对齐**：
+  - PC Electron 桌面端 (`4.0.1`)
+  - Web 官方落地页 (`4.0.1`)
+  - WebShare 纯网页极速端 (`4.0.1`)
+  - Android 移动端 (`4.0.1+40001`)
+  - Scoop 极客包管理器清单 (`v4.0.1`)
+  - WinGet 微软包管理器清单 (`v4.0.1`)
 
-#### 📦 全端版本同步递增至 v3.0.16
-- 桌面端 Electron、移动端 Flutter（版本号 `3.0.16+30016`）、Web Portal 与 WebShare 全面同步。
