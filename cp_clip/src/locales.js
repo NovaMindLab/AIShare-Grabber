@@ -328,7 +328,19 @@ export const locales = {
       playVideo: "Play",
       deleteHistory: "Delete",
       emptyDownloading: "No active downloads",
-      emptyCompleted: "No downloaded videos yet"
+      emptyCompleted: "No downloaded videos yet",
+      loginSync: "Login Sync",
+      syncNone: "Disabled",
+      syncEdge: "Microsoft Edge",
+      syncChrome: "Google Chrome",
+      syncFirefox: "Mozilla Firefox",
+      syncBrave: "Brave Browser",
+      syncEmbedded: "In-App Account",
+      embeddedLoginBtn: "🔑 In-App Login",
+      clearLoginBtn: "🚪 Logout / Clear Cookies",
+      cookieMenuTitle: "🔐 YouTube Login Sync",
+      cookieMenuDesc: "Sync browser or in-app login to download 18+ age-restricted and members-only videos.",
+      cookieLockedTip: "Database locked? Close the browser or use In-App Login."
     },
     details: {
       detailsTitle: "Resource Details",
@@ -669,7 +681,19 @@ export const locales = {
       playVideo: "播放视频",
       deleteHistory: "删除记录",
       emptyDownloading: "暂无正在下载的任务",
-      emptyCompleted: "暂无已完成的下载记录"
+      emptyCompleted: "暂无已完成的下载记录",
+      loginSync: "登录同步",
+      syncNone: "未开启",
+      syncEdge: "Microsoft Edge",
+      syncChrome: "Google Chrome",
+      syncFirefox: "Mozilla Firefox",
+      syncBrave: "Brave Browser",
+      syncEmbedded: "内嵌账号",
+      embeddedLoginBtn: "🔑 内嵌一键登录",
+      clearLoginBtn: "🚪 退出登录 / 清除凭据",
+      cookieMenuTitle: "🔐 YouTube 登录同步",
+      cookieMenuDesc: "同步浏览器或内嵌登录态，解锁 18+ 年龄受限视频、高码率与会员专享视频。",
+      cookieLockedTip: "若提示数据库被占用，建议关闭浏览器或使用【内嵌一键登录】"
     },
     details: {
       detailsTitle: "资源详情",
@@ -982,7 +1006,19 @@ langList.forEach(lang => {
         playVideo: "播放影片",
         deleteHistory: "刪除記錄",
         emptyDownloading: "暫無正在下載的任務",
-        emptyCompleted: "暫無已完成的下載記錄"
+        emptyCompleted: "暫無已完成的下載記錄",
+        loginSync: "登入同步",
+        syncNone: "未開啟",
+        syncEdge: "Microsoft Edge",
+        syncChrome: "Google Chrome",
+        syncFirefox: "Mozilla Firefox",
+        syncBrave: "Brave Browser",
+        syncEmbedded: "內嵌帳號",
+        embeddedLoginBtn: "🔑 內嵌一鍵登入",
+        clearLoginBtn: "🚪 登出 / 清除憑證",
+        cookieMenuTitle: "🔐 YouTube 登入同步",
+        cookieMenuDesc: "同步瀏覽器或內嵌登入態，解鎖 18+ 年齡受限影片、高碼率與會員專享影片。",
+        cookieLockedTip: "若提示資料庫被佔用，建議關閉瀏覽器或使用【內嵌一鍵登入】"
       },
       details: {
         detailsTitle: "資源詳情",

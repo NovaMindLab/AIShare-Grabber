@@ -2797,3 +2797,212 @@ body {
   line-height: 1.5;
 }
 
+/* YouTube Cookie & Login Sync Control */
+.yt-cookie-sync-wrapper {
+  position: relative;
+  display: inline-block;
+  user-select: none;
+}
+
+.yt-cookie-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.light-mode .yt-cookie-btn {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.yt-cookie-btn:hover {
+  background: rgba(51, 65, 85, 0.85);
+  border-color: var(--accent-primary);
+}
+
+.light-mode .yt-cookie-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.yt-cookie-btn.yt-cookie-active {
+  border-color: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+.yt-cookie-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.yt-cookie-dot.dot-active {
+  background-color: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.yt-cookie-dot.dot-inactive {
+  background-color: var(--text-muted);
+}
+
+.yt-cookie-arrow {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-left: 2px;
+}
+
+/* Dropdown Menu */
+.yt-cookie-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 310px;
+  background: #0f172a;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.light-mode .yt-cookie-menu {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.yt-cookie-menu-header {
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.yt-cookie-menu-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.yt-cookie-menu-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.yt-cookie-options {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.yt-cookie-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.yt-cookie-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.light-mode .yt-cookie-option:hover {
+  background: #f1f5f9;
+}
+
+.yt-cookie-option.selected {
+  background: rgba(99, 102, 241, 0.18);
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.light-mode .yt-cookie-option.selected {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.yt-cookie-option .option-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.yt-cookie-option .option-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.yt-cookie-option .option-badge-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.yt-cookie-option .option-check {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.yt-cookie-menu-divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 4px 0;
+}
+
+.yt-cookie-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.yt-action-btn {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.yt-action-logout {
+  color: var(--text-muted);
+}
+
+.yt-action-logout:hover {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+

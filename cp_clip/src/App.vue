@@ -1778,33 +1778,158 @@
               </button>
             </div>
 
-            <!-- Right Controls depending on Active Tab -->
-            <!-- If Parse Tab: Mode Switcher -->
-            <div v-if="ytSubTab === 'parse'" class="yt-mode-switcher">
-              <button 
-                @click="ytMode = 'link'" 
-                class="yt-mode-btn"
-                :class="{ active: ytMode === 'link' }"
-              >
-                🔗 链接解析
-              </button>
-              <button 
-                @click="ytMode = 'browser'" 
-                class="yt-mode-btn"
-                :class="{ active: ytMode === 'browser' }"
-              >
-                🌐 嗅探浏览器
-              </button>
-            </div>
+            <!-- Right Controls: Cookie Sync Dropdown + Context Actions -->
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <!-- 🔐 YouTube Cookie & Login Sync Dropdown -->
+              <div class="yt-cookie-sync-wrapper" ref="ytCookieWrapperRef">
+                <button 
+                  class="yt-cookie-btn" 
+                  :class="{ 'yt-cookie-active': ytCookieConfig.mode !== 'none' }"
+                  @click.stop="showYtCookieMenu = !showYtCookieMenu"
+                  title="YouTube 登录同步设置"
+                >
+                  <span class="yt-cookie-dot" :class="ytCookieConfig.mode !== 'none' ? 'dot-active' : 'dot-inactive'"></span>
+                  <span>🔐 {{ ytCookieSummaryLabel }}</span>
+                  <span class="yt-cookie-arrow">▼</span>
+                </button>
 
-            <!-- If Downloading or Completed Tab: Directory and Manage Actions -->
-            <div v-else style="display: flex; gap: 8px; align-items: center;">
-              <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px;" @click="window.api.openDownloadFolder()">
-                <span>📁 打开下载文件夹</span>
-              </button>
-              <button v-if="ytSubTab === 'completed' && ytHistory.length > 0" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; color: var(--text-muted);" @click="clearAllYtHistory" title="清空全部已完成记录">
-                <span>🧹 清空记录</span>
-              </button>
+                <!-- Dropdown Popup -->
+                <div v-if="showYtCookieMenu" class="yt-cookie-menu" @click.stop>
+                  <div class="yt-cookie-menu-header">
+                    <div class="yt-cookie-menu-title">
+                      <span>🔐</span>
+                      <span>{{ t.videoDownloader?.cookieMenuTitle || 'YouTube 登录同步' }}</span>
+                    </div>
+                    <div class="yt-cookie-menu-desc">
+                      {{ t.videoDownloader?.cookieMenuDesc || '同步浏览器或内嵌登录态，解锁 18+ 年龄受限视频、高码率与会员专享视频。' }}
+                    </div>
+                  </div>
+
+                  <div class="yt-cookie-options">
+                    <!-- Option 1: None (Disabled) -->
+                    <div 
+                      class="yt-cookie-option" 
+                      :class="{ selected: ytCookieConfig.mode === 'none' }"
+                      @click="changeYtCookieMode('none')"
+                    >
+                      <span class="option-icon">🚫</span>
+                      <div class="option-info">
+                        <span>{{ t.videoDownloader?.syncNone || '未开启 (匿名解析)' }}</span>
+                      </div>
+                      <span v-if="ytCookieConfig.mode === 'none'" class="option-check">✓</span>
+                    </div>
+
+                    <!-- Option 2: Microsoft Edge (Recommended) -->
+                    <div 
+                      class="yt-cookie-option" 
+                      :class="{ selected: ytCookieConfig.mode === 'edge' }"
+                      @click="changeYtCookieMode('edge')"
+                    >
+                      <span class="option-icon">🌊</span>
+                      <div class="option-info">
+                        <span>{{ t.videoDownloader?.syncEdge || 'Microsoft Edge' }}</span>
+                        <span class="option-badge">推荐</span>
+                      </div>
+                      <span v-if="ytCookieConfig.mode === 'edge'" class="option-check">✓</span>
+                    </div>
+
+                    <!-- Option 3: Google Chrome -->
+                    <div 
+                      class="yt-cookie-option" 
+                      :class="{ selected: ytCookieConfig.mode === 'chrome' }"
+                      @click="changeYtCookieMode('chrome')"
+                    >
+                      <span class="option-icon">🌐</span>
+                      <div class="option-info">
+                        <span>{{ t.videoDownloader?.syncChrome || 'Google Chrome' }}</span>
+                      </div>
+                      <span v-if="ytCookieConfig.mode === 'chrome'" class="option-check">✓</span>
+                    </div>
+
+                    <!-- Option 4: Firefox -->
+                    <div 
+                      class="yt-cookie-option" 
+                      :class="{ selected: ytCookieConfig.mode === 'firefox' }"
+                      @click="changeYtCookieMode('firefox')"
+                    >
+                      <span class="option-icon">🦊</span>
+                      <div class="option-info">
+                        <span>{{ t.videoDownloader?.syncFirefox || 'Mozilla Firefox' }}</span>
+                      </div>
+                      <span v-if="ytCookieConfig.mode === 'firefox'" class="option-check">✓</span>
+                    </div>
+
+                    <!-- Option 5: Brave -->
+                    <div 
+                      class="yt-cookie-option" 
+                      :class="{ selected: ytCookieConfig.mode === 'brave' }"
+                      @click="changeYtCookieMode('brave')"
+                    >
+                      <span class="option-icon">🦁</span>
+                      <div class="option-info">
+                        <span>{{ t.videoDownloader?.syncBrave || 'Brave Browser' }}</span>
+                      </div>
+                      <span v-if="ytCookieConfig.mode === 'brave'" class="option-check">✓</span>
+                    </div>
+
+                    <!-- Option 6: In-App Embedded Account -->
+                    <div 
+                      class="yt-cookie-option" 
+                      :class="{ selected: ytCookieConfig.mode === 'embedded' }"
+                      @click="changeYtCookieMode('embedded')"
+                    >
+                      <span class="option-icon">🔑</span>
+                      <div class="option-info">
+                        <span>{{ t.videoDownloader?.syncEmbedded || '内嵌独立登录' }}</span>
+                        <span v-if="ytCookieConfig.hasEmbeddedCookies" class="option-badge option-badge-success">已保存</span>
+                      </div>
+                      <span v-if="ytCookieConfig.mode === 'embedded'" class="option-check">✓</span>
+                    </div>
+                  </div>
+
+                  <div class="yt-cookie-menu-divider"></div>
+
+                  <!-- Actions: Open login window or clear cookies -->
+                  <div class="yt-cookie-actions">
+                    <button class="btn btn-primary yt-action-btn" @click="openYtLoginWindow">
+                      <span>🔑</span>
+                      <span>{{ ytCookieConfig.hasEmbeddedCookies ? '重新登录 YouTube' : (t.videoDownloader?.embeddedLoginBtn || '内嵌一键登录') }}</span>
+                    </button>
+                    <button v-if="ytCookieConfig.hasEmbeddedCookies || ytCookieConfig.mode !== 'none'" class="btn btn-secondary yt-action-btn yt-action-logout" @click="clearYtCookies">
+                      <span>🚪</span>
+                      <span>{{ t.videoDownloader?.clearLoginBtn || '退出登录 / 清除凭据' }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- If Parse Tab: Mode Switcher -->
+              <div v-if="ytSubTab === 'parse'" class="yt-mode-switcher">
+                <button 
+                  @click="ytMode = 'link'" 
+                  class="yt-mode-btn"
+                  :class="{ active: ytMode === 'link' }"
+                >
+                  🔗 链接解析
+                </button>
+                <button 
+                  @click="ytMode = 'browser'" 
+                  class="yt-mode-btn"
+                  :class="{ active: ytMode === 'browser' }"
+                >
+                  🌐 嗅探浏览器
+                </button>
+              </div>
+
+              <!-- If Downloading or Completed Tab: Directory and Manage Actions -->
+              <div v-else style="display: flex; gap: 8px; align-items: center;">
+                <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px;" @click="window.api.openDownloadFolder()">
+                  <span>📁 打开下载文件夹</span>
+                </button>
+                <button v-if="ytSubTab === 'completed' && ytHistory.length > 0" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; color: var(--text-muted);" @click="clearAllYtHistory" title="清空全部已完成记录">
+                  <span>🧹 清空记录</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -3403,6 +3528,29 @@ const ytDownloading = ref(false);
 const ytActiveTasks = ref([]);
 const ytHistory = ref([]);
 const ytWebviewRef = ref(null);
+const ytCookieConfig = ref({ mode: 'none', hasEmbeddedCookies: false });
+const showYtCookieMenu = ref(false);
+const ytCookieWrapperRef = ref(null);
+
+const ytCookieSummaryLabel = computed(() => {
+  const mode = ytCookieConfig.value?.mode || 'none';
+  const vd = t.value?.videoDownloader;
+  switch (mode) {
+    case 'edge':
+      return vd?.syncEdge || 'Microsoft Edge';
+    case 'chrome':
+      return vd?.syncChrome || 'Google Chrome';
+    case 'firefox':
+      return vd?.syncFirefox || 'Mozilla Firefox';
+    case 'brave':
+      return vd?.syncBrave || 'Brave Browser';
+    case 'embedded':
+      return ytCookieConfig.value?.hasEmbeddedCookies ? (vd?.syncEmbedded || '内嵌已登录') : (vd?.syncEmbedded || '内嵌账号');
+    case 'none':
+    default:
+      return vd?.loginSync || '登录同步';
+  }
+});
 const activeDeviceUuid = ref(null);
 const activeDeviceName = ref('');
 const activeDeviceSystemInfo = ref(null);
@@ -6577,6 +6725,49 @@ const openYtFolder = async (filePath) => {
   await window.api.openYtVideoFolder(filePath);
 };
 
+const changeYtCookieMode = async (mode) => {
+  if (!window.api?.ytSetCookieMode) return;
+  try {
+    const res = await window.api.ytSetCookieMode(mode);
+    if (res && res.success) {
+      ytCookieConfig.value = res.config;
+    }
+  } catch (e) {
+    console.error('Failed to set cookie mode:', e);
+  }
+};
+
+const openYtLoginWindow = async () => {
+  if (!window.api?.ytOpenLoginWindow) return;
+  try {
+    showYtCookieMenu.value = false;
+    await window.api.ytOpenLoginWindow();
+  } catch (e) {
+    console.error('Failed to open login window:', e);
+  }
+};
+
+const clearYtCookies = async () => {
+  if (!window.api?.ytClearCookies) return;
+  try {
+    const res = await window.api.ytClearCookies();
+    if (res && res.success) {
+      ytCookieConfig.value = res.config;
+      if (ytWebviewRef.value) {
+        try { ytWebviewRef.value.reload(); } catch (e) {}
+      }
+    }
+  } catch (e) {
+    console.error('Failed to clear cookies:', e);
+  }
+};
+
+const handleCookieMenuClickOutside = (event) => {
+  if (showYtCookieMenu.value && ytCookieWrapperRef.value && !ytCookieWrapperRef.value.contains(event.target)) {
+    showYtCookieMenu.value = false;
+  }
+};
+
 const getResBadgeStyle = (res) => {
   const s = String(res || '').toLowerCase();
   if (s.includes('4k') || s.includes('2160')) return 'background: rgba(234, 179, 8, 0.18); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.35);';
@@ -6639,6 +6830,7 @@ const formatItemTime = (ts) => {
 onMounted(() => {
   initAnalytics();
   window.addEventListener('keydown', handleGlobalKeydown);
+  window.addEventListener('click', handleCookieMenuClickOutside);
   // Auto-start hotspot and BLE sync on PC startup
   // toggleHotspot();
 
@@ -6653,6 +6845,22 @@ onMounted(() => {
 
     // Load YT-DLP history
     loadYtHistory();
+
+    // Load YouTube Cookie & Login config
+    if (window.api.ytGetCookieConfig) {
+      window.api.ytGetCookieConfig().then(cfg => {
+        if (cfg) ytCookieConfig.value = cfg;
+      });
+    }
+
+    if (window.api.onYtLoginSuccess) {
+      window.api.onYtLoginSuccess((cfg) => {
+        if (cfg) ytCookieConfig.value = cfg;
+        if (ytWebviewRef.value) {
+          try { ytWebviewRef.value.reload(); } catch (e) {}
+        }
+      });
+    }
 
     // YT-DLP progress listener
     window.api.onYtProgress((data) => {
@@ -7373,6 +7581,7 @@ async function handleSendImagesToMobile() {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeydown);
+  window.removeEventListener('click', handleCookieMenuClickOutside);
   cleanupWebRtc();
   if (hasApi) {
     window.api.stopBleServer();

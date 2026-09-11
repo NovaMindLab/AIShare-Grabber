@@ -166,6 +166,16 @@ contextBridge.exposeInMainWorld('api', {
   },
   ensureFFmpeg: () => ipcRenderer.invoke('ensure-ffmpeg'),
 
+  // YT-DLP Cookie & Login Sync
+  ytGetCookieConfig: () => ipcRenderer.invoke('yt-cookies-get-config'),
+  ytSetCookieMode: (mode) => ipcRenderer.invoke('yt-cookies-set-mode', mode),
+  ytOpenLoginWindow: () => ipcRenderer.invoke('yt-open-login-window'),
+  ytClearCookies: () => ipcRenderer.invoke('yt-cookies-clear'),
+  onYtLoginSuccess: (callback) => {
+    ipcRenderer.removeAllListeners('yt-login-success');
+    ipcRenderer.on('yt-login-success', (event, data) => callback(data));
+  },
+
   // Video AnimeGAN Transformation APIs
   checkVideoAnimeEnv: () => ipcRenderer.invoke('video-anime:check-env'),
   getVideoAnimeInfo: (videoPath) => ipcRenderer.invoke('video-anime:get-info', videoPath),
