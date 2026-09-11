@@ -42,8 +42,9 @@ analytics_config.json
 secrets.json
 build_config.local.json
 
-# Documentation & Internal Notes (Local only, never pushed to GitHub)
+# Documentation, Deployment & Internal Notes (Local only, never pushed to GitHub)
 wiki/
 wiki_work/
 pc_project_wiki/
 *wiki*/
+auto_deploy/
