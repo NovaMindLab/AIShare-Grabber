@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
@@ -10,6 +10,8 @@ try {
   app.setPath('userData', customUserData);
   // Force WebRTC to gather actual IPv4 host candidates instead of .local mDNS hostnames
   app.commandLine.appendSwitch('disable-features', 'WebRtcHideLocalIpsWithMdns');
+  // Prevent Chromium from advertising automation flags to Google login
+  app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
 } catch (e) {}
 
 // -------------------------------------------------------------------------------
@@ -480,6 +482,9 @@ function createWindow() {
   mainWindow.on('closed', () => {
     clearTimeout(fallbackShowTimer);
     mainWindow = null;
+    if (snifferBrowserWindow && !snifferBrowserWindow.isDestroyed()) {
+      try { snifferBrowserWindow.close(); } catch (e) {}
+    }
   });
 }
 
@@ -591,6 +596,18 @@ app.whenReady().then(async () => {
 
   // Start high-speed HTTP TCP signaling service
   startHttpSignalingServer();
+
+  // Restore YouTube login cookies to session.defaultSession on startup
+  setTimeout(() => {
+    try {
+      const cfg = getYtCookieConfig();
+      if (cfg.hasEmbeddedCookies && cfg.cookiesPath) {
+        injectNetscapeCookiesIntoSession(cfg.cookiesPath);
+      }
+    } catch (e) {
+      console.warn('[YT-COOKIE] Startup session restore failed:', e);
+    }
+  }, 1200);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -3103,11 +3120,82 @@ function exportCookiesToNetscape(cookies) {
   return lines.join('\n') + '\n';
 }
 
+async function injectNetscapeCookiesIntoSession(netscapeFilePath) {
+  if (!fs.existsSync(netscapeFilePath)) return 0;
+  let content = '';
+  try {
+    content = fs.readFileSync(netscapeFilePath, 'utf8');
+  } catch (e) {
+    console.error('[YT-COOKIE] Failed to read cookie file for injection:', e);
+    return 0;
+  }
+  const lines = content.split('\n');
+  let count = 0;
+  const nowSec = Math.round(Date.now() / 1000);
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    
+    let domain = '';
+    let httpOnly = false;
+    const parts = trimmed.split('\t');
+    if (parts.length < 7) continue;
+
+    domain = parts[0];
+    if (domain.startsWith('#HttpOnly_')) {
+      domain = domain.substring('#HttpOnly_'.length);
+      httpOnly = true;
+    } else if (domain.startsWith('#')) {
+      continue;
+    }
+
+    if (!domain.includes('youtube.com') && !domain.includes('google.com')) continue;
+
+    const path = parts[2] || '/';
+    const isSecure = parts[3] === 'TRUE';
+    const rawExpires = parts[4];
+    const name = parts[5];
+    const value = parts[6] || '';
+    if (!name) continue;
+
+    let expires = parseFloat(rawExpires) || 0;
+    // Chromium Windows timestamp fix: convert microseconds since 1601 to unix epoch seconds
+    if (expires > 10000000000000) {
+      expires = Math.round(expires / 1000000 - 11644473600);
+    }
+
+    const cookieObj = {
+      url: (isSecure ? 'https://' : 'http://') + domain.replace(/^\./, '') + path,
+      name,
+      value,
+      domain: domain.startsWith('.') ? domain : ('.' + domain),
+      path,
+      secure: isSecure,
+      httpOnly
+    };
+
+    if (expires > nowSec) {
+      cookieObj.expirationDate = expires;
+    } else if (expires > 0) {
+      cookieObj.expirationDate = nowSec + 86400 * 365;
+    }
+
+    try {
+      await session.defaultSession.cookies.set(cookieObj);
+      count++;
+    } catch (e) {}
+  }
+  console.log(`[YT-COOKIE] Injected ${count} cookies into session.defaultSession.`);
+  return count;
+}
+
 function applyCookiesArgs(args) {
   const config = getYtCookieConfig();
-  if (config.mode === 'embedded' && config.hasEmbeddedCookies) {
+  // If an extracted valid cookies file exists, ALWAYS pass it to avoid browser DB locking during download
+  if (config.hasEmbeddedCookies && config.cookiesPath) {
     args.push('--cookies', config.cookiesPath);
-    console.log('[YT-COOKIE] Injected embedded cookies file:', config.cookiesPath);
+    console.log('[YT-COOKIE] Injected active cookies file:', config.cookiesPath);
   } else if (['edge', 'chrome', 'firefox', 'brave', 'opera', 'vivaldi'].includes(config.mode)) {
     args.push('--cookies-from-browser', config.mode);
     console.log('[YT-COOKIE] Injected browser cookies mode:', config.mode);
@@ -3121,10 +3209,123 @@ ipcMain.handle('yt-cookies-get-config', async () => {
 });
 
 ipcMain.handle('yt-cookies-set-mode', async (event, mode) => {
-  const cfg = getYtCookieConfig();
-  cfg.mode = mode || 'none';
-  saveYtCookieConfig({ mode: cfg.mode });
-  return getYtCookieConfig();
+  if (!mode || mode === 'none') {
+    saveYtCookieConfig({ mode: 'none' });
+    return { success: true, config: getYtCookieConfig() };
+  }
+
+  if (['edge', 'chrome', 'firefox', 'brave', 'opera', 'vivaldi'].includes(mode)) {
+    try {
+      const ytPath = await ensureYtDlp(event);
+      const tempCookiesFile = path.join(app.getPath('userData'), `temp_${mode}_cookies.txt`);
+      const targetCookiesFile = getYtCookiesFilePath();
+
+      const { spawn } = require('child_process');
+      const extractResult = await new Promise((resolve) => {
+        const proc = spawn(ytPath, [
+          '--cookies-from-browser', mode,
+          '--cookies', tempCookiesFile,
+          '--skip-download',
+          'https://www.youtube.com'
+        ], { windowsHide: true });
+
+        let stdout = '';
+        let stderr = '';
+        proc.stdout.on('data', d => { stdout += d.toString(); });
+        proc.stderr.on('data', d => { stderr += d.toString(); });
+
+        proc.on('close', (code) => {
+          resolve({ code, stdout, stderr });
+        });
+        proc.on('error', (err) => {
+          resolve({ code: -1, stdout, stderr: err.message });
+        });
+      });
+
+      if (extractResult.code !== 0 || !fs.existsSync(tempCookiesFile) || fs.statSync(tempCookiesFile).size < 100) {
+        const combinedErr = (extractResult.stderr + extractResult.stdout).toLowerCase();
+        if (combinedErr.includes('permission') || combinedErr.includes('could not copy') || combinedErr.includes('database')) {
+          return {
+            success: false,
+            code: 'LOCKED',
+            message: `${mode.toUpperCase()} 浏览器正在运行锁定了 Cookie 数据库。\n推荐直接切换为【Microsoft Edge】(无需关闭即可免密秒同步)，或完全退出 ${mode} 后重试。`
+          };
+        }
+        return {
+          success: false,
+          code: 'EXTRACT_FAILED',
+          message: `从 ${mode} 同步凭据失败: ${extractResult.stderr.slice(0, 300) || '未检测到可用登录 Cookie'}`
+        };
+      }
+
+      // Success: copy to persistent youtube_cookies.txt
+      fs.copyFileSync(tempCookiesFile, targetCookiesFile);
+      try { fs.unlinkSync(tempCookiesFile); } catch (_) {}
+
+      // Inject into defaultSession
+      const injectedCount = await injectNetscapeCookiesIntoSession(targetCookiesFile);
+
+      saveYtCookieConfig({ mode });
+      const cfg = getYtCookieConfig();
+
+      if (event && event.sender) {
+        event.sender.send('yt-login-success', cfg);
+      }
+
+      return { 
+        success: true, 
+        config: cfg, 
+        injectedCount,
+        message: `成功从 ${mode} 同步 ${injectedCount} 个凭据！` 
+      };
+    } catch (err) {
+      console.error(`[YT-COOKIE] Error extracting cookies from ${mode}:`, err);
+      return { success: false, code: 'ERROR', message: err.message };
+    }
+  }
+
+  // Other modes (embedded, etc.)
+  saveYtCookieConfig({ mode });
+  return { success: true, config: getYtCookieConfig() };
+});
+
+ipcMain.handle('yt-import-cookies-file', async (event) => {
+  try {
+    const result = await dialog.showOpenDialog({
+      title: '选择导出的 YouTube cookies.txt 文件',
+      filters: [
+        { name: 'Cookie 文件 (*.txt, *.cookies)', extensions: ['txt', 'cookies'] },
+        { name: '所有文件 (*.*)', extensions: ['*'] }
+      ],
+      properties: ['openFile']
+    });
+
+    if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+      return { success: false, message: '已取消选择' };
+    }
+
+    const selectedFile = result.filePaths[0];
+    const targetCookiesFile = getYtCookiesFilePath();
+    fs.copyFileSync(selectedFile, targetCookiesFile);
+
+    const injectedCount = await injectNetscapeCookiesIntoSession(targetCookiesFile);
+    saveYtCookieConfig({ mode: 'embedded' });
+    const cfg = getYtCookieConfig();
+
+    if (event && event.sender) {
+      event.sender.send('yt-login-success', cfg);
+    }
+
+    return { 
+      success: true, 
+      config: cfg, 
+      injectedCount,
+      message: `成功导入 cookies.txt，已注入 ${injectedCount} 个登录凭据！` 
+    };
+  } catch (err) {
+    console.error('[YT-COOKIE] Failed to import cookie file:', err);
+    return { success: false, message: '导入失败: ' + err.message };
+  }
 });
 
 ipcMain.handle('yt-open-login-window', async (event) => {
@@ -3133,13 +3334,22 @@ ipcMain.handle('yt-open-login-window', async (event) => {
     return { success: true, message: 'Login window already open' };
   }
 
+  // Use Firefox desktop UA and strip client hints to prevent Google "This browser or app may not be secure"
+  const desktopUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0";
   const loginSession = session.fromPartition('persist:youtube_login');
-  const desktopUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
   loginSession.setUserAgent(desktopUserAgent);
 
+  loginSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    details.requestHeaders['User-Agent'] = desktopUserAgent;
+    delete details.requestHeaders['sec-ch-ua'];
+    delete details.requestHeaders['sec-ch-ua-mobile'];
+    delete details.requestHeaders['sec-ch-ua-platform'];
+    callback({ requestHeaders: details.requestHeaders });
+  });
+
   ytLoginWindow = new BrowserWindow({
-    width: 580,
-    height: 750,
+    width: 600,
+    height: 780,
     title: '登录 YouTube 账号 (ShareCLIP 安全同步)',
     webPreferences: {
       session: loginSession,
@@ -3169,37 +3379,25 @@ ipcMain.handle('yt-open-login-window', async (event) => {
         const allCookies = [...cookies, ...googleCookies];
 
         const netscapeTxt = exportCookiesToNetscape(allCookies);
-        fs.writeFileSync(getYtCookiesFilePath(), netscapeTxt, 'utf8');
+        const targetPath = getYtCookiesFilePath();
+        fs.writeFileSync(targetPath, netscapeTxt, 'utf8');
 
-        // Sync into session.defaultSession for embedded <webview>
-        for (const c of allCookies) {
-          try {
-            const url = (c.secure ? 'https://' : 'http://') + c.domain.replace(/^\./, '') + c.path;
-            await session.defaultSession.cookies.set({
-              url,
-              name: c.name,
-              value: c.value,
-              domain: c.domain,
-              path: c.path,
-              secure: c.secure,
-              httpOnly: c.httpOnly,
-              expirationDate: c.expirationDate
-            });
-          } catch (ce) {}
-        }
+        // Inject into defaultSession
+        await injectNetscapeCookiesIntoSession(targetPath);
 
         saveYtCookieConfig({ mode: 'embedded' });
+        const cfg = getYtCookieConfig();
         console.log('[YT-COOKIE] YouTube login cookies successfully captured and synced!');
 
         if (event && event.sender) {
-          event.sender.send('yt-login-success', { mode: 'embedded' });
+          event.sender.send('yt-login-success', cfg);
         }
 
         setTimeout(() => {
           if (ytLoginWindow && !ytLoginWindow.isDestroyed()) {
             ytLoginWindow.close();
           }
-        }, 800);
+        }, 1000);
       }
     } catch (err) {
       console.error('[YT-COOKIE] Error checking login cookies:', err);
@@ -3236,6 +3434,12 @@ ipcMain.handle('yt-cookies-clear', async () => {
       await session.defaultSession.cookies.remove(url, c.name).catch(() => {});
     }
 
+    const gCookies = await session.defaultSession.cookies.get({ domain: '.google.com' });
+    for (const c of gCookies) {
+      const url = (c.secure ? 'https://' : 'http://') + c.domain.replace(/^\./, '') + c.path;
+      await session.defaultSession.cookies.remove(url, c.name).catch(() => {});
+    }
+
     const loginSession = session.fromPartition('persist:youtube_login');
     const partCookies = await loginSession.cookies.get({});
     for (const c of partCookies) {
@@ -3243,7 +3447,7 @@ ipcMain.handle('yt-cookies-clear', async () => {
       await loginSession.cookies.remove(url, c.name).catch(() => {});
     }
 
-    return { success: true };
+    return { success: true, config: getYtCookieConfig() };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -3492,7 +3696,7 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
     console.log(`[YT-DLP] Task ${currentTaskId} Spawning: ${ytPath} ${args.join(' ')}`);
 
     return new Promise((resolve) => {
-      event.sender.send('yt-progress', {
+      broadcastYtProgress(event, {
         taskId: currentTaskId,
         status: 'Starting download...',
         progress: 0
@@ -3520,7 +3724,7 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
         const match = text.match(/\[download\]\s+([\d\.]+)%\s+of\s+~?([\d\.]+[A-Za-z]+)(?:\s+at\s+([^ ]+))?(?:\s+ETA\s+([^ ]+))?/);
         if (match) {
           lastProgress = parseFloat(match[1]);
-          event.sender.send('yt-progress', {
+          broadcastYtProgress(event, {
             taskId: currentTaskId,
             status: 'Downloading',
             progress: lastProgress,
@@ -3529,7 +3733,7 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
             eta: match[4] || 'N/A'
           });
         } else if (text.includes('[ExtractAudio]') || text.includes('[Merger]') || text.includes('[EmbedThumbnail]')) {
-          event.sender.send('yt-progress', {
+          broadcastYtProgress(event, {
             taskId: currentTaskId,
             status: 'Merging & Embedding Cover...',
             progress: 100
@@ -3602,7 +3806,7 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
           if (history.length > 200) history.length = 200;
           saveYtHistory(history);
 
-          event.sender.send('yt-progress', {
+          broadcastYtProgress(event, {
             taskId: currentTaskId,
             status: 'Completed',
             progress: 100,
@@ -3804,6 +4008,159 @@ ipcMain.handle('yt-open-folder', async (event, filePath) => {
   const defDir = path.join(app.getPath('downloads'), 'ShareCLIP_Video');
   if (!fs.existsSync(defDir)) fs.mkdirSync(defDir, { recursive: true });
   shell.openPath(defDir);
+  return { success: true };
+});
+
+// -------------------------------------------------------------------------------
+// 🌐 Standalone Sniffer Browser Window Management
+// -------------------------------------------------------------------------------
+let snifferBrowserWindow = null;
+
+function broadcastYtProgress(event, data) {
+  if (event && event.sender && !event.sender.isDestroyed()) {
+    event.sender.send('yt-progress', data);
+  }
+  if (snifferBrowserWindow && !snifferBrowserWindow.isDestroyed()) {
+    snifferBrowserWindow.webContents.send('sniffer:progress', data);
+  }
+}
+
+function openSnifferBrowserWindow(targetUrl) {
+  const defaultUrl = targetUrl || 'https://m.youtube.com';
+  const browserProdFile = path.join(__dirname, 'dist', 'sniffer-browser.html');
+  const browserPublicFile = path.join(__dirname, 'public', 'sniffer-browser.html');
+  const fileToLoad = fs.existsSync(browserProdFile) ? browserProdFile : browserPublicFile;
+
+  if (snifferBrowserWindow && !snifferBrowserWindow.isDestroyed()) {
+    if (snifferBrowserWindow.isMinimized()) snifferBrowserWindow.restore();
+    snifferBrowserWindow.show();
+    snifferBrowserWindow.focus();
+    if (targetUrl) {
+      snifferBrowserWindow.webContents.send('sniffer:navigate-to', targetUrl);
+    }
+    return { success: true, message: 'Focused existing sniffer browser' };
+  }
+
+  snifferBrowserWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 860,
+    minHeight: 540,
+    center: true,
+    title: 'ShareCLIP 独立嗅探浏览器',
+    icon: path.join(__dirname, fs.existsSync(path.join(__dirname, 'icon.ico')) ? 'icon.ico' : 'icon.png'),
+    backgroundColor: '#0b0f19',
+    show: false,
+    frame: false,
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: true,
+      session: session.defaultSession,
+      backgroundThrottling: false
+    }
+  });
+
+  snifferBrowserWindow.setMenu(null);
+
+  const showWindowSafely = () => {
+    if (snifferBrowserWindow && !snifferBrowserWindow.isDestroyed()) {
+      if (!snifferBrowserWindow.isVisible()) {
+        snifferBrowserWindow.show();
+      }
+      snifferBrowserWindow.focus();
+      if (targetUrl) {
+        snifferBrowserWindow.webContents.send('sniffer:navigate-to', targetUrl);
+      }
+    }
+  };
+
+  snifferBrowserWindow.once('ready-to-show', showWindowSafely);
+  snifferBrowserWindow.webContents.on('did-finish-load', showWindowSafely);
+  setTimeout(showWindowSafely, 150);
+
+  snifferBrowserWindow.loadFile(fileToLoad);
+
+  snifferBrowserWindow.on('closed', () => {
+    snifferBrowserWindow = null;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('sniffer:window-status', { isOpen: false });
+    }
+  });
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('sniffer:window-status', { isOpen: true, url: defaultUrl });
+  }
+
+  return { success: true };
+}
+
+ipcMain.handle('sniffer:open-window', async (event, url) => {
+  return openSnifferBrowserWindow(url);
+});
+
+ipcMain.handle('sniffer:close-window', async () => {
+  if (snifferBrowserWindow && !snifferBrowserWindow.isDestroyed()) {
+    snifferBrowserWindow.close();
+  }
+  return { success: true };
+});
+
+ipcMain.handle('sniffer:focus-window', async () => {
+  if (snifferBrowserWindow && !snifferBrowserWindow.isDestroyed()) {
+    if (snifferBrowserWindow.isMinimized()) snifferBrowserWindow.restore();
+    snifferBrowserWindow.show();
+    snifferBrowserWindow.focus();
+    return { success: true };
+  }
+  return openSnifferBrowserWindow();
+});
+
+ipcMain.handle('sniffer:window-minimize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win && !win.isDestroyed()) win.minimize();
+  return true;
+});
+
+ipcMain.handle('sniffer:window-maximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win && !win.isDestroyed()) {
+    if (win.isMaximized()) {
+      win.unmaximize();
+      return false;
+    } else {
+      win.maximize();
+      return true;
+    }
+  }
+  return false;
+});
+
+ipcMain.handle('sniffer:window-close', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win && !win.isDestroyed()) win.close();
+  return true;
+});
+
+ipcMain.handle('sniffer:trigger-download', async (event, payload) => {
+  const { url, title } = payload || {};
+  if (!url) return { success: false, error: 'No URL provided' };
+
+  console.log('[Sniffer Browser] Trigger download requested for:', url, title);
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('downloader:remote-enqueue', { url, title, autoStart: true });
+    return { success: true };
+  }
+  return { success: false, error: 'Main window is not available' };
+});
+
+ipcMain.handle('sniffer:sync-status', async (event, payload) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('sniffer:window-status', { isOpen: true, ...payload });
+  }
   return { success: true };
 });
 

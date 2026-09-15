@@ -1787,9 +1787,11 @@
                   :class="{ 'yt-cookie-active': ytCookieConfig.mode !== 'none' }"
                   @click.stop="showYtCookieMenu = !showYtCookieMenu"
                   title="YouTube 登录同步设置"
+                  :disabled="ytCookieSyncing"
                 >
-                  <span class="yt-cookie-dot" :class="ytCookieConfig.mode !== 'none' ? 'dot-active' : 'dot-inactive'"></span>
-                  <span>🔐 {{ ytCookieSummaryLabel }}</span>
+                  <span v-if="ytCookieSyncing" class="yt-cookie-spinner"></span>
+                  <span v-else class="yt-cookie-dot" :class="ytCookieConfig.mode !== 'none' ? 'dot-active' : 'dot-inactive'"></span>
+                  <span>🔐 {{ ytCookieSyncing ? (ytSyncStatusText || '同步中...') : ytCookieSummaryLabel }}</span>
                   <span class="yt-cookie-arrow">▼</span>
                 </button>
 
@@ -1803,6 +1805,12 @@
                     <div class="yt-cookie-menu-desc">
                       {{ t.videoDownloader?.cookieMenuDesc || '同步浏览器或内嵌登录态，解锁 18+ 年龄受限视频、高码率与会员专享视频。' }}
                     </div>
+                  </div>
+
+                  <!-- Loading Banner -->
+                  <div v-if="ytCookieSyncing" class="yt-sync-loading-banner">
+                    <span class="yt-cookie-spinner"></span>
+                    <span>{{ ytSyncStatusText || '正在同步浏览器登录凭据...' }}</span>
                   </div>
 
                   <div class="yt-cookie-options">
@@ -1828,7 +1836,7 @@
                       <span class="option-icon">🌊</span>
                       <div class="option-info">
                         <span>{{ t.videoDownloader?.syncEdge || 'Microsoft Edge' }}</span>
-                        <span class="option-badge">推荐</span>
+                        <span class="option-badge">免密秒同步 · 推荐</span>
                       </div>
                       <span v-if="ytCookieConfig.mode === 'edge'" class="option-check">✓</span>
                     </div>
@@ -1885,17 +1893,32 @@
                       </div>
                       <span v-if="ytCookieConfig.mode === 'embedded'" class="option-check">✓</span>
                     </div>
+
+                    <!-- Option 7: Import cookies.txt -->
+                    <div 
+                      class="yt-cookie-option" 
+                      @click="importYtCookiesFile"
+                    >
+                      <span class="option-icon">📁</span>
+                      <div class="option-info">
+                        <span>{{ t.videoDownloader?.syncFile || '导入 cookies.txt 文件' }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4; padding: 4px 6px; background: rgba(255, 255, 255, 0.03); border-radius: 6px;">
+                    💡 {{ t.videoDownloader?.cookieLockedTip || 'Chrome 运行中锁定了数据库？推荐一键选择【Microsoft Edge】免密秒同步！' }}
                   </div>
 
                   <div class="yt-cookie-menu-divider"></div>
 
                   <!-- Actions: Open login window or clear cookies -->
                   <div class="yt-cookie-actions">
-                    <button class="btn btn-primary yt-action-btn" @click="openYtLoginWindow">
+                    <button class="btn btn-primary yt-action-btn" @click="openYtLoginWindow" :disabled="ytCookieSyncing">
                       <span>🔑</span>
                       <span>{{ ytCookieConfig.hasEmbeddedCookies ? '重新登录 YouTube' : (t.videoDownloader?.embeddedLoginBtn || '内嵌一键登录') }}</span>
                     </button>
-                    <button v-if="ytCookieConfig.hasEmbeddedCookies || ytCookieConfig.mode !== 'none'" class="btn btn-secondary yt-action-btn yt-action-logout" @click="clearYtCookies">
+                    <button v-if="ytCookieConfig.hasEmbeddedCookies || ytCookieConfig.mode !== 'none'" class="btn btn-secondary yt-action-btn yt-action-logout" @click="clearYtCookies" :disabled="ytCookieSyncing">
                       <span>🚪</span>
                       <span>{{ t.videoDownloader?.clearLoginBtn || '退出登录 / 清除凭据' }}</span>
                     </button>
@@ -1903,21 +1926,17 @@
                 </div>
               </div>
 
-              <!-- If Parse Tab: Mode Switcher -->
-              <div v-if="ytSubTab === 'parse'" class="yt-mode-switcher">
+              <!-- If Parse Tab: Direct Trigger Button for Sniffer Window -->
+              <div v-if="ytSubTab === 'parse'" style="display: flex; align-items: center; gap: 8px;">
                 <button 
-                  @click="ytMode = 'link'" 
-                  class="yt-mode-btn"
-                  :class="{ active: ytMode === 'link' }"
+                  @click="openSnifferBrowser()" 
+                  class="yt-mode-btn active"
+                  style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35); cursor: pointer;"
+                  :title="snifferWindowStatus.isOpen ? '独立嗅探窗口已打开，点击立即聚焦前台' : '点击直接弹出 1200×800 独立嗅探浏览器窗口'"
                 >
-                  🔗 链接解析
-                </button>
-                <button 
-                  @click="ytMode = 'browser'" 
-                  class="yt-mode-btn"
-                  :class="{ active: ytMode === 'browser' }"
-                >
-                  🌐 嗅探浏览器
+                  <span>🌐</span>
+                  <span>{{ snifferWindowStatus.isOpen ? '独立嗅探窗口 (已开启)' : '独立嗅探窗口' }}</span>
+                  <span v-if="snifferWindowStatus.isOpen" class="sniffer-online-dot"></span>
                 </button>
               </div>
 
@@ -1935,8 +1954,28 @@
 
           <!-- TAB 1: PARSE & DOWNLOAD -->
           <div v-if="ytSubTab === 'parse'" style="display: flex; flex-direction: column; flex: 1;">
-            <!-- Link Mode Content -->
-            <div v-if="ytMode === 'link'" style="display: flex; flex-direction: column; flex: 1;">
+            <!-- Live Sniffer Window Banner if open -->
+            <div v-if="snifferWindowStatus.isOpen" style="background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 12px; padding: 10px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);">
+              <div style="min-width: 0; flex: 1; display: flex; align-items: center; gap: 10px;">
+                <span class="sniffer-online-dot"></span>
+                <span style="font-size: 12px; font-weight: 700; color: #818cf8; white-space: nowrap;">独立嗅探窗口就绪:</span>
+                <span style="font-size: 12px; color: var(--text-primary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  {{ snifferWindowStatus.title || '正在浏览网页...' }}
+                </span>
+              </div>
+              <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                <button class="btn btn-secondary" style="padding: 5px 12px; font-size: 11px; border-radius: 7px; display: flex; align-items: center; gap: 4px;" @click="parseSnifferCurrentUrl" title="拉取独立窗口正在浏览的视频网址到下方解析框">
+                  <span>📥</span>
+                  <span>拉取至解析</span>
+                </button>
+                <button class="btn btn-primary" style="padding: 5px 14px; font-size: 11px; border-radius: 7px; font-weight: 600;" @click="focusSnifferBrowser">
+                  🪟 聚焦窗口
+                </button>
+                <button class="btn btn-secondary" style="padding: 5px 9px; font-size: 11px; border-radius: 7px; color: #ef4444;" @click="closeSnifferBrowser" title="关闭独立嗅探窗口">
+                  ✕
+                </button>
+              </div>
+            </div>
               <!-- Sleek Search/URL Input Box -->
               <div class="yt-input-card">
                 <span style="font-size: 16px; margin-right: 12px; opacity: 0.6;">🔗</span>
@@ -2048,28 +2087,6 @@
                   </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Browser Download Mode (Webview) -->
-            <div v-if="ytMode === 'browser'" class="glass-panel" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 0; min-height: 500px;">
-              <div style="display: flex; gap: 12px; padding: 12px 16px; background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--border-color); align-items: center;">
-                <button class="btn btn-secondary" style="padding: 6px 12px;" @click="goBackWebview">←</button>
-                <button class="btn btn-secondary" style="padding: 6px 12px;" @click="goForwardWebview">→</button>
-                <button class="btn btn-secondary" style="padding: 6px 12px;" @click="reloadWebview">↻</button>
-                <div style="flex: 1; padding: 6px 12px; background: rgba(255,255,255,0.05); border-radius: 4px; font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                  YouTube Mobile (内嵌嗅探浏览器)
-                </div>
-                <button class="btn btn-primary" style="padding: 6px 18px; font-weight: 600;" @click="parseCurrentWebview">
-                  ✨ 解析当前页视频
-                </button>
-              </div>
-              <webview 
-                ref="ytWebviewRef" 
-                src="https://m.youtube.com" 
-                style="flex: 1; width: 100%; height: 100%; border: none;"
-                useragent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
-              ></webview>
-            </div>
           </div>
 
           <!-- TAB 2: DOWNLOADING TASKS LIST -->
@@ -3529,8 +3546,11 @@ const ytActiveTasks = ref([]);
 const ytHistory = ref([]);
 const ytWebviewRef = ref(null);
 const ytCookieConfig = ref({ mode: 'none', hasEmbeddedCookies: false });
+const ytCookieSyncing = ref(false);
+const ytSyncStatusText = ref('');
 const showYtCookieMenu = ref(false);
 const ytCookieWrapperRef = ref(null);
+const snifferWindowStatus = ref({ isOpen: false, url: '', title: '' });
 
 const ytCookieSummaryLabel = computed(() => {
   const mode = ytCookieConfig.value?.mode || 'none';
@@ -3544,6 +3564,8 @@ const ytCookieSummaryLabel = computed(() => {
       return vd?.syncFirefox || 'Mozilla Firefox';
     case 'brave':
       return vd?.syncBrave || 'Brave Browser';
+    case 'file':
+      return vd?.syncFile || 'cookies.txt';
     case 'embedded':
       return ytCookieConfig.value?.hasEmbeddedCookies ? (vd?.syncEmbedded || '内嵌已登录') : (vd?.syncEmbedded || '内嵌账号');
     case 'none':
@@ -6570,24 +6592,123 @@ const parseYtVideo = async () => {
   }
 };
 
-const parseCurrentWebview = () => {
-  if (ytWebviewRef.value) {
-    try {
-      const url = ytWebviewRef.value.getURL();
-      if (url) {
-        ytUrl.value = url;
-        ytMode.value = 'link'; // Switch back to link mode to show parse UI
-        parseYtVideo();
+const openSnifferBrowser = async (url) => {
+  if (!window.api?.openSnifferBrowser) return;
+  try {
+    await window.api.openSnifferBrowser(url);
+    snifferWindowStatus.value.isOpen = true;
+    if (url) snifferWindowStatus.value.url = url;
+  } catch (e) {
+    console.error('Failed to open sniffer browser:', e);
+  }
+};
+
+const switchYtModeToBrowser = async () => {
+  ytMode.value = 'browser';
+  if (!snifferWindowStatus.value.isOpen) {
+    await openSnifferBrowser();
+  } else {
+    await focusSnifferBrowser();
+  }
+};
+
+const focusSnifferBrowser = async () => {
+  if (window.api?.focusSnifferBrowser) {
+    await window.api.focusSnifferBrowser();
+  }
+};
+
+const closeSnifferBrowser = async () => {
+  if (window.api?.closeSnifferBrowser) {
+    await window.api.closeSnifferBrowser();
+    snifferWindowStatus.value.isOpen = false;
+  }
+};
+
+const parseSnifferCurrentUrl = () => {
+  if (snifferWindowStatus.value.url) {
+    ytUrl.value = snifferWindowStatus.value.url;
+    ytMode.value = 'link';
+    parseYtVideo();
+  }
+};
+
+const ytDownloadVideoDirect = async (targetUrl, targetTitle) => {
+  if (!targetUrl) return;
+  const cleanUrl = extractVideoUrl(targetUrl);
+  ytUrl.value = cleanUrl;
+
+  try {
+    const res = await window.api.getYtVideoInfo(cleanUrl);
+    if (res && res.success) {
+      ytVideoInfo.value = res;
+      if (res.resolutions && res.resolutions.length > 0) {
+        ytSelectedResolution.value = res.resolutions.find(r => r.isRecommended || r.recommended) || res.resolutions[0];
       }
-    } catch (e) {
-      console.warn('Failed to get webview URL:', e);
+      await startYtDownload();
+      return;
+    }
+  } catch (e) {
+    console.warn('Direct parse failed, falling back to direct best download:', e);
+  }
+
+  const taskId = `yt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const newTask = {
+    id: taskId,
+    url: cleanUrl,
+    title: targetTitle || '正在下载网络视频...',
+    thumbnail: '',
+    duration: 0,
+    resolution: '最佳高清 (自动)',
+    progress: 0,
+    status: '正在连接下载节点...',
+    size: '',
+    speed: '',
+    eta: '',
+    error: null
+  };
+  ytActiveTasks.value.unshift(newTask);
+  ytSubTab.value = 'downloading';
+
+  try {
+    const res = await window.api.downloadYtVideo({
+      taskId,
+      url: cleanUrl,
+      extractor: '',
+      resolution: {
+        id: 'best',
+        label: '最佳画质',
+        formatSpec: 'bestvideo+bestaudio/best',
+        filesize: 0,
+        type: 'video'
+      },
+      title: targetTitle || 'Video',
+      thumbnail: '',
+      duration: 0
+    });
+    if (res && res.success) {
+      ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== taskId);
+      await loadYtHistory();
+    } else {
+      const task = ytActiveTasks.value.find(t => t.id === taskId);
+      if (task) {
+        task.status = `❌ 下载失败: ${res?.error || '未知错误'}`;
+        task.error = res?.error || '未知错误';
+      }
+    }
+  } catch (err) {
+    const task = ytActiveTasks.value.find(t => t.id === taskId);
+    if (task) {
+      task.status = `❌ 异常: ${err.message || err}`;
+      task.error = err.message || String(err);
     }
   }
 };
 
-const goBackWebview = () => { if (ytWebviewRef.value && ytWebviewRef.value.canGoBack()) ytWebviewRef.value.goBack(); };
-const goForwardWebview = () => { if (ytWebviewRef.value && ytWebviewRef.value.canGoForward()) ytWebviewRef.value.goForward(); };
-const reloadWebview = () => { if (ytWebviewRef.value) ytWebviewRef.value.reload(); };
+const parseCurrentWebview = () => parseSnifferCurrentUrl();
+const goBackWebview = () => {};
+const goForwardWebview = () => {};
+const reloadWebview = () => {};
 
 const startYtDownload = async () => {
   if (!ytUrl.value || !ytVideoInfo.value) return;
@@ -6727,13 +6848,69 @@ const openYtFolder = async (filePath) => {
 
 const changeYtCookieMode = async (mode) => {
   if (!window.api?.ytSetCookieMode) return;
+  if (ytCookieSyncing.value) return;
+
+  if (mode === 'none') {
+    try {
+      const res = await window.api.ytSetCookieMode('none');
+      if (res && res.success) {
+        ytCookieConfig.value = res.config;
+        showAppToast('已关闭 YouTube 登录同步', 'info');
+      }
+    } catch (e) {}
+    showYtCookieMenu.value = false;
+    return;
+  }
+
   try {
+    ytCookieSyncing.value = true;
+    ytSyncStatusText.value = `正在从 ${mode.toUpperCase()} 同步凭据...`;
+    
     const res = await window.api.ytSetCookieMode(mode);
+    ytCookieSyncing.value = false;
+
     if (res && res.success) {
       ytCookieConfig.value = res.config;
+      showAppToast(res.message || `🎉 成功同步 ${mode.toUpperCase()} 登录态！已激活高清画质`, 'success', 4000);
+      showYtCookieMenu.value = false;
+      if (ytWebviewRef.value) {
+        try { ytWebviewRef.value.reload(); } catch (e) {}
+      }
+    } else {
+      const msg = res?.message || '同步凭据失败';
+      if (res?.code === 'LOCKED' && mode === 'chrome') {
+        const confirmEdge = confirm(`${msg}\n\n是否立即尝试使用【Microsoft Edge】一键免密同步？`);
+        if (confirmEdge) {
+          await changeYtCookieMode('edge');
+          return;
+        }
+      } else {
+        alert(msg);
+      }
     }
   } catch (e) {
+    ytCookieSyncing.value = false;
     console.error('Failed to set cookie mode:', e);
+    alert('同步失败: ' + (e.message || e));
+  }
+};
+
+const importYtCookiesFile = async () => {
+  if (!window.api?.ytImportCookiesFile) return;
+  try {
+    showYtCookieMenu.value = false;
+    const res = await window.api.ytImportCookiesFile();
+    if (res && res.success) {
+      ytCookieConfig.value = res.config;
+      showAppToast(res.message || '🎉 成功导入 cookies.txt 凭据！', 'success', 4000);
+      if (ytWebviewRef.value) {
+        try { ytWebviewRef.value.reload(); } catch (e) {}
+      }
+    } else if (res && res.message && !res.message.includes('取消')) {
+      alert(res.message);
+    }
+  } catch (e) {
+    alert('导入失败: ' + (e.message || e));
   }
 };
 
@@ -6741,6 +6918,7 @@ const openYtLoginWindow = async () => {
   if (!window.api?.ytOpenLoginWindow) return;
   try {
     showYtCookieMenu.value = false;
+    showAppToast('正在打开登录窗口，建议优先使用 Edge 一键免密秒同步', 'info', 4500);
     await window.api.ytOpenLoginWindow();
   } catch (e) {
     console.error('Failed to open login window:', e);
@@ -6753,6 +6931,7 @@ const clearYtCookies = async () => {
     const res = await window.api.ytClearCookies();
     if (res && res.success) {
       ytCookieConfig.value = res.config;
+      showAppToast('已退出登录并清除所有凭据', 'info', 3000);
       if (ytWebviewRef.value) {
         try { ytWebviewRef.value.reload(); } catch (e) {}
       }
@@ -6856,8 +7035,45 @@ onMounted(() => {
     if (window.api.onYtLoginSuccess) {
       window.api.onYtLoginSuccess((cfg) => {
         if (cfg) ytCookieConfig.value = cfg;
+        showAppToast('🎉 YouTube 登录凭据已生效，嗅探浏览器已自动刷新！', 'success', 3500);
         if (ytWebviewRef.value) {
           try { ytWebviewRef.value.reload(); } catch (e) {}
+        }
+      });
+    }
+
+    watch(ytWebviewRef, (wv) => {
+      if (!wv) return;
+      try {
+        wv.addEventListener('will-navigate', (e) => {
+          if (e.url && (e.url.includes('accounts.google.com') || e.url.includes('ServiceLogin'))) {
+            showAppToast('💡 Google 限制在内嵌网页中输入密码，请在右上角【🔐 登录同步】一键同步 Edge/Chrome 登录态！', 'info', 5000);
+            showYtCookieMenu.value = true;
+          }
+        });
+      } catch (e) {}
+    });
+
+    // Standalone Sniffer Window status listener
+    if (window.api?.onSnifferWindowStatus) {
+      window.api.onSnifferWindowStatus((status) => {
+        if (status) {
+          snifferWindowStatus.value = {
+            isOpen: !!status.isOpen,
+            url: status.url || snifferWindowStatus.value.url,
+            title: status.title || snifferWindowStatus.value.title
+          };
+        }
+      });
+    }
+
+    // Remote download enqueue listener from standalone sniffer window
+    if (window.api?.onRemoteEnqueueDownload) {
+      window.api.onRemoteEnqueueDownload((data) => {
+        if (data && data.url) {
+          console.log('[App] Remote enqueue download requested:', data);
+          showAppToast(`🚀 已接收独立嗅探窗口指令，正在拉取: ${data.title || data.url}`, 'info', 3500);
+          ytDownloadVideoDirect(data.url, data.title);
         }
       });
     }

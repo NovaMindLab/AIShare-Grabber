@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShareCLIP 独立嗅探浏览器</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      background-color: #0b0f19;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Frameless Titlebar ──────────────────────────────────── */
+    .titlebar {
+      height: 42px;
+      min-height: 42px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      padding: 0 8px 0 14px;
+      -webkit-app-region: drag;
+      z-index: 100;
+      user-select: none;
+    }
+    .titlebar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      pointer-events: none; /* Allow drag events on logo */
+    }
+    .titlebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: 0.3px;
+    }
+    .titlebar-logo-icon {
+      font-size: 16px;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .titlebar-badge {
+      font-size: 10px;
+      background: rgba(99, 102, 241, 0.25);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    /* Quick Site Chips */
+    .titlebar-chips {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0 12px;
+      flex-shrink: 0;
+    }
+    .site-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      -webkit-app-region: no-drag;
+    }
+    .site-chip:hover {
+      background: rgba(99, 102, 241, 0.25);
+      border-color: rgba(99, 102, 241, 0.5);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    /* Large Draggable Spacer */
+    .titlebar-drag-spacer {
+      flex: 1;
+      height: 100%;
+      min-width: 40px;
+      -webkit-app-region: drag;
+    }
+
+    /* Window Controls */
+    .titlebar-actions {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      -webkit-app-region: no-drag;
+      flex-shrink: 0;
+    }
+    .tb-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      width: 34px;
+      height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: all 0.15s ease;
+    }
+    .tb-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+    }
+    .tb-btn-close:hover {
+      background: #ef4444 !important;
+      color: #ffffff !important;
+    }
+
+    /* ── Secondary Navigation Toolbar ────────────────────────── */
+    .toolbar {
+      height: 44px;
+      min-height: 44px;
+      background: rgba(18, 24, 38, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      z-index: 90;
+      -webkit-app-region: drag;
+    }
+
+    .nav-btn-group,
+    .address-bar,
+    .btn-ua,
+    .btn-sniff {
+      -webkit-app-region: no-drag;
+    }
+
+    .nav-btn-group {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .nav-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+    }
+    .nav-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* Omnibar / Address Input */
+    .address-bar {
+      flex: 1;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .address-bar:focus-within {
+      background: rgba(15, 23, 42, 0.9);
+      border-color: #6366f1;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+    }
+    .address-lock {
+      font-size: 12px;
+      color: #10b981;
+      flex-shrink: 0;
+    }
+    .address-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #f1f5f9;
+      font-size: 12px;
+      user-select: text;
+    }
+    .address-input::placeholder {
+      color: #64748b;
+    }
+    .address-clear {
+      font-size: 12px;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 2px;
+      display: none;
+    }
+    .address-clear:hover {
+      color: #f1f5f9;
+    }
+
+    /* Primary Sniff CTA Button */
+    .btn-sniff {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6, #d946ef);
+      background-size: 200% 200%;
+      border: none;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-sniff:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(168, 85, 247, 0.5);
+      filter: brightness(1.1);
+    }
+    .btn-sniff:active {
+      transform: translateY(0);
+    }
+
+    /* UA Toggle Button */
+    .btn-ua {
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+    .btn-ua:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+
+    /* ── Webview Area ────────────────────────────────────────── */
+    .webview-container {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      background: #000000;
+    }
+    webview {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Loading progress bar */
+    .loading-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #6366f1, #a855f7, #38bdf8);
+      width: 0%;
+      transition: width 0.2s ease, opacity 0.4s ease;
+      z-index: 10;
+      opacity: 0;
+    }
+
+    /* ── Floating Download HUD Notification ──────────────────── */
+    .floating-hud {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 340px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-radius: 14px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(16px);
+      padding: 14px 16px;
+      z-index: 10000;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      animation: hudSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes hudSlideUp {
+      from { opacity: 0; transform: translateY(20px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .hud-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .hud-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hud-close {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 4px;
+    }
+    .hud-close:hover {
+      color: #ffffff;
+    }
+    .hud-desc {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.4;
+      word-break: break-all;
+      max-height: 36px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hud-progress-bar {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+    .hud-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #10b981);
+      width: 0%;
+      transition: width 0.2s ease;
+    }
+    .hud-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #a5b4fc;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Frameless Titlebar -->
+  <header class="titlebar" id="titlebar">
+    <div class="titlebar-left">
+      <div class="titlebar-logo">
+        <span class="titlebar-logo-icon">🌐</span>
+        <span>ShareCLIP 独立嗅探浏览器</span>
+      </div>
+      <span class="titlebar-badge">大屏沉浸</span>
+    </div>
+
+    <!-- Quick Site Navigation Chips -->
+    <div class="titlebar-chips">
+      <div class="site-chip" data-url="https://m.youtube.com">
+        <span>🔴</span><span>YouTube</span>
+      </div>
+      <div class="site-chip" data-url="https://www.bilibili.com">
+        <span>⚡</span><span>哔哩哔哩</span>
+      </div>
+      <div class="site-chip" data-url="https://www.douyin.com">
+        <span>🎵</span><span>抖音</span>
+      </div>
+      <div class="site-chip" data-url="https://www.tiktok.com">
+        <span>🖤</span><span>TikTok</span>
+      </div>
+      <div class="site-chip" data-url="https://x.com">
+        <span>🐦</span><span>X / Twitter</span>
+      </div>
+      <div class="site-chip" data-url="https://www.xiaohongshu.com">
+        <span>📕</span><span>小红书</span>
+      </div>
+    </div>
+
+    <!-- Large Draggable Spacer -->
+    <div class="titlebar-drag-spacer"></div>
+
+    <!-- Window Controls -->
+    <div class="titlebar-actions">
+      <button class="tb-btn" id="btnMin" title="最小化">─</button>
+      <button class="tb-btn" id="btnMax" title="最大化">□</button>
+      <button class="tb-btn tb-btn-close" id="btnClose" title="关闭">✕</button>
+    </div>
+  </header>
+
+  <!-- Secondary Navigation & Omnibar -->
+  <nav class="toolbar">
+    <div class="nav-btn-group">
+      <button class="nav-btn" id="btnBack" title="后退" disabled>←</button>
+      <button class="nav-btn" id="btnForward" title="前进" disabled>→</button>
+      <button class="nav-btn" id="btnReload" title="刷新页面">↻</button>
+      <button class="nav-btn" id="btnHome" title="回到主页">🏠</button>
+    </div>
+
+    <div class="address-bar">
+      <span class="address-lock" id="addrLock">🔒</span>
+      <input type="text" class="address-input" id="urlInput" placeholder="在此输入视频网址或搜索关键词，回车前往..." />
+      <span class="address-clear" id="addrClear" title="清空">✕</span>
+    </div>
+
+    <!-- User-Agent Switcher -->
+    <button class="btn-ua" id="btnUa" title="切换电脑版 / 手机版网页">
+      <span>📱</span><span id="uaLabel">手机版</span>
+    </button>
+
+    <!-- Main CTA Sniff Button -->
+    <button class="btn-sniff" id="btnSniff" title="将当前页面的视频发送至主窗口开始解析下载">
+      <span>✨</span>
+      <span>解析当前视频并下载</span>
+    </button>
+  </nav>
+
+  <!-- Large Viewport -->
+  <main class="webview-container">
+    <div class="loading-bar" id="loadingBar"></div>
+    <webview 
+      id="snifferWebview" 
+      src="https://m.youtube.com" 
+      partition=""
+      allowpopups="true"
+      useragent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+    ></webview>
+  </main>
+
+  <!-- Floating Download HUD -->
+  <div class="floating-hud" id="floatingHud">
+    <div class="hud-header">
+      <div class="hud-title">
+        <span id="hudIcon">✨</span>
+        <span id="hudStatus">已加入下载队列</span>
+      </div>
+      <button class="hud-close" id="hudClose">✕</button>
+    </div>
+    <div class="hud-desc" id="hudTitle">正在初始化视频元数据分析...</div>
+    <div class="hud-progress-bar">
+      <div class="hud-progress-fill" id="hudProgress"></div>
+    </div>
+    <div class="hud-footer">
+      <span id="hudSpeed">ShareCLIP 后台极速引擎</span>
+      <span id="hudPercent">0%</span>
+    </div>
+  </div>
+
+  <script>
+    const webview = document.getElementById('snifferWebview');
+    const urlInput = document.getElementById('urlInput');
+    const btnBack = document.getElementById('btnBack');
+    const btnForward = document.getElementById('btnForward');
+    const btnReload = document.getElementById('btnReload');
+    const btnHome = document.getElementById('btnHome');
+    const btnSniff = document.getElementById('btnSniff');
+    const btnUa = document.getElementById('btnUa');
+    const uaLabel = document.getElementById('uaLabel');
+    const addrClear = document.getElementById('addrClear');
+    const loadingBar = document.getElementById('loadingBar');
+
+    const btnMin = document.getElementById('btnMin');
+    const btnMax = document.getElementById('btnMax');
+    const btnClose = document.getElementById('btnClose');
+
+    const floatingHud = document.getElementById('floatingHud');
+    const hudStatus = document.getElementById('hudStatus');
+    const hudTitle = document.getElementById('hudTitle');
+    const hudProgress = document.getElementById('hudProgress');
+    const hudSpeed = document.getElementById('hudSpeed');
+    const hudPercent = document.getElementById('hudPercent');
+    const hudClose = document.getElementById('hudClose');
+    const hudIcon = document.getElementById('hudIcon');
+
+    let isMobileUa = true;
+    const MOBILE_UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36";
+    const DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
+
+    // 1. Window Controls & Titlebar Dragging
+    btnMin.addEventListener('click', () => { window.api?.snifferWindowMinimize?.(); });
+    btnMax.addEventListener('click', () => { window.api?.snifferWindowMaximize?.(); });
+    btnClose.addEventListener('click', () => { window.api?.snifferWindowClose?.(); });
+    document.getElementById('titlebar')?.addEventListener('dblclick', (e) => {
+      if (e.target.closest('.site-chip') || e.target.closest('.tb-btn')) return;
+      window.api?.snifferWindowMaximize?.();
+    });
+
+    // 2. Navigation controls
+    btnBack.addEventListener('click', () => { if (webview.canGoBack()) webview.goBack(); });
+    btnForward.addEventListener('click', () => { if (webview.canGoForward()) webview.goForward(); });
+    btnReload.addEventListener('click', () => {
+      if (webview.isLoading()) webview.stop();
+      else webview.reload();
+    });
+    btnHome.addEventListener('click', () => {
+      webview.loadURL('https://m.youtube.com');
+    });
+
+    // 3. Address bar enter
+    function navigateToInput() {
+      let raw = (urlInput.value || '').trim();
+      if (!raw) return;
+      if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
+        if (raw.includes('.') && !raw.includes(' ')) {
+          raw = 'https://' + raw;
+        } else {
+          raw = 'https://www.google.com/search?q=' + encodeURIComponent(raw);
+        }
+      }
+      webview.loadURL(raw);
+    }
+
+    urlInput.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') navigateToInput();
+      addrClear.style.display = urlInput.value ? 'inline-block' : 'none';
+    });
+    urlInput.addEventListener('input', () => {
+      addrClear.style.display = urlInput.value ? 'inline-block' : 'none';
+    });
+    addrClear.addEventListener('click', () => {
+      urlInput.value = '';
+      addrClear.style.display = 'none';
+      urlInput.focus();
+    });
+
+    // 4. Quick Site Chips
+    document.querySelectorAll('.site-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const target = chip.getAttribute('data-url');
+        if (target) webview.loadURL(target);
+      });
+    });
+
+    // 5. User-Agent Switcher
+    btnUa.addEventListener('click', () => {
+      isMobileUa = !isMobileUa;
+      if (isMobileUa) {
+        btnUa.querySelector('span:first-child').innerText = '📱';
+        uaLabel.innerText = '手机版';
+        webview.setUserAgent(MOBILE_UA);
+      } else {
+        btnUa.querySelector('span:first-child').innerText = '💻';
+        uaLabel.innerText = '电脑版';
+        webview.setUserAgent(DESKTOP_UA);
+      }
+      webview.reload();
+    });
+
+    // 6. Webview event listeners
+    function updateNavState() {
+      try {
+        btnBack.disabled = !webview.canGoBack();
+        btnForward.disabled = !webview.canGoForward();
+        const curUrl = webview.getURL() || '';
+        if (document.activeElement !== urlInput && curUrl && !curUrl.startsWith('data:')) {
+          urlInput.value = curUrl;
+          addrClear.style.display = 'none';
+        }
+        // Broadcast status to main process & main window
+        const title = webview.getTitle() || '';
+        window.api?.triggerSnifferStatus?.({ url: curUrl, title });
+      } catch (e) {}
+    }
+
+    webview.addEventListener('did-start-loading', () => {
+      loadingBar.style.width = '35%';
+      loadingBar.style.opacity = '1';
+      btnReload.innerText = '✕';
+      btnReload.title = '停止加载';
+      updateNavState();
+    });
+
+    webview.addEventListener('did-stop-loading', () => {
+      loadingBar.style.width = '100%';
+      setTimeout(() => {
+        loadingBar.style.opacity = '0';
+        loadingBar.style.width = '0%';
+      }, 300);
+      btnReload.innerText = '↻';
+      btnReload.title = '刷新页面';
+      updateNavState();
+    });
+
+    webview.addEventListener('did-navigate', updateNavState);
+    webview.addEventListener('did-navigate-in-page', updateNavState);
+    webview.addEventListener('page-title-updated', updateNavState);
+
+    // 7. CTA Sniff and Download Trigger
+    let hudTimer = null;
+    function showHud(status, title, percent = 0, speed = '') {
+      if (hudTimer) clearTimeout(hudTimer);
+      hudStatus.innerText = status;
+      hudTitle.innerText = title;
+      hudProgress.style.width = percent + '%';
+      hudPercent.innerText = percent ? (percent + '%') : '';
+      hudSpeed.innerText = speed || 'ShareCLIP 后台极速下载引擎';
+      floatingHud.style.display = 'flex';
+      hudTimer = setTimeout(() => {
+        floatingHud.style.display = 'none';
+      }, 7000);
+    }
+
+    hudClose.addEventListener('click', () => {
+      if (hudTimer) clearTimeout(hudTimer);
+      floatingHud.style.display = 'none';
+    });
+
+    btnSniff.addEventListener('click', async () => {
+      try {
+        const url = webview.getURL();
+        const title = webview.getTitle() || '正在解析的网页视频';
+        if (!url || url.startsWith('data:')) return;
+
+        showHud('✨ 已发起解析与下载', title, 0, '正在连接后台分析视频清晰度...');
+        
+        // Send IPC to main process to trigger download in main window
+        if (window.api?.triggerSnifferDownload) {
+          await window.api.triggerSnifferDownload({ url, title });
+        }
+      } catch (e) {
+        console.error('Trigger sniff error:', e);
+      }
+    });
+
+    // 8. Progress listener from main process
+    if (window.api?.onSnifferProgress) {
+      window.api.onSnifferProgress((data) => {
+        if (!data) return;
+        const progress = Math.round(data.progress || 0);
+        showHud(
+          data.status === 'Completed' ? '✅ 视频下载完成' : '🚀 正在下载视频',
+          data.title || '当前视频任务',
+          progress,
+          data.speed ? `${data.speed} · ETA: ${data.eta || '计算中'}` : data.status
+        );
+      });
+    }
+
+    // 9. External target handling
+    webview.addEventListener('new-window', (e) => {
+      e.preventDefault();
+      if (e.url) webview.loadURL(e.url);
+    });
+
+    // 10. Listen to remote navigation requests (when focused with new URL)
+    if (window.api?.onSnifferNavigate) {
+      window.api.onSnifferNavigate((url) => {
+        if (url && webview) {
+          console.log('[Sniffer Browser] Remote navigate requested:', url);
+          webview.loadURL(url);
+        }
+      });
+    }
+
+    // Initial URL sync & query parameter inspection
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialUrl = urlParams.get('url');
+        if (initialUrl && webview) {
+          webview.src = initialUrl;
+        }
+      } catch (e) {}
+      updateNavState();
+    });
+  </script>
+</body>
+</html>

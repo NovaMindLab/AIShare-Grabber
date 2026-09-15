@@ -336,11 +336,18 @@ export const locales = {
       syncFirefox: "Mozilla Firefox",
       syncBrave: "Brave Browser",
       syncEmbedded: "In-App Account",
+      syncFile: "Import cookies.txt",
       embeddedLoginBtn: "🔑 In-App Login",
       clearLoginBtn: "🚪 Logout / Clear Cookies",
       cookieMenuTitle: "🔐 YouTube Login Sync",
       cookieMenuDesc: "Sync browser or in-app login to download 18+ age-restricted and members-only videos.",
-      cookieLockedTip: "Database locked? Close the browser or use In-App Login."
+      cookieLockedTip: "Chrome running? Try Microsoft Edge for 1-click passwordless sync!",
+      openSnifferBtn: "🚀 Open Sniffer Browser",
+      snifferDesc: "1200x800 Standalone Window · Watch & Download · Inherits Login Credentials",
+      focusSnifferBtn: "🎯 Focus Window",
+      closeSnifferBtn: "✕ Close Window",
+      snifferActive: "Sniffer Browser Active",
+      snifferIdle: "Standalone Sniffer Browser"
     },
     details: {
       detailsTitle: "Resource Details",
@@ -689,11 +696,18 @@ export const locales = {
       syncFirefox: "Mozilla Firefox",
       syncBrave: "Brave Browser",
       syncEmbedded: "内嵌账号",
+      syncFile: "导入 cookies.txt",
       embeddedLoginBtn: "🔑 内嵌一键登录",
       clearLoginBtn: "🚪 退出登录 / 清除凭据",
       cookieMenuTitle: "🔐 YouTube 登录同步",
       cookieMenuDesc: "同步浏览器或内嵌登录态，解锁 18+ 年龄受限视频、高码率与会员专享视频。",
-      cookieLockedTip: "若提示数据库被占用，建议关闭浏览器或使用【内嵌一键登录】"
+      cookieLockedTip: "Chrome 运行中锁定了数据库？推荐一键选择【Microsoft Edge】免密秒同步！",
+      openSnifferBtn: "🚀 打开独立嗅探浏览器",
+      snifferDesc: "1200x800 大屏独立浏览 · 边看边嗅探 · 自动继承已同步登录态",
+      focusSnifferBtn: "🎯 聚焦窗口",
+      closeSnifferBtn: "✕ 关闭窗口",
+      snifferActive: "独立嗅探浏览器运行中",
+      snifferIdle: "独立大屏嗅探浏览器"
     },
     details: {
       detailsTitle: "资源详情",
@@ -1014,11 +1028,18 @@ langList.forEach(lang => {
         syncFirefox: "Mozilla Firefox",
         syncBrave: "Brave Browser",
         syncEmbedded: "內嵌帳號",
+        syncFile: "匯入 cookies.txt",
         embeddedLoginBtn: "🔑 內嵌一鍵登入",
         clearLoginBtn: "🚪 登出 / 清除憑證",
         cookieMenuTitle: "🔐 YouTube 登入同步",
         cookieMenuDesc: "同步瀏覽器或內嵌登入態，解鎖 18+ 年齡受限影片、高碼率與會員專享影片。",
-        cookieLockedTip: "若提示資料庫被佔用，建議關閉瀏覽器或使用【內嵌一鍵登入】"
+        cookieLockedTip: "Chrome 運行中鎖定了資料庫？推薦一鍵選擇【Microsoft Edge】免密秒同步！",
+        openSnifferBtn: "🚀 開啟獨立嗅探瀏覽器",
+        snifferDesc: "1200x800 大螢幕獨立瀏覽 · 邊看邊嗅探 · 自動繼承已同步登入態",
+        focusSnifferBtn: "🎯 聚焦視窗",
+        closeSnifferBtn: "✕ 關閉視窗",
+        snifferActive: "獨立嗅探瀏覽器運行中",
+        snifferIdle: "獨立大螢幕嗅探瀏覽器"
       },
       details: {
         detailsTitle: "資源詳情",

@@ -169,6 +169,7 @@ contextBridge.exposeInMainWorld('api', {
   // YT-DLP Cookie & Login Sync
   ytGetCookieConfig: () => ipcRenderer.invoke('yt-cookies-get-config'),
   ytSetCookieMode: (mode) => ipcRenderer.invoke('yt-cookies-set-mode', mode),
+  ytImportCookiesFile: () => ipcRenderer.invoke('yt-import-cookies-file'),
   ytOpenLoginWindow: () => ipcRenderer.invoke('yt-open-login-window'),
   ytClearCookies: () => ipcRenderer.invoke('yt-cookies-clear'),
   onYtLoginSuccess: (callback) => {
@@ -202,5 +203,31 @@ contextBridge.exposeInMainWorld('api', {
   onVideoWindowLoad: (callback) => {
     ipcRenderer.removeAllListeners('video-player:load');
     ipcRenderer.on('video-player:load', (event, data) => callback(data));
+  },
+
+  // Standalone Sniffer Browser Window APIs
+  openSnifferBrowser: (url) => ipcRenderer.invoke('sniffer:open-window', url),
+  closeSnifferBrowser: () => ipcRenderer.invoke('sniffer:close-window'),
+  focusSnifferBrowser: () => ipcRenderer.invoke('sniffer:focus-window'),
+  triggerSnifferDownload: (payload) => ipcRenderer.invoke('sniffer:trigger-download', payload),
+  triggerSnifferStatus: (payload) => ipcRenderer.invoke('sniffer:sync-status', payload),
+  snifferWindowMinimize: () => ipcRenderer.invoke('sniffer:window-minimize'),
+  snifferWindowMaximize: () => ipcRenderer.invoke('sniffer:window-maximize'),
+  snifferWindowClose: () => ipcRenderer.invoke('sniffer:window-close'),
+  onRemoteEnqueueDownload: (callback) => {
+    ipcRenderer.removeAllListeners('downloader:remote-enqueue');
+    ipcRenderer.on('downloader:remote-enqueue', (event, data) => callback(data));
+  },
+  onSnifferWindowStatus: (callback) => {
+    ipcRenderer.removeAllListeners('sniffer:window-status');
+    ipcRenderer.on('sniffer:window-status', (event, data) => callback(data));
+  },
+  onSnifferProgress: (callback) => {
+    ipcRenderer.removeAllListeners('sniffer:progress');
+    ipcRenderer.on('sniffer:progress', (event, data) => callback(data));
+  },
+  onSnifferNavigate: (callback) => {
+    ipcRenderer.removeAllListeners('sniffer:navigate-to');
+    ipcRenderer.on('sniffer:navigate-to', (event, data) => callback(data));
   }
 });
