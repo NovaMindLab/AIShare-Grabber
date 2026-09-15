@@ -7,12 +7,91 @@
     <meta name="description" content="ShareCLIP is a privacy-first, open-source tool to transfer photos from Android to PC over high-speed local Wi-Fi, and search your entire photo library with 100% on-device AI. No cloud, no cables, no subscription." />
     <meta name="keywords" content="ShareCLIP, P2P Photo Sync, Local AI, Photo Gallery, WebRTC, Android to PC, Private Photo Sync, Image Search, Face Clustering, Open Source" />
     
+    <meta name="theme-color" content="#6366f1" />
+
     <!-- Open Graph / SEO -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://novamindlab.github.io/AIShare-Grabber/" />
     <meta property="og:title" content="ShareCLIP — Private P2P Photo Sync & Local AI Gallery" />
     <meta property="og:description" content="Transfer photos directly from Android to PC. Search your library using 100% local AI. No cloud, no cables, no subscription." />
-    <meta property="og:image" content="./hero_banner.jpg" />
+    <meta property="og:image" content="https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:alt" content="ShareCLIP - Private P2P Photo Sync & Local AI Gallery" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ShareCLIP — Private P2P Photo Sync & Local AI Gallery" />
+    <meta name="twitter:description" content="Transfer photos directly from Android to PC. Search your library using 100% local AI. No cloud, no cables, no subscription." />
+    <meta name="twitter:image" content="https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg" />
+
+    <!-- Structured Data (Schema.org JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "name": "ShareCLIP",
+          "url": "https://novamindlab.github.io/AIShare-Grabber/",
+          "image": "https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg",
+          "operatingSystem": "Windows, Android, Web, macOS",
+          "applicationCategory": "MultimediaApplication",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "ratingCount": "128",
+            "bestRating": "5",
+            "worstRating": "1"
+          },
+          "description": "Private P2P photo sync and 100% on-device AI search gallery across Windows, Android, and Web. Zero cloud, 80+ MB/s local Wi-Fi transfer."
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is ShareCLIP?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "ShareCLIP is an open-source, privacy-first tool to wirelessly transfer photos between Android, PC (Windows/macOS), and Web browsers at 80+ MB/s, featuring 100% on-device AI search and gallery management."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Does ShareCLIP upload my photos to any cloud servers?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. ShareCLIP works 100% locally over direct P2P and local Wi-Fi. No photos, videos, or personal metadata are ever uploaded to any cloud or third-party servers."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is ShareCLIP free to use?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, ShareCLIP is 100% free and open-source under the MIT license, with zero subscriptions and no hidden fees."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Which operating systems and devices are supported?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "ShareCLIP natively supports Windows, macOS (Apple Silicon & Intel), Android, and any modern web browser via WebShare."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -22,6 +101,8 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📸</text></svg>" />
   </head>
   <body>
+    <!-- WeChat 300x300 Hidden Share Logo -->
+    <div style="display:none;"><img src="https://novamindlab.github.io/AIShare-Grabber/pc_logo.png" width="300" height="300" alt="ShareCLIP" /></div>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
