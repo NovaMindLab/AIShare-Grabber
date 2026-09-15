@@ -229,5 +229,10 @@ contextBridge.exposeInMainWorld('api', {
   onSnifferNavigate: (callback) => {
     ipcRenderer.removeAllListeners('sniffer:navigate-to');
     ipcRenderer.on('sniffer:navigate-to', (event, data) => callback(data));
+  },
+  setSnifferLocale: (lang) => ipcRenderer.invoke('sniffer:set-locale', lang),
+  onSnifferLocaleUpdated: (callback) => {
+    ipcRenderer.removeAllListeners('sniffer:locale-updated');
+    ipcRenderer.on('sniffer:locale-updated', (event, data) => callback(data));
   }
 });

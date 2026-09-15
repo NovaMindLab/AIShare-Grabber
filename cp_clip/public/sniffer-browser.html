@@ -41,7 +41,7 @@
       align-items: center;
       gap: 10px;
       flex-shrink: 0;
-      pointer-events: none; /* Allow drag events on logo */
+      pointer-events: none;
     }
     .titlebar-logo {
       display: flex;
@@ -255,13 +255,27 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
-    .btn-sniff:hover {
+    .btn-sniff:hover:not(:disabled) {
       transform: translateY(-1px);
       box-shadow: 0 4px 16px rgba(168, 85, 247, 0.5);
       filter: brightness(1.1);
     }
-    .btn-sniff:active {
+    .btn-sniff:active:not(:disabled) {
       transform: translateY(0);
+    }
+    .btn-sniff:disabled {
+      opacity: 0.7;
+      cursor: wait;
+      filter: grayscale(0.2);
+    }
+
+    /* Spinner Animation */
+    .spin {
+      display: inline-block;
+      animation: spinAnim 1s linear infinite;
+    }
+    @keyframes spinAnim {
+      100% { transform: rotate(360deg); }
     }
 
     /* UA Toggle Button */
@@ -311,6 +325,347 @@
       transition: width 0.2s ease, opacity 0.4s ease;
       z-index: 10;
       opacity: 0;
+    }
+
+    /* ── Resolution Selection Modal ──────────────────────────── */
+    .res-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 16, 0.78);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .res-modal-card {
+      width: 560px;
+      max-width: 92vw;
+      max-height: 86vh;
+      background: #0f172a;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalScaleIn {
+      from { opacity: 0; transform: scale(0.94) translateY(12px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .res-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(30, 41, 59, 0.5);
+    }
+    .res-modal-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .res-modal-close {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: all 0.15s ease;
+    }
+    .res-modal-close:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+
+    /* Video Preview Header */
+    .res-video-preview {
+      display: flex;
+      gap: 14px;
+      padding: 16px 20px 12px 20px;
+      align-items: center;
+    }
+    .res-thumb-box {
+      position: relative;
+      width: 140px;
+      height: 80px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #020617;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      flex-shrink: 0;
+    }
+    .res-thumb-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .res-thumb-duration {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: rgba(0, 0, 0, 0.82);
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      backdrop-filter: blur(2px);
+    }
+    .res-video-details {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .res-video-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .res-video-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .res-platform-tag {
+      background: rgba(99, 102, 241, 0.18);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-weight: 600;
+      font-size: 10px;
+    }
+
+    /* Subtitle prompt */
+    .res-section-title {
+      padding: 0 20px 8px 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    /* Options List */
+    .res-options-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2px 20px 14px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 310px;
+    }
+    .res-options-list::-webkit-scrollbar {
+      width: 5px;
+    }
+    .res-options-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+    }
+
+    .res-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .res-card:hover {
+      background: rgba(99, 102, 241, 0.08);
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+    .res-card.active {
+      background: rgba(99, 102, 241, 0.18);
+      border-color: #6366f1;
+      box-shadow: 0 0 14px rgba(99, 102, 241, 0.25);
+    }
+
+    .res-card-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .res-radio-circle {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+    .res-card.active .res-radio-circle {
+      border-color: #6366f1;
+    }
+    .res-radio-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: transparent;
+      transition: all 0.15s ease;
+    }
+    .res-card.active .res-radio-dot {
+      background: #818cf8;
+    }
+
+    .res-card-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .res-card-label-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .res-card-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f8fafc;
+    }
+    .res-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .res-pill-4k {
+      background: rgba(234, 179, 8, 0.2);
+      color: #facc15;
+      border: 1px solid rgba(234, 179, 8, 0.4);
+    }
+    .res-pill-2k {
+      background: rgba(168, 85, 247, 0.2);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.4);
+    }
+    .res-pill-1080 {
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+    }
+    .res-pill-720 {
+      background: rgba(56, 189, 248, 0.2);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+    .res-pill-audio {
+      background: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+    .res-pill-rec {
+      background: linear-gradient(135deg, #6366f1, #d946ef);
+      color: #ffffff;
+    }
+
+    .res-card-sub {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .res-card-right {
+      font-size: 12px;
+      font-weight: 600;
+      color: #cbd5e1;
+      text-align: right;
+    }
+
+    /* Modal Footer */
+    .res-modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(30, 41, 59, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .res-selection-summary {
+      font-size: 12px;
+      color: #94a3b8;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+    .res-selection-summary strong {
+      color: #a5b4fc;
+    }
+    .res-modal-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .res-btn-cancel {
+      padding: 7px 14px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .res-btn-cancel:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+    }
+    .res-btn-confirm {
+      padding: 7px 18px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
+      transition: all 0.15s ease;
+    }
+    .res-btn-confirm:hover {
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.5);
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+    .res-btn-confirm:active {
+      transform: translateY(0);
     }
 
     /* ── Floating Download HUD Notification ──────────────────── */
@@ -398,9 +753,9 @@
     <div class="titlebar-left">
       <div class="titlebar-logo">
         <span class="titlebar-logo-icon">🌐</span>
-        <span>ShareCLIP 独立嗅探浏览器</span>
+        <span id="txtLogoTitle" data-i18n="appTitle">ShareCLIP 独立嗅探浏览器</span>
       </div>
-      <span class="titlebar-badge">大屏沉浸</span>
+      <span class="titlebar-badge" data-i18n="immersiveBadge">大屏沉浸</span>
     </div>
 
     <!-- Quick Site Navigation Chips -->
@@ -430,36 +785,36 @@
 
     <!-- Window Controls -->
     <div class="titlebar-actions">
-      <button class="tb-btn" id="btnMin" title="最小化">─</button>
-      <button class="tb-btn" id="btnMax" title="最大化">□</button>
-      <button class="tb-btn tb-btn-close" id="btnClose" title="关闭">✕</button>
+      <button class="tb-btn" id="btnMin" data-i18n-title="minimize" title="最小化">─</button>
+      <button class="tb-btn" id="btnMax" data-i18n-title="maximize" title="最大化">□</button>
+      <button class="tb-btn tb-btn-close" id="btnClose" data-i18n-title="close" title="关闭">✕</button>
     </div>
   </header>
 
   <!-- Secondary Navigation & Omnibar -->
   <nav class="toolbar">
     <div class="nav-btn-group">
-      <button class="nav-btn" id="btnBack" title="后退" disabled>←</button>
-      <button class="nav-btn" id="btnForward" title="前进" disabled>→</button>
-      <button class="nav-btn" id="btnReload" title="刷新页面">↻</button>
-      <button class="nav-btn" id="btnHome" title="回到主页">🏠</button>
+      <button class="nav-btn" id="btnBack" data-i18n-title="back" title="后退" disabled>←</button>
+      <button class="nav-btn" id="btnForward" data-i18n-title="forward" title="前进" disabled>→</button>
+      <button class="nav-btn" id="btnReload" data-i18n-title="reload" title="刷新页面">↻</button>
+      <button class="nav-btn" id="btnHome" data-i18n-title="home" title="回到主页">🏠</button>
     </div>
 
     <div class="address-bar">
       <span class="address-lock" id="addrLock">🔒</span>
-      <input type="text" class="address-input" id="urlInput" placeholder="在此输入视频网址或搜索关键词，回车前往..." />
+      <input type="text" class="address-input" id="urlInput" data-i18n-placeholder="addrPlaceholder" placeholder="在此输入视频网址或搜索关键词，回车前往..." />
       <span class="address-clear" id="addrClear" title="清空">✕</span>
     </div>
 
     <!-- User-Agent Switcher -->
-    <button class="btn-ua" id="btnUa" title="切换电脑版 / 手机版网页">
-      <span>📱</span><span id="uaLabel">手机版</span>
+    <button class="btn-ua" id="btnUa" data-i18n-title="uaTooltip" title="切换电脑版 / 手机版网页">
+      <span id="uaIcon">📱</span><span id="uaLabel">手机版</span>
     </button>
 
     <!-- Main CTA Sniff Button -->
-    <button class="btn-sniff" id="btnSniff" title="将当前页面的视频发送至主窗口开始解析下载">
-      <span>✨</span>
-      <span>解析当前视频并下载</span>
+    <button class="btn-sniff" id="btnSniff" data-i18n-title="parseTooltip" title="解析当前页面视频并选择清晰度下载">
+      <span id="btnSniffIcon">✨</span>
+      <span id="btnSniffText" data-i18n="parseBtn">解析当前视频</span>
     </button>
   </nav>
 
@@ -474,6 +829,60 @@
       useragent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
     ></webview>
   </main>
+
+  <!-- Resolution Selection Modal -->
+  <div class="res-modal-overlay" id="resolutionModal">
+    <div class="res-modal-card" id="resModalCard">
+      <!-- Header -->
+      <div class="res-modal-header">
+        <div class="res-modal-title">
+          <span>✨</span>
+          <span data-i18n="selectResolutionTitle">选择下载清晰度</span>
+        </div>
+        <button class="res-modal-close" id="btnModalClose" data-i18n-title="close" title="关闭">✕</button>
+      </div>
+
+      <!-- Video Metadata Header -->
+      <div class="res-video-preview">
+        <div class="res-thumb-box">
+          <img id="modalVideoThumb" src="" alt="Thumbnail" />
+          <div class="res-thumb-duration" id="modalVideoDuration">00:00</div>
+        </div>
+        <div class="res-video-details">
+          <div class="res-video-title" id="modalVideoTitle">正在获取视频信息...</div>
+          <div class="res-video-meta">
+            <span class="res-platform-tag" id="modalPlatformTag">🌐 Web</span>
+            <span class="res-meta-item" id="modalVideoUploader">👤 发布者</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section Subtitle -->
+      <div class="res-section-title">
+        <span data-i18n="selectResolutionDesc">已成功解析可用画质与音频，请选择目标规格：</span>
+      </div>
+
+      <!-- Resolution Options List -->
+      <div class="res-options-list" id="resOptionsList">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Footer -->
+      <div class="res-modal-footer">
+        <div class="res-selection-summary">
+          <span data-i18n="selectedLabel">已选择</span>: <strong id="modalSummaryText">—</strong>
+        </div>
+        <div class="res-modal-actions">
+          <button class="res-btn-cancel" id="btnModalCancel">
+            <span data-i18n="btnCancel">✕ 取消</span>
+          </button>
+          <button class="res-btn-confirm" id="btnModalDownload">
+            <span data-i18n="btnDownload">⬇️ 立即下载</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Floating Download HUD -->
   <div class="floating-hud" id="floatingHud">
@@ -495,6 +904,369 @@
   </div>
 
   <script>
+    // ── Multi-Language / i18n Dictionary ────────────────────────
+    const i18nDict = {
+      zh: {
+        appTitle: "ShareCLIP 独立嗅探浏览器",
+        immersiveBadge: "大屏沉浸",
+        minimize: "最小化",
+        maximize: "最大化",
+        close: "关闭",
+        back: "后退",
+        forward: "前进",
+        reload: "刷新页面",
+        stopReload: "停止加载",
+        home: "回到主页",
+        addrPlaceholder: "在此输入视频网址或搜索关键词，回车前往...",
+        mobileView: "手机版",
+        desktopView: "电脑版",
+        uaTooltip: "切换电脑版 / 手机版网页",
+        parseBtn: "解析当前视频",
+        parsingBtn: "正在解析...",
+        parseTooltip: "解析当前页面视频并选择清晰度下载",
+        selectResolutionTitle: "选择下载清晰度",
+        selectResolutionDesc: "已成功解析可用画质与音频，请选择目标规格：",
+        selectedLabel: "已选择",
+        btnCancel: "✕ 取消",
+        btnDownload: "⬇️ 立即下载",
+        recommended: "推荐",
+        bestQuality: "最佳画质",
+        audioOnly: "音频 MP3",
+        hudQueued: "✨ 已加入下载队列",
+        hudDownloading: "🚀 正在下载视频",
+        hudCompleted: "✅ 视频下载完成",
+        hudParsing: "正在分析视频清晰度与格式...",
+        hudEngine: "ShareCLIP 后台极速引擎",
+        parseFailed: "视频解析失败",
+        parseFailedDesc: "未能在此页面检测到有效视频，或网络连接超时",
+        calculating: "计算中...",
+        unknown: "未知"
+      },
+      "zh-TW": {
+        appTitle: "ShareCLIP 獨立嗅探瀏覽器",
+        immersiveBadge: "大螢幕沉浸",
+        minimize: "最小化",
+        maximize: "最大化",
+        close: "關閉",
+        back: "後退",
+        forward: "前進",
+        reload: "重新整理",
+        stopReload: "停止載入",
+        home: "回到首頁",
+        addrPlaceholder: "在此輸入影片網址或搜尋關鍵字，按 Enter 前往...",
+        mobileView: "手機版",
+        desktopView: "電腦版",
+        uaTooltip: "切換電腦版 / 手機版網頁",
+        parseBtn: "解析當前影片",
+        parsingBtn: "正在解析...",
+        parseTooltip: "解析當前頁面影片並選擇畫質下載",
+        selectResolutionTitle: "選擇下載畫質",
+        selectResolutionDesc: "已成功解析可用畫質與音訊，請選擇目標格式：",
+        selectedLabel: "已選擇",
+        btnCancel: "✕ 取消",
+        btnDownload: "⬇️ 立即下載",
+        recommended: "推薦",
+        bestQuality: "最佳畫質",
+        audioOnly: "音訊 MP3",
+        hudQueued: "✨ 已加入下載佇列",
+        hudDownloading: "🚀 正在下載影片",
+        hudCompleted: "✅ 影片下載完成",
+        hudParsing: "正在分析影片畫質與格式...",
+        hudEngine: "ShareCLIP 後台極速引擎",
+        parseFailed: "影片解析失敗",
+        parseFailedDesc: "未能在此頁面檢測到有效影片，或網路連線超時",
+        calculating: "計算中...",
+        unknown: "未知"
+      },
+      en: {
+        appTitle: "ShareCLIP Sniffer Browser",
+        immersiveBadge: "Immersive View",
+        minimize: "Minimize",
+        maximize: "Maximize",
+        close: "Close",
+        back: "Back",
+        forward: "Forward",
+        reload: "Reload",
+        stopReload: "Stop Loading",
+        home: "Home",
+        addrPlaceholder: "Enter video URL or search query, press Enter...",
+        mobileView: "Mobile",
+        desktopView: "Desktop",
+        uaTooltip: "Switch Desktop / Mobile View",
+        parseBtn: "Parse Video",
+        parsingBtn: "Parsing...",
+        parseTooltip: "Parse current video and select quality to download",
+        selectResolutionTitle: "Select Video Quality",
+        selectResolutionDesc: "Video parsed successfully. Choose your desired quality or format:",
+        selectedLabel: "Selected",
+        btnCancel: "✕ Cancel",
+        btnDownload: "⬇️ Download Now",
+        recommended: "Recommended",
+        bestQuality: "Best Quality",
+        audioOnly: "Audio MP3",
+        hudQueued: "✨ Added to download queue",
+        hudDownloading: "🚀 Downloading video",
+        hudCompleted: "✅ Download completed",
+        hudParsing: "Analyzing video qualities and formats...",
+        hudEngine: "ShareCLIP Background Engine",
+        parseFailed: "Video parse failed",
+        parseFailedDesc: "No playable video stream found or request timed out",
+        calculating: "Calculating...",
+        unknown: "Unknown"
+      },
+      ja: {
+        appTitle: "ShareCLIP スニッファーブラウザ",
+        immersiveBadge: "没入型ビュー",
+        minimize: "最小化",
+        maximize: "最大化",
+        close: "閉じる",
+        back: "戻る",
+        forward: "進む",
+        reload: "更新",
+        stopReload: "停止",
+        home: "ホーム",
+        addrPlaceholder: "動画のURLまたは検索語を入力してEnter...",
+        mobileView: "モバイル版",
+        desktopView: "PC版",
+        uaTooltip: "モバイル / PC版の切り替え",
+        parseBtn: "動画を解析",
+        parsingBtn: "解析中...",
+        parseTooltip: "現在のページの動画を解析し画質を選択してダウンロード",
+        selectResolutionTitle: "ダウンロード画質の選択",
+        selectResolutionDesc: "利用可能な画質と音声が検出されました。形式を選択してください：",
+        selectedLabel: "選択済み",
+        btnCancel: "✕ キャンセル",
+        btnDownload: "⬇️ ダウンロード開始",
+        recommended: "おすすめ",
+        bestQuality: "最高画質",
+        audioOnly: "音声 MP3",
+        hudQueued: "✨ キューに追加されました",
+        hudDownloading: "🚀 動画をダウンロード中",
+        hudCompleted: "✅ ダウンロード完了",
+        hudParsing: "画質とフォーマットを解析中...",
+        hudEngine: "ShareCLIP 高速エンジン",
+        parseFailed: "解析に失敗しました",
+        parseFailedDesc: "再生可能な動画が見つからないか、接続がタイムアウトしました",
+        calculating: "計算中...",
+        unknown: "不明"
+      },
+      ko: {
+        appTitle: "ShareCLIP 스니퍼 브라우저",
+        immersiveBadge: "몰입형 뷰",
+        minimize: "최소화",
+        maximize: "최대화",
+        close: "닫기",
+        back: "뒤로",
+        forward: "앞으로",
+        reload: "새로고침",
+        stopReload: "로드 중지",
+        home: "홈",
+        addrPlaceholder: "동영상 URL 또는 검색어 입력 후 Enter...",
+        mobileView: "모바일 버전",
+        desktopView: "PC 버전",
+        uaTooltip: "모바일 / PC 모드 전환",
+        parseBtn: "동영상 분석",
+        parsingBtn: "분석 중...",
+        parseTooltip: "현재 페이지 동영상을 분석하고 화질을 선택하여 다운로드",
+        selectResolutionTitle: "다운로드 화질 선택",
+        selectResolutionDesc: "사용 가능한 화질과 오디오가 분석되었습니다. 형식을 선택하세요:",
+        selectedLabel: "선택됨",
+        btnCancel: "✕ 취소",
+        btnDownload: "⬇️ 다운로드 시작",
+        recommended: "추천",
+        bestQuality: "최고 화질",
+        audioOnly: "오디오 MP3",
+        hudQueued: "✨ 다운로드 대기열 추가됨",
+        hudDownloading: "🚀 동영상 다운로드 중",
+        hudCompleted: "✅ 다운로드 완료",
+        hudParsing: "동영상 화질 및 형식 분석 중...",
+        hudEngine: "ShareCLIP 고속 엔진",
+        parseFailed: "동영상 분석 실패",
+        parseFailedDesc: "페이지에서 동영상을 찾을 수 없거나 시간이 초과되었습니다",
+        calculating: "계산 중...",
+        unknown: "알 수 없음"
+      },
+      es: {
+        appTitle: "ShareCLIP Navegador Rastreador",
+        immersiveBadge: "Vista Inmersiva",
+        minimize: "Minimizar",
+        maximize: "Maximizar",
+        close: "Cerrar",
+        back: "Atrás",
+        forward: "Adelante",
+        reload: "Recargar",
+        stopReload: "Detener",
+        home: "Inicio",
+        addrPlaceholder: "Ingrese la URL del video o búsqueda, presione Enter...",
+        mobileView: "Móvil",
+        desktopView: "Escritorio",
+        uaTooltip: "Cambiar versión Móvil / Escritorio",
+        parseBtn: "Analizar Video",
+        parsingBtn: "Analizando...",
+        parseTooltip: "Analizar video y seleccionar calidad para descargar",
+        selectResolutionTitle: "Seleccionar Calidad",
+        selectResolutionDesc: "Formatos disponibles analizados. Elija la calidad o audio:",
+        selectedLabel: "Seleccionado",
+        btnCancel: "✕ Cancelar",
+        btnDownload: "⬇️ Descargar Ahora",
+        recommended: "Recomendado",
+        bestQuality: "Mejor Calidad",
+        audioOnly: "Audio MP3",
+        hudQueued: "✨ Añadido a la cola",
+        hudDownloading: "🚀 Descargando video",
+        hudCompleted: "✅ Descarga completada",
+        hudParsing: "Analizando calidad y formatos...",
+        hudEngine: "Motor ShareCLIP",
+        parseFailed: "Error al analizar video",
+        parseFailedDesc: "No se encontró video reproducible o la conexión expiró",
+        calculating: "Calculando...",
+        unknown: "Desconocido"
+      },
+      fr: {
+        appTitle: "ShareCLIP Navigateur Sniffer",
+        immersiveBadge: "Vue Immersive",
+        minimize: "Réduire",
+        maximize: "Agrandir",
+        close: "Fermer",
+        back: "Retour",
+        forward: "Avancer",
+        reload: "Actualiser",
+        stopReload: "Arrêter",
+        home: "Accueil",
+        addrPlaceholder: "Entrez l'URL de la vidéo ou recherchez, appuyez sur Entrée...",
+        mobileView: "Mobile",
+        desktopView: "Bureau",
+        uaTooltip: "Basculer Mobile / Bureau",
+        parseBtn: "Analyser la vidéo",
+        parsingBtn: "Analyse en cours...",
+        parseTooltip: "Analyser la vidéo actuelle et choisir la qualité à télécharger",
+        selectResolutionTitle: "Sélectionner la qualité",
+        selectResolutionDesc: "Formats disponibles détectés. Choisissez la résolution souhaitée :",
+        selectedLabel: "Sélectionné",
+        btnCancel: "✕ Annuler",
+        btnDownload: "⬇️ Télécharger maintenant",
+        recommended: "Recommandé",
+        bestQuality: "Meilleure qualité",
+        audioOnly: "Audio MP3",
+        hudQueued: "✨ Ajouté à la file d'attente",
+        hudDownloading: "🚀 Téléchargement en cours",
+        hudCompleted: "✅ Téléchargement terminé",
+        hudParsing: "Analyse des résolutions et formats...",
+        hudEngine: "Moteur ShareCLIP",
+        parseFailed: "Échec de l'analyse",
+        parseFailedDesc: "Aucune vidéo trouvée ou délai d'attente dépassé",
+        calculating: "Calcul en cours...",
+        unknown: "Inconnu"
+      },
+      de: {
+        appTitle: "ShareCLIP Sniffer-Browser",
+        immersiveBadge: "Immersive Ansicht",
+        minimize: "Minimieren",
+        maximize: "Maximieren",
+        close: "Schließen",
+        back: "Zurück",
+        forward: "Vorwärts",
+        reload: "Neu laden",
+        stopReload: "Stoppen",
+        home: "Startseite",
+        addrPlaceholder: "Video-URL oder Suchbegriff eingeben, Eingabe drücken...",
+        mobileView: "Mobil",
+        desktopView: "Desktop",
+        uaTooltip: "Zwischen Mobil- und Desktop-Ansicht wechseln",
+        parseBtn: "Video analysieren",
+        parsingBtn: "Analysiere...",
+        parseTooltip: "Aktuelles Video analysieren und Auflösung zum Download wählen",
+        selectResolutionTitle: "Videoqualität wählen",
+        selectResolutionDesc: "Verfügbare Auflösungen analysiert. Wählen Sie das Format:",
+        selectedLabel: "Ausgewählt",
+        btnCancel: "✕ Abbrechen",
+        btnDownload: "⬇️ Jetzt herunterladen",
+        recommended: "Empfohlen",
+        bestQuality: "Beste Qualität",
+        audioOnly: "Audio MP3",
+        hudQueued: "✨ Zur Download-Warteschlange hinzugefügt",
+        hudDownloading: "🚀 Video wird heruntergeladen",
+        hudCompleted: "✅ Download abgeschlossen",
+        hudParsing: "Videoformate werden analysiert...",
+        hudEngine: "ShareCLIP Download-Engine",
+        parseFailed: "Video-Analyse fehlgeschlagen",
+        parseFailedDesc: "Kein abspielbares Video gefunden oder Zeitüberschreitung",
+        calculating: "Berechne...",
+        unknown: "Unbekannt"
+      },
+      ru: {
+        appTitle: "ShareCLIP Браузер-Сниффер",
+        immersiveBadge: "Полный экран",
+        minimize: "Свернуть",
+        maximize: "Развернуть",
+        close: "Закрыть",
+        back: "Назад",
+        forward: "Вперед",
+        reload: "Обновить",
+        stopReload: "Остановить",
+        home: "Главная",
+        addrPlaceholder: "Введите URL видео или поисковый запрос, затем Enter...",
+        mobileView: "Мобильная",
+        desktopView: "ПК версия",
+        uaTooltip: "Переключить Мобильная / ПК версия",
+        parseBtn: "Анализ видео",
+        parsingBtn: "Анализируем...",
+        parseTooltip: "Анализировать текущее видео и выбрать качество для загрузки",
+        selectResolutionTitle: "Выберите качество видео",
+        selectResolutionDesc: "Видео успешно обработано. Выберите подходящее разрешение:",
+        selectedLabel: "Выбрано",
+        btnCancel: "✕ Отмена",
+        btnDownload: "⬇️ Скачать сейчас",
+        recommended: "Рекомендуется",
+        bestQuality: "Лучшее качество",
+        audioOnly: "Только аудио (MP3)",
+        hudQueued: "✨ Добавлено в очередь загрузки",
+        hudDownloading: "🚀 Скачивание видео",
+        hudCompleted: "✅ Загрузка завершена",
+        hudParsing: "Анализ качества и форматов видео...",
+        hudEngine: "ShareCLIP Движок",
+        parseFailed: "Не удалось получить видео",
+        parseFailedDesc: "Видеопоток не обнаружен или истекло время ожидания",
+        calculating: "Вычисление...",
+        unknown: "Неизвестно"
+      }
+    };
+
+    let currentLocale = 'zh';
+
+    function t(key, fallback = '') {
+      const dict = i18nDict[currentLocale] || i18nDict.en;
+      return (dict && dict[key]) || (i18nDict.en && i18nDict.en[key]) || fallback || key;
+    }
+
+    function applyLocale(lang) {
+      if (!lang) return;
+      currentLocale = i18nDict[lang] ? lang : (lang.startsWith('zh') ? (lang.includes('TW') || lang.includes('HK') ? 'zh-TW' : 'zh') : (i18nDict[lang.substring(0, 2)] ? lang.substring(0, 2) : 'en'));
+      document.title = t('appTitle');
+
+      // Update text nodes
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key && t(key)) el.innerText = t(key);
+      });
+
+      // Update tooltips / titles
+      document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.getAttribute('data-i18n-title');
+        if (key && t(key)) el.title = t(key);
+      });
+
+      // Update placeholders
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (key && t(key)) el.placeholder = t(key);
+      });
+
+      // Update UA label
+      uaLabel.innerText = isMobileUa ? t('mobileView') : t('desktopView');
+    }
+
+    // ── DOM Elements ────────────────────────────────────────────
     const webview = document.getElementById('snifferWebview');
     const urlInput = document.getElementById('urlInput');
     const btnBack = document.getElementById('btnBack');
@@ -502,8 +1274,11 @@
     const btnReload = document.getElementById('btnReload');
     const btnHome = document.getElementById('btnHome');
     const btnSniff = document.getElementById('btnSniff');
+    const btnSniffIcon = document.getElementById('btnSniffIcon');
+    const btnSniffText = document.getElementById('btnSniffText');
     const btnUa = document.getElementById('btnUa');
     const uaLabel = document.getElementById('uaLabel');
+    const uaIcon = document.getElementById('uaIcon');
     const addrClear = document.getElementById('addrClear');
     const loadingBar = document.getElementById('loadingBar');
 
@@ -520,9 +1295,59 @@
     const hudClose = document.getElementById('hudClose');
     const hudIcon = document.getElementById('hudIcon');
 
+    // Modal DOM Elements
+    const resolutionModal = document.getElementById('resolutionModal');
+    const resModalCard = document.getElementById('resModalCard');
+    const btnModalClose = document.getElementById('btnModalClose');
+    const btnModalCancel = document.getElementById('btnModalCancel');
+    const btnModalDownload = document.getElementById('btnModalDownload');
+    const modalVideoThumb = document.getElementById('modalVideoThumb');
+    const modalVideoDuration = document.getElementById('modalVideoDuration');
+    const modalVideoTitle = document.getElementById('modalVideoTitle');
+    const modalPlatformTag = document.getElementById('modalPlatformTag');
+    const modalVideoUploader = document.getElementById('modalVideoUploader');
+    const resOptionsList = document.getElementById('resOptionsList');
+    const modalSummaryText = document.getElementById('modalSummaryText');
+
     let isMobileUa = true;
+    let isParsing = false;
+    let currentParsedVideo = null;
+    let selectedResolution = null;
+
     const MOBILE_UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36";
     const DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
+
+    // ── Helper Utilities ─────────────────────────────────────────
+    function formatDuration(sec) {
+      if (!sec || isNaN(sec)) return '';
+      const s = Math.floor(sec);
+      const hrs = Math.floor(s / 3600);
+      const mins = Math.floor((s % 3600) / 60);
+      const secs = s % 60;
+      if (hrs > 0) {
+        return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function formatFileSize(bytes) {
+      if (!bytes || isNaN(bytes) || bytes <= 0) return '';
+      if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+      if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      if (bytes >= 1024) return (bytes / 1024).toFixed(0) + ' KB';
+      return bytes + ' B';
+    }
+
+    function detectPlatformTag(url = '', extractor = '') {
+      const target = `${url} ${extractor}`.toLowerCase();
+      if (target.includes('youtube') || target.includes('youtu.be')) return { name: 'YouTube', icon: '▶️' };
+      if (target.includes('bilibili') || target.includes('b23.tv')) return { name: 'Bilibili', icon: '⚡' };
+      if (target.includes('douyin') || target.includes('tiktok')) return { name: 'TikTok/抖音', icon: '🎵' };
+      if (target.includes('twitter') || target.includes('x.com')) return { name: 'X / Twitter', icon: '🐦' };
+      if (target.includes('xiaohongshu')) return { name: '小红书', icon: '📕' };
+      if (target.includes('kuaishou')) return { name: '快手', icon: '⚡' };
+      return { name: 'Web', icon: '🌐' };
+    }
 
     // 1. Window Controls & Titlebar Dragging
     btnMin.addEventListener('click', () => { window.api?.snifferWindowMinimize?.(); });
@@ -583,12 +1408,12 @@
     btnUa.addEventListener('click', () => {
       isMobileUa = !isMobileUa;
       if (isMobileUa) {
-        btnUa.querySelector('span:first-child').innerText = '📱';
-        uaLabel.innerText = '手机版';
+        uaIcon.innerText = '📱';
+        uaLabel.innerText = t('mobileView');
         webview.setUserAgent(MOBILE_UA);
       } else {
-        btnUa.querySelector('span:first-child').innerText = '💻';
-        uaLabel.innerText = '电脑版';
+        uaIcon.innerText = '💻';
+        uaLabel.innerText = t('desktopView');
         webview.setUserAgent(DESKTOP_UA);
       }
       webview.reload();
@@ -604,7 +1429,6 @@
           urlInput.value = curUrl;
           addrClear.style.display = 'none';
         }
-        // Broadcast status to main process & main window
         const title = webview.getTitle() || '';
         window.api?.triggerSnifferStatus?.({ url: curUrl, title });
       } catch (e) {}
@@ -614,7 +1438,7 @@
       loadingBar.style.width = '35%';
       loadingBar.style.opacity = '1';
       btnReload.innerText = '✕';
-      btnReload.title = '停止加载';
+      btnReload.title = t('stopReload');
       updateNavState();
     });
 
@@ -625,7 +1449,7 @@
         loadingBar.style.width = '0%';
       }, 300);
       btnReload.innerText = '↻';
-      btnReload.title = '刷新页面';
+      btnReload.title = t('reload');
       updateNavState();
     });
 
@@ -633,7 +1457,7 @@
     webview.addEventListener('did-navigate-in-page', updateNavState);
     webview.addEventListener('page-title-updated', updateNavState);
 
-    // 7. CTA Sniff and Download Trigger
+    // 7. Floating Download HUD
     let hudTimer = null;
     function showHud(status, title, percent = 0, speed = '') {
       if (hudTimer) clearTimeout(hudTimer);
@@ -641,7 +1465,7 @@
       hudTitle.innerText = title;
       hudProgress.style.width = percent + '%';
       hudPercent.innerText = percent ? (percent + '%') : '';
-      hudSpeed.innerText = speed || 'ShareCLIP 后台极速下载引擎';
+      hudSpeed.innerText = speed || t('hudEngine');
       floatingHud.style.display = 'flex';
       hudTimer = setTimeout(() => {
         floatingHud.style.display = 'none';
@@ -653,44 +1477,218 @@
       floatingHud.style.display = 'none';
     });
 
+    // 8. Resolution Selection Modal Functions
+    function openResolutionModal(info) {
+      if (!info || !info.resolutions || info.resolutions.length === 0) return;
+      currentParsedVideo = info;
+
+      // Fill Video Header
+      modalVideoTitle.innerText = info.title || 'Video';
+      modalVideoTitle.title = info.title || '';
+      modalVideoThumb.src = info.thumbnail || '';
+      modalVideoDuration.innerText = info.duration ? formatDuration(info.duration) : '';
+      modalVideoDuration.style.display = info.duration ? 'block' : 'none';
+
+      const tag = detectPlatformTag(info.webpage_url || webview.getURL(), info.extractor);
+      modalPlatformTag.innerText = `${tag.icon} ${tag.name}`;
+      modalVideoUploader.innerText = info.uploader ? `👤 ${info.uploader}` : '';
+      modalVideoUploader.style.display = info.uploader ? 'inline-block' : 'none';
+
+      // Render Resolutions
+      resOptionsList.innerHTML = '';
+      const list = info.resolutions || [];
+
+      // Determine default selected: either isRecommended, or first video item, or first item
+      const defaultItem = list.find(r => r.isRecommended || r.recommended) || list.find(r => r.type === 'video') || list[0];
+      selectedResolution = defaultItem;
+
+      list.forEach((resItem) => {
+        const card = document.createElement('div');
+        card.className = `res-card ${resItem === defaultItem ? 'active' : ''}`;
+        card.setAttribute('data-id', resItem.id);
+
+        // Quality Pill
+        let pillHtml = '';
+        const h = resItem.height || 0;
+        if (resItem.type === 'audio') {
+          pillHtml = `<span class="res-pill res-pill-audio">${t('audioOnly')}</span>`;
+        } else if (h >= 2160) {
+          pillHtml = `<span class="res-pill res-pill-4k">4K UHD</span>`;
+        } else if (h >= 1440) {
+          pillHtml = `<span class="res-pill res-pill-2k">2K QHD</span>`;
+        } else if (h >= 1080) {
+          pillHtml = `<span class="res-pill res-pill-1080">1080p FHD</span>`;
+        } else if (h >= 720) {
+          pillHtml = `<span class="res-pill res-pill-720">720p HD</span>`;
+        }
+        if (resItem.isRecommended || resItem.recommended) {
+          pillHtml += `<span class="res-pill res-pill-rec">${t('recommended')}</span>`;
+        }
+
+        // Sub detail
+        let subDetail = '';
+        if (resItem.type === 'audio') {
+          subDetail = `MP3 · 高音质音频`;
+        } else {
+          const fpsText = resItem.fps ? `${resItem.fps}fps` : '';
+          const extText = (resItem.ext || 'MP4').toUpperCase();
+          subDetail = [extText, fpsText].filter(Boolean).join(' · ');
+        }
+
+        const sizeText = resItem.filesize > 0 ? formatFileSize(resItem.filesize) : '';
+
+        card.innerHTML = `
+          <div class="res-card-left">
+            <div class="res-radio-circle">
+              <div class="res-radio-dot"></div>
+            </div>
+            <div class="res-card-info">
+              <div class="res-card-label-row">
+                <span class="res-card-label">${resItem.label || (h ? `${h}p` : 'Standard')}</span>
+                ${pillHtml}
+              </div>
+              <div class="res-card-sub">${subDetail}</div>
+            </div>
+          </div>
+          <div class="res-card-right">
+            <span>${sizeText}</span>
+          </div>
+        `;
+
+        card.addEventListener('click', () => {
+          document.querySelectorAll('.res-card').forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          selectedResolution = resItem;
+          updateModalSummary();
+        });
+
+        resOptionsList.appendChild(card);
+      });
+
+      updateModalSummary();
+      resolutionModal.style.display = 'flex';
+    }
+
+    function updateModalSummary() {
+      if (!selectedResolution) {
+        modalSummaryText.innerText = '—';
+        return;
+      }
+      const label = selectedResolution.label || (selectedResolution.height ? `${selectedResolution.height}p` : 'Video');
+      const size = selectedResolution.filesize > 0 ? ` · 约 ${formatFileSize(selectedResolution.filesize)}` : '';
+      modalSummaryText.innerText = `${label}${size}`;
+    }
+
+    function closeResolutionModal() {
+      resolutionModal.style.display = 'none';
+      currentParsedVideo = null;
+    }
+
+    btnModalClose.addEventListener('click', closeResolutionModal);
+    btnModalCancel.addEventListener('click', closeResolutionModal);
+    resolutionModal.addEventListener('click', (e) => {
+      if (e.target === resolutionModal) closeResolutionModal();
+    });
+
+    // Confirm and download selected resolution
+    btnModalDownload.addEventListener('click', async () => {
+      if (!currentParsedVideo || !selectedResolution) return;
+      const targetVideo = currentParsedVideo;
+      const targetRes = selectedResolution;
+      closeResolutionModal();
+
+      try {
+        showHud(t('hudQueued'), targetVideo.title, 0, t('hudEngine'));
+        if (window.api?.triggerSnifferDownload) {
+          await window.api.triggerSnifferDownload({
+            url: targetVideo.webpage_url || webview.getURL(),
+            title: targetVideo.title,
+            thumbnail: targetVideo.thumbnail,
+            duration: targetVideo.duration,
+            extractor: targetVideo.extractor,
+            resolution: targetRes,
+            videoInfo: targetVideo
+          });
+        }
+      } catch (e) {
+        console.error('Trigger sniffer download error:', e);
+      }
+    });
+
+    // 9. CTA Sniff and Parse Button Handler
     btnSniff.addEventListener('click', async () => {
+      if (isParsing) return;
       try {
         const url = webview.getURL();
         const title = webview.getTitle() || '正在解析的网页视频';
         if (!url || url.startsWith('data:')) return;
 
-        showHud('✨ 已发起解析与下载', title, 0, '正在连接后台分析视频清晰度...');
-        
-        // Send IPC to main process to trigger download in main window
-        if (window.api?.triggerSnifferDownload) {
-          await window.api.triggerSnifferDownload({ url, title });
+        isParsing = true;
+        btnSniff.disabled = true;
+        btnSniffIcon.className = 'spin';
+        btnSniffIcon.innerText = '⏳';
+        btnSniffText.innerText = t('parsingBtn');
+
+        showHud(t('hudParsing'), title, 0, t('hudEngine'));
+
+        // Call backend YT-DLP parser directly
+        if (!window.api?.getYtVideoInfo) {
+          throw new Error('API getYtVideoInfo is not available');
+        }
+
+        const res = await window.api.getYtVideoInfo(url);
+
+        if (res && res.success && res.resolutions && res.resolutions.length > 0) {
+          // Open Resolution Selection Modal
+          openResolutionModal(res);
+        } else {
+          const errMsg = res?.error || t('parseFailedDesc');
+          showHud(t('parseFailed'), errMsg, 0, 'Error');
         }
       } catch (e) {
-        console.error('Trigger sniff error:', e);
+        console.error('Sniffer parse error:', e);
+        showHud(t('parseFailed'), e.message || String(e), 0, 'Error');
+      } finally {
+        isParsing = false;
+        btnSniff.disabled = false;
+        btnSniffIcon.className = '';
+        btnSniffIcon.innerText = '✨';
+        btnSniffText.innerText = t('parseBtn');
       }
     });
 
-    // 8. Progress listener from main process
+    // Keyboard shortcuts: ESC to close modal, Enter to start download
+    window.addEventListener('keydown', (e) => {
+      if (resolutionModal.style.display === 'flex') {
+        if (e.key === 'Escape') {
+          closeResolutionModal();
+        } else if (e.key === 'Enter') {
+          btnModalDownload.click();
+        }
+      }
+    });
+
+    // 10. Progress listener from main process
     if (window.api?.onSnifferProgress) {
       window.api.onSnifferProgress((data) => {
         if (!data) return;
         const progress = Math.round(data.progress || 0);
         showHud(
-          data.status === 'Completed' ? '✅ 视频下载完成' : '🚀 正在下载视频',
+          data.status === 'Completed' ? t('hudCompleted') : t('hudDownloading'),
           data.title || '当前视频任务',
           progress,
-          data.speed ? `${data.speed} · ETA: ${data.eta || '计算中'}` : data.status
+          data.speed ? `${data.speed} · ETA: ${data.eta || t('calculating')}` : data.status
         );
       });
     }
 
-    // 9. External target handling
+    // 11. External target handling
     webview.addEventListener('new-window', (e) => {
       e.preventDefault();
       if (e.url) webview.loadURL(e.url);
     });
 
-    // 10. Listen to remote navigation requests (when focused with new URL)
+    // 12. Remote navigation listener
     if (window.api?.onSnifferNavigate) {
       window.api.onSnifferNavigate((url) => {
         if (url && webview) {
@@ -700,10 +1698,25 @@
       });
     }
 
+    // 13. Remote locale updated listener
+    if (window.api?.onSnifferLocaleUpdated) {
+      window.api.onSnifferLocaleUpdated((newLang) => {
+        if (newLang) applyLocale(newLang);
+      });
+    }
+
     // Initial URL sync & query parameter inspection
     window.addEventListener('DOMContentLoaded', () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
+        const initialLang = urlParams.get('lang');
+        if (initialLang) {
+          applyLocale(initialLang);
+        } else {
+          const savedLocale = localStorage.getItem('shareclip_locale');
+          applyLocale(savedLocale || 'zh');
+        }
+
         const initialUrl = urlParams.get('url');
         if (initialUrl && webview) {
           webview.src = initialUrl;

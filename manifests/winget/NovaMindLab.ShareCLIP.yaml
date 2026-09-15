@@ -48,7 +48,7 @@ InstallModes:
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.0.4/ShareCLIP-Setup-4.0.4.exe
-    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000 # auto-calculated via scripts/generate-package-manifests.mjs
+    InstallerSha256: C7D8DC9B69D4DD0B38C74555EAC72E3CD29E603FB534537CF0156A9D784BCBB2 # auto-calculated via scripts/generate-package-manifests.mjs
     Scope: user
 ManifestType: installer
 ManifestVersion: 1.6.0

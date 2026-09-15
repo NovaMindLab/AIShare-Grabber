@@ -4033,6 +4033,8 @@ ipcMain.handle('yt-open-folder', async (event, filePath) => {
 // -------------------------------------------------------------------------------
 let snifferBrowserWindow = null;
 
+let currentAppLocale = 'zh';
+
 function broadcastYtProgress(event, data) {
   if (event && event.sender && !event.sender.isDestroyed()) {
     event.sender.send('yt-progress', data);
@@ -4042,8 +4044,10 @@ function broadcastYtProgress(event, data) {
   }
 }
 
-function openSnifferBrowserWindow(targetUrl) {
+function openSnifferBrowserWindow(targetUrl, targetLang) {
   const defaultUrl = targetUrl || 'https://m.youtube.com';
+  if (targetLang) currentAppLocale = targetLang;
+
   const browserProdFile = path.join(__dirname, 'dist', 'sniffer-browser.html');
   const browserPublicFile = path.join(__dirname, 'public', 'sniffer-browser.html');
   const fileToLoad = fs.existsSync(browserProdFile) ? browserProdFile : browserPublicFile;
@@ -4054,6 +4058,9 @@ function openSnifferBrowserWindow(targetUrl) {
     snifferBrowserWindow.focus();
     if (targetUrl) {
       snifferBrowserWindow.webContents.send('sniffer:navigate-to', targetUrl);
+    }
+    if (currentAppLocale) {
+      snifferBrowserWindow.webContents.send('sniffer:locale-updated', currentAppLocale);
     }
     return { success: true, message: 'Focused existing sniffer browser' };
   }
@@ -4091,6 +4098,9 @@ function openSnifferBrowserWindow(targetUrl) {
       if (targetUrl) {
         snifferBrowserWindow.webContents.send('sniffer:navigate-to', targetUrl);
       }
+      if (currentAppLocale) {
+        snifferBrowserWindow.webContents.send('sniffer:locale-updated', currentAppLocale);
+      }
     }
   };
 
@@ -4098,7 +4108,12 @@ function openSnifferBrowserWindow(targetUrl) {
   snifferBrowserWindow.webContents.on('did-finish-load', showWindowSafely);
   setTimeout(showWindowSafely, 150);
 
-  snifferBrowserWindow.loadFile(fileToLoad);
+  snifferBrowserWindow.loadFile(fileToLoad, {
+    query: {
+      url: defaultUrl,
+      lang: currentAppLocale || 'zh'
+    }
+  });
 
   snifferBrowserWindow.on('closed', () => {
     snifferBrowserWindow = null;
@@ -4114,8 +4129,18 @@ function openSnifferBrowserWindow(targetUrl) {
   return { success: true };
 }
 
-ipcMain.handle('sniffer:open-window', async (event, url) => {
-  return openSnifferBrowserWindow(url);
+ipcMain.handle('sniffer:open-window', async (event, params) => {
+  const url = typeof params === 'string' ? params : params?.url;
+  const lang = typeof params === 'object' ? params?.lang : null;
+  return openSnifferBrowserWindow(url, lang);
+});
+
+ipcMain.handle('sniffer:set-locale', async (event, lang) => {
+  if (lang) currentAppLocale = lang;
+  if (snifferBrowserWindow && !snifferBrowserWindow.isDestroyed()) {
+    snifferBrowserWindow.webContents.send('sniffer:locale-updated', currentAppLocale);
+  }
+  return { success: true, locale: currentAppLocale };
 });
 
 ipcMain.handle('sniffer:close-window', async () => {
@@ -4132,7 +4157,7 @@ ipcMain.handle('sniffer:focus-window', async () => {
     snifferBrowserWindow.focus();
     return { success: true };
   }
-  return openSnifferBrowserWindow();
+  return openSnifferBrowserWindow(null, currentAppLocale);
 });
 
 ipcMain.handle('sniffer:window-minimize', (event) => {
@@ -4165,10 +4190,10 @@ ipcMain.handle('sniffer:trigger-download', async (event, payload) => {
   const { url, title } = payload || {};
   if (!url) return { success: false, error: 'No URL provided' };
 
-  console.log('[Sniffer Browser] Trigger download requested for:', url, title);
+  console.log('[Sniffer Browser] Trigger download requested for:', url, title, payload?.resolution?.label || 'default');
 
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('downloader:remote-enqueue', { url, title, autoStart: true });
+    mainWindow.webContents.send('downloader:remote-enqueue', { ...payload, autoStart: true });
     return { success: true };
   }
   return { success: false, error: 'Main window is not available' };

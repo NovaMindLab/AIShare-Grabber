@@ -1958,20 +1958,20 @@
             <div v-if="snifferWindowStatus.isOpen" style="background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 12px; padding: 10px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);">
               <div style="min-width: 0; flex: 1; display: flex; align-items: center; gap: 10px;">
                 <span class="sniffer-online-dot"></span>
-                <span style="font-size: 12px; font-weight: 700; color: #818cf8; white-space: nowrap;">独立嗅探窗口就绪:</span>
+                <span style="font-size: 12px; font-weight: 700; color: #818cf8; white-space: nowrap;">{{ t.ytDlp?.windowReady || '独立嗅探窗口就绪:' }}</span>
                 <span style="font-size: 12px; color: var(--text-primary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                   {{ snifferWindowStatus.title || '正在浏览网页...' }}
                 </span>
               </div>
               <div style="display: flex; gap: 8px; flex-shrink: 0;">
-                <button class="btn btn-secondary" style="padding: 5px 12px; font-size: 11px; border-radius: 7px; display: flex; align-items: center; gap: 4px;" @click="parseSnifferCurrentUrl" title="拉取独立窗口正在浏览的视频网址到下方解析框">
+                <button class="btn btn-secondary" style="padding: 5px 12px; font-size: 11px; border-radius: 7px; display: flex; align-items: center; gap: 4px;" @click="parseSnifferCurrentUrl" :title="t.ytDlp?.pullToParse || '拉取独立窗口正在浏览的视频网址到下方解析框'">
                   <span>📥</span>
-                  <span>拉取至解析</span>
+                  <span>{{ t.ytDlp?.pullToParse || '拉取至解析' }}</span>
                 </button>
                 <button class="btn btn-primary" style="padding: 5px 14px; font-size: 11px; border-radius: 7px; font-weight: 600;" @click="focusSnifferBrowser">
-                  🪟 聚焦窗口
+                  🪟 {{ t.ytDlp?.focusWindow || '聚焦窗口' }}
                 </button>
-                <button class="btn btn-secondary" style="padding: 5px 9px; font-size: 11px; border-radius: 7px; color: #ef4444;" @click="closeSnifferBrowser" title="关闭独立嗅探窗口">
+                <button class="btn btn-secondary" style="padding: 5px 9px; font-size: 11px; border-radius: 7px; color: #ef4444;" @click="closeSnifferBrowser" :title="t.ytDlp?.closeWindow || '关闭独立嗅探窗口'">
                   ✕
                 </button>
               </div>
@@ -3317,6 +3317,9 @@ const t = computed(() => locales[currentLocale.value] || locales.en);
 watch(currentLocale, (newLoc) => {
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem('shareclip_locale', newLoc);
+  }
+  if (hasApi && window.api?.setSnifferLocale) {
+    window.api.setSnifferLocale(newLoc);
   }
 });
 
@@ -6595,7 +6598,10 @@ const parseYtVideo = async () => {
 const openSnifferBrowser = async (url) => {
   if (!window.api?.openSnifferBrowser) return;
   try {
-    await window.api.openSnifferBrowser(url);
+    await window.api.openSnifferBrowser({
+      url: url || snifferWindowStatus.value.url || 'https://m.youtube.com',
+      lang: currentLocale.value
+    });
     snifferWindowStatus.value.isOpen = true;
     if (url) snifferWindowStatus.value.url = url;
   } catch (e) {
@@ -6633,11 +6639,72 @@ const parseSnifferCurrentUrl = () => {
   }
 };
 
-const ytDownloadVideoDirect = async (targetUrl, targetTitle) => {
+const ytDownloadVideoDirect = async (targetUrl, targetTitle, targetResolution = null, videoMeta = null) => {
   if (!targetUrl) return;
   const cleanUrl = extractVideoUrl(targetUrl);
   ytUrl.value = cleanUrl;
 
+  // 1. Direct download when resolution was already selected in sniffer window
+  if (targetResolution) {
+    const taskId = `yt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const newTask = {
+      id: taskId,
+      url: cleanUrl,
+      title: targetTitle || videoMeta?.title || '正在下载网络视频...',
+      thumbnail: videoMeta?.thumbnail || '',
+      duration: videoMeta?.duration || 0,
+      resolution: targetResolution.label || targetResolution.id || '1080p',
+      progress: 0,
+      status: '正在连接下载节点...',
+      size: targetResolution.filesize > 0 ? formatFileSize(targetResolution.filesize) : '',
+      speed: '',
+      eta: '',
+      error: null
+    };
+    ytActiveTasks.value.unshift(newTask);
+    ytSubTab.value = 'downloading';
+
+    try {
+      const res = await window.api.downloadYtVideo({
+        taskId,
+        url: cleanUrl,
+        extractor: String(videoMeta?.extractor || ''),
+        resolution: {
+          id: targetResolution.id,
+          label: targetResolution.label,
+          formatSpec: targetResolution.formatSpec,
+          filesize: targetResolution.filesize,
+          type: targetResolution.type,
+          height: targetResolution.height
+        },
+        title: String(newTask.title || ''),
+        thumbnail: String(newTask.thumbnail || ''),
+        duration: Number(newTask.duration || 0),
+        info: videoMeta || null
+      });
+
+      if (res && res.success) {
+        ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== taskId);
+        await loadYtHistory();
+      } else {
+        const errMsg = (res && res.error) ? res.error : '下载未能正常完成';
+        const task = ytActiveTasks.value.find(t => t.id === taskId);
+        if (task) {
+          task.status = `❌ 下载失败: ${errMsg}`;
+          task.error = errMsg;
+        }
+      }
+    } catch (err) {
+      const task = ytActiveTasks.value.find(t => t.id === taskId);
+      if (task) {
+        task.status = `❌ 异常: ${err.message || err}`;
+        task.error = err.message || String(err);
+      }
+    }
+    return;
+  }
+
+  // 2. Fallback when resolution is not yet selected (parse first)
   try {
     const res = await window.api.getYtVideoInfo(cleanUrl);
     if (res && res.success) {
@@ -7072,8 +7139,9 @@ onMounted(() => {
       window.api.onRemoteEnqueueDownload((data) => {
         if (data && data.url) {
           console.log('[App] Remote enqueue download requested:', data);
-          showAppToast(`🚀 已接收独立嗅探窗口指令，正在拉取: ${data.title || data.url}`, 'info', 3500);
-          ytDownloadVideoDirect(data.url, data.title);
+          const resLabel = data.resolution?.label ? ` (${data.resolution.label})` : '';
+          showAppToast(`🚀 已接收独立嗅探窗口指令${resLabel}，正在拉取: ${data.title || data.url}`, 'info', 3500);
+          ytDownloadVideoDirect(data.url, data.title, data.resolution, data.videoInfo || data);
         }
       });
     }
