@@ -2536,6 +2536,13 @@ ipcMain.handle('get-log-path', async () => {
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
 autoUpdater.disableWebInstaller = true;
+autoUpdater.forceDevUpdateConfig = true;
+autoUpdater.logger = {
+  info: (...args) => console.log('[autoUpdater]', ...args),
+  warn: (...args) => console.warn('[autoUpdater]', ...args),
+  error: (...args) => console.error('[autoUpdater]', ...args),
+  debug: (...args) => console.log('[autoUpdater debug]', ...args),
+};
 
 // Sanitizes electron-updater cache to avoid stale blockmap / checksum mismatches
 function sanitizeUpdaterCache() {
@@ -2676,6 +2683,16 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
     console.log('[Update Download] Starting download...');
     updateDownloadEventSender = event.sender;
     sanitizeUpdaterCache();
+    
+    // Ensure autoUpdater has initialized its provider and update info before downloading
+    try {
+      if (!autoUpdater.updateInfoAndProvider) {
+        console.log('[Update Download] autoUpdater updateInfoAndProvider is null, running checkForUpdates first...');
+        await autoUpdater.checkForUpdates();
+      }
+    } catch (checkErr) {
+      console.warn('[Update Download] Pre-download checkForUpdates failed:', checkErr.message);
+    }
     
     // Attempt 1: autoUpdater
     let success = false;
