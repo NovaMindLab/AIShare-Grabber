@@ -52,7 +52,7 @@
     <a href="https://github.com/NovaMindLab/AIShare-Grabber/stargazers"><img src="https://img.shields.io/github/stars/NovaMindLab/AIShare-Grabber?style=flat&color=yellow&logo=github" alt="GitHub Stars" /></a>
     <img src="https://img.shields.io/badge/Storage-100%25_Local-success?logo=serverless" alt="100% Local" />
     <img src="https://img.shields.io/badge/AI_Inference-On--Device-blue?logo=openai" alt="On-Device AI" />
-    <a href="https://github.com/NovaMindLab/AIShare-Grabber/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" /></a>
+    <a href="https://github.com/NovaMindLab/AIShare-Grabber/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" /></a>
   </p>
 
   <p align="center">
@@ -325,13 +325,13 @@ flowchart LR
 * 🧠 **自然语言以文搜图**：告别冰冷文件名，输入想找的画面自然呈现；
 * 👥 **本地人脸聚类**：自动将家人、朋友分类成专属人物相册；
 * 🧹 **连拍与相似图清理**：一键定位废片，同步释放手机与电脑存储；
-* 🆓 **完全免费与开源**：基于 Apache 2.0 开源协议，无订阅套路。
+* 🆓 **完全免费与开源**：基于 MIT 开源协议，无订阅套路。
 
 ---
 
 ## 📄 License & Privacy Guarantee
 
 - **Privacy Guarantee**: ShareCLIP is strictly engineered around a **Zero-Cloud & Zero-Telemetry** architecture. Your original photos, location EXIF data, and face biometric vectors will **never** leave your local devices.
-- **License**: Released under the [Apache License 2.0](https://github.com/NovaMindLab/AIShare-Grabber/blob/main/LICENSE).
+- **License**: Released under the [MIT License](https://github.com/NovaMindLab/AIShare-Grabber/blob/main/LICENSE).
 
 Developed with ❤️ by the **NovaMindLab** team.
