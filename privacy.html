@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShareCLIP — 隐私政策 / Privacy Policy</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #131c31;
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --primary: #6366f1;
+      --accent: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.7;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    .logo {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.18);
+      color: var(--accent);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+    h2 {
+      font-size: 18px;
+      color: #f8fafc;
+      margin-top: 28px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    p, li {
+      color: var(--text-dim);
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    ul {
+      padding-left: 24px;
+      margin-bottom: 16px;
+    }
+    .highlight-box {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 10px;
+      padding: 16px;
+      margin: 20px 0;
+    }
+    .highlight-box p {
+      color: #c7d2fe;
+      margin: 0;
+      font-weight: 500;
+    }
+    .lang-divider {
+      border-top: 2px dashed rgba(255, 255, 255, 0.15);
+      margin: 50px 0;
+    }
+    .footer {
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      margin-top: 40px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <div class="logo">📸</div>
+      <h1>ShareCLIP 隐私政策 / Privacy Policy</h1>
+      <div class="subtitle">生效日期 / Effective Date: 2026-09-15 &nbsp;•&nbsp; 适用于 Windows / macOS / Android / WebShare 客户端</div>
+      <div class="badge">🔒 100% 本地计算 · 零云端回传 · 零订阅</div>
+    </div>
+
+    <!-- 中文版 -->
+    <section>
+      <h2>1. 核心隐私理念 (Our Philosophy)</h2>
+      <div class="highlight-box">
+        <p>🛡️ <strong>极简承诺：</strong>ShareCLIP 是一个开源、去中心化的媒体同步与端侧 AI 管理套件。您的相册、照片、人脸特征、视频文件和位置足迹<strong>永远留在您的本地设备中</strong>。我们不设任何云端服务器，绝不会收集、存储、出售或上传您的任何个人数据。</p>
+      </div>
+
+      <h2>2. 数据收集与存储 (Data Collection & Storage)</h2>
+      <ul>
+        <li><strong>相册与多媒体数据：</strong>应用处理的所有照片和视频仅在您的手机与个人电脑之间通过局域网点对点（P2P Wi-Fi / WebRTC / BLE）直接传输，中间不经过任何第三方或中继服务器。</li>
+        <li><strong>本地端侧 AI 分析：</strong>应用内置的 MobileCLIP 图像分类模型和人脸检测算法均 100% 离线在您本地设备的 CPU/GPU/NPU 上运行，分析生成的索引和向量数据库储存在您电脑的本地 SQLite 数据库中。</li>
+        <li><strong>个人身份信息：</strong>我们不要求您注册账号、不收集手机号、邮箱、姓名或通讯录。</li>
+      </ul>
+
+      <h2>3. 权限使用说明 (Permissions Usage)</h2>
+      <ul>
+        <li><strong>本地网络与 Wi-Fi / 蓝牙权限：</strong>仅用于在您同一局域网下的手机和电脑建立配对握手与高速点对点传输通道。</li>
+        <li><strong>文件系统存储读写权限：</strong>仅用于读取您主动选择导入的相册目录，以及将同步的照片保存至您指定的下载文件夹。</li>
+      </ul>
+
+      <h2>4. 第三方服务与披露 (Third-Party Disclosure)</h2>
+      <p>ShareCLIP 完全开源，没有集成任何侵犯隐私的第三方追踪 SDK、广告插件或数据共享网络。除用于软件版本更新检测（直连 GitHub 官方公开 Releases API）外，不会产生任何后台静默网络请求。</p>
+
+      <h2>5. 联系我们 (Contact)</h2>
+      <p>若您对本隐私政策有任何疑问或安全建议，可通过 GitHub 开源社区与我们取得联系：<br/>
+      GitHub Issues: <a href="https://github.com/NovaMindLab/AIShare-Grabber/issues" target="_blank">https://github.com/NovaMindLab/AIShare-Grabber/issues</a></p>
+    </section>
+
+    <div class="lang-divider"></div>
+
+    <!-- English Version -->
+    <section>
+      <h2>1. Privacy Commitment</h2>
+      <div class="highlight-box">
+        <p>🛡️ <strong>Absolute Privacy:</strong> ShareCLIP is a private, open-source P2P sync and on-device AI media suite. Your pictures, faces, videos, and personal files <strong>never leave your own local devices</strong>. We do not operate cloud servers and never collect, store, sell, or transmit your personal data.</p>
+      </div>
+
+      <h2>2. Data Handling & On-Device Processing</h2>
+      <ul>
+        <li><strong>Local Photos & Media:</strong> All files transferred between your mobile device and PC communicate strictly over direct local Wi-Fi / WebRTC peer-to-peer connections. No intermediate cloud servers are used.</li>
+        <li><strong>On-Device AI Computation:</strong> Feature extraction, MobileCLIP zero-shot classification, and facial analysis run 100% offline locally on your hardware. Indexes are kept in your local SQLite database.</li>
+        <li><strong>No Accounts or Tracking:</strong> No sign-up, phone number, email, or credentials are required to use the software.</li>
+      </ul>
+
+      <h2>3. Permissions Required</h2>
+      <ul>
+        <li><strong>Local Network & Bluetooth:</strong> Used exclusively to discover and establish encrypted peer-to-peer data channels with your mobile device on the same local network.</li>
+        <li><strong>Storage Access:</strong> Used exclusively to read user-selected folders and save transferred media to your designated local destination folder.</li>
+      </ul>
+
+      <h2>4. Third-Party Services</h2>
+      <p>ShareCLIP does not embed third-party tracking, profiling SDKs, or targeted advertising. Network communication is limited to local device handshakes and checking for application software updates via GitHub's public API.</p>
+
+      <h2>5. Contact Us</h2>
+      <p>If you have any questions regarding this Privacy Policy, feel free to open an inquiry on our GitHub repository:<br/>
+      <a href="https://github.com/NovaMindLab/AIShare-Grabber/issues" target="_blank">https://github.com/NovaMindLab/AIShare-Grabber/issues</a></p>
+    </section>
+
+    <div class="footer">
+      © 2026 ShareCLIP Team · NovaMindLab. All rights reserved. Open source under the MIT License.
+    </div>
+  </div>
+
+</body>
+</html>
