@@ -203,8 +203,8 @@
 
     <!-- Main Content Area -->
     <main class="main-content">
-      <!-- Top Header Bar -->
-      <header class="top-bar">
+      <!-- Top Header Bar (Hidden in yt-dlp tab as it has its own dedicated top header) -->
+      <header class="top-bar" v-if="currentTab !== 'yt-dlp'">
         <!-- Scenario A: Link Mobile Tab Header -->
         <div v-if="currentTab === 'link'" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
           <!-- Left Title & Device Connection Badge -->
@@ -7296,45 +7296,100 @@ const isCategoryFilterActive = (key) => {
   return ytSelectedSourceFilter.value === key;
 };
 
-const getTimeGroupKey = (completedAt) => {
+// Extract calendar day key: YYYY-MM-DD
+const getItemDayKey = (completedAt) => {
   if (!completedAt) return 'earlier';
   try {
-    const itemDate = new Date(completedAt);
+    const d = new Date(completedAt);
+    const y = d.getFullYear();
+    const m = (d.getMonth() + 1).toString().padStart(2, '0');
+    const day = d.getDate().toString().padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  } catch (_) {
+    return 'earlier';
+  }
+};
+
+// Formats friendly day display name
+const formatDayGroupName = (dayKey) => {
+  if (dayKey === 'earlier') {
+    return { name: t.value?.ytDlp?.timeEarlier || '更早', pillName: t.value?.ytDlp?.timeEarlier || '更早', icon: '📦' };
+  }
+  try {
+    const parts = dayKey.split('-').map(Number);
+    const itemYear = parts[0];
+    const itemMonth = parts[1];
+    const itemDay = parts[2];
+    
     const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const targetDate = new Date(itemYear, itemMonth - 1, itemDay);
     
-    const isToday = itemDate.getFullYear() === now.getFullYear() &&
-                    itemDate.getMonth() === now.getMonth() &&
-                    itemDate.getDate() === now.getDate();
-    if (isToday) return 'today';
+    const diffDays = Math.round((today - targetDate) / (1000 * 3600 * 24));
     
-    const diffTime = now.getTime() - itemDate.getTime();
-    const diffDays = diffTime / (1000 * 3600 * 24);
-    if (diffDays <= 7 && diffDays >= 0) return 'week';
-  } catch (_) {}
-  return 'earlier';
+    if (diffDays === 0) {
+      const todayText = t.value?.ytDlp?.timeToday || '今天';
+      return { 
+        name: `${todayText} · ${itemMonth}月${itemDay}日`, 
+        pillName: `${todayText} (${itemMonth}/${itemDay})`, 
+        icon: '📅' 
+      };
+    } else if (diffDays === 1) {
+      const yesterdayText = t.value?.ytDlp?.timeYesterday || '昨天';
+      return { 
+        name: `${yesterdayText} · ${itemMonth}月${itemDay}日`, 
+        pillName: `${yesterdayText} (${itemMonth}/${itemDay})`, 
+        icon: '🕒' 
+      };
+    } else if (itemYear === now.getFullYear()) {
+      return { 
+        name: `${itemMonth}月${itemDay}日`, 
+        pillName: `${itemMonth}月${itemDay}日`, 
+        icon: '📅' 
+      };
+    } else {
+      return { 
+        name: `${itemYear}年${itemMonth}月${itemDay}日`, 
+        pillName: `${itemYear}/${itemMonth}/${itemDay}`, 
+        icon: '📅' 
+      };
+    }
+  } catch (_) {
+    return { name: dayKey, pillName: dayKey, icon: '📅' };
+  }
 };
 
 const timeCategoryGroups = computed(() => {
-  const todayItems = [];
-  const weekItems = [];
-  const earlierItems = [];
+  const map = new Map();
   
   for (const item of (ytHistory.value || [])) {
-    const grp = getTimeGroupKey(item.completedAt);
-    if (grp === 'today') todayItems.push(item);
-    else if (grp === 'week') weekItems.push(item);
-    else earlierItems.push(item);
+    const dayKey = getItemDayKey(item.completedAt);
+    if (!map.has(dayKey)) {
+      map.set(dayKey, []);
+    }
+    map.get(dayKey).push(item);
   }
   
+  // Sort date keys descending: latest day first
+  const sortedKeys = Array.from(map.keys()).sort((a, b) => {
+    if (a === 'earlier') return 1;
+    if (b === 'earlier') return -1;
+    return b.localeCompare(a);
+  });
+  
   const groups = [];
-  if (todayItems.length > 0) {
-    groups.push({ key: 'today', name: t.value?.ytDlp?.timeToday || '今天', icon: '📅', items: todayItems });
-  }
-  if (weekItems.length > 0) {
-    groups.push({ key: 'week', name: t.value?.ytDlp?.timeWeek || '最近 7 天', icon: '🕒', items: weekItems });
-  }
-  if (earlierItems.length > 0) {
-    groups.push({ key: 'earlier', name: t.value?.ytDlp?.timeEarlier || '更早', icon: '📦', items: earlierItems });
+  for (const dayKey of sortedKeys) {
+    const items = map.get(dayKey) || [];
+    items.sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+    
+    const info = formatDayGroupName(dayKey);
+    groups.push({
+      key: dayKey,
+      name: info.name,
+      pillName: info.pillName,
+      icon: info.icon,
+      items
+    });
   }
   return groups;
 });
@@ -7359,7 +7414,7 @@ const currentCategoryPills = computed(() => {
       { key: 'all', name: t.value?.ytDlp?.allCategories || '全部', icon: '✨', count: (ytHistory.value || []).length }
     ];
     for (const g of timeCategoryGroups.value) {
-      pills.push({ key: g.key, name: g.name, icon: g.icon, count: g.items.length });
+      pills.push({ key: g.key, name: g.pillName || g.name, icon: g.icon, count: g.items.length });
     }
     return pills;
   } else {
