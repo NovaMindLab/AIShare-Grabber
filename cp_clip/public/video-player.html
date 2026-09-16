@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShareCLIP 视频播放器</title>
+  <title data-i18n="appTitle">ShareCLIP 视频播放器</title>
   <style>
     * {
       box-sizing: border-box;
@@ -398,15 +398,15 @@
   <div class="titlebar" id="titlebar">
     <div class="titlebar-left">
       <span class="titlebar-icon">🎬</span>
-      <span class="titlebar-text" id="videoTitle">ShareCLIP 播放器</span>
+      <span class="titlebar-text" id="videoTitle" data-i18n="playerTitle">ShareCLIP 播放器</span>
       <span class="titlebar-badge" id="videoResolution" style="display: none;">1080p</span>
     </div>
     <div class="titlebar-actions">
-      <button class="tb-btn" id="btnOpenFolder" title="打开所在文件夹">📁</button>
-      <button class="tb-btn" id="btnToggleTop" title="置顶播放 (画中画)">📌</button>
-      <button class="tb-btn" id="btnMin" title="最小化">─</button>
-      <button class="tb-btn" id="btnMax" title="最大化">□</button>
-      <button class="tb-btn tb-btn-close" id="btnClose" title="关闭">✕</button>
+      <button class="tb-btn" id="btnOpenFolder" data-i18n-title="openFolder" title="打开所在文件夹">📁</button>
+      <button class="tb-btn" id="btnToggleTop" data-i18n-title="toggleTop" title="置顶播放 (画中画)">📌</button>
+      <button class="tb-btn" id="btnMin" data-i18n-title="minimize" title="最小化">─</button>
+      <button class="tb-btn" id="btnMax" data-i18n-title="maximize" title="最大化">□</button>
+      <button class="tb-btn tb-btn-close" id="btnClose" data-i18n-title="close" title="关闭">✕</button>
     </div>
   </div>
 
@@ -423,7 +423,7 @@
     <!-- Drag & Drop Overlay -->
     <div class="dropzone-overlay" id="dropOverlay">
       <span style="font-size: 36px;">📥</span>
-      <span>松开以直接在此窗口播放视频</span>
+      <span data-i18n="dropToPlay">松开以直接在此窗口播放视频</span>
     </div>
 
     <!-- Controls Bar -->
@@ -440,13 +440,13 @@
       <div class="controls-row">
         <!-- Left Buttons -->
         <div class="controls-left">
-          <button class="ctrl-btn" id="btnPlayPause" title="播放 / 暂停 (空格)">▶️</button>
-          <button class="ctrl-btn" id="btnRewind" title="快退 5 秒 (←)">⏪</button>
-          <button class="ctrl-btn" id="btnForward" title="快进 5 秒 (→)">⏩</button>
+          <button class="ctrl-btn" id="btnPlayPause" data-i18n-title="playPause" title="播放 / 暂停 (空格)">▶️</button>
+          <button class="ctrl-btn" id="btnRewind" data-i18n-title="rewind" title="快退 5 秒 (←)">⏪</button>
+          <button class="ctrl-btn" id="btnForward" data-i18n-title="forward" title="快进 5 秒 (→)">⏩</button>
           
           <div class="volume-group">
-            <button class="ctrl-btn" id="btnMute" title="静音 (M)">🔊</button>
-            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.05" value="1" title="音量 (↑ / ↓)">
+            <button class="ctrl-btn" id="btnMute" data-i18n-title="mute" title="静音 (M)">🔊</button>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.05" value="1" data-i18n-title="volume" title="音量 (↑ / ↓)">
           </div>
 
           <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
@@ -467,15 +467,551 @@
             </div>
           </div>
 
-          <button class="ctrl-btn" id="btnLoop" title="循环播放 (关闭)">🔂</button>
-          <button class="ctrl-btn" id="btnPip" title="画中画模式">🗔</button>
-          <button class="ctrl-btn" id="btnFullscreen" title="全屏 (F)">⛶</button>
+          <button class="ctrl-btn" id="btnLoop" data-i18n-title="loopOff" title="循环播放 (关闭)">🔂</button>
+          <button class="ctrl-btn" id="btnPip" data-i18n-title="pip" title="画中画模式">🗔</button>
+          <button class="ctrl-btn" id="btnFullscreen" data-i18n-title="fullscreen" title="全屏 (F)">⛶</button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
+    // ── Multi-Language / i18n Dictionary ────────────────────────
+    const i18nDict = {
+  "zh": {
+    "appTitle": "ShareCLIP 视频播放器",
+    "playerTitle": "ShareCLIP 播放器",
+    "openFolder": "打开所在文件夹",
+    "toggleTop": "置顶播放 (画中画)",
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "close": "关闭",
+    "dropToPlay": "松开以直接在此窗口播放视频",
+    "playPause": "播放 / 暂停 (空格)",
+    "rewind": "快退 5 秒 (←)",
+    "forward": "快进 5 秒 (→)",
+    "mute": "静音 (M)",
+    "volume": "音量 (↑ / ↓)",
+    "loopOff": "循环播放 (关闭)",
+    "loopOn": "循环播放 (开启)",
+    "pip": "画中画模式",
+    "fullscreen": "全屏 (F)",
+    "muted": "静音",
+    "speedSuffix": "倍速",
+    "singleLoopOn": "开启单曲循环",
+    "seqPlayback": "顺序播放",
+    "topPinned": "已开启窗口置顶",
+    "topUnpinned": "已取消窗口置顶"
+  },
+  "zh-TW": {
+    "appTitle": "ShareCLIP 影片播放器",
+    "playerTitle": "ShareCLIP 播放器",
+    "openFolder": "打開所在資料夾",
+    "toggleTop": "置頂播放 (子母畫面)",
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "close": "關閉",
+    "dropToPlay": "放開以直接在此視窗播放影片",
+    "playPause": "播放 / 暫停 (空白鍵)",
+    "rewind": "快退 5 秒 (←)",
+    "forward": "快進 5 秒 (→)",
+    "mute": "靜音 (M)",
+    "volume": "音量 (↑ / ↓)",
+    "loopOff": "循環播放 (關閉)",
+    "loopOn": "循環播放 (開啟)",
+    "pip": "子母畫面模式",
+    "fullscreen": "全螢幕 (F)",
+    "muted": "靜音",
+    "speedSuffix": "倍速",
+    "singleLoopOn": "開啟單曲循環",
+    "seqPlayback": "順序播放",
+    "topPinned": "已開啟視窗置頂",
+    "topUnpinned": "已取消視窗置頂"
+  },
+  "en": {
+    "appTitle": "ShareCLIP Video Player",
+    "playerTitle": "ShareCLIP Player",
+    "openFolder": "Open Containing Folder",
+    "toggleTop": "Always on Top (PiP)",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "close": "Close",
+    "dropToPlay": "Drop video file here to play",
+    "playPause": "Play / Pause (Space)",
+    "rewind": "Rewind 5s (←)",
+    "forward": "Forward 5s (→)",
+    "mute": "Mute (M)",
+    "volume": "Volume (↑ / ↓)",
+    "loopOff": "Loop: Off",
+    "loopOn": "Loop: On",
+    "pip": "Picture-in-Picture",
+    "fullscreen": "Fullscreen (F)",
+    "muted": "Muted",
+    "speedSuffix": "x Speed",
+    "singleLoopOn": "Single Loop Enabled",
+    "seqPlayback": "Sequential Playback",
+    "topPinned": "Window Pinned on Top",
+    "topUnpinned": "Window Unpinned"
+  },
+  "ja": {
+    "appTitle": "ShareCLIP 動画プレイヤー",
+    "playerTitle": "ShareCLIP プレイヤー",
+    "openFolder": "保存先フォルダを開く",
+    "toggleTop": "常に最前面に表示",
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "close": "閉じる",
+    "dropToPlay": "ここにドロップして動画を再生",
+    "playPause": "再生 / 一時停止 (Space)",
+    "rewind": "5秒戻る (←)",
+    "forward": "5秒進む (→)",
+    "mute": "消音 (M)",
+    "volume": "音量 (↑ / ↓)",
+    "loopOff": "ループ再生: オフ",
+    "loopOn": "ループ再生: オン",
+    "pip": "ピクチャー・イン・ピクチャー",
+    "fullscreen": "全画面表示 (F)",
+    "muted": "消音",
+    "speedSuffix": "倍速",
+    "singleLoopOn": "リピート再生有効",
+    "seqPlayback": "通常再生",
+    "topPinned": "最前面固定",
+    "topUnpinned": "最前面固定解除"
+  },
+  "ko": {
+    "appTitle": "ShareCLIP 동영상 플레이어",
+    "playerTitle": "ShareCLIP 플레이어",
+    "openFolder": "저장 폴더 열기",
+    "toggleTop": "항상 위에 표시",
+    "minimize": "최소화",
+    "maximize": "최대화",
+    "close": "닫기",
+    "dropToPlay": "여기에 동영상을 놓아 재생",
+    "playPause": "재생 / 일시정지 (Space)",
+    "rewind": "5초 뒤로 (←)",
+    "forward": "5초 앞으로 (→)",
+    "mute": "음소거 (M)",
+    "volume": "볼륨 (↑ / ↓)",
+    "loopOff": "반복 재생: 꺼짐",
+    "loopOn": "반복 재생: 켜짐",
+    "pip": "PIP 모드",
+    "fullscreen": "전체 화면 (F)",
+    "muted": "음소거",
+    "speedSuffix": "배속",
+    "singleLoopOn": "한 곡 반복 켜짐",
+    "seqPlayback": "순차 재생",
+    "topPinned": "항상 위에 고정됨",
+    "topUnpinned": "상단 고정 해제됨"
+  },
+  "es": {
+    "appTitle": "ShareCLIP Reproductor de Video",
+    "playerTitle": "ShareCLIP Reproductor",
+    "openFolder": "Abrir carpeta contenedora",
+    "toggleTop": "Fijar en primer plano",
+    "minimize": "Minimizar",
+    "maximize": "Maximizar",
+    "close": "Cerrar",
+    "dropToPlay": "Soltar aquí para reproducir video",
+    "playPause": "Reproducir / Pausar (Espacio)",
+    "rewind": "Retroceder 5s (←)",
+    "forward": "Avanzar 5s (→)",
+    "mute": "Silenciar (M)",
+    "volume": "Volumen (↑ / ↓)",
+    "loopOff": "Bucle: Desactivado",
+    "loopOn": "Bucle: Activado",
+    "pip": "Picture-in-Picture",
+    "fullscreen": "Pantalla completa (F)",
+    "muted": "Silenciado",
+    "speedSuffix": "x Velocidad",
+    "singleLoopOn": "Bucle activado",
+    "seqPlayback": "Reproducción normal",
+    "topPinned": "Ventana fijada al frente",
+    "topUnpinned": "Fijación desactivada"
+  },
+  "fr": {
+    "appTitle": "ShareCLIP Lecteur Vidéo",
+    "playerTitle": "Lecteur ShareCLIP",
+    "openFolder": "Ouvrir le dossier source",
+    "toggleTop": "Toujours au premier plan",
+    "minimize": "Réduire",
+    "maximize": "Agrandir",
+    "close": "Fermer",
+    "dropToPlay": "Glisser-déposer la vidéo ici",
+    "playPause": "Lecture / Pause (Espace)",
+    "rewind": "Reculer 5s (←)",
+    "forward": "Avancer 5s (→)",
+    "mute": "Couper le son (M)",
+    "volume": "Volume (↑ / ↓)",
+    "loopOff": "Boucle: Désactivée",
+    "loopOn": "Boucle: Activée",
+    "pip": "Image dans l'image",
+    "fullscreen": "Plein écran (F)",
+    "muted": "Muet",
+    "speedSuffix": "x Vitesse",
+    "singleLoopOn": "Boucle activée",
+    "seqPlayback": "Lecture continue",
+    "topPinned": "Épinglé au premier plan",
+    "topUnpinned": "Désépinglé"
+  },
+  "de": {
+    "appTitle": "ShareCLIP Videoplayer",
+    "playerTitle": "ShareCLIP Player",
+    "openFolder": "Zielordner öffnen",
+    "toggleTop": "Immer im Vordergrund",
+    "minimize": "Minimieren",
+    "maximize": "Maximieren",
+    "close": "Schließen",
+    "dropToPlay": "Video hier ablegen zum Abspielen",
+    "playPause": "Wiedergabe / Pause (Leertaste)",
+    "rewind": "5 Sek. zurück (←)",
+    "forward": "5 Sek. vor (→)",
+    "mute": "Stumm (M)",
+    "volume": "Lautstärke (↑ / ↓)",
+    "loopOff": "Schleife: Aus",
+    "loopOn": "Schleife: An",
+    "pip": "Bild-im-Bild",
+    "fullscreen": "Vollbild (F)",
+    "muted": "Stumm",
+    "speedSuffix": "x Geschwindigkeit",
+    "singleLoopOn": "Einzeltitel-Schleife",
+    "seqPlayback": "Fortlaufende Wiedergabe",
+    "topPinned": "Im Vordergrund fixiert",
+    "topUnpinned": "Fixierung aufgehoben"
+  },
+  "it": {
+    "appTitle": "ShareCLIP Riproduttore Video",
+    "playerTitle": "ShareCLIP Player",
+    "openFolder": "Apri cartella di origine",
+    "toggleTop": "Sempre in primo piano",
+    "minimize": "Riduci a icona",
+    "maximize": "Ingrandisci",
+    "close": "Chiudi",
+    "dropToPlay": "Rilascia il video qui per riprodurlo",
+    "playPause": "Riproduci / Pausa (Spazio)",
+    "rewind": "Indietro 5s (←)",
+    "forward": "Avanti 5s (→)",
+    "mute": "Disattiva audio (M)",
+    "volume": "Volume (↑ / ↓)",
+    "loopOff": "Ripetizione: No",
+    "loopOn": "Ripetizione: Sì",
+    "pip": "Picture-in-Picture",
+    "fullscreen": "Schermo intero (F)",
+    "muted": "Muto",
+    "speedSuffix": "x Velocità",
+    "singleLoopOn": "Ripetizione singola",
+    "seqPlayback": "Riproduzione sequenziale",
+    "topPinned": "Fissato in primo piano",
+    "topUnpinned": "Rimossa priorità"
+  },
+  "ru": {
+    "appTitle": "ShareCLIP Видеоплеер",
+    "playerTitle": "ShareCLIP Плеер",
+    "openFolder": "Открыть папку с видео",
+    "toggleTop": "Поверх остальных окон",
+    "minimize": "Свернуть",
+    "maximize": "Развернуть",
+    "close": "Закрыть",
+    "dropToPlay": "Перетащите видео сюда для воспроизведения",
+    "playPause": "Воспроизведение / Пауза (Пробел)",
+    "rewind": "Назад на 5 сек (←)",
+    "forward": "Вперед на 5 сек (→)",
+    "mute": "Без звука (M)",
+    "volume": "Громкость (↑ / ↓)",
+    "loopOff": "Повтор: Выкл",
+    "loopOn": "Повтор: Вкл",
+    "pip": "Картинка в картинке",
+    "fullscreen": "Полный экран (F)",
+    "muted": "Без звука",
+    "speedSuffix": "x Скорость",
+    "singleLoopOn": "Повтор включен",
+    "seqPlayback": "Последовательное воспроизведение",
+    "topPinned": "Окно закреплено поверх",
+    "topUnpinned": "Закрепление снято"
+  },
+  "pt": {
+    "appTitle": "ShareCLIP Reprodutor de Vídeo",
+    "playerTitle": "ShareCLIP Player",
+    "openFolder": "Abrir pasta do arquivo",
+    "toggleTop": "Sempre no topo",
+    "minimize": "Minimizar",
+    "maximize": "Maximizar",
+    "close": "Fechar",
+    "dropToPlay": "Solte o vídeo aqui para reproduzir",
+    "playPause": "Reproduzir / Pausar (Espaço)",
+    "rewind": "Retroceder 5s (←)",
+    "forward": "Avançar 5s (→)",
+    "mute": "Mudo (M)",
+    "volume": "Volume (↑ / ↓)",
+    "loopOff": "Repetir: Desligado",
+    "loopOn": "Repetir: Ligado",
+    "pip": "Picture-in-Picture",
+    "fullscreen": "Tela cheia (F)",
+    "muted": "Mudo",
+    "speedSuffix": "x Velocidade",
+    "singleLoopOn": "Repetição ativada",
+    "seqPlayback": "Reprodução contínua",
+    "topPinned": "Fixado no topo",
+    "topUnpinned": "Desafixado"
+  },
+  "vi": {
+    "appTitle": "ShareCLIP Trình phát video",
+    "playerTitle": "Trình phát ShareCLIP",
+    "openFolder": "Mở thư mục chứa",
+    "toggleTop": "Ghim lên đầu",
+    "minimize": "Thu nhỏ",
+    "maximize": "Phóng to",
+    "close": "Đóng",
+    "dropToPlay": "Thả video vào đây để phát",
+    "playPause": "Phát / Tạm dừng (Khoảng trắng)",
+    "rewind": "Tua lại 5 giây (←)",
+    "forward": "Tua tới 5 giây (→)",
+    "mute": "Tắt tiếng (M)",
+    "volume": "Âm lượng (↑ / ↓)",
+    "loopOff": "Lặp lại: Tắt",
+    "loopOn": "Lặp lại: Bật",
+    "pip": "Hình trong hình",
+    "fullscreen": "Toàn màn hình (F)",
+    "muted": "Đã tắt tiếng",
+    "speedSuffix": "x Tốc độ",
+    "singleLoopOn": "Bật lặp lại một bài",
+    "seqPlayback": "Phát tuần tự",
+    "topPinned": "Đã ghim cửa sổ",
+    "topUnpinned": "Đã bỏ ghim"
+  },
+  "th": {
+    "appTitle": "ShareCLIP เครื่องเล่นวิดีโอ",
+    "playerTitle": "เครื่องเล่น ShareCLIP",
+    "openFolder": "เปิดโฟลเดอร์ที่มีอยู่",
+    "toggleTop": "อยู่ด้านบนเสมอ",
+    "minimize": "ย่อเล็กสุด",
+    "maximize": "ขยายใหญ่สุด",
+    "close": "ปิด",
+    "dropToPlay": "วางวิดีโอที่นี่เพื่อเล่น",
+    "playPause": "เล่น / หยุดชั่วคราว (Space)",
+    "rewind": "ย้อนหลัง 5 วินาที (←)",
+    "forward": "กรอไปข้างหน้า 5 วินาที (→)",
+    "mute": "ปิดเสียง (M)",
+    "volume": "ระดับเสียง (↑ / ↓)",
+    "loopOff": "เล่นวนซ้ำ: ปิด",
+    "loopOn": "เล่นวนซ้ำ: เปิด",
+    "pip": "โหมดภาพซ้อนภาพ",
+    "fullscreen": "เต็มหน้าจอ (F)",
+    "muted": "ปิดเสียงอยู่",
+    "speedSuffix": "x ความเร็ว",
+    "singleLoopOn": "เปิดเล่นวนซ้ำ",
+    "seqPlayback": "เล่นตามลำดับ",
+    "topPinned": "ปักหมุดไว้ด้านบนแล้ว",
+    "topUnpinned": "ยกเลิกการปักหมุดแล้ว"
+  },
+  "id": {
+    "appTitle": "ShareCLIP Pemutar Video",
+    "playerTitle": "ShareCLIP Player",
+    "openFolder": "Buka Folder Sumber",
+    "toggleTop": "Selalu di Atas",
+    "minimize": "Minimalkan",
+    "maximize": "Maksimalkan",
+    "close": "Tutup",
+    "dropToPlay": "Lepaskan video di sini untuk memutar",
+    "playPause": "Putar / Jeda (Spasi)",
+    "rewind": "Mundur 5 dtk (←)",
+    "forward": "Maju 5 dtk (→)",
+    "mute": "Bisu (M)",
+    "volume": "Volume (↑ / ↓)",
+    "loopOff": "Putar Ulang: Mati",
+    "loopOn": "Putar Ulang: Nyala",
+    "pip": "Gambar-dalam-Gambar",
+    "fullscreen": "Layar Penuh (F)",
+    "muted": "Membisu",
+    "speedSuffix": "x Kecepatan",
+    "singleLoopOn": "Pengulangan Aktif",
+    "seqPlayback": "Pemutaran Berurutan",
+    "topPinned": "Disematkan di Atas",
+    "topUnpinned": "Batal Disematkan"
+  },
+  "ar": {
+    "appTitle": "ShareCLIP مشغل الفيديو",
+    "playerTitle": "مشغل ShareCLIP",
+    "openFolder": "فتح المجلد الحاوي",
+    "toggleTop": "دائماً في المقدمة",
+    "minimize": "تصغير",
+    "maximize": "تكبير",
+    "close": "إغلاق",
+    "dropToPlay": "أفلت الفيديو هنا للتشغيل",
+    "playPause": "تشغيل / إيقاف مؤقت (مسافة)",
+    "rewind": "ترجيع 5 ثوان (←)",
+    "forward": "تقديم 5 ثوان (→)",
+    "mute": "كتم الصوت (M)",
+    "volume": "مستوى الصوت (↑ / ↓)",
+    "loopOff": "تكرار: معطل",
+    "loopOn": "تكرار: مفعّل",
+    "pip": "صورة داخل صورة",
+    "fullscreen": "ملء الشاشة (F)",
+    "muted": "تم كتم الصوت",
+    "speedSuffix": "x السرعة",
+    "singleLoopOn": "تكرار مستمر",
+    "seqPlayback": "تشغيل متتابع",
+    "topPinned": "مثبت في المقدمة",
+    "topUnpinned": "تم إلغاء التثبيت"
+  },
+  "hi": {
+    "appTitle": "ShareCLIP वीडियो प्लेयर",
+    "playerTitle": "ShareCLIP प्लेयर",
+    "openFolder": "फ़ोल्डर खोलें",
+    "toggleTop": "हमेशा ऊपर रखें",
+    "minimize": "छोटा करें",
+    "maximize": "बड़ा करें",
+    "close": "बंद करें",
+    "dropToPlay": "चलाने के लिए वीडियो यहाँ छोड़ें",
+    "playPause": "चलाएं / रोकें (Space)",
+    "rewind": "5 सेकंड पीछे (←)",
+    "forward": "5 सेकंड आगे (→)",
+    "mute": "म्यूट (M)",
+    "volume": "आवाज़ (↑ / ↓)",
+    "loopOff": "लूप: बंद",
+    "loopOn": "लूप: चालू",
+    "pip": "पिक्चर-इन-पिक्चर",
+    "fullscreen": "पूर्ण स्क्रीन (F)",
+    "muted": "म्यूट किया गया",
+    "speedSuffix": "x गति",
+    "singleLoopOn": "सिंगल लूप सक्रिय",
+    "seqPlayback": "क्रमिक प्लेबैक",
+    "topPinned": "शीर्ष पर पिन किया गया",
+    "topUnpinned": "अनपिन किया गया"
+  },
+  "tr": {
+    "appTitle": "ShareCLIP Video Oynatıcı",
+    "playerTitle": "ShareCLIP Oynatıcı",
+    "openFolder": "İçeren Klasörü Aç",
+    "toggleTop": "Her Zaman Üstte",
+    "minimize": "Simge Durumuna Küçült",
+    "maximize": "Ekranı Kapla",
+    "close": "Kapat",
+    "dropToPlay": "Oynatmak için videoyu buraya bırakın",
+    "playPause": "Oynat / Duraklat (Boşluk)",
+    "rewind": "5 sn geri (←)",
+    "forward": "5 sn ileri (→)",
+    "mute": "Sesi Kapat (M)",
+    "volume": "Ses Seviyesi (↑ / ↓)",
+    "loopOff": "Döngü: Kapalı",
+    "loopOn": "Döngü: Açık",
+    "pip": "Resim içinde Resim",
+    "fullscreen": "Tam Ekran (F)",
+    "muted": "Sessiz",
+    "speedSuffix": "x Hız",
+    "singleLoopOn": "Tekrarlama Açık",
+    "seqPlayback": "Sıralı Oynatma",
+    "topPinned": "Üste Sabitlendi",
+    "topUnpinned": "Sabitleme Kaldırıldı"
+  },
+  "pl": {
+    "appTitle": "ShareCLIP Odtwarzacz Wideo",
+    "playerTitle": "ShareCLIP Odtwarzacz",
+    "openFolder": "Otwórz folder zawierający",
+    "toggleTop": "Zawsze na wierzchu",
+    "minimize": "Minimalizuj",
+    "maximize": "Maksymalizuj",
+    "close": "Zamknij",
+    "dropToPlay": "Upuść wideo tutaj, aby odtworzyć",
+    "playPause": "Odtwórz / Wstrzymaj (Spacja)",
+    "rewind": "Cofnij 5s (←)",
+    "forward": "Do przodu 5s (→)",
+    "mute": "Wycisz (M)",
+    "volume": "Głośność (↑ / ↓)",
+    "loopOff": "Pętla: Wył",
+    "loopOn": "Pętla: Wł",
+    "pip": "Obraz w obrazie",
+    "fullscreen": "Pełny ekran (F)",
+    "muted": "Wyciszono",
+    "speedSuffix": "x Prędkość",
+    "singleLoopOn": "Pętla aktywna",
+    "seqPlayback": "Odtwarzanie ciągłe",
+    "topPinned": "Przypięto na wierzchu",
+    "topUnpinned": "Odpięto"
+  },
+  "nl": {
+    "appTitle": "ShareCLIP Videospeler",
+    "playerTitle": "ShareCLIP Speler",
+    "openFolder": "Map openen",
+    "toggleTop": "Altijd op voorgrond",
+    "minimize": "Minimaliseren",
+    "maximize": "Maximaliseren",
+    "close": "Sluiten",
+    "dropToPlay": "Sleep video hierheen om af te spelen",
+    "playPause": "Afspelen / Pauze (Spatie)",
+    "rewind": "5s terug (←)",
+    "forward": "5s vooruit (→)",
+    "mute": "Dempen (M)",
+    "volume": "Volume (↑ / ↓)",
+    "loopOff": "Herhalen: Uit",
+    "loopOn": "Herhalen: Aan",
+    "pip": "Beeld-in-beeld",
+    "fullscreen": "Volledig scherm (F)",
+    "muted": "Gedempt",
+    "speedSuffix": "x Snelheid",
+    "singleLoopOn": "Herhalen actief",
+    "seqPlayback": "Opeenvolgend afspelen",
+    "topPinned": "Vastgemaakt op voorgrond",
+    "topUnpinned": "Vastmaken opgeheven"
+  },
+  "sv": {
+    "appTitle": "ShareCLIP Videospelare",
+    "playerTitle": "ShareCLIP Spelare",
+    "openFolder": "Öppna mapp",
+    "toggleTop": "Alltid överst",
+    "minimize": "Minimera",
+    "maximize": "Maximera",
+    "close": "Stäng",
+    "dropToPlay": "Släpp videon här för att spela",
+    "playPause": "Spela / Pausa (Mellanslag)",
+    "rewind": "Spola bakåt 5s (←)",
+    "forward": "Spola framåt 5s (→)",
+    "mute": "Ljud av (M)",
+    "volume": "Volym (↑ / ↓)",
+    "loopOff": "Repetera: Av",
+    "loopOn": "Repetera: På",
+    "pip": "Bild-i-bild",
+    "fullscreen": "Helskärm (F)",
+    "muted": "Ljud av",
+    "speedSuffix": "x Hastighet",
+    "singleLoopOn": "Enkel upprepning på",
+    "seqPlayback": "Sekventiell uppspelning",
+    "topPinned": "Fäst överst",
+    "topUnpinned": "Avfäst"
+  }
+};
+    let currentLocale = 'zh';
+
+    function t(key, fallback = '') {
+      const dict = i18nDict[currentLocale] || i18nDict.en;
+      return (dict && dict[key]) || (i18nDict.en && i18nDict.en[key]) || fallback || key;
+    }
+
+    function applyLocale(lang) {
+      if (!lang) return;
+      currentLocale = i18nDict[lang] ? lang : (lang.startsWith('zh') ? (lang.includes('TW') || lang.includes('HK') ? 'zh-TW' : 'zh') : (i18nDict[lang.substring(0, 2)] ? lang.substring(0, 2) : 'en'));
+      document.title = t('appTitle');
+
+      // Update text nodes
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key && t(key)) el.innerText = t(key);
+      });
+
+      // Update tooltips / titles
+      document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.getAttribute('data-i18n-title');
+        if (key && t(key)) el.title = t(key);
+      });
+    }
+
+    // Auto-detect initial locale
+    try {
+      const savedLoc = localStorage.getItem('shareclip_locale') || navigator.language || 'zh';
+      applyLocale(savedLoc);
+    } catch(e) {
+      applyLocale('zh');
+    }
+
     const video = document.getElementById('videoElement');
     const container = document.getElementById('playerContainer');
     const controls = document.getElementById('controlsOverlay');
@@ -547,7 +1083,7 @@
       
       if (title) {
         videoTitle.textContent = title;
-        document.title = `${title} - ShareCLIP 播放器`;
+        document.title = `${title} - ${t('playerTitle', 'ShareCLIP 播放器')}`;
       }
 
       if (poster) {
@@ -693,7 +1229,7 @@
     btnMute.addEventListener('click', () => {
       video.muted = !video.muted;
       updateVolumeIcon();
-      triggerActionBadge(video.muted ? '🔇 静音' : `🔊 ${Math.round(video.volume * 100)}%`);
+      triggerActionBadge(video.muted ? '🔇 ' + t('muted', '静音') : `🔊 ${Math.round(video.volume * 100)}%`);
     });
 
     volumeSlider.addEventListener('input', (e) => {
@@ -716,7 +1252,7 @@
         document.querySelectorAll('.speed-item').forEach(i => i.classList.remove('selected'));
         item.classList.add('selected');
         speedMenu.classList.remove('show');
-        triggerActionBadge(`${speed}x 倍速`);
+        triggerActionBadge(`${speed}x ${t('speedSuffix', '倍速')}`);
       });
     });
 
@@ -728,8 +1264,8 @@
     btnLoop.addEventListener('click', () => {
       video.loop = !video.loop;
       btnLoop.classList.toggle('active', video.loop);
-      btnLoop.title = video.loop ? '循环播放 (开启)' : '循环播放 (关闭)';
-      triggerActionBadge(video.loop ? '🔂 开启单曲循环' : '➡️ 顺序播放');
+      btnLoop.title = video.loop ? t('loopOn', '循环播放 (开启)') : t('loopOff', '循环播放 (关闭)');
+      triggerActionBadge(video.loop ? '🔂 ' + t('singleLoopOn', '开启单曲循环') : '➡️ ' + t('seqPlayback', '顺序播放'));
     });
 
     // PiP
@@ -861,7 +1397,7 @@
       document.getElementById('btnToggleTop').addEventListener('click', async () => {
         isAlwaysOnTop = await window.api.videoWindowToggleTop();
         document.getElementById('btnToggleTop').classList.toggle('active', isAlwaysOnTop);
-        triggerActionBadge(isAlwaysOnTop ? '📌 已开启窗口置顶' : '📍 已取消窗口置顶');
+        triggerActionBadge(isAlwaysOnTop ? '📌 ' + t('topPinned', '已开启窗口置顶') : '📍 ' + t('topUnpinned', '已取消窗口置顶'));
       });
       document.getElementById('btnOpenFolder').addEventListener('click', () => {
         if (currentFilePath && window.api.openYtVideoFolder) {

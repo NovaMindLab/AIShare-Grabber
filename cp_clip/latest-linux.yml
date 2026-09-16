@@ -1,0 +1,12 @@
+version: 4.0.4
+files:
+  - url: ShareCLIP-Linux-4.0.4-x86_64.AppImage
+    sha512: Dm3XjpBBHXhGKsBboIMbgIZE08b1OY5q7gvUUCkvQkPLyFTRZTeX3uBOh7CbfF0+VWBtpSRsbBfdV8Xk5IrK+A==
+    size: 358415764
+    blockMapSize: 372136
+  - url: ShareCLIP-Linux-4.0.4-amd64.deb
+    sha512: /GQ9mku2v+NBvKIZ+bB3AUaif3C9ptUt893/Pg29cWEeIWunIJeeUrlE4cvPN1uVDAnW1KzwGmOrS4ntOAWIzA==
+    size: 286148132
+path: ShareCLIP-Linux-4.0.4-x86_64.AppImage
+sha512: Dm3XjpBBHXhGKsBboIMbgIZE08b1OY5q7gvUUCkvQkPLyFTRZTeX3uBOh7CbfF0+VWBtpSRsbBfdV8Xk5IrK+A==
+releaseDate: '2026-09-15T06:21:25.050Z'

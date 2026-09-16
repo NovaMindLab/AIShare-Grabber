@@ -3,7 +3,7 @@
     <div v-if="video" class="anime-studio-overlay" @click.self="handleClose">
       <div class="anime-studio-modal glass-panel">
         <!-- Floating Close Button -->
-        <button class="anime-close-btn" @click="handleClose" title="关闭工作室 (ESC)">✕</button>
+        <button class="anime-close-btn" @click="handleClose" :title="at.closeTitle || '关闭工作室 (ESC)'">✕</button>
 
         <!-- Header -->
         <div class="anime-studio-header">
@@ -11,8 +11,8 @@
             <span class="header-icon">🎨</span>
           </div>
           <div>
-            <h3 class="header-title">短视频一键二次元 / 动漫化转换工作室</h3>
-            <p class="header-desc">基于 AnimeGAN 神经网络与 FFmpeg 裸流管道，无损提取原声并逐帧重绘为唯美二次元画风</p>
+            <h3 class="header-title">{{ at.title || '短视频一键二次元 / 动漫化转换工作室' }}</h3>
+            <p class="header-desc">{{ at.subtitle || '基于 AnimeGAN 神经网络与 FFmpeg 裸流管道，无损提取原声并逐帧重绘为唯美二次元画风' }}</p>
           </div>
         </div>
 
@@ -21,21 +21,21 @@
           <div v-if="envChecked && !ffmpegAvailable" class="anime-env-alert">
             <div class="env-alert-icon">⚠️</div>
             <div class="env-alert-content">
-              <div class="env-alert-title">未检测到 FFmpeg 视频编解码组件（无法直接转换视频）</div>
+              <div class="env-alert-title">{{ at.ffmpegMissingTitle || '未检测到 FFmpeg 视频编解码组件（无法直接转换视频）' }}</div>
               <div class="env-alert-desc">
-                视频逐帧动漫化与音轨混流依赖 FFmpeg。请通过以下方式之一快速启用：
+                {{ at.ffmpegMissingDesc || '视频逐帧动漫化与音轨混流依赖 FFmpeg。请通过以下方式之一快速启用：' }}
               </div>
               <div class="env-alert-cmd-row">
                 <code>winget install Gyan.FFmpeg</code>
                 <button class="copy-cmd-btn" @click="copyFfmpegCmd">
-                  {{ copiedCmd ? '✓ 已复制命令' : '📋 复制安装命令 (PowerShell)' }}
+                  {{ copiedCmd ? (at.cmdCopied || '✓ 已复制命令') : (at.copyCmd || '📋 复制安装命令 (PowerShell)') }}
                 </button>
                 <button class="recheck-btn" @click="checkEnvironment">
-                  🔄 重新检测
+                  {{ at.recheck || '🔄 重新检测' }}
                 </button>
               </div>
               <div class="env-alert-tip">
-                💡 也可以直接下载 <code>ffmpeg.exe</code> 和 <code>ffprobe.exe</code> 放入本软件安装目录下的 <code>bin/</code> 文件夹。
+                {{ at.tipBin || '💡 也可以直接下载 ffmpeg.exe 和 ffprobe.exe 放入本软件安装目录下的 bin/ 文件夹。' }}
               </div>
             </div>
           </div>
@@ -45,7 +45,7 @@
             <div class="video-preview-card">
               <video 
                 v-if="video.src || video.path" 
-                :src="video.src || `local:///${video.path.replace(/\\/g, '/')}`" 
+                :src="video.src || ('local:///' + video.path.replace(/\\/g, '/'))" 
                 class="preview-video-element"
                 controls 
                 muted
@@ -58,25 +58,25 @@
             <!-- Video Metadata Card -->
             <div class="video-meta-box">
               <div class="meta-row">
-                <span class="meta-label">文件名称:</span>
+                <span class="meta-label">{{ at.fileName || '文件名称:' }}</span>
                 <span class="meta-val filename-truncate" :title="video.name">{{ video.name }}</span>
               </div>
               <div class="meta-row">
-                <span class="meta-label">原始尺寸:</span>
-                <span class="meta-val">{{ videoInfo ? `${videoInfo.width} × ${videoInfo.height}` : '探测中...' }}</span>
+                <span class="meta-label">{{ at.origResolution || '原始尺寸:' }}</span>
+                <span class="meta-val">{{ videoInfo ? (videoInfo.width + ' × ' + videoInfo.height) : (at.detecting || '探测中...') }}</span>
               </div>
               <div class="meta-row">
-                <span class="meta-label">视频帧率:</span>
-                <span class="meta-val">{{ videoInfo ? `${videoInfo.fps} FPS` : '探测中...' }}</span>
+                <span class="meta-label">{{ at.videoFps || '视频帧率:' }}</span>
+                <span class="meta-val">{{ videoInfo ? (videoInfo.fps + ' FPS') : (at.detecting || '探测中...') }}</span>
               </div>
               <div class="meta-row">
-                <span class="meta-label">预估帧数:</span>
-                <span class="meta-val">{{ videoInfo ? `${videoInfo.totalFrames} 帧` : '计算中...' }}</span>
+                <span class="meta-label">{{ at.totalFrames || '预估帧数:' }}</span>
+                <span class="meta-val">{{ videoInfo ? (videoInfo.totalFrames + '') : (at.calculating || '计算中...') }}</span>
               </div>
               <div class="meta-row">
-                <span class="meta-label">音轨状态:</span>
+                <span class="meta-label">{{ at.audioTrack || '音轨状态:' }}</span>
                 <span class="meta-val" :style="{ color: videoInfo?.hasAudio ? '#10b981' : 'var(--text-muted)' }">
-                  {{ videoInfo ? (videoInfo.hasAudio ? '🔊 包含原声音轨 (自动混流)' : '🔇 无音轨') : '探测中...' }}
+                  {{ videoInfo ? (videoInfo.hasAudio ? (at.hasAudioAutoMux || '🔊 包含原声音轨 (自动混流)') : (at.noAudio || '🔇 无音轨')) : (at.detecting || '探测中...') }}
                 </span>
               </div>
             </div>
@@ -86,7 +86,7 @@
           <div class="anime-right-panel">
             <!-- 1. Style Preset Selector -->
             <div class="config-section">
-              <label class="section-label">🎨 1. 选择二次元艺术画风</label>
+              <label class="section-label">{{ at.step1Style || '🎨 1. 选择二次元艺术画风' }}</label>
               <div class="style-cards-grid">
                 <div 
                   v-for="st in styles" 
@@ -110,8 +110,8 @@
             <!-- 2. Anime Frame Rate Mode Selector -->
             <div class="config-section">
               <div class="section-label-row">
-                <label class="section-label">⚡ 2. 动漫帧率与速度优化</label>
-                <span class="section-tip">✨ 传统2D动漫采用定格手绘帧率，大幅提速且减少闪烁</span>
+                <label class="section-label">{{ at.step2Fps || '⚡ 2. 动漫帧率与速度优化' }}</label>
+                <span class="section-tip">{{ at.step2Tip || '✨ 传统2D动漫采用定格手绘帧率，大幅提速且减少闪烁' }}</span>
               </div>
               <div class="frame-rate-options">
                 <button 
@@ -121,10 +121,10 @@
                   :disabled="isConverting"
                 >
                   <div class="fr-header">
-                    <span class="fr-title">🚀 经典动漫手绘 (15 FPS)</span>
-                    <span class="fr-badge badge-rec">2x 极速 • 推荐</span>
+                    <span class="fr-title">{{ at.fps15Title || '🚀 经典动漫手绘 (15 FPS)' }}</span>
+                    <span class="fr-badge badge-rec">{{ at.fps15Badge || '2x 极速 • 推荐' }}</span>
                   </div>
-                  <span class="fr-sub">吉卜力/新海诚手绘定格质感，算力减半，画面最稳</span>
+                  <span class="fr-sub">{{ at.fps15Desc || '吉卜力/新海诚手绘定格质感，算力减半，画面最稳' }}</span>
                 </button>
                 <button 
                   class="fr-btn" 
@@ -133,10 +133,10 @@
                   :disabled="isConverting"
                 >
                   <div class="fr-header">
-                    <span class="fr-title">⚡ 原生全帧率 ({{ videoInfo ? `${videoInfo.fps} FPS` : '全量' }})</span>
-                    <span class="fr-badge badge-normal">1x 原速</span>
+                    <span class="fr-title">{{ (at.fpsNativeTitle || '⚡ 原生全帧率 ({fps} FPS)').replace('{fps}', videoInfo ? (videoInfo.fps + ' FPS') : 'Full') }}</span>
+                    <span class="fr-badge badge-normal">{{ at.fpsNativeBadge || '1x 原速' }}</span>
                   </div>
-                  <span class="fr-sub">逐帧全量重绘，适合高帧率丝滑动作片段</span>
+                  <span class="fr-sub">{{ at.fpsNativeDesc || '逐帧全量重绘，适合高帧率丝滑动作片段' }}</span>
                 </button>
                 <button 
                   class="fr-btn" 
@@ -145,17 +145,17 @@
                   :disabled="isConverting"
                 >
                   <div class="fr-header">
-                    <span class="fr-title">🏎️ 极速漫画风 (10 FPS)</span>
-                    <span class="fr-badge badge-turbo">3x 极速</span>
+                    <span class="fr-title">{{ at.fps10Title || '🏎️ 极速漫画风 (10 FPS)' }}</span>
+                    <span class="fr-badge badge-turbo">{{ at.fps10Badge || '3x 极速' }}</span>
                   </div>
-                  <span class="fr-sub">漫画定格风，算力削减 67%，长视频极速出片</span>
+                  <span class="fr-sub">{{ at.fps10Desc || '漫画定格风，算力削减 67%，长视频极速出片' }}</span>
                 </button>
               </div>
             </div>
 
             <!-- 3. Resolution Mode Selector -->
             <div class="config-section">
-              <label class="section-label">📐 3. 输出分辨率与渲染画质</label>
+              <label class="section-label">{{ at.step3Res || '📐 3. 输出分辨率与渲染画质' }}</label>
               <div class="resolution-options">
                 <button 
                   class="res-btn" 
@@ -163,8 +163,8 @@
                   @click="!isConverting && (resolutionMode = 480)"
                   :disabled="isConverting"
                 >
-                  <span class="res-title">⚡ 480P (推荐/极速秒级)</span>
-                  <span class="res-sub">最长边 480px • 18~25 FPS 极速渲染</span>
+                  <span class="res-title">{{ at.res480Title || '⚡ 480P (推荐/极速秒级)' }}</span>
+                  <span class="res-sub">{{ at.res480Desc || '最长边 480px • 18~25 FPS 极速渲染' }}</span>
                 </button>
                 <button 
                   class="res-btn" 
@@ -172,8 +172,8 @@
                   @click="!isConverting && (resolutionMode = 720)"
                   :disabled="isConverting"
                 >
-                  <span class="res-title">🌟 720P (高清平衡)</span>
-                  <span class="res-sub">最长边 720px • 画质与速度均衡</span>
+                  <span class="res-title">{{ at.res720Title || '🌟 720P (高清平衡)' }}</span>
+                  <span class="res-sub">{{ at.res720Desc || '最长边 720px • 画质与速度均衡' }}</span>
                 </button>
                 <button 
                   class="res-btn" 
@@ -181,36 +181,36 @@
                   @click="!isConverting && (resolutionMode = 1080)"
                   :disabled="isConverting"
                 >
-                  <span class="res-title">🎨 1080P (超清原画)</span>
-                  <span class="res-sub">最长边 1080px • 细节精致</span>
+                  <span class="res-title">{{ at.res1080Title || '🎨 1080P (超清原画)' }}</span>
+                  <span class="res-sub">{{ at.res1080Desc || '最长边 1080px • 细节精致' }}</span>
                 </button>
               </div>
             </div>
 
             <!-- Estimated Time Hint -->
             <div v-if="!isConverting && !convertResult && videoInfo" class="speed-hint-banner">
-              <span>💡 预估处理速度: <strong>{{ estimatedFpsText }}</strong> · 预估总耗时: <strong>{{ estimatedTimeText }}</strong></span>
+              <span>{{ (at.estSpeed || '💡 预估处理速度: {fps} · 预估总耗时: {time}').replace('{fps}', estimatedFpsText).replace('{time}', estimatedTimeText) }}</span>
             </div>
 
             <!-- 4. Real-time Progress & Status Banner (When converting or completed) -->
             <div v-if="isConverting || convertResult" class="progress-status-panel">
               <div class="progress-header">
                 <span class="stage-tag" :class="isConverting ? 'stage-running' : 'stage-done'">
-                  {{ isConverting ? `⚡ ${progressData.stage === 'muxing' ? '正在混流音视频...' : 'AI 逐帧动漫化重绘中'}` : '🎉 动漫化转换完成！' }}
+                  {{ isConverting ? (progressData.stage === 'muxing' ? (at.statusMuxing || '⚡ 正在混流音视频...') : (at.statusConverting || '⚡ AI 逐帧动漫化重绘中...')) : (at.statusCompleted || '🎉 动漫化转换完成！') }}
                 </span>
                 <span class="percent-text">{{ progressData.percent }}%</span>
               </div>
 
               <!-- Animated Progress Track -->
               <div class="progress-track">
-                <div class="progress-bar-fill" :style="{ width: `${progressData.percent}%` }"></div>
+                <div class="progress-bar-fill" :style="{ width: (progressData.percent + '%') }"></div>
               </div>
 
               <!-- Progress Metrics -->
               <div class="progress-metrics" v-if="isConverting">
-                <span>已处理: <strong>{{ progressData.currentFrame || 0 }}</strong> / {{ progressData.totalFrames || videoInfo?.totalFrames || 0 }} 帧</span>
-                <span>处理速度: <strong>{{ progressData.fps || 0 }}</strong> FPS</span>
-                <span>剩余时间: <strong>{{ progressData.etaSeconds > 0 ? `约 ${progressData.etaSeconds} 秒` : '计算中...' }}</strong></span>
+                <span>{{ (at.processedFrames || '已处理: {current} / {total} 帧').replace('{current}', progressData.currentFrame || 0).replace('{total}', progressData.totalFrames || videoInfo?.totalFrames || 0) }}</span>
+                <span>{{ (at.processSpeed || '处理速度: {fps} FPS').replace('{fps}', progressData.fps || 0) }}</span>
+                <span>{{ (at.remainingTime || '剩余时间: {time}').replace('{time}', progressData.etaSeconds > 0 ? ('~' + progressData.etaSeconds + 's') : (at.calculating || '计算中...')) }}</span>
               </div>
             </div>
           </div>
@@ -231,16 +231,16 @@
               class="btn btn-secondary btn-cancel" 
               @click="cancelConversion"
             >
-              ⏹️ 终止任务
+              {{ at.btnTerminate || '⏹️ 终止任务' }}
             </button>
 
             <!-- Play & Open Result Buttons (When completed) -->
             <template v-else-if="convertResult">
               <button class="btn btn-secondary" @click="openOutputFileLocation">
-                📂 打开所在目录
+                {{ at.btnOpenDir || '📂 打开所在目录' }}
               </button>
               <button class="btn btn-primary btn-glow" @click="playResultVideo">
-                ▶️ 立即播放动漫视频
+                {{ at.btnPlayResult || '▶️ 立即播放动漫视频' }}
               </button>
             </template>
 
@@ -251,7 +251,7 @@
               @click="startConversion"
               :disabled="isLoadingInfo"
             >
-              <span>🚀</span> 启动一键二次元转换
+              <span>🚀</span> {{ at.btnStartConvert || '启动一键二次元转换' }}
             </button>
           </div>
         </div>
@@ -267,10 +267,16 @@ const props = defineProps({
   video: {
     type: Object,
     default: null
+  },
+  t: {
+    type: Object,
+    default: () => ({})
   }
 });
 
 const emit = defineEmits(['close', 'play-video']);
+
+const at = computed(() => props.t?.anime || {});
 
 const videoInfo = ref(null);
 const isLoadingInfo = ref(false);
@@ -299,8 +305,8 @@ const progressData = ref({
 
 const estimatedFpsText = computed(() => {
   if (resolutionMode.value === 480) {
-    if (frameRateMode.value === 'anime10') return '25 ~ 35 FPS (极速)';
-    if (frameRateMode.value === 'anime15') return '18 ~ 25 FPS (秒级)';
+    if (frameRateMode.value === 'anime10') return '25 ~ 35 FPS (Turbo)';
+    if (frameRateMode.value === 'anime15') return '18 ~ 25 FPS (Fast)';
     return '9 ~ 12 FPS';
   } else if (resolutionMode.value === 720) {
     if (frameRateMode.value === 'anime10') return '10 ~ 15 FPS';
@@ -314,7 +320,7 @@ const estimatedFpsText = computed(() => {
 });
 
 const estimatedTimeText = computed(() => {
-  if (!videoInfo.value?.totalFrames) return '计算中...';
+  if (!videoInfo.value?.totalFrames) return at.value.calculating || '计算中...';
   const total = videoInfo.value.totalFrames;
   let fpsEst = 20;
   if (resolutionMode.value === 480) {
@@ -325,38 +331,38 @@ const estimatedTimeText = computed(() => {
     fpsEst = frameRateMode.value === 'anime10' ? 5 : (frameRateMode.value === 'anime15' ? 3 : 1.5);
   }
   const sec = Math.max(1, Math.round(total / fpsEst));
-  if (sec < 60) return `约 ${sec} 秒`;
+  if (sec < 60) return '~' + sec + 's';
   const min = Math.floor(sec / 60);
   const remSec = sec % 60;
-  return `约 ${min} 分 ${remSec} 秒`;
+  return '~' + min + 'm ' + remSec + 's';
 });
 
-const styles = ref([
+const styles = computed(() => [
   { 
     id: 'hayao', 
-    name: '🍃 宫崎骏·吉卜力油画风 (Hayao & Oil Painting)', 
-    desc: '蓝天白云、青翠草甸、治愈系手绘与厚涂油画质感', 
+    name: at.value.styleHayao || '🍃 宫崎骏·吉卜力油画风 (Hayao & Oil Painting)', 
+    desc: at.value.styleHayaoDesc || '蓝天白云、青翠草甸、治愈系手绘与厚涂油画质感', 
     icon: '🍃',
     previewGradient: 'linear-gradient(135deg, #10b981, #059669)'
   },
   { 
     id: 'shinkai', 
-    name: '✨ 新海诚·唯美光影风 (Shinkai)', 
-    desc: '秒速五厘米/天气之子浪漫蓝紫云霞光晕', 
+    name: at.value.styleShinkai || '✨ 新海诚·唯美光影风 (Shinkai)', 
+    desc: at.value.styleShinkaiDesc || '秒速五厘米/天气之子浪漫蓝紫云霞光晕', 
     icon: '✨',
     previewGradient: 'linear-gradient(135deg, #38bdf8, #818cf8)'
   },
   { 
     id: 'paprika', 
-    name: '🌸 今敏·红辣椒浓烈奇幻风 (Paprika)', 
-    desc: '浓厚色彩胶片质感、极具视觉冲击力', 
+    name: at.value.stylePaprika || '🌸 今敏·红辣椒浓烈奇幻风 (Paprika)', 
+    desc: at.value.stylePaprikaDesc || '浓厚色彩胶片质感、极具视觉冲击力', 
     icon: '🌸',
     previewGradient: 'linear-gradient(135deg, #f43f5e, #e11d48)'
   },
   { 
     id: 'portrait', 
-    name: '🎨 二次元人像重绘 (Portrait V3)', 
-    desc: '人脸五官精细动漫化、适合人物特写', 
+    name: at.value.stylePortrait || '🎨 二次元人像重绘 (Portrait V3)', 
+    desc: at.value.stylePortraitDesc || '人脸五官精细动漫化、适合人物特写', 
     icon: '🎨',
     previewGradient: 'linear-gradient(135deg, #a855f7, #ec4899)'
   }
@@ -397,7 +403,7 @@ watch(() => props.video, async (newVal) => {
 async function loadVideoMetadata() {
   if (!props.video || !window.api?.getVideoAnimeInfo) return;
   isLoadingInfo.value = true;
-  statusMessage.value = '正在探测视频参数与音轨...';
+  statusMessage.value = at.value.detecting || '正在探测视频参数与音轨...';
   try {
     const res = await window.api.getVideoAnimeInfo(props.video.path);
     if (res && res.success) {
@@ -411,7 +417,7 @@ async function loadVideoMetadata() {
       }
     }
   } catch (err) {
-    statusMessage.value = '探测失败: ' + err.message;
+    statusMessage.value = (at.value.detectFailed || '探测失败: ') + err.message;
     if (err.message && (err.message.includes('ENOENT') || err.message.includes('spawn'))) {
       ffmpegAvailable.value = false;
       envChecked.value = true;
@@ -453,21 +459,20 @@ onMounted(() => {
 async function startConversion() {
   if (!props.video?.path || !window.api?.startVideoAnime) return;
   if (!ffmpegAvailable.value) {
-    alert('未检测到 FFmpeg 视频编解码器，请先根据提示安装或配置 FFmpeg 后再进行转换。');
+    alert(at.value.alertFfmpegRequired || '未检测到 FFmpeg 视频编解码器，请先根据提示安装或配置 FFmpeg 后再进行转换。');
     return;
   }
 
   isConverting.value = true;
   isError.value = false;
-  statusMessage.value = '🚀 正在初始化神经网络模型与编码管道...';
+  statusMessage.value = at.value.initPipeline || '🚀 正在初始化神经网络模型与编码管道...';
   convertResult.value = null;
 
-  // Generate output path in same directory with _anime tag
   const srcPath = props.video.path;
   const lastDot = srcPath.lastIndexOf('.');
   const outputPath = lastDot !== -1 
-    ? `${srcPath.substring(0, lastDot)}_anime_${selectedStyle.value}.mp4`
-    : `${srcPath}_anime_${selectedStyle.value}.mp4`;
+    ? (srcPath.substring(0, lastDot) + '_anime_' + selectedStyle.value + '.mp4')
+    : (srcPath + '_anime_' + selectedStyle.value + '.mp4');
 
   try {
     const res = await window.api.startVideoAnime({
@@ -481,16 +486,16 @@ async function startConversion() {
     if (res && res.success) {
       isConverting.value = false;
       convertResult.value = res.data;
-      statusMessage.value = '🎉 动漫化视频输出成功: ' + outputPath;
+      statusMessage.value = (at.value.outputSuccess || '🎉 动漫化视频输出成功: {path}').replace('{path}', outputPath);
     } else {
       isConverting.value = false;
       isError.value = true;
-      statusMessage.value = '转换中断或失败: ' + (res?.error || '未知错误');
+      statusMessage.value = (at.value.convertFailed || '转换中断或失败: {error}').replace('{error}', res?.error || 'Unknown error');
     }
   } catch (e) {
     isConverting.value = false;
     isError.value = true;
-    statusMessage.value = '转换失败: ' + e.message;
+    statusMessage.value = (at.value.convertFailed || '转换失败: {error}').replace('{error}', e.message);
   }
 }
 
@@ -498,14 +503,14 @@ async function cancelConversion() {
   if (window.api?.cancelVideoAnime) {
     await window.api.cancelVideoAnime();
     isConverting.value = false;
-    statusMessage.value = '任务已由用户主动取消';
+    statusMessage.value = at.value.taskCancelled || '任务已由用户主动取消';
   }
 }
 
 function playResultVideo() {
   if (convertResult.value?.outputPath) {
     emit('play-video', {
-      name: `Anime_${props.video.name}`,
+      name: ('Anime_' + props.video.name),
       path: convertResult.value.outputPath
     });
     emit('close');
@@ -520,7 +525,7 @@ function openOutputFileLocation() {
 
 function handleClose() {
   if (isConverting.value) {
-    if (!confirm('当前动漫化任务正在处理中，确定要终止并关闭吗？')) {
+    if (!confirm(at.value.terminatingConfirm || '当前动漫化任务正在处理中，确定要终止并关闭吗？')) {
       return;
     }
     cancelConversion();

@@ -1,0 +1,11 @@
+version: 4.0.4
+files:
+  - url: ShareCLIP-Mac-4.0.4-arm64.zip
+    sha512: vouEfXQSEU9gUIU3bCYDQEJXsDrOUH4hT3lm54uSGwmMfoMnUNX8PKlK62yDfGiLeJ89I1skUIXFOCgmfSHJiQ==
+    size: 152697509
+  - url: ShareCLIP-Mac-4.0.4-arm64.dmg
+    sha512: 15UpzF8f2+etVoGQ/Z08lY9mrmguyOL1mKX8dTw8+x6eyNpojP3MqWOdAyjjKjPVqm9O9+x6nwSNb7PIU46ydw==
+    size: 158973001
+path: ShareCLIP-Mac-4.0.4-arm64.zip
+sha512: vouEfXQSEU9gUIU3bCYDQEJXsDrOUH4hT3lm54uSGwmMfoMnUNX8PKlK62yDfGiLeJ89I1skUIXFOCgmfSHJiQ==
+releaseDate: '2026-09-15T06:20:21.817Z'

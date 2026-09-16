@@ -1528,7 +1528,7 @@
         // Sub detail
         let subDetail = '';
         if (resItem.type === 'audio') {
-          subDetail = `MP3 · 高音质音频`;
+          subDetail = t('audioOnly') || 'MP3 · Audio';
         } else {
           const fpsText = resItem.fps ? `${resItem.fps}fps` : '';
           const extText = (resItem.ext || 'MP4').toUpperCase();
@@ -1575,7 +1575,8 @@
         return;
       }
       const label = selectedResolution.label || (selectedResolution.height ? `${selectedResolution.height}p` : 'Video');
-      const size = selectedResolution.filesize > 0 ? ` · 约 ${formatFileSize(selectedResolution.filesize)}` : '';
+      const approxPrefix = currLang && currLang.startsWith('zh') ? '约 ' : '~';
+      const size = selectedResolution.filesize > 0 ? ` · ${approxPrefix}${formatFileSize(selectedResolution.filesize)}` : '';
       modalSummaryText.innerText = `${label}${size}`;
     }
 
@@ -1620,7 +1621,7 @@
       if (isParsing) return;
       try {
         const url = webview.getURL();
-        const title = webview.getTitle() || '正在解析的网页视频';
+        const title = webview.getTitle() || t('parseBtn') || 'Web Video';
         if (!url || url.startsWith('data:')) return;
 
         isParsing = true;
@@ -1675,7 +1676,7 @@
         const progress = Math.round(data.progress || 0);
         showHud(
           data.status === 'Completed' ? t('hudCompleted') : t('hudDownloading'),
-          data.title || '当前视频任务',
+          data.title || t('parseBtn') || 'Video Task',
           progress,
           data.speed ? `${data.speed} · ETA: ${data.eta || t('calculating')}` : data.status
         );

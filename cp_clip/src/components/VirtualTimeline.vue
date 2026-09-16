@@ -24,19 +24,19 @@
             <!-- Date-level Actions -->
             <div class="video-date-actions" v-if="syncStatus === 'connected' && row.data.group.hasUnsynced">
               <button 
-                class="btn-date-select"
+                class="btn-date-select" 
                 :class="{ 'is-selected': isDateAllSelected(row.data.group) }"
                 @click="$emit('toggle-date-selection', row.data.group)"
-                :title="isDateAllSelected(row.data.group) ? '取消勾选此日期的所有待同步视频' : '勾选此日期的所有待同步视频'"
+                :title="isDateAllSelected(row.data.group) ? (t?.videos?.clearDate || 'Clear date selection') : (t?.videos?.selectDate ? t.videos.selectDate.replace('{count}', row.data.group.unsyncedCount) : 'Select date')"
               >
                 <span class="btn-check-dot">{{ isDateAllSelected(row.data.group) ? '✓' : '' }}</span>
                 <span>{{ isDateAllSelected(row.data.group) ? (t?.videos?.clearDate || '取消全选') : (t?.videos?.selectDate ? t.videos.selectDate.replace('{count}', row.data.group.unsyncedCount) : `勾选此日期 (${row.data.group.unsyncedCount})`) }}</span>
               </button>
               <button 
-                class="btn-date-sync"
+                class="btn-date-sync" 
                 :disabled="isVideoSyncing"
                 @click="$emit('sync-date', row.data.group)"
-                title="仅下载此拍摄日期的全部视频"
+                :title="t?.videos?.syncDateBtn ? t.videos.syncDateBtn.replace('{count}', row.data.group.unsyncedCount) : 'Sync this date'"
               >
                 <span class="bolt-icon">⚡</span>
                 <span>{{ t?.videos?.syncDateBtn ? t.videos.syncDateBtn.replace('{count}', row.data.group.unsyncedCount) : `同步此日期 (${row.data.group.unsyncedCount})` }}</span>
@@ -120,7 +120,7 @@
                   class="video-select-checkbox" 
                   :class="{ 'is-checked': isVideoSelected(item) }"
                   @click.stop="$emit('toggle-selection', item)"
-                  title="勾选/取消勾选该视频"
+                  :title="t?.videos?.syncHint || 'Toggle selection'"
                 >
                   <span v-if="isVideoSelected(item)" class="check-icon">✓</span>
                 </div>
@@ -145,14 +145,14 @@
                     <button 
                       class="btn-video-anime-edit" 
                       @click.stop="$emit('open-anime-studio', item)"
-                      title="一键将视频转换为二次元动漫风"
+                      :title="t?.anime?.title || 'Anime Style Conversion'"
                     >
-                      🎨 动漫化
+                      🎨 {{ t?.anime?.title || 'Anime' }}
                     </button>
                     <button 
                       class="btn-video-play-action" 
                       @click.stop="$emit('play-video', item)"
-                      title="播放视频"
+                      :title="t?.videos?.playHint || 'Play'"
                     >
                       <span>▶️</span> {{ t?.videos?.playHint || '播放' }}
                     </button>
@@ -162,7 +162,7 @@
                       class="btn-video-quick-download" 
                       @click.stop="$emit('download-video', item)"
                       :disabled="isVideoSyncing"
-                      title="直接下载此视频"
+                      :title="t?.videos?.quickDownload || 'Download'"
                     >
                       ⬇️ {{ t?.videos?.quickDownload || '下载' }}
                     </button>

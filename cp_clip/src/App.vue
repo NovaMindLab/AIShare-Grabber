@@ -302,8 +302,8 @@
         <div class="ai-queue-status-banner" v-if="aiQueueProgress.isProcessing">
           <div class="ai-queue-info">
             <span class="ai-pulse-icon">🧠</span>
-            <span class="ai-queue-title">AI 照片特征识别中</span>
-            <span class="ai-queue-counts">{{ aiQueueProgress.completed }} / {{ aiQueueProgress.total }} (剩余 {{ aiQueueProgress.remaining }} 张)</span>
+            <span class="ai-queue-title">{{ t.aiQueue?.processingTitle || 'AI 照片特征识别中' }}</span>
+            <span class="ai-queue-counts">{{ aiQueueProgress.completed }} / {{ aiQueueProgress.total }} ({{ t.aiQueue?.remaining ? t.aiQueue.remaining.replace('{count}', aiQueueProgress.remaining) : `剩余 ${aiQueueProgress.remaining} 张` }})</span>
           </div>
           <div class="ai-queue-bar-track">
             <div class="ai-queue-bar-fill" :style="{ width: aiQueueProgress.percent + '%' }"></div>
@@ -335,10 +335,10 @@
             <div v-if="isHotspotActive && hotspotStatus === 'started'" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 8px 16px; width: 100%; max-width: 320px; box-sizing: border-box;">
               <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px;">📡 {{ t.link.hotspotRunning }}:</div>
               <div style="font-size: 13px; font-weight: 700; color: #38bdf8;">SSID: {{ hotspotSsid }}</div>
-              <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-top: 2px;">密码: {{ hotspotPassword }}</div>
+              <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-top: 2px;">{{ t.link?.hotspotPassword || '密码' }}: {{ hotspotPassword }}</div>
             </div>
             <div v-if="qrPayload?.pc_ips && qrPayload.pc_ips.length > 0" style="display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 11px; color: #10b981; font-weight: 500; margin-top: -4px;">
-              <span>⚡</span> 局域网直连 IP: {{ qrPayload.pc_ips.join(', ') }}
+              <span>⚡</span> {{ t.link?.lanDirectIp || '局域网直连 IP' }}: {{ qrPayload.pc_ips.join(', ') }}
             </div>
             <p v-else style="color: var(--text-secondary); font-size: 12px; margin: 0; max-width: 320px;">{{ t.link.qrSub }}</p>
 
@@ -787,7 +787,7 @@
                 <!-- Actions Section -->
                 <div class="device-card-right">
                   <!-- Signal Bars -->
-                  <div class="device-signal-bars" title="局域网 Wi-Fi 信号良好">
+                  <div class="device-signal-bars" :title="t.link?.signalGood || '局域网 Wi-Fi 信号良好'">
                     <span class="s-bar s-1"></span>
                     <span class="s-bar s-2"></span>
                     <span class="s-bar s-3"></span>
@@ -796,7 +796,7 @@
                   
                   <button 
                     class="btn-device-connect"
-                    @click="device.isMock ? logSyncEvent(`🔌 [Mock] 连接至虚拟测试设备 ${device.name}...`) : connectToDevice(device.ip)"
+                    @click="device.isMock ? logSyncEvent(`🔌 [Mock] Connecting to test device ${device.name}...`) : connectToDevice(device.ip)"
                     :disabled="connectingIp === device.ip"
                   >
                     {{ connectingIp === device.ip ? t.link.waitingAccept : t.link.connectBtn }}
@@ -820,7 +820,7 @@
               onmouseover="this.style.color='var(--text-secondary)'"
               onmouseout="this.style.color='var(--text-muted)'"
             >
-              <span>{{ showSyncLogs ? '▾ 收起连接日志' : '▸ 展开连接日志' }}</span>
+              <span>{{ showSyncLogs ? (t.link?.hideLogs || '▾ 收起连接日志') : (t.link?.showLogs || '▸ 展开连接日志') }}</span>
             </button>
 
             <div v-if="showSyncLogs" style="border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(0, 0, 0, 0.4); padding: 16px; text-align: left; width: 100%; box-sizing: border-box;">
@@ -900,9 +900,9 @@
           <!-- Empty State -->
           <div class="empty-state" v-if="albumBackupImages.length === 0">
             <div class="empty-state-icon">📸</div>
-            <h2 class="empty-state-title">暂无备份相册资源</h2>
+            <h2 class="empty-state-title">{{ t.emptyStates?.albumEmptyTitle || '暂无备份相册资源' }}</h2>
             <p class="empty-state-desc">
-              请在左下角连接手机，并启动“同步相册到PC”开始物理备份并离线浏览相册图片。
+              {{ t.emptyStates?.albumEmptyDesc || '请在左下角连接手机，并启动“同步相册到PC”开始物理备份并离线浏览相册图片。' }}
             </p>
           </div>
 
@@ -920,7 +920,7 @@
                 <div class="card-overlay">
                   <span class="card-title">{{ img.name }}</span>
                   <span class="badge badge-classified" style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3);">
-                    📸 相册备份
+                    📸 {{ t.sidebar?.tabAlbum || '相册备份' }}
                   </span>
                 </div>
               </div>
@@ -939,21 +939,21 @@
                 :class="{ active: videoTabFilter === 'all' }"
                 @click="videoTabFilter = 'all'"
               >
-                🎞️ 全部视频 <span class="filter-count">({{ totalAllVideosCount }})</span>
+                🎞️ {{ t.videos?.allVideos || '全部视频' }} <span class="filter-count">({{ totalAllVideosCount }})</span>
               </button>
               <button 
                 class="video-filter-btn" 
                 :class="{ active: videoTabFilter === 'synced' }"
                 @click="videoTabFilter = 'synced'"
               >
-                💾 电脑已备份 <span class="filter-count">({{ localVideos.length }})</span>
+                💾 {{ t.videos?.syncedVideos || '电脑已备份' }} <span class="filter-count">({{ localVideos.length }})</span>
               </button>
               <button 
                 class="video-filter-btn" 
                 :class="{ active: videoTabFilter === 'unsynced' }"
                 @click="videoTabFilter = 'unsynced'"
               >
-                📱 手机待下载 <span class="filter-count">({{ totalUnsyncedVideosCount }})</span>
+                📱 {{ t.videos?.unsyncedVideos || '手机待下载' }} <span class="filter-count">({{ totalUnsyncedVideosCount }})</span>
               </button>
             </div>
 
@@ -964,23 +964,23 @@
                 class="btn btn-secondary btn-xs"
                 :disabled="isVideoSyncing"
                 @click="queryRemoteVideoCatalog"
-                title="刷新手机端视频列表"
+                :title="t.videos?.refreshListBtn || '刷新视频列表'"
               >
-                🔄 刷新列表
+                {{ t.videos?.refreshListBtn || '🔄 刷新列表' }}
               </button>
               <button 
                 class="btn btn-secondary btn-xs" 
                 @click="handleImportFolder"
-                title="导入本地视频文件夹"
+                :title="t.videos?.importLocalBtn || '导入本地视频文件夹'"
               >
-                📁 导入本地
+                {{ t.videos?.importLocalBtn || '📁 导入本地' }}
               </button>
               <button 
                 class="btn btn-secondary btn-xs btn-panel-toggle" 
                 @click="isVideoControlExpanded = !isVideoControlExpanded"
-                :title="isVideoControlExpanded ? '收起视频管理面板' : '展开视频管理面板与统计'"
+                :title="isVideoControlExpanded ? (t.videos?.collapsePanel || '收起视频管理面板') : (t.videos?.expandPanel || '展开视频管理面板与统计')"
               >
-                <span>{{ isVideoControlExpanded ? '▴ 收起面板' : '▾ 展开面板' }}</span>
+                <span>{{ isVideoControlExpanded ? (t.videos?.collapsePanel || '▴ 收起面板') : (t.videos?.expandPanel || '▾ 展开面板') }}</span>
               </button>
             </div>
           </div>
@@ -1016,7 +1016,7 @@
                   :class="{ 'btn-glow-pulse': selectedVideosCount > 0 }"
                   :disabled="isVideoSyncing || selectedVideosCount === 0"
                   @click="downloadSelectedVideos"
-                  :title="selectedVideosCount > 0 ? '下载所有已勾选的视频' : '请在下方勾选要下载的视频'"
+                  :title="selectedVideosCount > 0 ? (t.videos?.downloadSelectedBtn ? t.videos.downloadSelectedBtn.replace('{count}', selectedVideosCount) : '下载所有已勾选的视频') : (t.videos?.noSelectedBtn || '请在下方勾选要下载的视频')"
                 >
                   <span>⬇️</span> {{ selectedVideosCount > 0 ? (t.videos?.downloadSelectedBtn ? t.videos.downloadSelectedBtn.replace('{count}', selectedVideosCount) : `下载选中视频 (${selectedVideosCount})`) : (t.videos?.noSelectedBtn || '请勾选视频下载') }}
                 </button>
@@ -1066,8 +1066,8 @@
               {{ videoTabFilter === 'synced' ? '暂无电脑已备份视频' : (videoTabFilter === 'unsynced' ? '🎉 手机视频已全部备份！' : (t.videos?.emptyVideos || '暂无视频资源')) }}
             </h2>
             <p class="empty-state-desc">
-              <span v-if="videoTabFilter === 'synced'">请在顶部切换至「📱 手机待下载」勾选视频并点击下载。</span>
-              <span v-else-if="videoTabFilter === 'unsynced'">手机中所有检测到的视频均已同步至电脑本地。</span>
+              <span v-if="videoTabFilter === 'synced'">{{ t.emptyStates?.videoSyncedEmptyDesc || '请在顶部切换至「📱 手机待下载」勾选视频并点击下载。' }}</span>
+              <span v-else-if="videoTabFilter === 'unsynced'">{{ t.emptyStates?.videoUnsyncedAllDesc || '手机中所有检测到的视频均已同步至电脑本地。' }}</span>
               <span v-else>{{ syncStatus === 'connected' ? (t.videos?.emptyConnectedDesc || '手机中暂未检测到视频文件，或点击上方「刷新列表」重新扫描。') : (t.videos?.emptyDisconnectedDesc || '请在左下角连接手机以自动发现并按日期同步视频，或点击上方「导入本地」选取电脑视频。') }}</span>
             </p>
           </div>
@@ -1141,11 +1141,11 @@
                   class="vp-floating-close-btn" 
                   style="right: 56px; font-size: 14px;" 
                   @click="popOutVideoPlayer" 
-                  title="在独立窗口中播放"
+                  :title="t.lightbox?.detachedPlay || '在独立窗口中播放'"
                 >
                   🗗
                 </button>
-                <button class="vp-floating-close-btn" @click="closeVideoPlayer" title="关闭视频 (ESC)">✕</button>
+                <button class="vp-floating-close-btn" @click="closeVideoPlayer" :title="t.lightbox?.closeApp || '关闭视频 (ESC)'">✕</button>
 
                 <!-- Video Viewport -->
                 <div class="video-player-body">
@@ -1163,6 +1163,7 @@
           <!-- Video AnimeGAN Studio Modal -->
           <VideoAnimeStudioModal 
             :video="animeStudioVideo" 
+            :t="t"
             @close="closeAnimeStudio"
             @play-video="openVideoPlayer"
           />
@@ -1179,21 +1180,21 @@
                 :class="{ active: audioTabFilter === 'all' }"
                 @click="audioTabFilter = 'all'"
               >
-                🎵 全部音乐 <span class="filter-count">({{ totalAllAudiosCount }})</span>
+                🎵 {{ t.audios?.allAudios || '全部音乐' }} <span class="filter-count">({{ totalAllAudiosCount }})</span>
               </button>
               <button 
                 class="video-filter-btn" 
                 :class="{ active: audioTabFilter === 'synced' }"
                 @click="audioTabFilter = 'synced'"
               >
-                💾 电脑已备份 <span class="filter-count">({{ localAudios.length }})</span>
+                💾 {{ t.audios?.syncedAudios || '电脑已备份' }} <span class="filter-count">({{ localAudios.length }})</span>
               </button>
               <button 
                 class="video-filter-btn" 
                 :class="{ active: audioTabFilter === 'unsynced' }"
                 @click="audioTabFilter = 'unsynced'"
               >
-                📱 手机待下载 <span class="filter-count">({{ totalUnsyncedAudiosCount }})</span>
+                📱 {{ t.audios?.unsyncedAudios || '手机待下载' }} <span class="filter-count">({{ totalUnsyncedAudiosCount }})</span>
               </button>
             </div>
 
@@ -1204,23 +1205,23 @@
                 class="btn btn-secondary btn-xs" 
                 :disabled="isAudioSyncing"
                 @click="queryRemoteAudioCatalog"
-                title="刷新手机端音乐列表"
+                :title="t.audios?.refreshListBtn || '刷新音乐列表'"
               >
-                🔄 刷新列表
+                {{ t.audios?.refreshListBtn || '🔄 刷新列表' }}
               </button>
               <button 
                 class="btn btn-secondary btn-xs" 
                 @click="handleImportFolder"
-                title="导入本地音频文件夹"
+                :title="t.audios?.importLocalBtn || '导入本地音频文件夹'"
               >
-                📁 导入本地
+                {{ t.audios?.importLocalBtn || '📁 导入本地' }}
               </button>
               <button 
                 class="btn btn-secondary btn-xs btn-panel-toggle" 
                 @click="isAudioControlExpanded = !isAudioControlExpanded"
-                :title="isAudioControlExpanded ? '收起音乐管理面板' : '展开音乐管理面板与统计'"
+                :title="isAudioControlExpanded ? (t.audios?.collapsePanel || '收起音乐管理面板') : (t.audios?.expandPanel || '展开音乐管理面板与统计')"
               >
-                <span>{{ isAudioControlExpanded ? '▴ 收起面板' : '▾ 展开面板' }}</span>
+                <span>{{ isAudioControlExpanded ? (t.audios?.collapsePanel || '▴ 收起面板') : (t.audios?.expandPanel || '▾ 展开面板') }}</span>
               </button>
             </div>
           </div>
@@ -1256,7 +1257,7 @@
                   :class="{ 'btn-glow-pulse': selectedAudiosCount > 0 }"
                   :disabled="isAudioSyncing || selectedAudiosCount === 0"
                   @click="downloadSelectedAudios"
-                  :title="selectedAudiosCount > 0 ? '下载所有已勾选的音乐' : '请在下方勾选要下载的音乐'"
+                  :title="selectedAudiosCount > 0 ? (t.audios?.downloadSelectedBtn ? t.audios.downloadSelectedBtn.replace('{count}', selectedAudiosCount) : '下载所有已勾选的音乐') : (t.audios?.noSelectedBtn || '请在下方勾选要下载的音乐')"
                 >
                   <span>⬇️</span> {{ selectedAudiosCount > 0 ? (t.audios?.downloadSelectedBtn ? t.audios.downloadSelectedBtn.replace('{count}', selectedAudiosCount) : `下载选中音乐 (${selectedAudiosCount})`) : (t.audios?.noSelectedBtn || '请勾选音乐下载') }}
                 </button>
@@ -1303,11 +1304,11 @@
           <div class="empty-state" v-if="filteredAudioGroupsByDate.length === 0">
             <div class="empty-state-icon">🎵</div>
             <h2 class="empty-state-title">
-              {{ audioTabFilter === 'synced' ? '暂无电脑已备份音乐' : (audioTabFilter === 'unsynced' ? '🎉 手机音乐已全部备份！' : (t.audios?.emptyAudios || '暂无音乐资源')) }}
+              {{ audioTabFilter === 'synced' ? (t.emptyStates?.audioSyncedEmpty || '暂无电脑已备份音乐') : (audioTabFilter === 'unsynced' ? (t.emptyStates?.videoUnsyncedAll || '🎉 手机音乐已全部备份！') : (t.audios?.emptyAudios || '暂无音乐资源')) }}
             </h2>
             <p class="empty-state-desc">
-              <span v-if="audioTabFilter === 'synced'">请在顶部切换至「📱 手机待下载」勾选音乐并点击下载。</span>
-              <span v-else-if="audioTabFilter === 'unsynced'">手机中所有检测到的音乐均已同步至电脑本地。</span>
+              <span v-if="audioTabFilter === 'synced'">{{ t.emptyStates?.audioSyncedEmptyDesc || '请在顶部切换至「📱 手机待下载」勾选音乐并点击下载。' }}</span>
+              <span v-else-if="audioTabFilter === 'unsynced'">{{ t.emptyStates?.videoUnsyncedAllDesc || '手机中所有检测到的音乐均已同步至电脑本地。' }}</span>
               <span v-else>{{ syncStatus === 'connected' ? (t.audios?.emptyConnectedDesc || '手机中暂未检测到音频文件，或点击上方「刷新列表」重新扫描。') : (t.audios?.emptyDisconnectedDesc || '请在左下角连接手机以自动发现并按日期同步音乐，或点击上方「导入本地」选取电脑音频。') }}</span>
             </p>
           </div>
@@ -1324,32 +1325,32 @@
                 <div class="audio-date-title-wrap">
                   <div class="audio-date-icon-box">📅</div>
                   <h4 class="audio-date-text">{{ group.dateKey }}</h4>
-                  <span class="audio-date-meta-pill">{{ group.filteredCount }} 首 • {{ formatBytes(group.filteredBytes) }}</span>
+                  <span class="audio-date-meta-pill">{{ t.audios?.dateAudiosMeta ? t.audios.dateAudiosMeta.replace('{count}', group.filteredCount).replace('{size}', formatBytes(group.filteredBytes)) : `${group.filteredCount} 首 • ${formatBytes(group.filteredBytes)}` }}</span>
                 </div>
                 <div class="audio-date-actions" v-if="group.hasUnsynced && syncStatus === 'connected'">
                   <button 
                     class="btn-audio-date-select"
                     :class="{ 'is-selected': isAudioDateAllSelected(group) }"
                     @click="toggleAudioDateSelection(group)"
-                    :title="isAudioDateAllSelected(group) ? '取消勾选此日期的所有待同步音乐' : '勾选此日期的所有待同步音乐'"
+                    :title="isAudioDateAllSelected(group) ? (t.audios?.clearDate || '取消全选') : (t.audios?.selectDate ? t.audios.selectDate.replace('{count}', group.unsyncedCount) : `勾选此日期 (${group.unsyncedCount})`)"
                   >
                     <span class="btn-check-dot">{{ isAudioDateAllSelected(group) ? '✓' : '' }}</span>
-                    <span>{{ isAudioDateAllSelected(group) ? '已全选' : `勾选此日期 (${group.unsyncedCount})` }}</span>
+                    <span>{{ isAudioDateAllSelected(group) ? (t.audios?.clearDate || '已全选') : (t.audios?.selectDate ? t.audios.selectDate.replace('{count}', group.unsyncedCount) : `勾选此日期 (${group.unsyncedCount})`) }}</span>
                   </button>
                   <button 
                     class="btn-audio-date-sync"
                     :disabled="isAudioSyncing"
                     @click="requestAudioSync({ targetDate: group.rawDate, targetIds: group.unsyncedIds })"
-                    title="仅下载此日期的全部音乐"
+                    :title="t.audios?.syncDateBtn ? t.audios.syncDateBtn.replace('{count}', group.unsyncedCount) : '下载此日期的全部音乐'"
                   >
                     <span class="bolt-icon">⚡</span>
-                    <span>同步此日期 ({{ group.unsyncedCount }})</span>
+                    <span>{{ t.audios?.syncDateBtn ? t.audios.syncDateBtn.replace('{count}', group.unsyncedCount) : `同步此日期 (${group.unsyncedCount})` }}</span>
                   </button>
                 </div>
                 <div class="audio-date-actions" v-else-if="!group.hasUnsynced">
                   <span class="audio-all-synced-badge">
                     <span class="check-pill-icon">✓</span>
-                    <span>全部已备份</span>
+                    <span>{{ t.audios?.allDateSynced || '全部已备份' }}</span>
                   </span>
                 </div>
               </div>
@@ -1375,7 +1376,7 @@
                       class="hifi-track-checkbox"
                       :class="{ 'is-checked': isAudioSelected(track) }"
                       @click.stop="toggleAudioSelection(track)"
-                      title="勾选/取消勾选曲目"
+                      :title="t.audios?.selectTrackHint || '勾选/取消勾选曲目'"
                     >
                       <span v-if="isAudioSelected(track)" class="check-icon">✓</span>
                     </div>
@@ -1422,7 +1423,7 @@
                           :class="track.isSynced ? 'pill-synced' : 'pill-unsynced'"
                         >
                           <span class="status-icon-symbol">{{ track.isSynced ? '✓' : '⬇' }}</span>
-                          <span>{{ track.isSynced ? '已备份' : '待下载' }}</span>
+                          <span>{{ track.isSynced ? (t.audios?.tagSynced || '已备份') : (t.audios?.tagUnsynced || '待下载') }}</span>
                         </span>
                       </div>
                     </div>
@@ -1435,10 +1436,10 @@
                         class="btn-hifi-play"
                         :class="{ 'is-active-playing': activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path) }"
                         @click="openAudioPlayer(track)"
-                        :title="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path) ? '正在播放中' : '播放此音乐'"
+                        :title="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path) ? (t.audios?.playing || '正在播放中') : (t.audios?.playHint || '播放此音乐')"
                       >
-                        <span v-if="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path)">🔊 播放中</span>
-                        <span v-else>▶️ 播放</span>
+                        <span v-if="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path)">🔊 {{ t.audios?.playing || '播放中' }}</span>
+                        <span v-else>▶️ {{ t.audios?.playHint || '播放' }}</span>
                       </button>
                     </template>
                     <template v-else>
@@ -1446,9 +1447,9 @@
                         class="btn-hifi-download"
                         :disabled="isAudioSyncing"
                         @click="downloadSingleAudio(track)"
-                        title="单曲极速下载"
+                        :title="t.audios?.quickDownload || '单曲极速下载'"
                       >
-                        <span>⬇️</span> 下载
+                        <span>⬇️</span> {{ t.audios?.quickDownload || '下载' }}
                       </button>
                     </template>
                   </div>
@@ -1495,7 +1496,7 @@
           <transition name="modal-fade">
             <div v-if="activePlayingAudio" class="video-player-overlay" @click.self="closeAudioPlayer">
               <div class="audio-player-modal glass-panel">
-                <button class="vp-floating-close-btn" @click="closeAudioPlayer" title="关闭播放器 (ESC)">✕</button>
+                <button class="vp-floating-close-btn" @click="closeAudioPlayer" :title="t.lightbox?.closeApp || '关闭播放器 (ESC)'">✕</button>
 
                 <div class="audio-player-content">
                   <!-- Modern Cyber Hi-Fi Vinyl Deck -->
@@ -1669,7 +1670,7 @@
                   <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     <span class="spinner" style="width: 14px; height: 14px; border: 2px solid #a855f7; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite; flex-shrink: 0;"></span>
                     <span style="font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap;">
-                      {{ faceScanProgress.done < faceScanProgress.total ? '正在逐张提取人脸特征...' : '正在进行生物特征聚类...' }}
+                      {{ faceScanProgress.done < faceScanProgress.total ? (t.people?.extractingFaces || '正在逐张提取人脸特征...') : (t.people?.clusteringFaces || '正在进行生物特征聚类...') }}
                     </span>
                     <span style="font-size: 12px; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0;">
                       ({{ faceScanProgress.done }} / {{ faceScanProgress.total }})
@@ -1679,13 +1680,13 @@
                   <!-- Timing Badges (Fixed Single Line, No Wrapping) -->
                   <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; flex-shrink: 0; white-space: nowrap;">
                     <span v-if="faceScanDurationMs > 0 || (faceScanProgress && faceScanProgress.durationMs > 0)" style="font-size: 11px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.25); white-space: nowrap;">
-                      ⚡ 单张: {{ faceScanDurationMs || faceScanProgress.durationMs }} ms
+                      ⚡ {{ t.people?.singleFaceLatency || '单张:' }} {{ faceScanDurationMs || faceScanProgress.durationMs }} ms
                     </span>
                     <span v-if="faceScanAvgMs > 0 || (faceScanProgress && faceScanProgress.avgDurationMs > 0)" style="font-size: 11px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.25); white-space: nowrap;">
-                      ⏱️ 平均: {{ faceScanAvgMs || faceScanProgress.avgDurationMs }} ms/张
+                      ⏱️ {{ t.people?.avgFaceLatency || '平均:' }} {{ faceScanAvgMs || faceScanProgress.avgDurationMs }} ms
                     </span>
                     <span v-if="faceScanRemainingTime" style="font-size: 11px; font-weight: 700; color: #f59e0b; background: rgba(245, 158, 11, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.25); white-space: nowrap;">
-                      ⏳ 剩余: {{ faceScanRemainingTime }}
+                      ⏳ {{ t.people?.remainingFaceTime || '剩余:' }} {{ faceScanRemainingTime }}
                     </span>
                   </div>
                 </div>
@@ -1701,7 +1702,7 @@
                 <!-- Bottom Row: Current File Path + Percentage -->
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary); min-height: 16px;">
                   <span style="max-width: 80%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    {{ faceScanProgress.currentName ? `当前处理: ${faceScanProgress.currentName}` : '准备中...' }}
+                    {{ faceScanProgress.currentName ? `${t.people?.processing || '当前处理:'} ${faceScanProgress.currentName}` : (t.people?.preparing || '准备中...') }}
                   </span>
                   <span style="font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; margin-left: 8px;">
                     {{ Math.min(100, Math.round((faceScanProgress.done / faceScanProgress.total) * 100)) }}%
@@ -1738,7 +1739,7 @@
               <!-- No Person Selected Fallback -->
               <div v-else style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: var(--text-muted);">
                 <span style="font-size: 40px; margin-bottom: 12px;">📸</span>
-                <span>请在左侧点击选择一个人物查看相册照片</span>
+                <span>{{ t.people?.selectPersonHint || '请在左侧点击选择一个人物查看相册照片' }}</span>
               </div>
             </main>
           </div>
@@ -1756,7 +1757,7 @@
                 class="yt-tab-btn"
                 :class="{ active: ytSubTab === 'parse' }"
               >
-                <span>🔗 视频解析</span>
+                <span>{{ t.ytDlp?.tabParse || '🔗 视频解析' }}</span>
               </button>
 
               <button 
@@ -1764,7 +1765,7 @@
                 class="yt-tab-btn"
                 :class="{ active: ytSubTab === 'downloading' }"
               >
-                <span>⏳ 正在下载</span>
+                <span>{{ t.ytDlp?.tabDownloading || '⏳ 正在下载' }}</span>
                 <span v-if="ytActiveTasks.length > 0" class="yt-tab-badge yt-tab-badge-danger">{{ ytActiveTasks.length }}</span>
               </button>
 
@@ -1773,7 +1774,7 @@
                 class="yt-tab-btn"
                 :class="{ active: ytSubTab === 'completed' }"
               >
-                <span>✅ 已完成</span>
+                <span>{{ t.ytDlp?.tabCompleted || '✅ 已完成' }}</span>
                 <span v-if="ytHistory.length > 0" class="yt-tab-badge" :class="ytSubTab === 'completed' ? 'yt-tab-badge-active' : 'yt-tab-badge-inactive'">{{ ytHistory.length }}</span>
               </button>
             </div>
@@ -1786,12 +1787,12 @@
                   class="yt-cookie-btn" 
                   :class="{ 'yt-cookie-active': ytCookieConfig.mode !== 'none' }"
                   @click.stop="showYtCookieMenu = !showYtCookieMenu"
-                  title="YouTube 登录同步设置"
+                  :title="t.videoDownloader?.cookieMenuTitle || 'YouTube 登录同步设置'"
                   :disabled="ytCookieSyncing"
                 >
                   <span v-if="ytCookieSyncing" class="yt-cookie-spinner"></span>
                   <span v-else class="yt-cookie-dot" :class="ytCookieConfig.mode !== 'none' ? 'dot-active' : 'dot-inactive'"></span>
-                  <span>🔐 {{ ytCookieSyncing ? (ytSyncStatusText || '同步中...') : ytCookieSummaryLabel }}</span>
+                  <span>🔐 {{ ytCookieSyncing ? (ytSyncStatusText || (t.ytDlp?.syncingFrom || '同步中...')) : ytCookieSummaryLabel }}</span>
                   <span class="yt-cookie-arrow">▼</span>
                 </button>
 
@@ -1810,7 +1811,7 @@
                   <!-- Loading Banner -->
                   <div v-if="ytCookieSyncing" class="yt-sync-loading-banner">
                     <span class="yt-cookie-spinner"></span>
-                    <span>{{ ytSyncStatusText || '正在同步浏览器登录凭据...' }}</span>
+                    <span>{{ ytSyncStatusText || (t.ytDlp?.syncingFrom || '正在同步浏览器登录凭据...') }}</span>
                   </div>
 
                   <div class="yt-cookie-options">
@@ -1836,7 +1837,7 @@
                       <span class="option-icon">🌊</span>
                       <div class="option-info">
                         <span>{{ t.videoDownloader?.syncEdge || 'Microsoft Edge' }}</span>
-                        <span class="option-badge">免密秒同步 · 推荐</span>
+                        <span class="option-badge">{{ t.videoDownloader?.fastSyncBadge || '免密秒同步 · 推荐' }}</span>
                       </div>
                       <span v-if="ytCookieConfig.mode === 'edge'" class="option-check">✓</span>
                     </div>
@@ -1889,7 +1890,7 @@
                       <span class="option-icon">🔑</span>
                       <div class="option-info">
                         <span>{{ t.videoDownloader?.syncEmbedded || '内嵌独立登录' }}</span>
-                        <span v-if="ytCookieConfig.hasEmbeddedCookies" class="option-badge option-badge-success">已保存</span>
+                        <span v-if="ytCookieConfig.hasEmbeddedCookies" class="option-badge option-badge-success">{{ t.videoDownloader?.savedBadge || '已保存' }}</span>
                       </div>
                       <span v-if="ytCookieConfig.mode === 'embedded'" class="option-check">✓</span>
                     </div>
@@ -1932,10 +1933,10 @@
                   @click="openSnifferBrowser()" 
                   class="yt-mode-btn active"
                   style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35); cursor: pointer;"
-                  :title="snifferWindowStatus.isOpen ? '独立嗅探窗口已打开，点击立即聚焦前台' : '点击直接弹出 1200×800 独立嗅探浏览器窗口'"
+                  :title="snifferWindowStatus.isOpen ? (t.ytDlp?.focusWindow || '独立嗅探窗口已打开，点击立即聚焦前台') : (t.ytDlp?.openSnifferBtn || '点击直接弹出独立嗅探浏览器窗口')"
                 >
                   <span>🌐</span>
-                  <span>{{ snifferWindowStatus.isOpen ? '独立嗅探窗口 (已开启)' : '独立嗅探窗口' }}</span>
+                  <span>{{ snifferWindowStatus.isOpen ? `${t.ytDlp?.openSnifferBtn || '独立嗅探窗口'} (${t.ytDlp?.windowReady || '已开启'})` : (t.ytDlp?.openSnifferBtn || '独立嗅探窗口') }}</span>
                   <span v-if="snifferWindowStatus.isOpen" class="sniffer-online-dot"></span>
                 </button>
               </div>
@@ -1943,10 +1944,10 @@
               <!-- If Downloading or Completed Tab: Directory and Manage Actions -->
               <div v-else style="display: flex; gap: 8px; align-items: center;">
                 <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px;" @click="window.api.openDownloadFolder()">
-                  <span>📁 打开下载文件夹</span>
+                  <span>📁 {{ t.ytDlp?.openFolder || '打开下载文件夹' }}</span>
                 </button>
-                <button v-if="ytSubTab === 'completed' && ytHistory.length > 0" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; color: var(--text-muted);" @click="clearAllYtHistory" title="清空全部已完成记录">
-                  <span>🧹 清空记录</span>
+                <button v-if="ytSubTab === 'completed' && ytHistory.length > 0" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; color: var(--text-muted);" @click="clearAllYtHistory" :title="t.ytDlp?.deleteHistory || '清空全部已完成记录'">
+                  <span>🧹 {{ t.ytDlp?.deleteHistory || '清空记录' }}</span>
                 </button>
               </div>
             </div>
@@ -1960,7 +1961,7 @@
                 <span class="sniffer-online-dot"></span>
                 <span style="font-size: 12px; font-weight: 700; color: #818cf8; white-space: nowrap;">{{ t.ytDlp?.windowReady || '独立嗅探窗口就绪:' }}</span>
                 <span style="font-size: 12px; color: var(--text-primary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                  {{ snifferWindowStatus.title || '正在浏览网页...' }}
+                  {{ snifferWindowStatus.title || (t.ytDlp?.windowReady || '正在浏览网页...') }}
                 </span>
               </div>
               <div style="display: flex; gap: 8px; flex-shrink: 0;">
@@ -1982,7 +1983,7 @@
                 <input 
                   v-model="ytUrl" 
                   type="text" 
-                  placeholder="在此粘贴视频链接 (支持 Bilibili、抖音、快手、YouTube、Twitter/X、小红书等 1000+ 平台)..." 
+                  :placeholder="t.ytDlp?.urlPlaceholder || '在此粘贴视频链接 (支持 Bilibili、抖音、快手、YouTube、Twitter/X、小红书等 1000+ 平台)...'" 
                   class="yt-url-input"
                   :disabled="ytParsing"
                   @keyup.enter="parseYtVideo"
@@ -1992,9 +1993,9 @@
                     class="btn btn-secondary" 
                     style="padding: 8px 14px; font-size: 12px; font-weight: 600; border-radius: 8px;"
                     @click="pasteFromClipboard"
-                    title="从剪贴板粘贴"
+                    :title="t.ytDlp?.pasteBtn || '从剪贴板粘贴'"
                   >
-                    📋 粘贴
+                    📋 {{ t.ytDlp?.pasteBtn || '粘贴' }}
                   </button>
                   <button 
                     class="btn btn-primary" 
@@ -2003,7 +2004,7 @@
                     :disabled="ytParsing || !ytUrl"
                   >
                     <span v-if="ytParsing" class="spinner" style="width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
-                    <span>{{ ytParsing ? '正在解析...' : '⚡ 快速解析' }}</span>
+                    <span>{{ ytParsing ? (t.ytDlp?.parsingBtn || '正在解析...') : (t.ytDlp?.parseBtn || '⚡ 快速解析') }}</span>
                   </button>
                 </div>
               </div>
@@ -2044,13 +2045,13 @@
                         <span>{{ getPlatformBadge(ytVideoInfo?.webpage_url || ytUrl).name }}</span>
                       </span>
                       <span v-if="ytVideoInfo.uploader">👤 {{ ytVideoInfo.uploader }}</span>
-                      <span v-if="ytVideoInfo.duration">⏱️ 时长: {{ formatDuration(ytVideoInfo.duration) }}</span>
+                      <span v-if="ytVideoInfo.duration">⏱️ {{ t.ytDlp?.duration || '时长:' }} {{ formatDuration(ytVideoInfo.duration) }}</span>
                     </div>
 
                     <!-- Resolution Pill Selection Grid -->
                     <div style="margin-bottom: 16px;">
                       <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                        <span>🎯 选择清晰度 / 下载规格:</span>
+                        <span>🎯 {{ t.ytDlp?.selectResolution || '选择清晰度 / 下载规格:' }}</span>
                         <span style="color: var(--accent-primary); font-weight: 700;">{{ ytSelectedResolution?.label }}</span>
                       </div>
 
@@ -2075,14 +2076,14 @@
                   <!-- Download Button Bar -->
                   <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid var(--glass-border);">
                     <span style="font-size: 12px; color: var(--text-secondary);">
-                      🖼️ 下载将自动内嵌高清海报封面至 MP4 视频
+                      🖼️ {{ t.ytDlp?.coverAutoEmbed || '下载将自动内嵌高清海报封面至 MP4 视频' }}
                     </span>
                     <button 
                       class="btn btn-primary" 
                       style="padding: 10px 26px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border-radius: 8px;"
                       @click="startYtDownload"
                     >
-                      <span>🚀 开始极速下载</span>
+                      <span>🚀 {{ t.ytDlp?.downloadBtn || '开始极速下载' }}</span>
                     </button>
                   </div>
                 </div>
@@ -2095,13 +2096,13 @@
             <div v-if="ytActiveTasks.length === 0" class="yt-empty-container">
               <div class="yt-empty-icon">⏳</div>
               <div class="yt-empty-title">
-                暂无正在下载的任务
+                {{ t.ytDlp?.emptyDownloading || '暂无正在下载的任务' }}
               </div>
               <p class="yt-empty-desc">
-                点击上方【🔗 视频解析】标签，粘贴任何视频链接并选择清晰度，即可在此实时监控下载进度！
+                {{ t.ytDlp?.emptyDownloadingDesc || '点击上方视频解析标签，粘贴视频链接并选择清晰度，即可在此实时监控下载进度！' }}
               </p>
               <button class="btn btn-primary" style="padding: 8px 22px; font-size: 13px; border-radius: 8px;" @click="ytSubTab = 'parse'">
-                前往添加下载任务
+                {{ t.ytDlp?.tabParse || '前往添加下载任务' }}
               </button>
             </div>
 
@@ -2145,11 +2146,11 @@
 
                   <!-- Details row (Status, Size, Speed, ETA) -->
                   <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); flex-wrap: wrap; gap: 8px;">
-                    <span :style="{ color: task.error ? '#ef4444' : 'var(--text-secondary)', fontWeight: task.error ? '600' : 'normal' }">{{ task.status || '下载中...' }}</span>
+                    <span :style="{ color: task.error ? '#ef4444' : 'var(--text-secondary)', fontWeight: task.error ? '600' : 'normal' }">{{ task.status || (t.ytDlp?.hudDownloading || '下载中...') }}</span>
                     <div v-if="!task.error" style="display: flex; gap: 14px; color: var(--text-secondary); font-weight: 500;">
                       <span v-if="task.size">📦 {{ task.size }}</span>
                       <span v-if="task.speed">⚡ {{ task.speed }}</span>
-                      <span v-if="task.eta">⏱️ 剩余 {{ task.eta }}</span>
+                      <span v-if="task.eta">⏱️ {{ t.details?.remaining || '剩余' }} {{ task.eta }}</span>
                     </div>
                   </div>
                 </div>
@@ -2159,9 +2160,9 @@
                   <button 
                     class="btn-danger-subtle" 
                     @click="cancelYtTask(task.id)"
-                    :title="task.error ? '移除记录' : '取消下载'"
+                    :title="task.error ? (t.details?.deleteBtn || '移除记录') : (t.ytDlp?.cancelTask || '取消下载')"
                   >
-                    {{ task.error ? '✕ 移除' : '✕ 取消' }}
+                    {{ task.error ? (t.details?.deleteBtn ? '✕ ' + t.details.deleteBtn : '✕ 移除') : (t.ytDlp?.cancelTask ? '✕ ' + t.ytDlp.cancelTask : '✕ 取消') }}
                   </button>
                 </div>
               </div>
@@ -2174,13 +2175,13 @@
             <div v-if="ytHistory.length === 0" class="yt-empty-container">
               <div class="yt-empty-icon">🎬</div>
               <div class="yt-empty-title">
-                暂无已完成的下载记录
+                {{ t.ytDlp?.emptyCompleted || '暂无已完成的下载记录' }}
               </div>
               <p class="yt-empty-desc">
-                下载完成后的视频会在此处生成海报卡片，点击即可在独立播放器窗口中播放。
+                {{ t.ytDlp?.emptyCompletedDesc || '下载完成后的视频会在此处生成海报卡片，点击即可在独立播放器窗口中播放。' }}
               </p>
               <button class="btn btn-primary" style="padding: 8px 22px; font-size: 13px; border-radius: 8px;" @click="ytSubTab = 'parse'">
-                前往下载视频
+                {{ t.ytDlp?.tabParse || '前往下载视频' }}
               </button>
             </div>
 
@@ -2196,7 +2197,7 @@
                 <div 
                   @click="openYtFile(item.filePath)"
                   style="position: relative; width: 140px; height: 80px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: var(--bg-tertiary); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: 1px solid var(--glass-border);"
-                  title="点击在独立窗口中播放"
+                  :title="t.ytDlp?.playVideo || '点击在独立窗口中播放'"
                 >
                   <img 
                     v-if="item.thumbnail" 
@@ -2250,7 +2251,7 @@
                     @click="openYtFolder(item.filePath)"
                     class="yt-card-sub"
                     style="margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: color 0.15s;"
-                    title="在文件夹中显示"
+                    :title="t.ytDlp?.openFolder || '在文件夹中显示'"
                   >
                     📁 {{ item.filePath }}
                   </div>
@@ -2263,19 +2264,19 @@
                     style="padding: 7px 16px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; border-radius: 8px;"
                     @click="openYtFile(item.filePath)"
                   >
-                    <span>▶ 播放</span>
+                    <span>▶ {{ t.ytDlp?.playVideo || '播放' }}</span>
                   </button>
                   <button 
                     class="yt-action-icon-btn" 
                     @click="openYtFolder(item.filePath)"
-                    title="在文件夹中显示"
+                    :title="t.ytDlp?.openFolder || '在文件夹中显示'"
                   >
-                    📁 目录
+                    📁 {{ t.ytDlp?.openFolder || '目录' }}
                   </button>
                   <button 
                     class="yt-action-icon-btn danger" 
                     @click="deleteYtHistoryItem(item.id)"
-                    title="删除记录"
+                    :title="t.ytDlp?.deleteHistory || '删除记录'"
                   >
                     🗑
                   </button>
@@ -2292,7 +2293,7 @@
             
             <!-- Threshold Slider -->
             <div style="display: flex; align-items: center; gap: 16px;">
-              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600; white-space: nowrap;">相似度阈值:</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600; white-space: nowrap;">{{ t.similar?.similarityThreshold || '相似度阈值:' }}</span>
               <input 
                 type="range" 
                 min="70" 
@@ -2315,7 +2316,7 @@
               >
                 <span v-if="isAnalyzingSimilar" class="spinner" style="width: 12px; height: 12px;"></span>
                 <span v-else>🔍</span>
-                {{ isAnalyzingSimilar ? `分析中... (${similarAnalysisProgress.done}/${similarAnalysisProgress.total})` : '开始分析相似图片' }}
+                {{ isAnalyzingSimilar ? `${t.similar?.analyzing || '分析中...'} (${similarAnalysisProgress.done}/${similarAnalysisProgress.total})` : (t.similar?.startAnalysis || '开始分析相似图片') }}
               </button>
 
               <button 
@@ -2341,7 +2342,7 @@
                 }"
               >
                 <span>🗑️</span>
-                {{ isDeletingDuplicates ? '删除中...' : `删除选中的重复图 (${selectedDuplicateIds.size})` }}
+                {{ isDeletingDuplicates ? (t.similar?.deleting || '删除中...') : (t.similar?.deleteDuplicates ? t.similar.deleteDuplicates.replace('{count}', selectedDuplicateIds.size) : `删除选中的重复图 (${selectedDuplicateIds.size})`) }}
               </button>
             </div>
           </div>
@@ -2354,7 +2355,7 @@
             >
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 16px;">🖼️</span>
-                <span style="font-size: 13px; font-weight: 700; color: #fff;">已选中 <span style="color: #f87171; font-size: 15px; font-weight: 800;">{{ selectedDuplicateIds.size }}</span> 张重复图片</span>
+                <span style="font-size: 13px; font-weight: 700; color: #fff;">{{ t.similar?.selectedCount ? t.similar.selectedCount.replace('{count}', selectedDuplicateIds.size) : `已选中 ${selectedDuplicateIds.size} 张重复图片` }}</span>
               </div>
               <div style="display: flex; align-items: center; gap: 10px;">
                 <button 
@@ -2362,7 +2363,7 @@
                   @click="selectedDuplicateIds.clear(); selectedDuplicateIds = new Set();"
                   style="padding: 7px 16px; font-size: 12px; border-radius: 20px; font-weight: 600; cursor: pointer;"
                 >
-                  取消选择
+                  {{ t.similar?.deselectAll || '取消选择' }}
                 </button>
                 <button 
                   class="btn btn-danger" 
@@ -2371,7 +2372,7 @@
                   style="display: flex; align-items: center; gap: 6px; padding: 8px 22px; font-size: 13px; border-radius: 20px; font-weight: 700; background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4); cursor: pointer;"
                 >
                   <span>🗑️</span>
-                  <span>{{ isDeletingDuplicates ? '删除中...' : `立即删除 (${selectedDuplicateIds.size})` }}</span>
+                  <span>{{ isDeletingDuplicates ? (t.similar?.deleting || '删除中...') : (t.similar?.deleteNow ? t.similar.deleteNow.replace('{count}', selectedDuplicateIds.size) : `立即删除 (${selectedDuplicateIds.size})`) }}</span>
                 </button>
               </div>
             </div>
@@ -2402,10 +2403,10 @@
                 <!-- Modal Title & Subtitle -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;">
                   <span style="font-size: 10px; font-weight: 800; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); padding: 3px 12px; border-radius: 99px; letter-spacing: 1.2px; text-transform: uppercase;">
-                    MobileCLIP · AI 聚类引擎
+                    MobileCLIP · {{ t.similar?.aiClusterEngine || 'AI 聚类引擎' }}
                   </span>
                   <h3 style="font-size: 18px; font-weight: 800; color: #fff; margin: 4px 0 0 0; background: linear-gradient(135deg, #ffffff 30%, #c084fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                    正在进行图像特征比对与聚类
+                    {{ t.similar?.comparingAndClustering || '正在进行图像特征比对与聚类' }}
                   </h3>
                 </div>
 
@@ -2418,7 +2419,7 @@
                     ></div>
                   </div>
                   <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600; padding: 0 2px;">
-                    <span>512-D 向量空间余弦计算</span>
+                    <span>{{ t.similar?.cosineMetric || '512-D 向量空间余弦计算' }}</span>
                     <span style="color: #38bdf8; font-weight: 700;">
                       {{ similarAnalysisProgress.total > 0 ? Math.round((similarAnalysisProgress.done / similarAnalysisProgress.total) * 100) : 0 }}%
                     </span>
@@ -2429,26 +2430,26 @@
                 <div style="width: 100%; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; box-sizing: border-box; overflow: hidden;">
                   <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; flex-shrink: 0; animation: pulse-glow 1.5s infinite;"></span>
                   <span style="font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">
-                    {{ similarAnalysisProgress.currentName ? `处理中: ${similarAnalysisProgress.currentName}` : '正在准备多核特征聚类池...' }}
+                    {{ similarAnalysisProgress.currentName ? `${t.similar?.processing || '处理中:'} ${similarAnalysisProgress.currentName}` : (t.similar?.preparingPool || '正在准备多核特征聚类池...') }}
                   </span>
                 </div>
 
                 <!-- Real-time Sci-Fi Stats Grid -->
                 <div style="width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
                   <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); padding: 10px 8px; border-radius: 12px;">
-                    <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px;">已比对</span>
+                    <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px;">{{ t.similar?.comparedCount || '已比对' }}</span>
                     <span style="font-size: 14px; font-weight: 800; color: #38bdf8; margin-top: 3px;">
                       {{ similarAnalysisProgress.done }} <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">/ {{ similarAnalysisProgress.total }}</span>
                     </span>
                   </div>
                   <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); padding: 10px 8px; border-radius: 12px;">
-                    <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px;">已用时间</span>
+                    <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px;">{{ t.link?.elapsedTime || '已用时间' }}</span>
                     <span style="font-size: 14px; font-weight: 800; color: #f8fafc; margin-top: 3px;">
                       {{ similarElapsedTime }}
                     </span>
                   </div>
                   <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); padding: 10px 8px; border-radius: 12px;">
-                    <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px;">预估剩余</span>
+                    <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px;">{{ t.link?.estRemaining || '预估剩余' }}</span>
                     <span style="font-size: 14px; font-weight: 800; color: #c084fc; margin-top: 3px;">
                       {{ similarRemainingTime }}
                     </span>
@@ -2462,9 +2463,9 @@
           <!-- Empty State / No Analysis Done -->
           <div v-if="similarGroups.length === 0" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--glass-border); border-radius: 20px; gap: 16px;">
             <span style="font-size: 64px; filter: drop-shadow(0 0 12px rgba(168,85,247,0.25));">🔍</span>
-            <span style="font-size: 15px; color: var(--text-primary); font-weight: 700;">未检测到相似图片分组</span>
+            <span style="font-size: 15px; color: var(--text-primary); font-weight: 700;">{{ t.similar?.emptyTitle || '未检测到相似图片分组' }}</span>
             <span style="font-size: 12px; color: var(--text-muted); max-width: 380px; text-align: center; line-height: 1.6;">
-              请确保已导入本地文件夹或已同步手机图片，点击上方按钮对所有图片进行一键多路关联比对。
+              {{ t.similar?.emptyDesc || '请确保已导入本地文件夹或已同步手机图片，点击上方按钮对所有图片进行一键多路关联比对。' }}
             </span>
           </div>
 
@@ -2478,8 +2479,8 @@
               <!-- Group Header -->
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); background: rgba(255,255,255,0.04); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 6px;">
-                  📁 相似分组 #{{ gIdx + 1 }}
-                  <span style="font-size: 11px; color: #a855f7; font-weight: 600;">(包含 {{ group.images.length }} 张图片)</span>
+                  📁 {{ t.similar?.groupTitle ? t.similar.groupTitle.replace('{index}', gIdx + 1) : `相似分组 #${gIdx + 1}` }}
+                  <span style="font-size: 11px; color: #a855f7; font-weight: 600;">{{ t.similar?.photosCount ? t.similar.photosCount.replace('{count}', group.images.length) : `(包含 ${group.images.length} 张图片)` }}</span>
                 </span>
                 
                 <!-- Quick Selection Action -->
@@ -2490,7 +2491,7 @@
                     onmouseover="this.style.background='rgba(168,85,247,0.1)'"
                     onmouseout="this.style.background='transparent'"
                   >
-                    保留一张（自动选中其余图）
+                    {{ t.similar?.keepOneAutoSelect || '保留一张（自动选中其余图）' }}
                   </button>
                   <button 
                     @click="deselectGroupAll(group)" 
@@ -2498,7 +2499,7 @@
                     onmouseover="this.style.background='rgba(255,255,255,0.05)'"
                     onmouseout="this.style.background='transparent'"
                   >
-                    取消选择
+                    {{ t.similar?.deselectAll || '取消选择' }}
                   </button>
                 </div>
               </div>
@@ -2533,7 +2534,7 @@
                       v-if="img.maxSimWithGroup !== undefined" 
                       style="position: absolute; bottom: 8px; right: 8px; font-size: 10px; font-weight: 700; color: white; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; backdrop-filter: blur(4px);"
                     >
-                      相似度: {{ (img.maxSimWithGroup * 100).toFixed(1) }}%
+                      {{ t.similar?.similarity || '相似度: ' }}{{ (img.maxSimWithGroup * 100).toFixed(1) }}%
                     </span>
                   </div>
 
@@ -2543,7 +2544,7 @@
                       {{ img.name }}
                     </span>
                     <span style="font-size: 10px; color: var(--text-muted); display: flex; justify-content: space-between;">
-                      <span>大小: {{ formatBytes(img.size || 0) }}</span>
+                      <span>{{ t.similar?.imageSize || '大小: ' }}{{ formatBytes(img.size || 0) }}</span>
                       <span v-if="img.predictions && img.predictions[0]" style="color: #a855f7;">
                         {{ getShortCategory(img.predictions[0].category) }}
                       </span>
@@ -2697,7 +2698,7 @@
                         style="background: linear-gradient(135deg, #10b981, #059669); margin-left: 10px;"
                         @click="startDownloadUpdate"
                       >
-                        ⬇️ 立即下载更新
+                        {{ t.update?.downloadUpdateBtn || '⬇️ 立即下载更新' }}
                       </button>
                       <button
                         v-if="updateReadyToInstall"
@@ -2705,7 +2706,7 @@
                         style="background: linear-gradient(135deg, #f59e0b, #d97706); margin-left: 10px;"
                         @click="installUpdate"
                       >
-                        🚀 立即安装并重启
+                        {{ t.update?.installAndRestartBtn || '🚀 立即安装并重启' }}
                       </button>
                     </div>
 
@@ -2713,10 +2714,10 @@
                     <div class="update-download-progress" v-if="updateDownloading" style="margin-top: 10px; width: 100%;">
                       <div class="progress-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px;">
                         <span v-if="updateType === 'differential'" style="color: #c084fc; font-weight: 600;">
-                          ⚡ 正在下载差分增量补丁包 (已下载 {{ updateTransferredMB }} MB / {{ updateTotalMB }} MB)
+                          {{ t.update?.downloadingDiff ? t.update.downloadingDiff.replace('{transferred}', updateTransferredMB).replace('{total}', updateTotalMB) : `⚡ 正在下载差分增量补丁包 (已下载 ${updateTransferredMB} MB / ${updateTotalMB} MB)` }}
                         </span>
                         <span v-else style="color: #38bdf8; font-weight: 600;">
-                          📦 正在下载全量安装包 (已下载 {{ updateTransferredMB }} MB / {{ updateTotalMB }} MB)
+                          {{ t.update?.downloadingFull ? t.update.downloadingFull.replace('{transferred}', updateTransferredMB).replace('{total}', updateTotalMB) : `📦 正在下载全量安装包 (已下载 ${updateTransferredMB} MB / ${updateTotalMB} MB)` }}
                         </span>
                         <span style="font-weight: 700; color: var(--text-primary);">{{ updateDownloadProgress }}%</span>
                       </div>
@@ -2729,7 +2730,7 @@
                     <div class="update-result-msg" v-if="updateReadyToInstall">
                       <div class="update-badge-container new-available">
                         <span class="update-badge-icon">✅</span>
-                        <span class="update-badge-text">新版本已下载完成，点击右侧按钮安装。</span>
+                        <span class="update-badge-text">{{ t.update?.readyToInstallBadge || '新版本已下载完成，点击右侧按钮安装。' }}</span>
                       </div>
                     </div>
 
@@ -2773,7 +2774,7 @@
                   </div>
                   <div style="margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap;">
                     <button class="dp-btn dp-open" @click="openLogFolder">
-                      📄 打开本地运行日志 (Open Logs)
+                      {{ t.update?.openLogsBtn || '📄 打开本地运行日志 (Open Logs)' }}
                     </button>
                     <button 
                       class="dp-btn" 
@@ -2781,7 +2782,7 @@
                       @click="window.open('https://github.com/sponsors/NovaMindLab', '_blank')"
                       title="Sponsor on GitHub"
                     >
-                      💖 赞助项目 (Sponsor)
+                      {{ t.update?.sponsorBtn || '💖 赞助项目 (Sponsor)' }}
                     </button>
                     <button 
                       class="dp-btn" 
@@ -2811,24 +2812,24 @@
             <span class="update-card-icon">&#x1F680;</span>
           </div>
           <div>
-            <div class="update-card-title">发现新版本</div>
+            <div class="update-card-title">{{ t.update?.foundNewVersion || '发现新版本' }}</div>
             <div class="update-card-subtitle">v{{ currentVersion }} &#x2192; <span class="update-new-ver">v{{ latestVersion }}</span></div>
           </div>
         </div>
         <div class="update-diff-badge">
           <span class="update-diff-icon">&#x26A1;</span>
           <div>
-            <div class="update-diff-title">智能差分增量升级</div>
-            <div class="update-diff-desc">仅下载变动的数据块，节省 90%+ 流量</div>
+            <div class="update-diff-title">{{ t.update?.diffTitle || '智能差分增量升级' }}</div>
+            <div class="update-diff-desc">{{ t.update?.diffDesc || '仅下载变动的数据块，节省 90%+ 流量' }}</div>
           </div>
         </div>
         <div class="update-notes" v-if="updateNotes">
-          <div class="update-notes-label">更新说明</div>
+          <div class="update-notes-label">{{ t.update?.notesLabel || '更新说明' }}</div>
           <pre class="update-notes-text">{{ updateNotes }}</pre>
         </div>
         <div class="update-card-actions">
-          <button class="update-btn-cancel" @click="showUpdateConfirmModal = false">稍后再说</button>
-          <button class="update-btn-confirm" @click="confirmAndStartUpdate">立即升级</button>
+          <button class="update-btn-cancel" @click="showUpdateConfirmModal = false">{{ t.update?.later || '稍后再说' }}</button>
+          <button class="update-btn-confirm" @click="confirmAndStartUpdate">{{ t.update?.upgradeNow || '立即升级' }}</button>
         </div>
       </div>
     </div>
@@ -2844,29 +2845,29 @@
             <span class="update-card-icon">&#x2705;</span>
           </div>
           <div>
-            <div class="update-card-title">下载完成，准备升级</div>
-            <div class="update-card-subtitle">目标版本 <span class="update-new-ver">v{{ latestVersion }}</span></div>
+            <div class="update-card-title">{{ t.update?.downloadCompleted || '下载完成，准备升级' }}</div>
+            <div class="update-card-subtitle">{{ t.update?.targetVersion || '目标版本' }} <span class="update-new-ver">v{{ latestVersion }}</span></div>
           </div>
         </div>
         <div class="update-ready-stats">
           <div class="update-stat-item">
-            <span class="update-stat-label">升级方式</span>
+            <span class="update-stat-label">{{ t.update?.upgradeType || '升级方式' }}</span>
             <span class="update-stat-val" :class="updateType === 'differential' ? 'diff' : ''">
-              {{ updateType === 'differential' ? '差分增量' : '全量安装包' }}
+              {{ updateType === 'differential' ? (t.update?.diffType || '差分增量') : (t.update?.fullType || '全量安装包') }}
             </span>
           </div>
           <div class="update-stat-item">
-            <span class="update-stat-label">下载大小</span>
+            <span class="update-stat-label">{{ t.update?.downloadSize || '下载大小' }}</span>
             <span class="update-stat-val">
               {{ updateTransferredMB }} MB
-              <span v-if="updateType === 'differential'" class="update-saved-tag">节省 90%+</span>
+              <span v-if="updateType === 'differential'" class="update-saved-tag">{{ t.update?.savedBandwidth || '节省 90%+' }}</span>
             </span>
           </div>
         </div>
-        <p class="update-restart-hint">重启后将自动完成安装，数据不会丢失。</p>
+        <p class="update-restart-hint">{{ t.update?.restartNotice || '重启后将自动完成安装，数据不会丢失。' }}</p>
         <div class="update-card-actions">
-          <button class="update-btn-cancel" @click="showUpdateCompleteModal = false">稍后重启</button>
-          <button class="update-btn-confirm" @click="installUpdate">立即重启</button>
+          <button class="update-btn-cancel" @click="showUpdateCompleteModal = false">{{ t.update?.later || '稍后重启' }}</button>
+          <button class="update-btn-confirm" @click="installUpdate">{{ t.update?.restartNow || '立即重启' }}</button>
         </div>
       </div>
     </div>
@@ -2910,7 +2911,7 @@
                 style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); padding: 3px 10px; border-radius: 99px; animation: pulse-glow 1.5s infinite;"
               >
                 <span class="spinner" style="width: 10px; height: 10px; border-color: #38bdf8; border-top-color: transparent;"></span>
-                正在从手机拉取超清原图...
+                {{ t.lightbox?.fetchingUltra || '正在从手机拉取超清原图...' }}
               </span>
 
               <!-- Case B: 4K Original Photo Ready -->
@@ -2918,7 +2919,7 @@
                 v-else-if="isHighResLoaded || selectedImage.type === 'album_photo' || (selectedImage.name && selectedImage.name.startsWith('album_'))" 
                 style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); padding: 3px 10px; border-radius: 99px;"
               >
-                <span>✨</span> 超清原图
+                <span>✨</span> {{ t.lightbox?.ultraHighRes || '超清原图' }}
               </span>
 
               <!-- Case C: Local file -->
@@ -2926,7 +2927,7 @@
                 v-else-if="!selectedImage.name || !selectedImage.name.startsWith('thumb_')" 
                 style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #a855f7; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.3); padding: 3px 10px; border-radius: 99px;"
               >
-                <span>📁</span> 本地图片
+                <span>📁</span> {{ t.lightbox?.localImage || '本地图片' }}
               </span>
 
               <!-- Case D: Thumbnail only (Phone offline) -->
@@ -2934,7 +2935,7 @@
                 v-else 
                 style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #f59e0b; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); padding: 3px 10px; border-radius: 99px;"
               >
-                <span>⚡</span> 缩略图预览 (手机未连接)
+                <span>⚡</span> {{ t.lightbox?.thumbnailPreview || '缩略图预览 (手机未连接)' }}
               </span>
             </div>
           </div>
@@ -2952,37 +2953,37 @@
             <button 
               v-if="selectedItemType === 'video'"
               @click="openVideoPlayer(selectedImage); closeDetails()" 
-              title="在独立窗口中播放此视频"
+              :title="t.lightbox?.detachedPlay || '在独立窗口中播放此视频'"
               style="display: flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 99px; background: rgba(99, 102, 241, 0.16); border: 1px solid rgba(99, 102, 241, 0.35); color: #c7d2fe; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
               onmouseover="this.style.background='rgba(99,102,241,0.32)'; this.style.borderColor='rgba(99,102,241,0.6)'; this.style.color='#fff'; this.style.transform='scale(1.04)';"
               onmouseout="this.style.background='rgba(99, 102, 241, 0.16)'; this.style.borderColor='rgba(99, 102, 241, 0.35)'; this.style.color='#c7d2fe'; this.style.transform='scale(1)';"
             >
               <span>🗗</span>
-              <span>独立窗口播放</span>
+              <span>{{ t.lightbox?.detachedPlay || '独立窗口播放' }}</span>
             </button>
 
             <!-- Prominent Lightbox Close Button -->
             <button 
               @click="closeDetails" 
-              title="退出大图浏览 (ESC)"
+              :title="t.lightbox?.closeLightboxTitle || '退出大图浏览 (ESC)'"
               style="display: flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 99px; background: rgba(239, 68, 68, 0.16); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
               onmouseover="this.style.background='rgba(239,68,68,0.32)'; this.style.borderColor='rgba(239,68,68,0.6)'; this.style.color='#fff'; this.style.transform='scale(1.04)';"
               onmouseout="this.style.background='rgba(239, 68, 68, 0.16)'; this.style.borderColor='rgba(239, 68, 68, 0.35)'; this.style.color='#fca5a5'; this.style.transform='scale(1)';"
             >
               <span style="font-size: 14px; font-weight: 900;">✕</span>
-              <span>关闭大图</span>
+              <span>{{ t.lightbox?.closeLightbox || '关闭大图' }}</span>
               <span style="font-size: 10px; opacity: 0.75; font-family: monospace; background: rgba(0,0,0,0.25); padding: 1px 4px; border-radius: 3px;">ESC</span>
             </button>
 
             <!-- Window Minimise/Maximize/Close (if desktop hasApi) -->
             <div v-if="hasApi" style="display: flex; align-items: center; margin-left: 6px; border-left: 1px solid rgba(255,255,255,0.12); padding-left: 6px;">
-              <button class="title-bar-btn minimize" @click="minimizeWindow" title="最小化" style="height: 30px; width: 34px; border-radius: 6px;">
+              <button class="title-bar-btn minimize" @click="minimizeWindow" :title="t.lightbox?.minimize || '最小化'" style="height: 30px; width: 34px; border-radius: 6px;">
                 <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10v1H0z" fill="currentColor"/></svg>
               </button>
-              <button class="title-bar-btn maximize" @click="maximizeWindow" title="最大化/还原" style="height: 30px; width: 34px; border-radius: 6px;">
+              <button class="title-bar-btn maximize" @click="maximizeWindow" :title="t.lightbox?.maximize || '最大化/还原'" style="height: 30px; width: 34px; border-radius: 6px;">
                 <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0v10h10V0H0zm9 9H1V1h8v8z" fill="currentColor"/></svg>
               </button>
-              <button class="title-bar-btn close" @click="closeWindow" title="关闭软件" style="height: 30px; width: 34px; border-radius: 6px;">
+              <button class="title-bar-btn close" @click="closeWindow" :title="t.lightbox?.closeApp || '关闭软件'" style="height: 30px; width: 34px; border-radius: 6px;">
                 <svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
               </button>
             </div>
@@ -2997,7 +2998,7 @@
             v-if="currentViewingList.length > 1"
             class="lightbox-nav-btn" 
             @click.stop="prevImage"
-            title="上一张 (← 键盘左键)"
+            :title="t.lightbox?.prev || '上一张 (← 键盘左键)'"
             style="position: absolute; left: 24px; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; border-radius: 50%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); z-index: 30; box-shadow: 0 8px 24px rgba(0,0,0,0.5);"
             onmouseover="this.style.background='rgba(168,85,247,0.3)'; this.style.borderColor='rgba(168,85,247,0.6)'; this.style.transform='translateY(-50%) scale(1.1)';"
             onmouseout="this.style.background='rgba(15, 23, 42, 0.7)'; this.style.borderColor='rgba(255, 255, 255, 0.15)'; this.style.transform='translateY(-50%) scale(1)';"
@@ -3034,7 +3035,7 @@
                   controls 
                   autoplay 
                   @dblclick="openVideoPlayer(selectedImage)"
-                  title="双击在独立窗口中播放"
+                  :title="t.lightbox?.doubleClickPlay || '双击在独立窗口中播放'"
                   style="max-width: 85vw; max-height: 74vh; object-fit: contain; border-radius: 10px; box-shadow: 0 24px 60px rgba(0,0,0,0.75); cursor: pointer;"
                 ></video>
                 
@@ -3057,7 +3058,7 @@
             v-if="currentViewingList.length > 1"
             class="lightbox-nav-btn" 
             @click.stop="nextImage"
-            title="下一张 (→ 键盘右键)"
+            :title="t.lightbox?.next || '下一张 (→ 键盘右键)'"
             style="position: absolute; right: 24px; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; border-radius: 50%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); z-index: 30; box-shadow: 0 8px 24px rgba(0,0,0,0.5);"
             onmouseover="this.style.background='rgba(168,85,247,0.3)'; this.style.borderColor='rgba(168,85,247,0.6)'; this.style.transform='translateY(-50%) scale(1.1)';"
             onmouseout="this.style.background='rgba(15, 23, 42, 0.7)'; this.style.borderColor='rgba(255, 255, 255, 0.15)'; this.style.transform='translateY(-50%) scale(1)';"
@@ -3091,7 +3092,7 @@
               boxShadow: tIdx === currentViewingIndex ? '0 0 14px rgba(168,85,247,0.6)' : 'none',
               background: '#1e293b'
             }"
-            :title="thumb.name || `第 ${tIdx + 1} 张`"
+            :title="thumb.name || (t.lightbox?.photoIndex ? t.lightbox.photoIndex.replace('{index}', tIdx + 1) : `第 ${tIdx + 1} 张`)"
           >
             <img 
               :src="thumb.src || thumb.url" 
@@ -3108,25 +3109,25 @@
             <button 
               @click="currentImageScale = Math.min(currentImageScale + 0.25, 4)" 
               class="btn-icon-subtle" 
-              title="放大"
+              :title="t.lightbox?.zoomIn || '放大'"
               style="padding: 6px 10px; font-size: 13px; color: #e2e8f0; background: transparent; border: none; cursor: pointer; border-radius: 8px;"
             >
-              🔍+ 放大
+              🔍+ {{ t.lightbox?.zoomIn || '放大' }}
             </button>
             <!-- Zoom Out -->
             <button 
               @click="currentImageScale = Math.max(currentImageScale - 0.25, 0.5)" 
               class="btn-icon-subtle" 
-              title="缩小"
+              :title="t.lightbox?.zoomOut || '缩小'"
               style="padding: 6px 10px; font-size: 13px; color: #e2e8f0; background: transparent; border: none; cursor: pointer; border-radius: 8px;"
             >
-              🔍- 缩小
+              🔍- {{ t.lightbox?.zoomOut || '缩小' }}
             </button>
             <!-- Reset 1:1 -->
             <button 
               @click="currentImageScale = 1; currentImageRotation = 0" 
               class="btn-icon-subtle" 
-              title="重置"
+              :title="t.lightbox?.reset || '重置'"
               style="padding: 6px 10px; font-size: 13px; color: #e2e8f0; background: transparent; border: none; cursor: pointer; border-radius: 8px;"
             >
               ⟲ 1:1
@@ -3136,20 +3137,20 @@
             <button 
               @click="currentImageRotation = (currentImageRotation + 90) % 360" 
               class="btn-icon-subtle" 
-              title="旋转"
+              :title="t.lightbox?.rotate || '旋转'"
               style="padding: 6px 10px; font-size: 13px; color: #e2e8f0; background: transparent; border: none; cursor: pointer; border-radius: 8px;"
             >
-              ↻ 旋转
+              ↻ {{ t.lightbox?.rotate || '旋转' }}
             </button>
             <!-- Open File Location -->
             <button 
               v-if="selectedImage.path"
               @click="openFileLocation(selectedImage.path)" 
               class="btn-icon-subtle" 
-              title="在系统资源管理器中定位文件"
+              :title="t.lightbox?.locateFileTitle || '在系统资源管理器中定位文件'"
               style="padding: 6px 12px; font-size: 13px; color: #c084fc; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); cursor: pointer; border-radius: 20px; font-weight: 600;"
             >
-              📁 定位文件
+              📁 {{ t.lightbox?.locateFile || '定位文件' }}
             </button>
           </div>
         </div>
@@ -3160,9 +3161,9 @@
     <div class="modal-backdrop" v-if="incomingConnectionRequest" @click.self="handleRespondToRequest(false)">
       <div class="modal-content" style="max-width: 420px; padding: 24px; border-radius: 16px; border: 1px solid rgba(147, 51, 234, 0.2); background: #0f172a; text-align: center; display: flex; flex-direction: column; gap: 16px; align-items: center;">
         <div style="font-size: 48px; color: #a855f7; animation: pulse 2s infinite;">🔔</div>
-        <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-primary);">收到连接请求</h3>
+        <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-primary);">{{ t.modals?.connReqTitle || '收到连接请求' }}</h3>
         <p style="margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-          设备 <strong style="color: #a855f7;">{{ incomingConnectionRequest.name }}</strong> ({{ incomingConnectionRequest.ip }}) 想要与您建立连接，是否同意？
+          {{ t.modals?.connReqDesc ? t.modals.connReqDesc.replace('{name}', incomingConnectionRequest.name).replace('{ip}', incomingConnectionRequest.ip) : `设备 ${incomingConnectionRequest.name} (${incomingConnectionRequest.ip}) 想要与您建立连接，是否同意？` }}
         </p>
         <div style="display: flex; gap: 12px; width: 100%; margin-top: 8px;">
           <button 
@@ -3171,7 +3172,7 @@
             onmouseover="this.style.background='rgba(255,255,255,0.05)'"
             onmouseout="this.style.background='transparent'"
           >
-            拒绝
+            {{ t.modals?.reject || '拒绝' }}
           </button>
           <button 
             @click="handleRespondToRequest(true)" 
@@ -3179,7 +3180,7 @@
             onmouseover="this.style.background='#8b5cf6'"
             onmouseout="this.style.background='#7c3aed'"
           >
-            同意
+            {{ t.modals?.accept || '同意' }}
           </button>
         </div>
       </div>
@@ -3188,14 +3189,14 @@
     <!-- Enter Connection Code Modal -->
     <div class="modal-backdrop" v-if="showEnterCodeModal" @click.self="showEnterCodeModal = false">
       <div class="modal-content" style="max-width: 400px; padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: #0f172a; text-align: left; display: flex; flex-direction: column; gap: 16px;">
-        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">输入配对连接码或 IP</h3>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">{{ t.modals?.pinTitle || '输入配对连接码或 IP' }}</h3>
         <p style="margin: 0; font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
-          如果您使用的是无摄像头设备，请输入对方显示的 4 位配对连接码（如 3587）或直接输入 IP 地址连接。
+          {{ t.modals?.pinDesc || '如果您使用的是无摄像头设备，请输入对方显示的 4 位配对连接码（如 3587）或直接输入 IP 地址连接。' }}
         </p>
         <input 
           v-model="enteredCode"
           type="text" 
-          placeholder="输入 4 位数字码或 IP 地址 (如 192.168.1.100)"
+          :placeholder="t.modals?.pinPlaceholder || '输入 4 位数字码或 IP 地址 (如 192.168.1.100)'"
           style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; font-size: 13px; box-sizing: border-box;"
           @keyup.enter="submitConnectionCode"
         />
@@ -3204,13 +3205,13 @@
             @click="showEnterCodeModal = false" 
             style="padding: 8px 16px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--text-secondary); font-size: 12px; cursor: pointer;"
           >
-            取消
+            {{ t.modals?.cancel || '取消' }}
           </button>
           <button 
             @click="submitConnectionCode" 
             style="padding: 8px 18px; border-radius: 6px; border: none; background: #7c3aed; color: white; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(124,58,237,0.2);"
           >
-            确定
+            {{ t.modals?.confirm || '确定' }}
           </button>
         </div>
       </div>
@@ -3221,7 +3222,7 @@
       <div class="modal-content" style="max-width: 900px; width: 90%; max-height: 85vh; padding: 24px; border-radius: 16px; display: flex; flex-direction: column; text-align: left;">
         <button class="modal-close" @click="showPersonModal = false">✕</button>
         <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 16px; color: var(--text-primary);">
-          👥 {{ selectedPersonName }} 包含的照片 ({{ selectedPersonPhotos.length }} 张)
+          👥 {{ t.modals?.personPhotosTitle ? t.modals.personPhotosTitle.replace('{name}', selectedPersonName).replace('{count}', selectedPersonPhotos.length) : `${selectedPersonName} 包含的照片 (${selectedPersonPhotos.length} 张)` }}
         </h3>
         <div style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;">
           <div 
@@ -3244,22 +3245,22 @@
     <!-- How to Connect Modal -->
     <div class="modal-backdrop" v-if="showHowToConnectModal" @click.self="showHowToConnectModal = false">
       <div class="modal-content" style="max-width: 480px; padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: #0f172a; text-align: left; display: flex; flex-direction: column; gap: 16px;">
-        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">如何连接您的手机与电脑?</h3>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary);">{{ t.modals?.guideTitle || '如何连接您的手机与电脑?' }}</h3>
         
         <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
           <div>
-            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">📶 局域网配对方式（推荐）:</strong>
-            请确保手机和电脑连接在同一个 Wi-Fi 网络（路由器），且开启了手机的蓝牙以加速协商。直接使用手机扫描 PC 屏幕上的二维码即可建立直连。
+            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">{{ t.modals?.lanModeTitle || '📶 局域网配对方式（推荐）:' }}</strong>
+            {{ t.modals?.lanModeDesc || '请确保手机和电脑连接在同一个 Wi-Fi 网络（路由器），且开启了手机的蓝牙以加速协商。直接使用手机扫描 PC 屏幕上的二维码即可建立直连。' }}
           </div>
           <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); margin: 4px 0;" />
           <div>
-            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">⚡ 热点直连方式（适合断网/限制环境）:</strong>
-            如果周围没有路由器或路由器设置了客户端隔离（如公共/校园网），点击 PC 端的“热点”按钮，手机连上 PC 开启的专属 Wi-Fi（SSID 与密码将显示在屏幕上），连接成功后再扫描二维码配对。
+            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">{{ t.modals?.hotspotModeTitle || '⚡ 热点直连方式（适合断网/限制环境）:' }}</strong>
+            {{ t.modals?.hotspotModeDesc || '如果周围没有路由器或路由器设置了客户端隔离（如公共/校园网），点击 PC 端的“热点”按钮，手机连上 PC 开启的专属 Wi-Fi（SSID 与密码将显示在屏幕上），连接成功后再扫描二维码配对。' }}
           </div>
           <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); margin: 4px 0;" />
           <div>
-            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">🌐 P2P 设备搜索方式:</strong>
-            在屏幕下方的“附近设备”列表中，只要手机和电脑运行了本软件并接入同一局域网或热点，就会自动搜索出对方。您可以直接在 PC 上点击“连接”请求互联。
+            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">{{ t.modals?.p2pModeTitle || '🌐 P2P 设备搜索方式:' }}</strong>
+            {{ t.modals?.p2pModeDesc || '在屏幕下方的“附近设备”列表中，只要手机和电脑运行了本软件并接入同一局域网或热点，就会自动搜索出对方。您可以直接在 PC 上点击“连接”请求互联。' }}
           </div>
         </div>
 
@@ -3268,7 +3269,7 @@
             @click="showHowToConnectModal = false" 
             style="padding: 8px 24px; border-radius: 6px; border: none; background: #7c3aed; color: white; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(124,58,237,0.2);"
           >
-            知道了
+            {{ t.modals?.gotIt || '知道了' }}
           </button>
         </div>
       </div>
@@ -3465,9 +3466,9 @@ async function handleRecalculateFaces() {
   if (!hasApi || !window.api.recalculateAllFaces) return;
   showConfirm({
     icon: '♻️',
-    title: '强制重新提取人脸',
-    message: '确定要清空所有人脸识别记录，并对全部图片重新进行人脸提取吗？\n如果图片较多，可能需要几分钟时间。',
-    confirmText: '开始重新提取',
+    title: t.value?.modals?.reextractFacesTitle || '强制重新提取人脸',
+    message: t.value?.modals?.reextractFacesMessage || '确定要清空所有人脸识别记录，并对全部图片重新进行人脸提取吗？\n如果图片较多，可能需要几分钟时间。',
+    confirmText: t.value?.modals?.reextractFacesConfirm || '开始重新提取',
     danger: false,
     onConfirm: async () => {
       isClusteringPeople.value = true;
@@ -3792,21 +3793,16 @@ const videoGroupsByDate = computed(() => {
 
   // 1. Process local synced/imported videos
   for (const video of localVideos.value) {
-    let dateKey = '其他日期';
     let rawDate = '1970-01-01';
     if (video.create_date) {
       rawDate = video.create_date.substring(0, 10);
-      const parts = rawDate.split('-');
-      if (parts.length === 3) {
-        dateKey = `${parts[0]}年${parts[1]}月${parts[2]}日`;
-      } else {
-        dateKey = rawDate;
-      }
     } else if (video.sync_time) {
       const d = new Date(video.sync_time);
       rawDate = d.toISOString().substring(0, 10);
-      dateKey = `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
     }
+    const isZh = currentLocale.value === 'zh' || currentLocale.value === 'zh-TW';
+    const parts = rawDate.split('-');
+    const dateKey = rawDate === '1970-01-01' ? (t.value?.dates?.otherDate || '其他日期') : (isZh && parts.length === 3 ? `${parts[0]}年${parts[1]}月${parts[2]}日` : rawDate);
 
     if (!groupsMap[rawDate]) {
       groupsMap[rawDate] = {
@@ -3828,19 +3824,16 @@ const videoGroupsByDate = computed(() => {
 
   for (const remote of remoteVideoCatalog.value) {
     if (!localIds.has(remote.id) && !localIds.has(`video_${remote.id}`) && !localNames.has(remote.name)) {
-      let dateKey = '其他日期';
       let rawDate = '1970-01-01';
       if (remote.create_date) {
         rawDate = remote.create_date.substring(0, 10);
-        const parts = rawDate.split('-');
-        if (parts.length === 3) {
-          dateKey = `${parts[0]}年${parts[1]}月${parts[2]}日`;
-        }
       } else if (remote.timestamp) {
         const d = new Date(remote.timestamp);
         rawDate = d.toISOString().substring(0, 10);
-        dateKey = `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
       }
+      const isZh = currentLocale.value === 'zh' || currentLocale.value === 'zh-TW';
+      const parts = rawDate.split('-');
+      const dateKey = rawDate === '1970-01-01' ? (t.value?.dates?.otherDate || '其他日期') : (isZh && parts.length === 3 ? `${parts[0]}年${parts[1]}月${parts[2]}日` : rawDate);
 
       if (!groupsMap[rawDate]) {
         groupsMap[rawDate] = {
@@ -4153,21 +4146,16 @@ const audioGroupsByDate = computed(() => {
 
   // 1. Process local synced/imported audios
   for (const audio of localAudios.value) {
-    let dateKey = '其他日期';
     let rawDate = '1970-01-01';
     if (audio.create_date) {
       rawDate = audio.create_date.substring(0, 10);
-      const parts = rawDate.split('-');
-      if (parts.length === 3) {
-        dateKey = `${parts[0]}年${parts[1]}月${parts[2]}日`;
-      } else {
-        dateKey = rawDate;
-      }
     } else if (audio.sync_time) {
       const d = new Date(audio.sync_time);
       rawDate = d.toISOString().substring(0, 10);
-      dateKey = `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
     }
+    const isZh = currentLocale.value === 'zh' || currentLocale.value === 'zh-TW';
+    const parts = rawDate.split('-');
+    const dateKey = rawDate === '1970-01-01' ? (t.value?.dates?.otherDate || '其他日期') : (isZh && parts.length === 3 ? `${parts[0]}年${parts[1]}月${parts[2]}日` : rawDate);
 
     if (!groupsMap[rawDate]) {
       groupsMap[rawDate] = {
@@ -4189,19 +4177,16 @@ const audioGroupsByDate = computed(() => {
 
   for (const remote of remoteAudioCatalog.value) {
     if (!localIds.has(remote.id) && !localIds.has(`audio_${remote.id}`) && !localNames.has(remote.name)) {
-      let dateKey = '其他日期';
       let rawDate = '1970-01-01';
       if (remote.create_date) {
         rawDate = remote.create_date.substring(0, 10);
-        const parts = rawDate.split('-');
-        if (parts.length === 3) {
-          dateKey = `${parts[0]}年${parts[1]}月${parts[2]}日`;
-        }
       } else if (remote.timestamp) {
         const d = new Date(remote.timestamp);
         rawDate = d.toISOString().substring(0, 10);
-        dateKey = `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
       }
+      const isZh = currentLocale.value === 'zh' || currentLocale.value === 'zh-TW';
+      const parts = rawDate.split('-');
+      const dateKey = rawDate === '1970-01-01' ? (t.value?.dates?.otherDate || '其他日期') : (isZh && parts.length === 3 ? `${parts[0]}年${parts[1]}月${parts[2]}日` : rawDate);
 
       if (!groupsMap[rawDate]) {
         groupsMap[rawDate] = {
@@ -4752,7 +4737,7 @@ async function handleImportLocalFolder() {
     const result = await window.api.importLocalFolder(folderPath);
     
     if (!result || result.totalImages === 0) {
-      alert(`所选文件夹中未找到任何图片文件。\n支持格式: JPG, PNG, WEBP, BMP, GIF, HEIC, TIFF`);
+      alert(t.value?.images?.noImagesInFolder || `所选文件夹中未找到任何图片文件。\n支持格式: JPG, PNG, WEBP, BMP, GIF, HEIC, TIFF`);
       return;
     }
 
@@ -4769,7 +4754,7 @@ async function handleImportLocalFolder() {
     
     // Remind user to run AI
     setTimeout(() => {
-      alert(`🎉 成功导入 ${result.totalImages} 张图片！\n\n请点击左侧面板的【重新算 AI】按钮开始 AI 分类与人脸识别。`);
+      alert((t.value?.images?.importSuccess || `🎉 成功导入 {total} 张图片！\n\n请点击左侧面板的【重新算 AI】按钮开始 AI 分类与人脸识别。`).replace('{total}', result.totalImages));
     }, 300);
 
   } catch (err) {
@@ -4783,14 +4768,14 @@ async function handleImportLocalFolder() {
 async function handleClearAndResync() {
   const isConnected = syncStatus.value === 'connected';
   const confirmMsg = isConnected
-    ? "确定要清空本地同步数据库及已下载的图片缓存，并请求手机重新传输全部图片重新计算吗？\n\n此操作将重置本地所有相册索引与 AI 特征缓存。" 
-    : "手机当前未连接。确定要清空本地已同步缓存记录吗？\n\n清空后，下次手机连接时将重新传输全部图片进行运算。";
+    ? (t.value?.modals?.clearCacheConfirmMsg || "确定要清空本地同步数据库及已下载的图片缓存，并请求手机重新传输全部图片重新计算吗？\n\n此操作将重置本地所有相册索引与 AI 特征缓存。")
+    : (t.value?.modals?.clearCacheConfirmMsgNotConnected || "手机当前未连接。确定要清空本地已同步缓存记录吗？\n\n清空后，下次手机连接时将重新传输全部图片进行运算。");
 
   showConfirm({
     icon: '🗑️',
-    title: '清空本地数据与缓存',
+    title: t.value?.modals?.clearCacheTitle || '清空本地数据与缓存',
     message: confirmMsg,
-    confirmText: '清空并重置',
+    confirmText: t.value?.modals?.clearCacheConfirmBtn || '清空并重置',
     danger: true,
     onConfirm: async () => {
       logSyncEvent("🗑️ 正在清空本地数据库及图片缓存...");
@@ -4841,10 +4826,10 @@ async function handleClearAndResync() {
 
 async function handleClearPhoneCacheOnly() {
   const isConnected = syncStatus.value === 'connected';
-  const deviceName = activeDeviceName.value || '当前手机';
+  const deviceName = activeDeviceName.value || (t.value?.link?.currentPhone || '当前手机');
   const confirmMsg = isConnected
-    ? `确定要清空手机 [${deviceName}] 在本电脑上的全部缩略图缓存、相册备份索引与 AI 特征数据库吗？\n\n清空后将重置该手机的已同步状态（不会立即重新下载），释放本地磁盘空间。`
-    : "确定要清空当前手机在本地的缓存与同步数据库记录吗？";
+    ? (t.value?.link?.clearDeviceCacheConnectedMsg ? t.value.link.clearDeviceCacheConnectedMsg.replace('{deviceName}', deviceName) : `确定要清空手机 [${deviceName}] 在本电脑上的全部缩略图缓存、相册备份索引与 AI 特征数据库吗？\n\n清空后将重置该手机的已同步状态（不会立即重新下载），释放本地磁盘空间。`)
+    : (t.value?.link?.clearDeviceCacheDisconnectedMsg || "确定要清空当前手机在本地的缓存与同步数据库记录吗？");
 
   showConfirm({
     icon: '🗑️',
@@ -4935,7 +4920,7 @@ async function analyzeSimilarImages() {
       }));
 
     if (imageList.length === 0) {
-      alert("⚠️ 无法计算相似图：未导入或同步任何图片。请先在‘图片’主界面导入本地文件夹，或在‘连接手机’界面同步手机图片。");
+      alert(t.value?.similar?.noImagesForSimilar || "⚠️ 无法计算相似图：未导入或同步任何图片。请先在‘图片’主界面导入本地文件夹，或在‘连接手机’界面同步手机图片。");
       isAnalyzingSimilar.value = false;
       return;
     }
@@ -5006,13 +4991,15 @@ async function deleteSelectedDuplicates() {
   const count = selectedDuplicateIds.value.size;
   const isConnected = syncStatus.value === 'connected';
 
+  const confirmMsg = isConnected 
+    ? (t.value?.similar?.deleteConfirmConnected ? t.value.similar.deleteConfirmConnected.replace('{count}', count) : `确定要删除选中的 ${count} 张重复图片吗？\n\n此操作将同时从电脑磁盘和【手机相册】中物理删除原始文件，且不可撤销。`)
+    : (t.value?.similar?.deleteConfirmDisconnected ? t.value.similar.deleteConfirmDisconnected.replace('{count}', count) : `确定要删除选中的 ${count} 张重复图片吗？\n\n此操作将从电脑磁盘中物理删除文件，并同步更新相册索引，且不可撤销。`);
+
   showConfirm({
     icon: '🗑️',
-    title: '确认删除重复图片',
-    message: isConnected 
-      ? `确定要删除选中的 ${count} 张重复图片吗？\n\n此操作将同时从电脑磁盘和【手机相册】中物理删除原始文件，且不可撤销。`
-      : `确定要删除选中的 ${count} 张重复图片吗？\n\n此操作将从电脑磁盘中物理删除文件，并同步更新相册索引，且不可撤销。`,
-    confirmText: `确认删除 (${count})`,
+    title: t.value?.similar?.deleteConfirmTitle || '确认删除重复图片',
+    message: confirmMsg,
+    confirmText: t.value?.similar?.deleteConfirmBtn ? t.value.similar.deleteConfirmBtn.replace('{count}', count) : `确认删除 (${count})`,
     danger: true,
     onConfirm: async () => {
       isDeletingDuplicates.value = true;
@@ -7656,11 +7643,11 @@ onMounted(() => {
                 const remainingMs = avg * (curData.total - curData.done);
                 const remSec = Math.round(remainingMs / 1000);
                 if (remSec < 60) {
-                  faceScanRemainingTime.value = `${remSec}秒`;
+                  faceScanRemainingTime.value = `${remSec}${t.value?.people?.seconds || 's'}`;
                 } else {
                   const m = Math.floor(remSec / 60);
                   const s = remSec % 60;
-                  faceScanRemainingTime.value = `${m}分${s}秒`;
+                  faceScanRemainingTime.value = `${m}${t.value?.people?.minutes || 'm '}${s}${t.value?.people?.seconds || 's'}`;
                 }
               } else {
                 faceScanRemainingTime.value = '';
