@@ -2,6 +2,18 @@
 // Comprehensive localization supporting 20 languages across all modules
 export const locales = {
   "en": {
+    "ytDlp": {
+      "byTime": "By Time",
+      "bySource": "By Source",
+      "allCategories": "All",
+      "timeToday": "Today",
+      "timeWeek": "Past 7 Days",
+      "timeEarlier": "Earlier",
+      "gridView": "Grid",
+      "listView": "List",
+      "sendToPhone": "Send to Phone"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -1260,6 +1272,18 @@ export const locales = {
     }
   },
   "zh-TW": {
+    "ytDlp": {
+      "byTime": "依時間",
+      "bySource": "依來源",
+      "allCategories": "全部",
+      "timeToday": "今天",
+      "timeWeek": "最近 7 天",
+      "timeEarlier": "更早",
+      "gridView": "網格",
+      "listView": "列表",
+      "sendToPhone": "發送到手機"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "設定",
@@ -1889,6 +1913,18 @@ export const locales = {
     }
   },
   "ja": {
+    "ytDlp": {
+      "byTime": "時間順",
+      "bySource": "ソース別",
+      "allCategories": "すべて",
+      "timeToday": "今日",
+      "timeWeek": "過去7日間",
+      "timeEarlier": "以前",
+      "gridView": "グリッド",
+      "listView": "リスト",
+      "sendToPhone": "スマホへ送信"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -2518,6 +2554,18 @@ export const locales = {
     }
   },
   "ko": {
+    "ytDlp": {
+      "byTime": "시간순",
+      "bySource": "출처별",
+      "allCategories": "전체",
+      "timeToday": "오늘",
+      "timeWeek": "최근 7일",
+      "timeEarlier": "이전",
+      "gridView": "그리드",
+      "listView": "목록",
+      "sendToPhone": "휴대폰으로 전송"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -3147,6 +3195,18 @@ export const locales = {
     }
   },
   "es": {
+    "ytDlp": {
+      "byTime": "Por fecha",
+      "bySource": "Por origen",
+      "allCategories": "Todo",
+      "timeToday": "Hoy",
+      "timeWeek": "Últimos 7 días",
+      "timeEarlier": "Anterior",
+      "gridView": "Cuadrícula",
+      "listView": "Lista",
+      "sendToPhone": "Enviar al móvil"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -3776,6 +3836,18 @@ export const locales = {
     }
   },
   "fr": {
+    "ytDlp": {
+      "byTime": "Par date",
+      "bySource": "Par source",
+      "allCategories": "Tout",
+      "timeToday": "Aujourd'hui",
+      "timeWeek": "7 derniers jours",
+      "timeEarlier": "Plus tôt",
+      "gridView": "Grille",
+      "listView": "Liste",
+      "sendToPhone": "Envoyer au mobile"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -4405,6 +4477,18 @@ export const locales = {
     }
   },
   "de": {
+    "ytDlp": {
+      "byTime": "Nach Zeit",
+      "bySource": "Nach Quelle",
+      "allCategories": "Alle",
+      "timeToday": "Heute",
+      "timeWeek": "Letzte 7 Tage",
+      "timeEarlier": "Früher",
+      "gridView": "Raster",
+      "listView": "Liste",
+      "sendToPhone": "An Smartphone senden"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -5034,6 +5118,18 @@ export const locales = {
     }
   },
   "it": {
+    "ytDlp": {
+      "byTime": "Per data",
+      "bySource": "Per sorgente",
+      "allCategories": "Tutti",
+      "timeToday": "Oggi",
+      "timeWeek": "Ultimi 7 giorni",
+      "timeEarlier": "Precedenti",
+      "gridView": "Griglia",
+      "listView": "Elenco",
+      "sendToPhone": "Invia allo smartphone"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -5663,6 +5759,18 @@ export const locales = {
     }
   },
   "ru": {
+    "ytDlp": {
+      "byTime": "По времени",
+      "bySource": "По источнику",
+      "allCategories": "Все",
+      "timeToday": "Сегодня",
+      "timeWeek": "Последние 7 дней",
+      "timeEarlier": "Ранее",
+      "gridView": "Сетка",
+      "listView": "Список",
+      "sendToPhone": "Отправить на телефон"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -6292,6 +6400,18 @@ export const locales = {
     }
   },
   "pt": {
+    "ytDlp": {
+      "byTime": "Por data",
+      "bySource": "Por origem",
+      "allCategories": "Tudo",
+      "timeToday": "Hoje",
+      "timeWeek": "Últimos 7 dias",
+      "timeEarlier": "Mais cedo",
+      "gridView": "Grade",
+      "listView": "Lista",
+      "sendToPhone": "Enviar ao telemóvel"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -6921,6 +7041,18 @@ export const locales = {
     }
   },
   "vi": {
+    "ytDlp": {
+      "byTime": "Theo thời gian",
+      "bySource": "Theo nguồn",
+      "allCategories": "Tất cả",
+      "timeToday": "Hôm nay",
+      "timeWeek": "7 ngày qua",
+      "timeEarlier": "Cũ hơn",
+      "gridView": "Lưới",
+      "listView": "Danh sách",
+      "sendToPhone": "Gửi đến điện thoại"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -7550,6 +7682,18 @@ export const locales = {
     }
   },
   "th": {
+    "ytDlp": {
+      "byTime": "ตามเวลา",
+      "bySource": "ตามแหล่งที่มา",
+      "allCategories": "ทั้งหมด",
+      "timeToday": "วันนี้",
+      "timeWeek": "7 วันที่ผ่านมา",
+      "timeEarlier": "ก่อนหน้านี้",
+      "gridView": "ตาราง",
+      "listView": "รายการ",
+      "sendToPhone": "ส่งไปยังโทรศัพท์"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -8179,6 +8323,18 @@ export const locales = {
     }
   },
   "id": {
+    "ytDlp": {
+      "byTime": "Menurut Waktu",
+      "bySource": "Menurut Sumber",
+      "allCategories": "Semua",
+      "timeToday": "Hari ini",
+      "timeWeek": "7 hari terakhir",
+      "timeEarlier": "Lebih awal",
+      "gridView": "Kisi",
+      "listView": "Daftar",
+      "sendToPhone": "Kirim ke ponsel"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -8808,6 +8964,18 @@ export const locales = {
     }
   },
   "ar": {
+    "ytDlp": {
+      "byTime": "حسب الوقت",
+      "bySource": "حسب المصدر",
+      "allCategories": "الكل",
+      "timeToday": "اليوم",
+      "timeWeek": "آخر 7 أيام",
+      "timeEarlier": "سابقاً",
+      "gridView": "شبكة",
+      "listView": "قائمة",
+      "sendToPhone": "إرسال إلى الهاتف"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -9437,6 +9605,18 @@ export const locales = {
     }
   },
   "hi": {
+    "ytDlp": {
+      "byTime": "समय अनुसार",
+      "bySource": "स्रोत अनुसार",
+      "allCategories": "सभी",
+      "timeToday": "आज",
+      "timeWeek": "पिछले 7 दिन",
+      "timeEarlier": "पहले",
+      "gridView": "ग्रिड",
+      "listView": "सूची",
+      "sendToPhone": "फ़ोन पर भेजें"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -10066,6 +10246,18 @@ export const locales = {
     }
   },
   "tr": {
+    "ytDlp": {
+      "byTime": "Zamana Göre",
+      "bySource": "Kaynağa Göre",
+      "allCategories": "Tümü",
+      "timeToday": "Bugün",
+      "timeWeek": "Son 7 gün",
+      "timeEarlier": "Daha önce",
+      "gridView": "Izgara",
+      "listView": "Liste",
+      "sendToPhone": "Telefona Gönder"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -10695,6 +10887,18 @@ export const locales = {
     }
   },
   "pl": {
+    "ytDlp": {
+      "byTime": "Wg czasu",
+      "bySource": "Wg źródła",
+      "allCategories": "Wszystko",
+      "timeToday": "Dzisiaj",
+      "timeWeek": "Ostatnie 7 dni",
+      "timeEarlier": "Wcześniej",
+      "gridView": "Siatka",
+      "listView": "Lista",
+      "sendToPhone": "Wyślij na telefon"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
@@ -11324,6 +11528,18 @@ export const locales = {
     }
   },
   "nl": {
+    "ytDlp": {
+      "byTime": "Op tijd",
+      "bySource": "Op bron",
+      "allCategories": "Alles",
+      "timeToday": "Vandaag",
+      "timeWeek": "Afgelopen 7 dagen",
+      "timeEarlier": "Eerder",
+      "gridView": "Raster",
+      "listView": "Lijst",
+      "sendToPhone": "Verstuur naar telefoon"
+},
+
     "titlebar": {
       "title": "ShareCLIP",
       "settings": "Settings",
