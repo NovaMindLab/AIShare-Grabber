@@ -1210,6 +1210,16 @@ function scrollToTop() {
 }
 
 function showDownloadToast(msg) {
+  if (typeof window !== 'undefined' && window.mixpanel) {
+    try {
+      window.mixpanel.track('download_button_click', {
+        action: msg,
+        locale: currentLocale.value || 'en',
+        url: window.location.href,
+        timestamp: Date.now()
+      });
+    } catch (e) {}
+  }
   toastMessage.value = msg;
   setTimeout(() => {
     toastMessage.value = '';
