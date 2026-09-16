@@ -1383,20 +1383,43 @@ class SyncViewModel extends ChangeNotifier {
             incomingFiles.remove(fileId);
             receivedChunksCount.remove(fileId);
 
-            // Save to phone gallery
+            // Save to phone gallery (smart detection of video vs image)
             try {
-              final AssetEntity? entity = await PhotoManager.editor.saveImage(
-                fullBytes,
-                filename: "shareclip_${DateTime.now().millisecondsSinceEpoch}.png",
-              );
+              bool isVideo = false;
+              if (fullBytes.length >= 8) {
+                // Check ftyp (mp4, m4v, mov)
+                if (fullBytes[4] == 0x66 && fullBytes[5] == 0x74 && fullBytes[6] == 0x79 && fullBytes[7] == 0x70) {
+                  isVideo = true;
+                } else if (fullBytes[0] == 0x1A && fullBytes[1] == 0x45 && fullBytes[2] == 0xDF && fullBytes[3] == 0xA3) {
+                  // webm/mkv
+                  isVideo = true;
+                }
+              }
+
+              AssetEntity? entity;
+              if (isVideo) {
+                final tempFile = File('${Directory.systemTemp.path}/shareclip_${DateTime.now().millisecondsSinceEpoch}.mp4');
+                await tempFile.writeAsBytes(fullBytes);
+                entity = await PhotoManager.editor.saveVideo(
+                  tempFile,
+                  title: "shareclip_${DateTime.now().millisecondsSinceEpoch}.mp4",
+                );
+                try { await tempFile.delete(); } catch (_) {}
+              } else {
+                entity = await PhotoManager.editor.saveImage(
+                  fullBytes,
+                  filename: "shareclip_${DateTime.now().millisecondsSinceEpoch}.jpg",
+                );
+              }
+
               if (entity != null) {
-                logMessage("🎉 Successfully saved image from PC to gallery: ${entity.title}");
+                logMessage("🎉 Successfully saved ${isVideo ? 'video' : 'image'} from PC to gallery: ${entity.title}");
                 _loadLocalGallery();
               } else {
-                logMessage("❌ Failed to save image: Editor returned null");
+                logMessage("❌ Failed to save file: Editor returned null");
               }
             } catch (e) {
-              logMessage("❌ Failed to save image: $e");
+              logMessage("❌ Failed to save file: $e");
             }
           }
         } catch (e) {

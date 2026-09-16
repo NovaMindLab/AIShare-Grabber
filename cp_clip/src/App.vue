@@ -1943,6 +1943,30 @@
 
               <!-- If Downloading or Completed Tab: Directory and Manage Actions -->
               <div v-else style="display: flex; gap: 8px; align-items: center;">
+                <!-- View Mode Switcher (List / Grid) when in Completed tab and has items -->
+                <div v-if="ytSubTab === 'completed' && ytHistory.length > 0" class="view-mode-toggle" style="display: flex; background: var(--bg-tertiary); border: 1px solid var(--glass-border); border-radius: 8px; padding: 2px;">
+                  <button 
+                    type="button"
+                    @click="setYtViewMode('list')"
+                    :class="{ active: ytViewMode === 'list' }"
+                    style="border: none; background: transparent; padding: 4px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; transition: all 0.15s ease;"
+                    :style="ytViewMode === 'list' ? 'background: var(--accent-primary); color: #fff; font-weight: 600; box-shadow: 0 2px 6px rgba(99,102,241,0.3);' : 'color: var(--text-secondary);'"
+                    :title="t.ytDlp?.listView || '列表视图'"
+                  >
+                    <span>☰</span> <span>{{ t.ytDlp?.listView || '列表' }}</span>
+                  </button>
+                  <button 
+                    type="button"
+                    @click="setYtViewMode('grid')"
+                    :class="{ active: ytViewMode === 'grid' }"
+                    style="border: none; background: transparent; padding: 4px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; transition: all 0.15s ease;"
+                    :style="ytViewMode === 'grid' ? 'background: var(--accent-primary); color: #fff; font-weight: 600; box-shadow: 0 2px 6px rgba(99,102,241,0.3);' : 'color: var(--text-secondary);'"
+                    :title="t.ytDlp?.gridView || '网格视图'"
+                  >
+                    <span>☵</span> <span>{{ t.ytDlp?.gridView || '网格' }}</span>
+                  </button>
+                </div>
+
                 <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px;" @click="window.api.openDownloadFolder()">
                   <span>📁 {{ t.ytDlp?.openFolder || '打开下载文件夹' }}</span>
                 </button>
@@ -2185,101 +2209,229 @@
               </button>
             </div>
 
-            <!-- Completed List of Video Cards -->
-            <div v-else style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto;">
-              <div 
-                v-for="item in ytHistory" 
-                :key="item.id"
-                class="yt-card"
-                style="padding: 14px 18px; display: flex; gap: 18px; align-items: center;"
-              >
-                <!-- Cover Image Poster with Play Overlay -->
+            <!-- Completed View: List or Grid -->
+            <div v-else style="flex: 1; display: flex; flex-direction: column; overflow-y: auto;">
+              <!-- 1. List View Mode (Cleaned up: no path, no time, with Send to Phone) -->
+              <div v-if="ytViewMode === 'list'" style="display: flex; flex-direction: column; gap: 10px;">
                 <div 
-                  @click="openYtFile(item.filePath)"
-                  style="position: relative; width: 140px; height: 80px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: var(--bg-tertiary); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: 1px solid var(--glass-border);"
-                  :title="t.ytDlp?.playVideo || '点击在独立窗口中播放'"
+                  v-for="item in ytHistory" 
+                  :key="item.id"
+                  class="yt-card"
+                  style="padding: 12px 16px; display: flex; gap: 16px; align-items: center; border-radius: 12px;"
                 >
-                  <img 
-                    v-if="item.thumbnail" 
-                    :src="getYtMediaSrc(item.thumbnail)" 
-                    @error="onThumbnailError($event, item)" 
-                    style="width: 100%; height: 100%; object-fit: cover;" 
-                  />
-                  <span v-else style="font-size: 26px; color: var(--text-muted);">🎬</span>
-                  <!-- Play Hover Mask Overlay -->
-                  <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
-                    <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--accent-primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 14px rgba(99, 102, 241, 0.6);">
-                      <span style="font-size: 16px; color: #fff; margin-left: 2px;">▶</span>
+                  <!-- Cover Image Poster with Play Overlay -->
+                  <div 
+                    @click="openYtFile(item.filePath)"
+                    style="position: relative; width: 130px; height: 74px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: var(--bg-tertiary); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: 1px solid var(--glass-border);"
+                    :title="t.ytDlp?.playVideo || '点击播放'"
+                  >
+                    <img 
+                      v-if="item.thumbnail" 
+                      :src="getYtMediaSrc(item.thumbnail)" 
+                      @error="onThumbnailError($event, item)" 
+                      style="width: 100%; height: 100%; object-fit: cover;" 
+                    />
+                    <span v-else style="font-size: 26px; color: var(--text-muted);">🎬</span>
+                    <!-- Play Hover Mask Overlay -->
+                    <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
+                      <div style="width: 34px; height: 34px; border-radius: 50%; background: var(--accent-primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 12px rgba(99, 102, 241, 0.6);">
+                        <span style="font-size: 15px; color: #fff; margin-left: 2px;">▶</span>
+                      </div>
+                    </div>
+                    <!-- Duration Pill in Corner -->
+                    <div v-if="item.duration" style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600;">
+                      {{ formatDuration(item.duration) }}
                     </div>
                   </div>
-                  <!-- Duration Pill in Corner -->
-                  <div v-if="item.duration" style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600;">
-                    {{ formatDuration(item.duration) }}
+
+                  <!-- Video Title & Meta (Cleaned up: No path, no time) -->
+                  <div style="flex: 1; min-width: 0;">
+                    <div 
+                      @click="openYtFile(item.filePath)"
+                      class="yt-card-title"
+                      style="font-size: 15px; font-weight: 600; margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: color 0.15s;"
+                      :title="item.title"
+                    >
+                      {{ item.title }}
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--text-secondary); flex-wrap: wrap;">
+                      <span 
+                        v-if="getPlatformBadge(item)" 
+                        :style="getPlatformBadge(item).style"
+                        style="padding: 2px 7px; border-radius: 5px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"
+                      >
+                        <span>{{ getPlatformBadge(item).icon }}</span>
+                        <span>{{ getPlatformBadge(item).name }}</span>
+                      </span>
+                      <span 
+                        style="padding: 2px 7px; border-radius: 5px; font-weight: 700; font-size: 11px;"
+                        :style="getResBadgeStyle(item.resolution)"
+                      >
+                        {{ item.resolution }}
+                      </span>
+                      <span v-if="item.fileSize > 0" style="color: var(--text-secondary); font-weight: 500; font-size: 11px;">💾 {{ formatFileSize(item.fileSize) }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
+                    <button 
+                      class="btn btn-primary" 
+                      style="padding: 7px 15px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; border-radius: 8px;"
+                      @click="openYtFile(item.filePath)"
+                    >
+                      <span>▶ {{ t.ytDlp?.playVideo || '播放' }}</span>
+                    </button>
+                    <!-- Send to Mobile Button (Only when connected!) -->
+                    <button 
+                      v-if="syncStatus === 'connected'"
+                      class="btn btn-secondary"
+                      style="padding: 7px 13px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; border-radius: 8px; border-color: rgba(16, 185, 129, 0.4); color: #10b981; background: rgba(16, 185, 129, 0.1);"
+                      @click="sendYtVideoToPhone(item)"
+                      :title="t.ytDlp?.sendToPhone || '通过 P2P 极速发送到手机相册'"
+                    >
+                      <span>📱 {{ t.ytDlp?.sendToPhone || '发送到手机' }}</span>
+                    </button>
+                    <button 
+                      class="yt-action-icon-btn" 
+                      @click="openYtFolder(item.filePath)"
+                      :title="t.ytDlp?.openFolder || '在文件夹中显示'"
+                    >
+                      📁 {{ t.ytDlp?.openFolder || '目录' }}
+                    </button>
+                    <button 
+                      class="yt-action-icon-btn danger" 
+                      @click="deleteYtHistoryItem(item.id)"
+                      :title="t.ytDlp?.deleteHistory || '删除记录'"
+                    >
+                      🗑
+                    </button>
                   </div>
                 </div>
+              </div>
 
-                <!-- Video Title & Meta -->
-                <div style="flex: 1; min-width: 0;">
+              <!-- 2. Grid View Mode -->
+              <div 
+                v-else 
+                class="yt-grid-container"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; padding-bottom: 20px;"
+              >
+                <div 
+                  v-for="item in ytHistory" 
+                  :key="item.id"
+                  class="yt-card yt-grid-card"
+                  style="padding: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s; border: 1px solid var(--glass-border);"
+                >
+                  <!-- 16:9 Cover Thumbnail Poster with Hover Overlay -->
                   <div 
                     @click="openYtFile(item.filePath)"
-                    class="yt-card-title"
-                    style="font-size: 15px; margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: color 0.15s;"
-                    :title="item.title"
+                    style="position: relative; width: 100%; aspect-ratio: 16 / 9; background: var(--bg-tertiary); cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center;"
+                    :title="t.ytDlp?.playVideo || '点击播放视频'"
                   >
-                    {{ item.title }}
-                  </div>
-                  <div style="display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--text-secondary); flex-wrap: wrap;">
-                    <span 
-                      v-if="getPlatformBadge(item)" 
-                      :style="getPlatformBadge(item).style"
-                      style="padding: 2px 8px; border-radius: 5px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"
-                    >
-                      <span>{{ getPlatformBadge(item).icon }}</span>
-                      <span>{{ getPlatformBadge(item).name }}</span>
-                    </span>
-                    <span 
-                      style="padding: 2px 8px; border-radius: 5px; font-weight: 700; font-size: 11px;"
-                      :style="getResBadgeStyle(item.resolution)"
-                    >
-                      {{ item.resolution }}
-                    </span>
-                    <span v-if="item.fileSize > 0" style="color: var(--text-secondary); font-weight: 500;">💾 {{ formatFileSize(item.fileSize) }}</span>
-                    <span style="color: var(--text-muted);">•</span>
-                    <span style="color: var(--text-secondary);">🕒 {{ formatItemTime(item.completedAt) }}</span>
-                  </div>
-                  <div 
-                    @click="openYtFolder(item.filePath)"
-                    class="yt-card-sub"
-                    style="margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: color 0.15s;"
-                    :title="t.ytDlp?.openFolder || '在文件夹中显示'"
-                  >
-                    📁 {{ item.filePath }}
-                  </div>
-                </div>
+                    <img 
+                      v-if="item.thumbnail" 
+                      :src="getYtMediaSrc(item.thumbnail)" 
+                      @error="onThumbnailError($event, item)" 
+                      style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;" 
+                      class="yt-grid-thumb"
+                    />
+                    <span v-else style="font-size: 36px; color: var(--text-muted);">🎬</span>
 
-                <!-- Action Buttons -->
-                <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
-                  <button 
-                    class="btn btn-primary" 
-                    style="padding: 7px 16px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; border-radius: 8px;"
-                    @click="openYtFile(item.filePath)"
-                  >
-                    <span>▶ {{ t.ytDlp?.playVideo || '播放' }}</span>
-                  </button>
-                  <button 
-                    class="yt-action-icon-btn" 
-                    @click="openYtFolder(item.filePath)"
-                    :title="t.ytDlp?.openFolder || '在文件夹中显示'"
-                  >
-                    📁 {{ t.ytDlp?.openFolder || '目录' }}
-                  </button>
-                  <button 
-                    class="yt-action-icon-btn danger" 
-                    @click="deleteYtHistoryItem(item.id)"
-                    :title="t.ytDlp?.deleteHistory || '删除记录'"
-                  >
-                    🗑
-                  </button>
+                    <!-- Platform Badge (Top Left Corner) -->
+                    <div v-if="getPlatformBadge(item)" style="position: absolute; top: 8px; left: 8px; z-index: 2;">
+                      <span 
+                        :style="getPlatformBadge(item).style"
+                        style="padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; backdrop-filter: blur(8px); box-shadow: 0 2px 8px rgba(0,0,0,0.3);"
+                      >
+                        <span>{{ getPlatformBadge(item).icon }}</span>
+                        <span>{{ getPlatformBadge(item).name }}</span>
+                      </span>
+                    </div>
+
+                    <!-- Duration Badge (Bottom Right Corner) -->
+                    <div v-if="item.duration" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); color: #fff; font-size: 11px; padding: 2px 7px; border-radius: 5px; font-weight: 600; z-index: 2;">
+                      {{ formatDuration(item.duration) }}
+                    </div>
+
+                    <!-- Hover Play Button Overlay -->
+                    <div class="yt-grid-overlay" style="position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease;">
+                      <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--accent-primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 18px rgba(99, 102, 241, 0.7); transform: scale(0.9); transition: transform 0.2s;">
+                        <span style="font-size: 18px; color: #fff; margin-left: 3px;">▶</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Grid Card Body -->
+                  <div style="padding: 12px 14px; display: flex; flex-direction: column; flex: 1; justify-content: space-between; gap: 10px;">
+                    <div>
+                      <!-- Title -->
+                      <div 
+                        @click="openYtFile(item.filePath)"
+                        class="yt-card-title"
+                        style="font-size: 14px; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; margin-bottom: 8px;"
+                        :title="item.title"
+                      >
+                        {{ item.title }}
+                      </div>
+
+                      <!-- Tags: Resolution & Size -->
+                      <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <span 
+                          style="padding: 2px 7px; border-radius: 4px; font-weight: 700; font-size: 10px;"
+                          :style="getResBadgeStyle(item.resolution)"
+                        >
+                          {{ item.resolution }}
+                        </span>
+                        <span v-if="item.fileSize > 0" style="color: var(--text-secondary); font-size: 11px; font-weight: 500; background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px;">
+                          💾 {{ formatFileSize(item.fileSize) }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Actions Bar -->
+                    <div style="display: flex; gap: 6px; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--glass-border);">
+                      <div style="display: flex; gap: 6px; align-items: center; flex: 1; min-width: 0;">
+                        <button 
+                          class="btn btn-primary" 
+                          style="padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 7px; display: flex; align-items: center; gap: 4px; flex: 1; justify-content: center;"
+                          @click="openYtFile(item.filePath)"
+                        >
+                          <span>▶</span>
+                          <span>{{ t.ytDlp?.playVideo || '播放' }}</span>
+                        </button>
+
+                        <button 
+                          v-if="syncStatus === 'connected'"
+                          class="btn btn-secondary"
+                          style="padding: 6px 10px; font-size: 12px; font-weight: 600; border-radius: 7px; display: flex; align-items: center; gap: 4px; border-color: rgba(16, 185, 129, 0.4); color: #10b981; background: rgba(16, 185, 129, 0.1);"
+                          @click="sendYtVideoToPhone(item)"
+                          :title="t.ytDlp?.sendToPhone || '通过 P2P 极速发送到手机相册'"
+                        >
+                          <span>📱</span>
+                          <span style="font-size: 11px;">{{ t.ytDlp?.sendToPhone || '发送' }}</span>
+                        </button>
+                      </div>
+
+                      <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
+                        <button 
+                          class="yt-action-icon-btn" 
+                          style="width: 30px; height: 30px; font-size: 12px; padding: 0; display: flex; align-items: center; justify-content: center;"
+                          @click="openYtFolder(item.filePath)"
+                          :title="t.ytDlp?.openFolder || '打开所在目录'"
+                        >
+                          📁
+                        </button>
+                        <button 
+                          class="yt-action-icon-btn danger" 
+                          style="width: 30px; height: 30px; font-size: 12px; padding: 0; display: flex; align-items: center; justify-content: center;"
+                          @click="deleteYtHistoryItem(item.id)"
+                          :title="t.ytDlp?.deleteHistory || '删除记录'"
+                        >
+                          🗑
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3548,6 +3700,13 @@ const ytProgress = ref(null);
 const ytDownloading = ref(false);
 const ytActiveTasks = ref([]);
 const ytHistory = ref([]);
+const ytViewMode = ref(localStorage.getItem('shareclip_yt_view_mode') || 'list'); // 'list' | 'grid'
+const setYtViewMode = (mode) => {
+  ytViewMode.value = mode;
+  try {
+    localStorage.setItem('shareclip_yt_view_mode', mode);
+  } catch (_) {}
+};
 const ytWebviewRef = ref(null);
 const ytCookieConfig = ref({ mode: 'none', hasEmbeddedCookies: false });
 const ytCookieSyncing = ref(false);
@@ -6893,6 +7052,24 @@ const openYtFolder = async (filePath) => {
   await window.api.openYtVideoFolder(filePath);
 };
 
+const sendYtVideoToPhone = async (item) => {
+  if (!item || !item.filePath) {
+    showAppToast('视频文件路径不存在', 'error', 3000);
+    return;
+  }
+  if (syncStatus.value !== 'connected' || !dataChannel || dataChannel.readyState !== 'open') {
+    showAppToast(t.value?.link?.tipText || '手机当前未连接，请先在左侧连接手机', 'warning', 3500);
+    return;
+  }
+  try {
+    showAppToast(`${t.value?.ytDlp?.sendingToPhone || '正在向手机发送视频:'} ${item.title || '视频'}`, 'info', 3000);
+    await sendFilesByPaths([item.filePath]);
+  } catch (err) {
+    console.error('Failed to send video to phone:', err);
+    showAppToast(`发送失败: ${err.message || err}`, 'error', 4000);
+  }
+};
+
 const changeYtCookieMode = async (mode) => {
   if (!window.api?.ytSetCookieMode) return;
   if (ytCookieSyncing.value) return;
@@ -9866,11 +10043,34 @@ function getMockClassification(url) {
   border-radius: 12px;
   outline: none;
 }
-</style>
+
+/* YouTube / Web Downloader Grid & List View Enhancements */
+.yt-grid-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.yt-grid-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+.yt-grid-card:hover .yt-grid-overlay {
+  opacity: 1 !important;
+}
+.yt-grid-card:hover .yt-grid-thumb {
+  transform: scale(1.05);
+}
+.view-mode-toggle button:hover {
+  opacity: 0.9;
+}
+
 /* Map Dark Theme override for standard OSM tiles */
 .leaflet-tile-pane {
   filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
 }
+</style>
 
 
 
