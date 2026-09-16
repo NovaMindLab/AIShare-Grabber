@@ -2823,9 +2823,9 @@
             <div class="update-diff-desc">{{ t.update?.diffDesc || '仅下载变动的数据块，节省 90%+ 流量' }}</div>
           </div>
         </div>
-        <div class="update-notes" v-if="updateNotes">
+        <div class="update-notes" v-if="displayUpdateNotes">
           <div class="update-notes-label">{{ t.update?.notesLabel || '更新说明' }}</div>
-          <pre class="update-notes-text">{{ updateNotes }}</pre>
+          <pre class="update-notes-text">{{ displayUpdateNotes }}</pre>
         </div>
         <div class="update-card-actions">
           <button class="update-btn-cancel" @click="showUpdateConfirmModal = false">{{ t.update?.later || '稍后再说' }}</button>
@@ -4515,6 +4515,41 @@ const latestVersion = ref('');
 const updateUrl = ref('');
 const updateDownloadUrl = ref('');
 const updateNotes = ref('');
+
+const displayUpdateNotes = computed(() => {
+  if (!updateNotes.value) return '';
+  let raw = updateNotes.value.trim();
+  
+  // Check if it's GitHub's generic changelog format
+  const isGenericChangelog = /Full Changelog/i.test(raw);
+  
+  // Clean raw HTML tags into clean text
+  let cleaned = raw
+    .replace(/<a\s+[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi, '$2')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .trim();
+  
+  // Translate standard GitHub release phrases based on current UI language
+  const labelChangelog = t.value?.update?.fullChangelog || '完整更新日志';
+  const defaultDesc = t.value?.update?.defaultNotes || '✨ 包含最新的功能增强、跨端连接优化及已知问题修复。';
+  
+  cleaned = cleaned.replace(/Full Changelog/gi, labelChangelog);
+  cleaned = cleaned.replace(/What's Changed/gi, t.value?.update?.whatsChanged || '更新内容');
+  cleaned = cleaned.replace(/Bug Fixes/gi, t.value?.update?.bugFixes || '问题修复');
+  cleaned = cleaned.replace(/New Features/gi, t.value?.update?.newFeatures || '新功能');
+  
+  // If it's a generic commit comparison line (e.g. "Full Changelog: v4.0.4...v4.1.0"), prepend friendly localized description
+  if (isGenericChangelog && cleaned.split('\n').length <= 2) {
+    return `${defaultDesc}\n\n• ${cleaned}`;
+  }
+  
+  return cleaned || defaultDesc;
+});
+
 const updateError = ref('');
 const updateDownloading = ref(false);
 const updateDownloadProgress = ref(0);
