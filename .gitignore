@@ -48,3 +48,7 @@ wiki_work/
 pc_project_wiki/
 *wiki*/
 auto_deploy/
+
+# Local Standalone Tools
+AutoLaunch/
+
