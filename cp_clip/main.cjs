@@ -3701,7 +3701,12 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
         args.push('-f', 'bestaudio/best');
       } else {
         // Fall back to best pre-merged container with audio to avoid needing ffmpeg merge
-        args.push('-f', 'best[ext=mp4]/best');
+        const h = resolution?.height;
+        if (h) {
+          args.push('-f', `best[height<=${h}][ext=mp4]/best[height<=${h}]/best[ext=mp4]/best`);
+        } else {
+          args.push('-f', 'best[ext=mp4]/best');
+        }
       }
 
       // Write cover image without requiring ffmpeg conversion or embedding

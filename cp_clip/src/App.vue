@@ -6726,7 +6726,7 @@ const ytDownloadVideoDirect = async (targetUrl, targetTitle, targetResolution = 
     return;
   }
 
-  // 2. Fallback when resolution is not yet selected (parse first)
+  // 2. Fallback when resolution is not yet selected: parse and let user choose resolution (do NOT auto-download)
   try {
     const res = await window.api.getYtVideoInfo(cleanUrl);
     if (res && res.success) {
@@ -6734,63 +6734,21 @@ const ytDownloadVideoDirect = async (targetUrl, targetTitle, targetResolution = 
       if (res.resolutions && res.resolutions.length > 0) {
         ytSelectedResolution.value = res.resolutions.find(r => r.isRecommended || r.recommended) || res.resolutions[0];
       }
-      await startYtDownload();
+      ytSubTab.value = 'parse';
+      showAppToast(t.value?.ytDlp?.selectQualityDesc || '视频已解析完成，请在下方选择目标清晰度后点击下载', 'info', 4000);
+      return;
+    } else {
+      ytSubTab.value = 'parse';
+      ytParseError.value = res?.error || '无法解析视频清晰度，请检查链接或网络后重试。';
+      showAppToast('视频解析失败，请检查链接', 'error', 4000);
       return;
     }
   } catch (e) {
-    console.warn('Direct parse failed, falling back to direct best download:', e);
-  }
-
-  const taskId = `yt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  const newTask = {
-    id: taskId,
-    url: cleanUrl,
-    title: targetTitle || '正在下载网络视频...',
-    thumbnail: '',
-    duration: 0,
-    resolution: '最佳高清 (自动)',
-    progress: 0,
-    status: '正在连接下载节点...',
-    size: '',
-    speed: '',
-    eta: '',
-    error: null
-  };
-  ytActiveTasks.value.unshift(newTask);
-  ytSubTab.value = 'downloading';
-
-  try {
-    const res = await window.api.downloadYtVideo({
-      taskId,
-      url: cleanUrl,
-      extractor: '',
-      resolution: {
-        id: 'best',
-        label: '最佳画质',
-        formatSpec: 'bestvideo+bestaudio/best',
-        filesize: 0,
-        type: 'video'
-      },
-      title: targetTitle || 'Video',
-      thumbnail: '',
-      duration: 0
-    });
-    if (res && res.success) {
-      ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== taskId);
-      await loadYtHistory();
-    } else {
-      const task = ytActiveTasks.value.find(t => t.id === taskId);
-      if (task) {
-        task.status = `❌ 下载失败: ${res?.error || '未知错误'}`;
-        task.error = res?.error || '未知错误';
-      }
-    }
-  } catch (err) {
-    const task = ytActiveTasks.value.find(t => t.id === taskId);
-    if (task) {
-      task.status = `❌ 异常: ${err.message || err}`;
-      task.error = err.message || String(err);
-    }
+    console.warn('Direct parse failed:', e);
+    ytSubTab.value = 'parse';
+    ytParseError.value = `解析异常: ${e.message || e}`;
+    showAppToast(`解析失败: ${e.message || e}`, 'error', 4000);
+    return;
   }
 };
 

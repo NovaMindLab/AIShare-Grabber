@@ -1562,10 +1562,18 @@
           updateModalSummary();
         });
 
+        // Double click to directly confirm and download
+        card.addEventListener('dblclick', () => {
+          selectedResolution = resItem;
+          btnModalDownload.click();
+        });
+
         resOptionsList.appendChild(card);
       });
 
       updateModalSummary();
+      // Disable webview pointer events while modal is active to prevent click stealing
+      if (webview) webview.style.pointerEvents = 'none';
       resolutionModal.style.display = 'flex';
     }
 
@@ -1575,13 +1583,14 @@
         return;
       }
       const label = selectedResolution.label || (selectedResolution.height ? `${selectedResolution.height}p` : 'Video');
-      const approxPrefix = currLang && currLang.startsWith('zh') ? '约 ' : '~';
+      const approxPrefix = currentLocale && currentLocale.startsWith('zh') ? '约 ' : '~';
       const size = selectedResolution.filesize > 0 ? ` · ${approxPrefix}${formatFileSize(selectedResolution.filesize)}` : '';
       modalSummaryText.innerText = `${label}${size}`;
     }
 
     function closeResolutionModal() {
       resolutionModal.style.display = 'none';
+      if (webview) webview.style.pointerEvents = 'auto';
       currentParsedVideo = null;
     }
 
