@@ -190,6 +190,32 @@ jobs:
                 Write-Host "Signing $($file.FullName) with DigiCert RFC 3161 Timestamp..."
                 & $signtool sign /f "$pfxPath" /p "ShareCLIP2026" /fd sha256 /tr "http://timestamp.digicert.com" /td sha256 "$($file.FullName)"
               }
+
+              Write-Host "==== Re-generating BlockMap & latest.yml for Signed Executables ===="
+              $appBuilder = (Join-Path (Get-Location).Path "cp_clip\node_modules\app-builder-bin\win\x64\app-builder.exe")
+              if (Test-Path $appBuilder) {
+                $setupExe = (Get-ChildItem -Path $distPath -Filter "*Setup*.exe" | Select-Object -First 1).FullName
+                if ($setupExe) {
+                  $blockmapPath = "$setupExe.blockmap"
+                  Write-Host "Generating blockmap for $setupExe -> $blockmapPath"
+                  & $appBuilder blockmap --input "$setupExe" --output "$blockmapPath"
+                  
+                  $latestYmlPath = Join-Path $distPath "latest.yml"
+                  if (Test-Path $latestYmlPath) {
+                    $bytes = [System.IO.File]::ReadAllBytes($setupExe)
+                    $sha512 = [System.Security.Cryptography.SHA512]::Create()
+                    $hashBytes = $sha512.ComputeHash($bytes)
+                    $hashBase64 = [Convert]::ToBase64String($hashBytes)
+                    $size = $bytes.Length
+                    
+                    $ymlContent = Get-Content -Path $latestYmlPath -Raw
+                    $ymlContent = $ymlContent -replace 'sha512:\s*[A-Za-z0-9+/=]+', "sha512: $hashBase64"
+                    $ymlContent = $ymlContent -replace 'size:\s*\d+', "size: $size"
+                    Set-Content -Path $latestYmlPath -Value $ymlContent -NoNewline
+                    Write-Host "Updated latest.yml with new signed sha512: $hashBase64 and size: $size"
+                  }
+                }
+              }
             } else {
               Write-Host "signtool not found, skipping sign step"
             }
