@@ -135,6 +135,7 @@ contextBridge.exposeInMainWorld('api', {
   openFileLocation: (filePath) => ipcRenderer.invoke('open-file-location', filePath),
   openLogFolder: () => ipcRenderer.invoke('open-log-folder'),
   getLogPath: () => ipcRenderer.invoke('get-log-path'),
+  getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   startUpdateDownload: (downloadUrl) => ipcRenderer.invoke('start-update-download', downloadUrl),
   installUpdate: (filePath) => ipcRenderer.invoke('install-update', filePath),

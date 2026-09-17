@@ -5081,10 +5081,14 @@ const systemInfoLoading = ref(false);
 async function fetchSystemInfo() {
   systemInfoLoading.value = true;
   try {
-    const info = await window.electron.ipcRenderer.invoke('get-system-info');
-    systemInfo.value = info;
+    if (window.api && window.api.getSystemInfo) {
+      const info = await window.api.getSystemInfo();
+      systemInfo.value = info;
+    } else {
+      systemInfo.value = { ok: false, error: 'API not available in current environment' };
+    }
   } catch (e) {
-    systemInfo.value = { ok: false, error: String(e) };
+    systemInfo.value = { ok: false, error: String(e.message || e) };
   } finally {
     systemInfoLoading.value = false;
   }
