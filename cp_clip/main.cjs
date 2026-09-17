@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, session, powerSaveBlocker } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const sqlite3 = require('sqlite3').verbose();
 
 // Ensure Windows finds native DLLs and Microsoft Visual C++ redistributables
@@ -2786,6 +2787,102 @@ ipcMain.handle('open-log-folder', async () => {
 
 ipcMain.handle('get-log-path', async () => {
   return logFilePath;
+});
+
+ipcMain.handle('get-system-info', async () => {
+  try {
+    const cpus = os.cpus();
+    const cpuModel = cpus.length > 0 ? cpus[0].model.replace(/\s+/g, ' ').trim() : 'Unknown';
+    const cpuCount = cpus.length;
+    const totalMemGB = (os.totalmem() / (1024 ** 3)).toFixed(1);
+    const freeMemGB  = (os.freemem()  / (1024 ** 3)).toFixed(1);
+    const platform   = os.platform();   // 'win32' | 'darwin' | 'linux'
+    const osRelease  = os.release();
+    const arch       = os.arch();       // 'x64' | 'arm64'
+    const hostname   = os.hostname();
+
+    // Electron / runtime versions
+    const electronVer = process.versions.electron || 'N/A';
+    const nodeVer     = process.versions.node     || 'N/A';
+    const chromVer    = process.versions.chrome   || 'N/A';
+    const v8Ver       = process.versions.v8       || 'N/A';
+
+    // AI engine status (taskManager is defined in module scope)
+    const aiAvailable = typeof taskManager !== 'undefined' ? taskManager.isAiAvailable() : false;
+    const hardwareTier = typeof taskManager !== 'undefined' ? (taskManager.tier || 'Unknown') : 'Unknown';
+    const maxWorkers   = typeof taskManager !== 'undefined' ? (taskManager.maxInferenceWorkers || 0) : 0;
+    const intraThreads = typeof taskManager !== 'undefined' ? (taskManager.intraThreadsPerWorker || 0) : 0;
+
+    // DLL / redist paths (Windows only)
+    const redistDir = path.join(__dirname, 'resources', 'redist_x64');
+    const redistExists = process.platform === 'win32' ? fs.existsSync(redistDir) : null;
+
+    // onnxruntime-node DLL presence check (Windows)
+    let ortDllFound = null;
+    if (process.platform === 'win32') {
+      const ortBinDir = path.join(__dirname, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', arch);
+      const ortUnpackedBinDir = path.join(
+        process.resourcesPath || __dirname,
+        'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', arch
+      );
+      ortDllFound = fs.existsSync(ortBinDir) || fs.existsSync(ortUnpackedBinDir);
+    }
+
+    // App path info
+    const appVersion = app.getVersion();
+    const userData   = app.getPath('userData');
+    const execPath   = process.execPath;
+
+    // OS friendly name
+    let osFriendly = platform;
+    if (platform === 'win32') {
+      const release = parseFloat(osRelease);
+      if (osRelease.startsWith('10.') || osRelease.startsWith('11.')) {
+        // Build number >= 22000 is Windows 11
+        const buildNum = parseInt(osRelease.split('.')[2] || '0', 10);
+        osFriendly = buildNum >= 22000 ? 'Windows 11' : 'Windows 10';
+      } else {
+        osFriendly = `Windows (${osRelease})`;
+      }
+    } else if (platform === 'darwin') {
+      osFriendly = `macOS ${osRelease}`;
+    } else {
+      osFriendly = `Linux ${osRelease}`;
+    }
+
+    return {
+      ok: true,
+      system: {
+        os: osFriendly,
+        osRaw: `${platform} ${osRelease}`,
+        arch,
+        hostname,
+        cpu: cpuModel,
+        cpuCores: cpuCount,
+        totalMemGB,
+        freeMemGB,
+      },
+      runtime: {
+        appVersion,
+        electron: electronVer,
+        node: nodeVer,
+        chrome: chromVer,
+        v8: v8Ver,
+        userData,
+        execPath,
+      },
+      ai: {
+        available: aiAvailable,
+        tier: hardwareTier,
+        maxWorkers,
+        intraThreads,
+        redistExists,
+        ortDllFound,
+      }
+    };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
 });
 
 autoUpdater.autoDownload = false;

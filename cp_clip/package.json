@@ -1,7 +1,7 @@
 {
   "name": "shareclip",
   "private": true,
-  "version": "4.2.2",
+  "version": "4.2.3",
   "description": "ShareCLIP PC Client",
   "author": "ShareCLIP Team <support@shareclip.com>",
   "homepage": "https://novamindlab.github.io/AIShare-Grabber/",
@@ -120,7 +120,9 @@
         {
           "from": "resources/redist_x64",
           "to": ".",
-          "filter": ["*.dll"]
+          "filter": [
+            "*.dll"
+          ]
         }
       ],
       "target": [

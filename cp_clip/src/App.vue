@@ -2989,6 +2989,137 @@
                 </div>
               </div>
 
+              <!-- Card: System Information -->
+              <div class="settings-card full-width" @vue:mounted="fetchSystemInfo">
+                <div class="settings-card-header">
+                  <span class="settings-card-icon">🖥️</span>
+                  <div>
+                    <h3 class="settings-card-title">{{ t.settings.sysInfoTitle || '系统环境信息' }}</h3>
+                    <p class="settings-card-desc">{{ t.settings.sysInfoDesc || '当前运行环境的硬件与软件配置，可用于排查兼容性问题。' }}</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                    <button class="dp-btn dp-browse" :disabled="systemInfoLoading" @click="fetchSystemInfo">
+                      <span v-if="systemInfoLoading">⏳ {{ t.settings.sysInfoRefreshing || '读取中...' }}</span>
+                      <span v-else>🔄 {{ t.settings.sysInfoRefresh || '刷新信息' }}</span>
+                    </button>
+                  </div>
+
+                  <div v-if="!systemInfo && !systemInfoLoading" style="color:var(--text-muted); font-size:13px;">
+                    {{ t.settings.sysInfoNotLoaded || '点击"刷新信息"加载系统信息' }}
+                  </div>
+
+                  <div v-else-if="systemInfo && !systemInfo.ok" style="color:#f87171; font-size:13px;">
+                    ⚠️ {{ systemInfo.error }}
+                  </div>
+
+                  <div v-else-if="systemInfo && systemInfo.ok" class="sysinfo-grid">
+                    <!-- OS / Hardware -->
+                    <div class="sysinfo-section">
+                      <div class="sysinfo-section-title">{{ t.settings.sysInfoHardware || '硬件 & 操作系统' }}</div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">{{ t.settings.sysInfoOs || '操作系统' }}</span>
+                        <span class="sysinfo-val">{{ systemInfo.system.os }}</span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">{{ t.settings.sysInfoOsRaw || '内核版本' }}</span>
+                        <span class="sysinfo-val mono">{{ systemInfo.system.osRaw }}</span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">{{ t.settings.sysInfoArch || '架构' }}</span>
+                        <span class="sysinfo-val mono">{{ systemInfo.system.arch }}</span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">{{ t.settings.sysInfoCpu || 'CPU' }}</span>
+                        <span class="sysinfo-val" style="max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="systemInfo.system.cpu">{{ systemInfo.system.cpu }}</span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">{{ t.settings.sysInfoCpuCores || '逻辑核心' }}</span>
+                        <span class="sysinfo-val mono">{{ systemInfo.system.cpuCores }}</span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">{{ t.settings.sysInfoMem || '内存' }}</span>
+                        <span class="sysinfo-val mono">{{ systemInfo.system.freeMemGB }} GB 可用 / {{ systemInfo.system.totalMemGB }} GB 总计</span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">{{ t.settings.sysInfoHostname || '主机名' }}</span>
+                        <span class="sysinfo-val mono">{{ systemInfo.system.hostname }}</span>
+                      </div>
+                    </div>
+
+                    <!-- Runtime Versions -->
+                    <div class="sysinfo-section">
+                      <div class="sysinfo-section-title">{{ t.settings.sysInfoRuntime || '运行时版本' }}</div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">{{ t.settings.sysInfoAppVer || '应用版本' }}</span>
+                        <span class="sysinfo-val mono">v{{ systemInfo.runtime.appVersion }}</span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">Electron</span>
+                        <span class="sysinfo-val mono">{{ systemInfo.runtime.electron }}</span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">Node.js</span>
+                        <span class="sysinfo-val mono">{{ systemInfo.runtime.node }}</span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">Chromium</span>
+                        <span class="sysinfo-val mono">{{ systemInfo.runtime.chrome }}</span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">V8</span>
+                        <span class="sysinfo-val mono">{{ systemInfo.runtime.v8 }}</span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">{{ t.settings.sysInfoUserData || '数据目录' }}</span>
+                        <span class="sysinfo-val mono" style="font-size:11px; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="systemInfo.runtime.userData">{{ systemInfo.runtime.userData }}</span>
+                      </div>
+                    </div>
+
+                    <!-- AI Engine -->
+                    <div class="sysinfo-section">
+                      <div class="sysinfo-section-title">{{ t.settings.sysInfoAi || 'AI 引擎状态' }}</div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">{{ t.settings.sysInfoAiStatus || 'AI 可用性' }}</span>
+                        <span class="sysinfo-val">
+                          <span v-if="systemInfo.ai.available" style="color:#34d399; font-weight:600;">✅ {{ t.settings.sysInfoAiOk || '正常' }}</span>
+                          <span v-else style="color:#f87171; font-weight:600;">❌ {{ t.settings.sysInfoAiFail || '不可用 (熔断)' }}</span>
+                        </span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">{{ t.settings.sysInfoAiTier || '硬件档位' }}</span>
+                        <span class="sysinfo-val mono">
+                          <span v-if="systemInfo.ai.tier === 'High'" style="color:#a78bfa;">{{ systemInfo.ai.tier }} 🚀</span>
+                          <span v-else-if="systemInfo.ai.tier === 'Mid'" style="color:#38bdf8;">{{ systemInfo.ai.tier }} ⚡</span>
+                          <span v-else>{{ systemInfo.ai.tier }}</span>
+                        </span>
+                      </div>
+                      <div class="sysinfo-row">
+                        <span class="sysinfo-key">{{ t.settings.sysInfoAiWorkers || 'AI Workers' }}</span>
+                        <span class="sysinfo-val mono">{{ systemInfo.ai.maxWorkers }} × {{ systemInfo.ai.intraThreads }} 线程</span>
+                      </div>
+                      <template v-if="systemInfo.ai.redistExists !== null">
+                        <div class="sysinfo-row">
+                          <span class="sysinfo-key">{{ t.settings.sysInfoDll || 'MSVC Redist DLL' }}</span>
+                          <span class="sysinfo-val">
+                            <span v-if="systemInfo.ai.redistExists" style="color:#34d399;">✅ {{ t.settings.sysInfoDllFound || '已就绪' }}</span>
+                            <span v-else style="color:#f87171;">⚠️ {{ t.settings.sysInfoDllMissing || '目录缺失' }}</span>
+                          </span>
+                        </div>
+                        <div class="sysinfo-row">
+                          <span class="sysinfo-key">{{ t.settings.sysInfoOrtDll || 'ONNX Runtime DLL' }}</span>
+                          <span class="sysinfo-val">
+                            <span v-if="systemInfo.ai.ortDllFound" style="color:#34d399;">✅ {{ t.settings.sysInfoDllFound || '已就绪' }}</span>
+                            <span v-else style="color:#f59e0b;">⚠️ {{ t.settings.sysInfoOrtDllMissing || '目录未找到' }}</span>
+                          </span>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Card: About / App Info -->
               <div class="settings-card full-width">
                 <div class="settings-card-header">
@@ -4937,6 +5068,21 @@ async function togglePreventSleep() {
 async function openLogFolder() {
   if (hasApi && window.api.openLogFolder) {
     await window.api.openLogFolder();
+  }
+}
+
+// System Information
+const systemInfo = ref(null);
+const systemInfoLoading = ref(false);
+async function fetchSystemInfo() {
+  systemInfoLoading.value = true;
+  try {
+    const info = await window.electron.ipcRenderer.invoke('get-system-info');
+    systemInfo.value = info;
+  } catch (e) {
+    systemInfo.value = { ok: false, error: String(e) };
+  } finally {
+    systemInfoLoading.value = false;
   }
 }
 
