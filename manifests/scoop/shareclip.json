@@ -1,11 +1,11 @@
 {
-  "version": "4.1.4",
-  "description": "ShareCLIP PC Client - Ultra-fast local file sync & AI photo gallery",
-  "homepage": "https://novamindlab.github.io/AIShare-Grabber/",
+  "version": "4.1.5",
+  "description": "Cross-platform clipboard, photo and video sync desktop client.",
+  "homepage": "https://github.com/NovaMindLab/AIShare-Grabber",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.1.4/ShareCLIP-Setup-4.1.4.exe#/dl.7z",
+      "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.1.5/ShareCLIP-Setup-4.1.5.exe#/dl.7z",
       "hash": "C7D8DC9B69D4DD0B38C74555EAC72E3CD29E603FB534537CF0156A9D784BCBB2"
     }
   },
