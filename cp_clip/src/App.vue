@@ -2454,15 +2454,8 @@
                       </div>
                     </div>
 
-                    <!-- Action Buttons -->
+                    <!-- Action Buttons (Thumbnail and Title are clickable to play) -->
                     <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
-                      <button 
-                        class="btn btn-primary" 
-                        style="padding: 7px 15px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; border-radius: 8px;"
-                        @click="openYtFile(item.filePath)"
-                      >
-                        <span>▶ {{ t.ytDlp?.playVideo || '播放' }}</span>
-                      </button>
                       <!-- Send to Mobile Button (Only when connected!) -->
                       <button 
                         v-if="syncStatus === 'connected'"
