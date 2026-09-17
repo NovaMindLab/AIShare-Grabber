@@ -488,6 +488,38 @@ function createWindow() {
   });
 }
 
+// Prevent external custom URL schemes (e.g. bytedance://, bilibili://, snssdk1128://, xhsdiscover://)
+// from escaping to Windows OS ShellExecute and triggering system "Open with app" dialogs.
+app.on('web-contents-created', (event, contents) => {
+  contents.on('will-navigate', (navEvent, navigationUrl) => {
+    try {
+      const parsed = new URL(navigationUrl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:' && parsed.protocol !== 'file:' && parsed.protocol !== 'about:' && parsed.protocol !== 'data:') {
+        navEvent.preventDefault();
+        console.log('[Security] Blocked external protocol will-navigate:', navigationUrl);
+      }
+    } catch (e) {
+      navEvent.preventDefault();
+    }
+  });
+
+  contents.on('will-frame-navigate', (frameEvent) => {
+    const url = frameEvent.url || '';
+    if (url && !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('file:') && !url.startsWith('about:') && !url.startsWith('data:')) {
+      frameEvent.preventDefault();
+      console.log('[Security] Blocked subframe custom protocol:', url);
+    }
+  });
+
+  contents.setWindowOpenHandler(({ url }) => {
+    if (!url.startsWith('http:') && !url.startsWith('https:')) {
+      console.log('[Security] Denied window.open for non-http protocol:', url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
+  });
+});
+
 // App Lifecycles
 app.whenReady().then(async () => {
   // Load persisted settings (download path etc.) from disk

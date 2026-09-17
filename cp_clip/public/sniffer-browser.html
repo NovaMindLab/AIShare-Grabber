@@ -2359,10 +2359,23 @@
       });
     }
 
-    // 11. External target handling
+    // 11. External target handling & Custom protocol blocking
+    webview.addEventListener('will-navigate', (e) => {
+      const u = e.url || '';
+      if (!u.startsWith('http://') && !u.startsWith('https://') && !u.startsWith('about:') && !u.startsWith('data:')) {
+        e.preventDefault();
+        console.warn('[Sniffer Browser] Blocked external custom scheme navigation:', u);
+      }
+    });
+
     webview.addEventListener('new-window', (e) => {
       e.preventDefault();
-      if (e.url) webview.loadURL(e.url);
+      const u = e.url || '';
+      if (u.startsWith('http://') || u.startsWith('https://')) {
+        webview.loadURL(u);
+      } else {
+        console.warn('[Sniffer Browser] Blocked external scheme in new-window:', u);
+      }
     });
 
     // 12. Remote navigation listener
