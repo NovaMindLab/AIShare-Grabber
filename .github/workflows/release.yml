@@ -300,8 +300,10 @@ jobs:
           path: |
             cp_clip/dist_electron/*.dmg
             cp_clip/dist_electron/*.zip
+            cp_clip/dist_electron/*.yml
+            cp_clip/dist_electron/*.blockmap
             cp_clip/dist_electron/Fix_App_Damage.command
-          if-no-files-found: error
+          if-no-files-found: warn
 
   # ─────────────────────────────────────────────────────────────
   # Job 5: Build Linux Desktop (.AppImage & .deb)

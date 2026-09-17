@@ -3003,31 +3003,80 @@ function isNewVersionAvailable(current, latest) {
   return false;
 }
 
+function getPlatformReleaseAsset(assets, platform = process.platform, arch = process.arch) {
+  if (!assets || !Array.isArray(assets) || assets.length === 0) return null;
+
+  if (platform === 'win32') {
+    return assets.find(a => a.name.toLowerCase().includes('setup') && a.name.toLowerCase().endsWith('.exe'))
+        || assets.find(a => a.name.toLowerCase().endsWith('.exe'))
+        || null;
+  }
+
+  if (platform === 'darwin') {
+    const isArm = arch === 'arm64';
+    if (isArm) {
+      const armDmg = assets.find(a => a.name.toLowerCase().endsWith('.dmg') && (a.name.toLowerCase().includes('arm64') || a.name.toLowerCase().includes('aarch64')));
+      if (armDmg) return armDmg;
+      const armZip = assets.find(a => a.name.toLowerCase().endsWith('.zip') && (a.name.toLowerCase().includes('arm64') || a.name.toLowerCase().includes('aarch64')));
+      if (armZip) return armZip;
+    } else {
+      const x64Dmg = assets.find(a => a.name.toLowerCase().endsWith('.dmg') && (a.name.toLowerCase().includes('x64') || a.name.toLowerCase().includes('x86_64')));
+      if (x64Dmg) return x64Dmg;
+      const x64Zip = assets.find(a => a.name.toLowerCase().endsWith('.zip') && (a.name.toLowerCase().includes('x64') || a.name.toLowerCase().includes('x86_64')));
+      if (x64Zip) return x64Zip;
+    }
+
+    // Generic fallback for mac
+    const anyDmg = assets.find(a => a.name.toLowerCase().endsWith('.dmg'));
+    if (anyDmg) return anyDmg;
+    const anyZip = assets.find(a => a.name.toLowerCase().endsWith('.zip') && a.name.toLowerCase().includes('mac'));
+    return anyZip || null;
+  }
+
+  if (platform === 'linux') {
+    const isArm = arch === 'arm64';
+    if (isArm) {
+      const armAppImage = assets.find(a => a.name.toLowerCase().endsWith('.appimage') && a.name.toLowerCase().includes('arm64'));
+      if (armAppImage) return armAppImage;
+      const armDeb = assets.find(a => a.name.toLowerCase().endsWith('.deb') && a.name.toLowerCase().includes('arm64'));
+      if (armDeb) return armDeb;
+    }
+    const appImage = assets.find(a => a.name.toLowerCase().endsWith('.appimage'));
+    if (appImage) return appImage;
+    const deb = assets.find(a => a.name.toLowerCase().endsWith('.deb'));
+    return deb || null;
+  }
+
+  return null;
+}
+
 ipcMain.handle('check-for-updates', async () => {
   const currentVersion = app.getVersion();
   sanitizeUpdaterCache();
   
-  // Method 1: autoUpdater check
-  try {
-    const result = await autoUpdater.checkForUpdates();
-    if (result && result.updateInfo) {
-      const latestVersion = result.updateInfo.version;
-      const available = isNewVersionAvailable(currentVersion, latestVersion);
-      
-      return {
-        available,
-        currentVersion,
-        latestVersion,
-        url: `https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v${latestVersion}`,
-        downloadUrl: 'managed',
-        body: typeof result.updateInfo.releaseNotes === 'string' ? result.updateInfo.releaseNotes : 'A new update is available.'
-      };
+  // Method 1: autoUpdater check (Windows only)
+  if (process.platform === 'win32') {
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      if (result && result.updateInfo) {
+        const latestVersion = result.updateInfo.version;
+        const available = isNewVersionAvailable(currentVersion, latestVersion);
+        
+        return {
+          available,
+          currentVersion,
+          latestVersion,
+          url: `https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v${latestVersion}`,
+          downloadUrl: 'managed',
+          body: typeof result.updateInfo.releaseNotes === 'string' ? result.updateInfo.releaseNotes : 'A new update is available.'
+        };
+      }
+    } catch (err) {
+      console.warn('[Update Check] autoUpdater check failed, using direct GitHub API fallback:', err.message);
     }
-  } catch (err) {
-    console.warn('[Update Check] autoUpdater check failed, using direct GitHub API fallback:', err.message);
   }
 
-  // Method 2: Direct GitHub API check fallback
+  // Method 2: Direct GitHub API check fallback (macOS, Linux, Windows fallback)
   try {
     const releaseInfoStr = await new Promise((resolve, reject) => {
       https.get('https://api.github.com/repos/NovaMindLab/AIShare-Grabber/releases/latest', {
@@ -3045,15 +3094,8 @@ ipcMain.handle('check-for-updates', async () => {
       const latestVersion = latestTag.replace(/^v/, '');
       const available = isNewVersionAvailable(currentVersion, latestVersion);
       
-      let downloadUrl = '';
-      if (releaseInfo.assets && releaseInfo.assets.length > 0) {
-        for (const asset of releaseInfo.assets) {
-          if (asset.name.includes('Setup') && asset.name.endsWith('.exe')) {
-            downloadUrl = asset.browser_download_url;
-            break;
-          }
-        }
-      }
+      const matchedAsset = getPlatformReleaseAsset(releaseInfo.assets, process.platform, process.arch);
+      const downloadUrl = matchedAsset ? matchedAsset.browser_download_url : '';
 
       return {
         available,
@@ -3073,64 +3115,64 @@ ipcMain.handle('check-for-updates', async () => {
 
 ipcMain.handle('start-update-download', async (event, customUrl) => {
   try {
-    console.log('[Update Download] Starting download...');
+    console.log('[Update Download] Starting download for platform:', process.platform, process.arch);
     updateDownloadEventSender = event.sender;
     sanitizeUpdaterCache();
     
-    // Ensure autoUpdater has initialized its provider and update info before downloading
-    try {
-      if (!autoUpdater.updateInfoAndProvider) {
-        console.log('[Update Download] autoUpdater updateInfoAndProvider is null, running checkForUpdates first...');
-        await autoUpdater.checkForUpdates();
-      }
-    } catch (checkErr) {
-      console.warn('[Update Download] Pre-download checkForUpdates failed:', checkErr.message);
-    }
-    
-    // Attempt 1: autoUpdater
+    // Attempt 1: autoUpdater (Windows only)
     let success = false;
-    try {
-      await new Promise((resolve, reject) => {
-        // Differential updates need to copy 100MB+ locally and negotiate CDN ranges, allow 60s idle timeout
-        let timeout = setTimeout(() => reject(new Error("autoUpdater download timeout (60s idle)")), 60000);
-        
-        const progressHandler = () => {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => reject(new Error("autoUpdater download timeout (60s idle)")), 60000);
+    if (process.platform === 'win32') {
+      try {
+        if (!autoUpdater.updateInfoAndProvider) {
+          console.log('[Update Download] autoUpdater updateInfoAndProvider is null, running checkForUpdates first...');
+          await autoUpdater.checkForUpdates();
+        }
+      } catch (checkErr) {
+        console.warn('[Update Download] Pre-download checkForUpdates failed:', checkErr.message);
+      }
+      
+      try {
+        await new Promise((resolve, reject) => {
+          let timeout = setTimeout(() => reject(new Error("autoUpdater download timeout (60s idle)")), 60000);
+          
+          const progressHandler = () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => reject(new Error("autoUpdater download timeout (60s idle)")), 60000);
+          };
+          autoUpdater.on('download-progress', progressHandler);
+          
+          autoUpdater.once('update-downloaded', () => { 
+            clearTimeout(timeout); 
+            autoUpdater.removeListener('download-progress', progressHandler);
+            resolve(); 
+          });
+          autoUpdater.once('error', (err) => { 
+            clearTimeout(timeout); 
+            autoUpdater.removeListener('download-progress', progressHandler);
+            console.error('[Update Download] autoUpdater internal error:', err.message);
+            reject(err); 
+          });
+          
+          autoUpdater.downloadUpdate();
+        });
+        success = true;
+      } catch (autoErr) {
+        console.warn('[Update Download] autoUpdater failed, using direct GitHub fallback:', autoErr.message);
+      }
+
+      if (success) {
+        return { 
+          success: true, 
+          filePath: 'managed',
+          isDifferential: lastUpdateProgressInfo.isDifferential,
+          updateType: lastUpdateProgressInfo.updateType,
+          transferredMB: lastUpdateProgressInfo.transferredMB,
+          totalMB: lastUpdateProgressInfo.totalMB
         };
-        autoUpdater.on('download-progress', progressHandler);
-        
-        autoUpdater.once('update-downloaded', () => { 
-          clearTimeout(timeout); 
-          autoUpdater.removeListener('download-progress', progressHandler);
-          resolve(); 
-        });
-        autoUpdater.once('error', (err) => { 
-          clearTimeout(timeout); 
-          autoUpdater.removeListener('download-progress', progressHandler);
-          console.error('[Update Download] autoUpdater internal error:', err.message);
-          reject(err); 
-        });
-        
-        autoUpdater.downloadUpdate();
-      });
-      success = true;
-    } catch (autoErr) {
-      console.warn('[Update Download] autoUpdater failed, using direct GitHub fallback:', autoErr.message);
+      }
     }
 
-    if (success) {
-      return { 
-        success: true, 
-        filePath: 'managed',
-        isDifferential: lastUpdateProgressInfo.isDifferential,
-        updateType: lastUpdateProgressInfo.updateType,
-        transferredMB: lastUpdateProgressInfo.transferredMB,
-        totalMB: lastUpdateProgressInfo.totalMB
-      };
-    }
-
-    // Attempt 2: Fallback to direct HTTPS download from latest GitHub Release
+    // Attempt 2: Fallback to direct HTTPS download from latest GitHub Release (macOS, Linux, Windows direct)
     const destDir = app.getPath('downloads');
     if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
 
@@ -3147,23 +3189,22 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
       });
       const releaseInfo = JSON.parse(releaseInfoStr);
       if (releaseInfo && releaseInfo.assets) {
-        for (const asset of releaseInfo.assets) {
-          if (asset.name.includes('Setup') && asset.name.endsWith('.exe')) {
-            targetDownloadUrl = asset.browser_download_url;
-            break;
-          }
+        const matchedAsset = getPlatformReleaseAsset(releaseInfo.assets, process.platform, process.arch);
+        if (matchedAsset) {
+          targetDownloadUrl = matchedAsset.browser_download_url;
         }
       }
     }
 
     if (!targetDownloadUrl || targetDownloadUrl === 'managed') {
-      throw new Error("Could not locate setup .exe URL in latest GitHub release.");
+      throw new Error(`Could not locate update asset for platform: ${process.platform} (${process.arch}) in latest GitHub release.`);
     }
 
-    const exeName = path.basename(targetDownloadUrl.split('?')[0]) || 'ShareCLIP_Setup_Update.exe';
-    const destPath = path.join(destDir, exeName);
+    const defaultFilename = process.platform === 'darwin' ? 'ShareCLIP-Update.dmg' : (process.platform === 'win32' ? 'ShareCLIP_Setup_Update.exe' : 'ShareCLIP-Update.AppImage');
+    const assetFilename = path.basename(targetDownloadUrl.split('?')[0]) || defaultFilename;
+    const destPath = path.join(destDir, assetFilename);
 
-    console.log(`[Update Download] Direct download fallback from ${targetDownloadUrl} to ${destPath}`);
+    console.log(`[Update Download] Direct download from ${targetDownloadUrl} to ${destPath}`);
     await downloadFile(targetDownloadUrl, destPath, (progress, transferred, total) => {
       const transferredMB = (transferred / (1024 * 1024)).toFixed(2);
       const totalMB = (total / (1024 * 1024)).toFixed(2);
@@ -3236,7 +3277,7 @@ function prepareForUpdateExit() {
 
 ipcMain.handle('install-update', async (event, filePath) => {
   try {
-    console.log('[Update Install] Installing update (silent mode enabled), target:', filePath);
+    console.log('[Update Install] Installing update, target:', filePath, 'platform:', process.platform);
     if (!filePath || filePath === 'managed') {
       console.log('[Update Install] Triggering autoUpdater.quitAndInstall (silent mode)...');
       prepareForUpdateExit();
@@ -3263,6 +3304,21 @@ ipcMain.handle('install-update', async (event, filePath) => {
         setTimeout(() => {
           app.exit(0);
         }, 200);
+      } else if (process.platform === 'darwin') {
+        console.log('[Update Install] Opening macOS package (DMG/ZIP):', filePath);
+        shell.openPath(filePath);
+        prepareForUpdateExit();
+        setTimeout(() => {
+          app.quit();
+        }, 800);
+      } else if (process.platform === 'linux') {
+        console.log('[Update Install] Preparing Linux AppImage/deb:', filePath);
+        try { fs.chmodSync(filePath, 0o755); } catch (_) {}
+        shell.openPath(filePath);
+        prepareForUpdateExit();
+        setTimeout(() => {
+          app.quit();
+        }, 800);
       } else {
         shell.openPath(filePath);
         prepareForUpdateExit();
