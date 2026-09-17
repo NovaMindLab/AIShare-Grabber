@@ -2838,16 +2838,31 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
 
 ipcMain.handle('install-update', async (event, filePath) => {
   try {
-    console.log('[Update Install] Installing update, target:', filePath);
+    console.log('[Update Install] Installing update (silent mode enabled), target:', filePath);
     if (!filePath || filePath === 'managed') {
       setImmediate(() => {
-        autoUpdater.quitAndInstall(false, true);
+        // isSilent: true -> Execute NSIS installer in silent mode with /S
+        // isForceRunAfter: true -> Automatically restart ShareCLIP after silent installation
+        autoUpdater.quitAndInstall(true, true);
       });
     } else if (fs.existsSync(filePath)) {
-      shell.openPath(filePath);
-      setTimeout(() => {
-        app.quit();
-      }, 1000);
+      if (process.platform === 'win32' && filePath.toLowerCase().endsWith('.exe')) {
+        console.log('[Update Install] Spawning NSIS silent installer with /S:', filePath);
+        const { spawn } = require('child_process');
+        const child = spawn(filePath, ['/S', '--updated', '--force-run'], {
+          detached: true,
+          stdio: 'ignore'
+        });
+        child.unref();
+        setTimeout(() => {
+          app.quit();
+        }, 800);
+      } else {
+        shell.openPath(filePath);
+        setTimeout(() => {
+          app.quit();
+        }, 1000);
+      }
     } else {
       throw new Error(`Installer file does not exist at ${filePath}`);
     }

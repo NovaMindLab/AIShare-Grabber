@@ -3063,10 +3063,10 @@
             </span>
           </div>
         </div>
-        <p class="update-restart-hint">{{ t.update?.restartNotice || '重启后将自动完成安装，数据不会丢失。' }}</p>
+        <p class="update-restart-hint">{{ t.update?.restartNotice || '重启后将自动在后台静默完成安装并重新打开，数据不会丢失。' }}</p>
         <div class="update-card-actions">
           <button class="update-btn-cancel" @click="showUpdateCompleteModal = false">{{ t.update?.later || '稍后重启' }}</button>
-          <button class="update-btn-confirm" @click="installUpdate">{{ t.update?.restartNow || '立即重启' }}</button>
+          <button class="update-btn-confirm" @click="installUpdate">{{ t.update?.restartNow || '立即重启并更新' }}</button>
         </div>
       </div>
     </div>
