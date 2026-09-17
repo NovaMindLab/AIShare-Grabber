@@ -8,20 +8,42 @@ const os   = require('os');
 
 if (process.platform === 'win32') {
   try {
+    const isAsar = __dirname.includes('app.asar');
+    let appRoot, resourcesDir;
+    if (isAsar) {
+      const asarIndex = __dirname.indexOf('app.asar');
+      resourcesDir = path.resolve(__dirname.substring(0, asarIndex));
+      appRoot = path.resolve(resourcesDir, '..');
+    } else {
+      appRoot = __dirname;
+      resourcesDir = path.join(__dirname, 'resources');
+    }
+
+    const arch = process.arch;
     const candidates = [
-      // App-local MSVC VC143 CRT DLLs (committed to repo, copied by copy-redist.cjs)
-      path.join(__dirname, 'resources', 'redist_x64'),
-      // Installed app: DLLs placed alongside ShareCLIP.exe by electron-builder extraFiles
+      // 1. App root where ShareCLIP.exe and extraFiles DLLs live
+      appRoot,
       path.dirname(process.execPath || ''),
-      // onnxruntime-node unpacked bin (dev)
-      path.join(__dirname, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch),
-      // onnxruntime-node unpacked bin (installed)
-      path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch),
-      // sqlite3 unpacked bin (dev)
-      path.join(__dirname, 'node_modules', 'sqlite3', 'build', 'Release'),
-      // sqlite3 unpacked bin (installed)
-      path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'sqlite3', 'build', 'Release'),
+      // 2. Redist DLLs (dev & unpacked)
+      path.join(resourcesDir, 'redist_x64'),
+      path.join(appRoot, 'resources', 'redist_x64'),
+      // 3. onnxruntime-node native binaries (unpacked production)
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', arch),
+      // 4. onnxruntime-node native binaries (dev)
+      path.join(appRoot, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', arch),
+      // 5. sqlite3 native binaries (unpacked production - build and lib/binding)
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'sqlite3', 'build', 'Release'),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'sqlite3', 'lib', 'binding', `napi-v6-win32-unknown-${arch}`),
+      // 6. sqlite3 native binaries (dev)
+      path.join(appRoot, 'node_modules', 'sqlite3', 'build', 'Release'),
+      path.join(appRoot, 'node_modules', 'sqlite3', 'lib', 'binding', `napi-v6-win32-unknown-${arch}`),
+      // 7. sharp / @img native binaries (unpacked production & dev)
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'sharp', 'build', 'Release'),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', '@img', `sharp-win32-${arch}`, 'lib'),
+      path.join(appRoot, 'node_modules', 'sharp', 'build', 'Release'),
+      path.join(appRoot, 'node_modules', '@img', `sharp-win32-${arch}`, 'lib'),
     ];
+
     for (const c of candidates) {
       if (fs.existsSync(c) && (!process.env.PATH || !process.env.PATH.includes(c))) {
         process.env.PATH = `${c};${process.env.PATH || ''}`;
@@ -1569,7 +1591,12 @@ ipcMain.handle('reclassify-all-phone-photos', async (event) => {
     throw new Error("No active device database connected");
   }
 
-  // 0. MUST clear RAM cache to force new model to extract features!
+  // 0. Reset TaskManager circuit breaker so user-triggered reclassification always tries to initialize
+  if (typeof taskManager !== 'undefined' && taskManager.reset) {
+    taskManager.reset();
+  }
+
+  // 0.1 MUST clear RAM cache to force new model to extract features!
   Object.keys(imageEmbeddingsCache).forEach(key => delete imageEmbeddingsCache[key]);
 
   // 1. Get all photos and thumbnails
@@ -2821,6 +2848,7 @@ ipcMain.handle('get-system-info', async () => {
 
     // AI engine status (taskManager is defined in module scope)
     const aiAvailable = typeof taskManager !== 'undefined' ? taskManager.isAiAvailable() : false;
+    const aiInitError = typeof taskManager !== 'undefined' ? (taskManager.inferencePool?.initError?.message || null) : null;
     const hardwareTier = typeof taskManager !== 'undefined' ? (taskManager.tier || 'Unknown') : 'Unknown';
     const maxWorkers   = typeof taskManager !== 'undefined' ? (taskManager.maxInferenceWorkers || 0) : 0;
     const intraThreads = typeof taskManager !== 'undefined' ? (taskManager.intraThreadsPerWorker || 0) : 0;
@@ -2885,6 +2913,7 @@ ipcMain.handle('get-system-info', async () => {
       },
       ai: {
         available: aiAvailable,
+        initError: aiInitError,
         tier: hardwareTier,
         maxWorkers,
         intraThreads,

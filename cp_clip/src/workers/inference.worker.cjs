@@ -2,14 +2,41 @@ const { parentPort } = require('worker_threads');
 const fs = require('fs');
 const path = require('path');
 
+// Determine execution environment (packaged asar vs dev)
+const isAsar = __dirname.includes('app.asar');
+let appRoot, resourcesDir;
+if (isAsar) {
+  const asarIndex = __dirname.indexOf('app.asar');
+  resourcesDir = path.resolve(__dirname.substring(0, asarIndex));
+  appRoot = path.resolve(resourcesDir, '..');
+} else {
+  let cur = __dirname;
+  while (cur && !fs.existsSync(path.join(cur, 'package.json')) && path.dirname(cur) !== cur) {
+    cur = path.dirname(cur);
+  }
+  appRoot = cur || path.resolve(__dirname, '..', '..');
+  resourcesDir = path.join(appRoot, 'resources');
+}
+
 // Ensure Windows finds native onnxruntime.dll, DirectML.dll, and MSVC runtime DLLs
 if (process.platform === 'win32') {
   try {
+    const arch = process.arch;
     const candidates = [
-      path.join(__dirname, '..', '..', 'resources', 'redist_x64'),
-      path.join(__dirname, '..', '..', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch),
-      path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch),
-      path.dirname(process.execPath || '')
+      appRoot,
+      path.dirname(process.execPath || ''),
+      path.join(resourcesDir, 'redist_x64'),
+      path.join(appRoot, 'resources', 'redist_x64'),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', arch),
+      path.join(appRoot, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', arch),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'sqlite3', 'build', 'Release'),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'sqlite3', 'lib', 'binding', `napi-v6-win32-unknown-${arch}`),
+      path.join(appRoot, 'node_modules', 'sqlite3', 'build', 'Release'),
+      path.join(appRoot, 'node_modules', 'sqlite3', 'lib', 'binding', `napi-v6-win32-unknown-${arch}`),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'sharp', 'build', 'Release'),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', '@img', `sharp-win32-${arch}`, 'lib'),
+      path.join(appRoot, 'node_modules', 'sharp', 'build', 'Release'),
+      path.join(appRoot, 'node_modules', '@img', `sharp-win32-${arch}`, 'lib'),
     ];
     for (const c of candidates) {
       if (fs.existsSync(c) && (!process.env.PATH || !process.env.PATH.includes(c))) {
@@ -23,25 +50,43 @@ let ort = null;
 let ortLoadError = null;
 let sharp = null;
 
-try {
-  ort = require('onnxruntime-node');
-} catch (err) {
-  ortLoadError = err;
-  try {
-    const unpackedOrt = path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'onnxruntime-node');
-    if (fs.existsSync(unpackedOrt)) {
+// Prefer unpacked onnxruntime-node in packaged app
+if (isAsar) {
+  const unpackedOrt = path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'onnxruntime-node');
+  if (fs.existsSync(unpackedOrt)) {
+    try {
       ort = require(unpackedOrt);
-      ortLoadError = null;
+    } catch (err) {
+      ortLoadError = err;
     }
-  } catch (err2) {
-    ortLoadError = new Error(`${err.message} / Unpacked fallback: ${err2.message}`);
   }
 }
 
-try {
-  sharp = require('sharp');
-} catch (err) {
-  console.error("[Inference Worker] Critical: Failed to load sharp.", err);
+if (!ort) {
+  try {
+    ort = require('onnxruntime-node');
+    ortLoadError = null;
+  } catch (err) {
+    ortLoadError = ortLoadError ? new Error(`${ortLoadError.message} / standard: ${err.message}`) : err;
+  }
+}
+
+// Prefer unpacked sharp in packaged app
+if (isAsar) {
+  const unpackedSharp = path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'sharp');
+  if (fs.existsSync(unpackedSharp)) {
+    try {
+      sharp = require(unpackedSharp);
+    } catch (_) {}
+  }
+}
+
+if (!sharp) {
+  try {
+    sharp = require('sharp');
+  } catch (err) {
+    console.error("[Inference Worker] Critical: Failed to load sharp.", err);
+  }
 }
 
 let ortSession = null;

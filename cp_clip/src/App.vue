@@ -3084,8 +3084,12 @@
                         <span class="sysinfo-key">{{ t.settings.sysInfoAiStatus || 'AI 可用性' }}</span>
                         <span class="sysinfo-val">
                           <span v-if="systemInfo.ai.available" style="color:#34d399; font-weight:600;">✅ {{ t.settings.sysInfoAiOk || '正常' }}</span>
-                          <span v-else style="color:#f87171; font-weight:600;">❌ {{ t.settings.sysInfoAiFail || '不可用 (熔断)' }}</span>
+                          <span v-else style="color:#f87171; font-weight:600;">❌ {{ t.settings.sysInfoAiFail || '不可用 (初始化失败)' }}</span>
                         </span>
+                      </div>
+                      <div class="sysinfo-row" v-if="!systemInfo.ai.available && systemInfo.ai.initError">
+                        <span class="sysinfo-key" style="color:#f87171;">{{ t.settings.sysInfoAiError || '失败原因' }}</span>
+                        <span class="sysinfo-val" style="color:#f87171; font-size:11px; word-break:break-all;" :title="systemInfo.ai.initError">{{ systemInfo.ai.initError }}</span>
                       </div>
                       <div class="sysinfo-row">
                         <span class="sysinfo-key">{{ t.settings.sysInfoAiTier || '硬件档位' }}</span>

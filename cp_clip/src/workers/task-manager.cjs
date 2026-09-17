@@ -30,7 +30,7 @@ class WorkerPool {
     
     let worker;
     try {
-      worker = new Worker(this.scriptPath);
+      worker = new Worker(this.scriptPath, { env: process.env });
     } catch (spawnErr) {
       console.error(`[WorkerPool] Failed to instantiate worker ${path.basename(this.scriptPath)}:`, spawnErr);
       this.isSpawning = false;
@@ -226,6 +226,14 @@ class WorkerPool {
       this._pumpQueue();
     });
   }
+
+  resetCircuitBreaker() {
+    this.initFailed = false;
+    this.initError = null;
+    this.initAttempts = 0;
+    this.isSpawning = false;
+    console.log(`[WorkerPool] Circuit breaker reset for ${path.basename(this.scriptPath)}`);
+  }
 }
 
 class TaskManager {
@@ -419,6 +427,11 @@ class TaskManager {
 
   isSearchAvailable() {
     return !!(this.searchPool && !this.searchPool.initFailed);
+  }
+
+  reset() {
+    if (this.inferencePool) this.inferencePool.resetCircuitBreaker();
+    if (this.searchPool) this.searchPool.resetCircuitBreaker();
   }
   
   async computeClip(imagePath, thumbPath = null) {
