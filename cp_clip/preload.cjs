@@ -130,6 +130,8 @@ contextBridge.exposeInMainWorld('api', {
   setDownloadPath: (newPath) => ipcRenderer.invoke('set-download-path', newPath),
   selectDownloadFolder: () => ipcRenderer.invoke('select-download-folder'),
   openDownloadFolder: () => ipcRenderer.invoke('open-download-folder'),
+  getPreventSleep: () => ipcRenderer.invoke('get-prevent-sleep'),
+  setPreventSleep: (enabled) => ipcRenderer.invoke('set-prevent-sleep', enabled),
   openFileLocation: (filePath) => ipcRenderer.invoke('open-file-location', filePath),
   openLogFolder: () => ipcRenderer.invoke('open-log-folder'),
   getLogPath: () => ipcRenderer.invoke('get-log-path'),

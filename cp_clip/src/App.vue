@@ -2878,6 +2878,36 @@
                 </div>
               </div>
 
+              <!-- Card: Prevent System Sleep -->
+              <div class="settings-card full-width">
+                <div class="settings-card-header">
+                  <span class="settings-card-icon">⚡</span>
+                  <div>
+                    <h3 class="settings-card-title">{{ t.settings.preventSleepTitle || '运行期间阻止系统休眠' }}</h3>
+                    <p class="settings-card-desc">{{ t.settings.preventSleepDesc || '当 ShareCLIP 处于打开运行状态时，阻止计算机进入睡眠/挂起，保障 P2P 传输、后台下载和 AI 计算不中断（屏幕仍可按系统设定正常关闭）。' }}</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="download-path-row">
+                    <div class="download-path-display" style="cursor: pointer;" @click="togglePreventSleep">
+                      <span class="download-path-icon">{{ preventSleep ? '🟢' : '⚪' }}</span>
+                      <span class="download-path-text" :style="{ color: preventSleep ? '#10b981' : 'inherit', fontWeight: preventSleep ? '600' : 'normal' }">
+                        {{ preventSleep ? (t.settings.preventSleepEnabled || '已启用（软件运行期间 PC 保持唤醒）') : (t.settings.preventSleepDisabled || '已停用（遵循系统默认睡眠设定）') }}
+                      </span>
+                    </div>
+                    <div class="download-path-actions">
+                      <button 
+                        class="dp-btn" 
+                        :class="preventSleep ? 'dp-reset' : 'dp-browse'"
+                        @click="togglePreventSleep"
+                      >
+                        {{ preventSleep ? (t.settings.preventSleepBtnDisable || '允许系统休眠') : (t.settings.preventSleepBtnEnable || '开启休眠阻止') }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Card: App Updates -->
               <div class="settings-card full-width">
                 <div class="settings-card-header">
@@ -4876,6 +4906,19 @@ function showDownloadPathSaved() {
 
 async function openDownloadFolder() {
   await window.api.openDownloadFolder();
+}
+
+// Prevent sleep settings
+const preventSleep = ref(true);
+
+async function togglePreventSleep() {
+  if (hasApi && window.api.setPreventSleep) {
+    const newState = !preventSleep.value;
+    const res = await window.api.setPreventSleep(newState);
+    preventSleep.value = res;
+  } else {
+    preventSleep.value = !preventSleep.value;
+  }
 }
 
 async function openLogFolder() {
@@ -7667,6 +7710,15 @@ onMounted(() => {
     window.api.getDownloadPath().then(savedPath => {
       if (savedPath) downloadPath.value = savedPath;
     });
+
+    // Load saved preventSleep setting
+    if (window.api.getPreventSleep) {
+      window.api.getPreventSleep().then(enabled => {
+        if (typeof enabled === 'boolean') {
+          preventSleep.value = enabled;
+        }
+      });
+    }
 
     // Automatically load the offline device database on PC startup
     if (window.api && window.api.loadInitialDeviceSync) {

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, session, powerSaveBlocker } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
@@ -185,6 +185,27 @@ const settingsFilePath = path.join(app.getPath('userData'), 'app_settings.json')
 let customDownloadPath = null;
 let lastDeviceUuid = null;
 let lastDeviceName = null;
+let preventSleep = true; // Default: keep PC awake while ShareCLIP is open
+let powerSaveBlockerId = null;
+
+function applyPowerSaveBlocker(enable) {
+  try {
+    if (enable) {
+      if (powerSaveBlockerId === null || !powerSaveBlocker.isStarted(powerSaveBlockerId)) {
+        powerSaveBlockerId = powerSaveBlocker.start('prevent-app-suspension');
+        console.log('[Power] Power save blocker activated (prevent-app-suspension), id:', powerSaveBlockerId);
+      }
+    } else {
+      if (powerSaveBlockerId !== null && powerSaveBlocker.isStarted(powerSaveBlockerId)) {
+        powerSaveBlocker.stop(powerSaveBlockerId);
+        console.log('[Power] Power save blocker released, id:', powerSaveBlockerId);
+      }
+      powerSaveBlockerId = null;
+    }
+  } catch (err) {
+    console.error('[Power] Failed to apply power save blocker:', err);
+  }
+}
 
 function loadSettings() {
   try {
@@ -203,6 +224,10 @@ function loadSettings() {
         lastDeviceName = settings.lastDeviceName;
         console.log('[Settings] Loaded last device Name:', lastDeviceName);
       }
+      if (typeof settings.preventSleep === 'boolean') {
+        preventSleep = settings.preventSleep;
+        console.log('[Settings] Loaded preventSleep:', preventSleep);
+      }
     }
   } catch (err) {
     console.error('[Settings] Failed to load settings file:', err);
@@ -214,7 +239,8 @@ function saveSettings() {
     const settings = {
       downloadPath: customDownloadPath,
       lastDeviceUuid: activeDeviceUuid || lastDeviceUuid,
-      lastDeviceName: activeDeviceName || lastDeviceName
+      lastDeviceName: activeDeviceName || lastDeviceName,
+      preventSleep: preventSleep
     };
     fs.writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2), 'utf-8');
   } catch (err) {
@@ -539,6 +565,7 @@ app.on('web-contents-created', (event, contents) => {
 app.whenReady().then(async () => {
   // Load persisted settings (download path etc.) from disk
   loadSettings();
+  applyPowerSaveBlocker(preventSleep);
 
   // Protocol handler for loading local files
   protocol.handle('local', async (request) => {
@@ -668,6 +695,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
+  applyPowerSaveBlocker(false);
   if (activeDeviceDb) {
     try {
       activeDeviceDb.close();
@@ -2566,6 +2594,20 @@ ipcMain.handle('set-download-path', (event, newPath) => {
   return customDownloadPath;
 });
 
+// ---- Prevent PC sleep settings -----------------------------------------------
+
+ipcMain.handle('get-prevent-sleep', () => {
+  return preventSleep;
+});
+
+ipcMain.handle('set-prevent-sleep', (event, enabled) => {
+  preventSleep = !!enabled;
+  applyPowerSaveBlocker(preventSleep);
+  saveSettings();
+  console.log('[Settings] Prevent sleep updated to:', preventSleep);
+  return preventSleep;
+});
+
 ipcMain.handle('select-download-folder', async (event) => {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: '选择下载保存目录',
@@ -2955,6 +2997,9 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
 });
 
 function prepareForUpdateExit() {
+  try {
+    applyPowerSaveBlocker(false);
+  } catch (_) {}
   try {
     if (httpServer) {
       httpServer.close();
