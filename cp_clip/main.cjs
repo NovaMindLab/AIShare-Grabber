@@ -1,17 +1,26 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, session, powerSaveBlocker } = require('electron');
+// ⚠️  PATH injection MUST happen before ANY native module require().
+// Native .node addons (sqlite3, onnxruntime, sharp) try to load their DLL
+// dependencies at require-time; if the DLLs aren't in PATH yet, Windows
+// returns "The specified module could not be found" and Electron crashes.
 const path = require('path');
-const fs = require('fs');
-const os = require('os');
-const sqlite3 = require('sqlite3').verbose();
+const fs   = require('fs');
+const os   = require('os');
 
-// Ensure Windows finds native DLLs and Microsoft Visual C++ redistributables
 if (process.platform === 'win32') {
   try {
     const candidates = [
+      // App-local MSVC VC143 CRT DLLs (committed to repo, copied by copy-redist.cjs)
       path.join(__dirname, 'resources', 'redist_x64'),
+      // Installed app: DLLs placed alongside ShareCLIP.exe by electron-builder extraFiles
+      path.dirname(process.execPath || ''),
+      // onnxruntime-node unpacked bin (dev)
       path.join(__dirname, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch),
+      // onnxruntime-node unpacked bin (installed)
       path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch),
-      path.dirname(process.execPath || '')
+      // sqlite3 unpacked bin (dev)
+      path.join(__dirname, 'node_modules', 'sqlite3', 'build', 'Release'),
+      // sqlite3 unpacked bin (installed)
+      path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'sqlite3', 'build', 'Release'),
     ];
     for (const c of candidates) {
       if (fs.existsSync(c) && (!process.env.PATH || !process.env.PATH.includes(c))) {
@@ -20,6 +29,9 @@ if (process.platform === 'win32') {
     }
   } catch (_) {}
 }
+
+const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, session, powerSaveBlocker } = require('electron');
+const sqlite3 = require('sqlite3').verbose();
 
 // Force Electron to use "ShareCLIP" as product name and AppData folder
 try {
