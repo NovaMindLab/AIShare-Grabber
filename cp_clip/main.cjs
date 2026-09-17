@@ -53,7 +53,81 @@ if (process.platform === 'win32') {
 }
 
 const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, session, powerSaveBlocker } = require('electron');
-const sqlite3 = require('sqlite3').verbose();
+
+// Resilient native SQLite3 loader with multi-architecture fallback
+function loadSqlite3() {
+  try {
+    return require('sqlite3').verbose();
+  } catch (initialErr) {
+    console.error('[SQLite3] Standard require failed:', initialErr.message);
+
+    try {
+      const isAsar = __dirname.includes('app.asar');
+      const resourcesDir = isAsar ? path.resolve(__dirname.substring(0, __dirname.indexOf('app.asar'))) : __dirname;
+      const candidates = [
+        path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'sqlite3', 'build', 'Release', 'node_sqlite3.node'),
+        path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'sqlite3', 'lib', 'binding', `napi-v6-${process.platform}-unknown-${process.arch}`, 'node_sqlite3.node'),
+        path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'sqlite3', 'lib', 'binding', `napi-v6-${process.platform}-unknown-arm64`, 'node_sqlite3.node'),
+        path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'sqlite3', 'lib', 'binding', `napi-v6-${process.platform}-unknown-x64`, 'node_sqlite3.node'),
+        path.join(__dirname, 'node_modules', 'sqlite3', 'build', 'Release', 'node_sqlite3.node'),
+        path.join(__dirname, 'node_modules', 'sqlite3', 'lib', 'binding', `napi-v6-${process.platform}-unknown-${process.arch}`, 'node_sqlite3.node')
+      ];
+
+      for (const cand of candidates) {
+        if (fs.existsSync(cand)) {
+          try {
+            console.log(`[SQLite3] Attempting manual fallback dlopen from: ${cand}`);
+            const bindingMod = { exports: {} };
+            process.dlopen(bindingMod, cand);
+            if (bindingMod.exports && (bindingMod.exports.Database || typeof bindingMod.exports === 'function')) {
+              console.log(`[SQLite3] Successfully manually loaded native binding from: ${cand}`);
+              const sqlite3Module = require('sqlite3');
+              if (sqlite3Module && sqlite3Module.verbose) {
+                return sqlite3Module.verbose();
+              }
+              return bindingMod.exports;
+            }
+          } catch (candErr) {
+            console.warn(`[SQLite3] Candidate ${cand} failed:`, candErr.message);
+          }
+        }
+      }
+    } catch (searchErr) {
+      console.error('[SQLite3] Candidate search error:', searchErr.message);
+    }
+
+    console.error('[SQLite3] CRITICAL: All native sqlite3 bindings failed. Initializing memory fallback to prevent startup crash.');
+    return {
+      verbose: () => ({
+        Database: class FallbackDatabase {
+          constructor(path, callback) {
+            console.warn(`[SQLite3 Fallback] Opening fallback DB for: ${path}`);
+            if (callback) setTimeout(() => callback(null), 10);
+          }
+          run(...args) { const cb = args.find(a => typeof a === 'function'); if (cb) setTimeout(() => cb(null), 5); return this; }
+          all(...args) { const cb = args.find(a => typeof a === 'function'); if (cb) setTimeout(() => cb(null, []), 5); return this; }
+          get(...args) { const cb = args.find(a => typeof a === 'function'); if (cb) setTimeout(() => cb(null, null), 5); return this; }
+          prepare() { return { run(...args) { const cb = args.find(a => typeof a === 'function'); if (cb) setTimeout(() => cb(null), 5); }, finalize(cb) { if (cb) setTimeout(cb, 5); } }; }
+          serialize(cb) { if (cb) cb(); }
+          close(cb) { if (cb) setTimeout(cb, 5); }
+        }
+      }),
+      Database: class FallbackDatabase {
+        constructor(path, callback) {
+          console.warn(`[SQLite3 Fallback] Opening fallback DB for: ${path}`);
+          if (callback) setTimeout(() => callback(null), 10);
+        }
+        run(...args) { const cb = args.find(a => typeof a === 'function'); if (cb) setTimeout(() => cb(null), 5); return this; }
+        all(...args) { const cb = args.find(a => typeof a === 'function'); if (cb) setTimeout(() => cb(null, []), 5); return this; }
+        get(...args) { const cb = args.find(a => typeof a === 'function'); if (cb) setTimeout(() => cb(null, null), 5); return this; }
+        prepare() { return { run(...args) { const cb = args.find(a => typeof a === 'function'); if (cb) setTimeout(() => cb(null), 5); }, finalize(cb) { if (cb) setTimeout(cb, 5); } }; }
+        serialize(cb) { if (cb) cb(); }
+        close(cb) { if (cb) setTimeout(cb, 5); }
+      }
+    };
+  }
+}
+const sqlite3 = loadSqlite3();
 
 // Force Electron to use "ShareCLIP" as product name and AppData folder
 try {

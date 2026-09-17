@@ -268,17 +268,39 @@ jobs:
         run: |
           cd cp_clip
           npm install
+
+          echo "==== Creating Universal (Fat) sqlite3 Binary (arm64 + x86_64) via lipo ===="
+          mkdir -p temp_sqlite_arm64 temp_sqlite_x64
+          curl -sL -o sqlite3_arm64.tar.gz https://github.com/TryGhost/node-sqlite3/releases/download/v6.0.1/sqlite3-v6.0.1-napi-v6-darwin-arm64.tar.gz
+          curl -sL -o sqlite3_x64.tar.gz https://github.com/TryGhost/node-sqlite3/releases/download/v6.0.1/sqlite3-v6.0.1-napi-v6-darwin-x64.tar.gz
+          tar -xzf sqlite3_arm64.tar.gz -C temp_sqlite_arm64
+          tar -xzf sqlite3_x64.tar.gz -C temp_sqlite_x64
+
+          mkdir -p node_modules/sqlite3/build/Release
+          mkdir -p node_modules/sqlite3/lib/binding/napi-v6-darwin-unknown-arm64
+          mkdir -p node_modules/sqlite3/lib/binding/napi-v6-darwin-unknown-x64
+
+          lipo -create -output node_modules/sqlite3/build/Release/node_sqlite3.node temp_sqlite_arm64/build/Release/node_sqlite3.node temp_sqlite_x64/build/Release/node_sqlite3.node
+          cp -f node_modules/sqlite3/build/Release/node_sqlite3.node node_modules/sqlite3/lib/binding/napi-v6-darwin-unknown-arm64/node_sqlite3.node
+          cp -f node_modules/sqlite3/build/Release/node_sqlite3.node node_modules/sqlite3/lib/binding/napi-v6-darwin-unknown-x64/node_sqlite3.node
+
+          rm -rf temp_sqlite_arm64 temp_sqlite_x64 sqlite3_arm64.tar.gz sqlite3_x64.tar.gz
+
+          echo "==== Verifying Universal Fat node_sqlite3.node architectures ===="
+          lipo -info node_modules/sqlite3/build/Release/node_sqlite3.node
+          file node_modules/sqlite3/build/Release/node_sqlite3.node
+
           if [ "${{ matrix.arch }}" = "x64" ]; then
-            echo "==== Preparing x86_64 native dependencies on Apple Silicon runner ===="
+            echo "==== Preparing x86_64 sharp dependency on Apple Silicon runner ===="
             npm install --no-save --force @img/sharp-darwin-x64
-            curl -sL -o sqlite3_x64.tar.gz https://github.com/TryGhost/node-sqlite3/releases/download/v6.0.1/sqlite3-v6.0.1-napi-v6-darwin-x64.tar.gz
-            tar -xzf sqlite3_x64.tar.gz
-            mkdir -p node_modules/sqlite3/build/Release
-            cp -f build/Release/node_sqlite3.node node_modules/sqlite3/build/Release/node_sqlite3.node
-            rm -rf build sqlite3_x64.tar.gz
-            echo "Checking architecture of node_sqlite3.node:"
-            file node_modules/sqlite3/build/Release/node_sqlite3.node
+            rm -rf node_modules/@img/sharp-darwin-arm64
           fi
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            echo "==== Preparing arm64 sharp dependency ===="
+            npm install --no-save --force @img/sharp-darwin-arm64
+            rm -rf node_modules/@img/sharp-darwin-x64
+          fi
+
           npm run build
           npx electron-builder --mac --${{ matrix.arch }}
 
@@ -382,6 +404,10 @@ jobs:
         run: |
           mkdir -p release-files
           find all-dist-artifacts -type f -exec cp {} release-files/ \;
+          # Prefer Apple Silicon arm64 latest-mac.yml as standard Mac default if present
+          if [ -f "all-dist-artifacts/release-macos-arm64/latest-mac.yml" ]; then
+            cp -f "all-dist-artifacts/release-macos-arm64/latest-mac.yml" release-files/latest-mac.yml
+          fi
           echo "==== Collected Release Files ===="
           ls -lh release-files
 

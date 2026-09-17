@@ -1,11 +1,11 @@
 {
-  "version": "4.2.6",
-  "description": "Cross-platform clipboard, photo and video sync desktop client.",
-  "homepage": "https://github.com/NovaMindLab/AIShare-Grabber",
+  "version": "4.2.7",
+  "description": "Cross-platform high-speed P2P photo album synchronization with offline on-device MobileCLIP AI classification",
+  "homepage": "https://novamindlab.github.io/AIShare-Grabber/",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.2.6/ShareCLIP-Setup-4.2.6.exe#/dl.7z"
+      "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.2.7/ShareCLIP-Setup-4.2.7.exe#/dl.7z"
     }
   },
   "shortcuts": [
