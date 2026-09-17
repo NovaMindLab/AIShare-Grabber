@@ -234,5 +234,10 @@ contextBridge.exposeInMainWorld('api', {
   onSnifferLocaleUpdated: (callback) => {
     ipcRenderer.removeAllListeners('sniffer:locale-updated');
     ipcRenderer.on('sniffer:locale-updated', (event, data) => callback(data));
+  },
+  getYtSupportedSites: () => ipcRenderer.invoke('ytdlp:get-supported-sites'),
+  onSnifferOpenMoreSites: (callback) => {
+    ipcRenderer.removeAllListeners('sniffer:open-more-sites');
+    ipcRenderer.on('sniffer:open-more-sites', (event, data) => callback(data));
   }
 });

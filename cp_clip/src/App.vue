@@ -1939,6 +1939,15 @@
                   <span>{{ snifferWindowStatus.isOpen ? `${t.ytDlp?.openSnifferBtn || '独立嗅探窗口'} (${t.ytDlp?.windowReady || '已开启'})` : (t.ytDlp?.openSnifferBtn || '独立嗅探窗口') }}</span>
                   <span v-if="snifferWindowStatus.isOpen" class="sniffer-online-dot"></span>
                 </button>
+                <button 
+                  @click="openSnifferWithMoreSites()" 
+                  class="yt-mode-btn"
+                  style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 13px; font-weight: 500; cursor: pointer; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); color: #cbd5e1;"
+                  :title="t.videoDownloader?.moreSitesTooltip || t.ytDlp?.moreSitesTooltip || '查看全部 1800+ 支持视频解析的网站名录'"
+                >
+                  <span>📋</span>
+                  <span>{{ t.videoDownloader?.moreSitesBtn || t.ytDlp?.moreSitesBtn || '全部支持站点 (1800+)' }}</span>
+                </button>
               </div>
 
               <!-- If Downloading or Completed Tab: Directory and Manage Actions -->
@@ -6825,6 +6834,20 @@ const openSnifferBrowser = async (url) => {
     if (url) snifferWindowStatus.value.url = url;
   } catch (e) {
     console.error('Failed to open sniffer browser:', e);
+  }
+};
+
+const openSnifferWithMoreSites = async () => {
+  if (!window.api?.openSnifferBrowser) return;
+  try {
+    await window.api.openSnifferBrowser({
+      url: snifferWindowStatus.value.url || 'https://m.youtube.com',
+      lang: currentLocale.value,
+      openMoreSites: true
+    });
+    snifferWindowStatus.value.isOpen = true;
+  } catch (e) {
+    console.error('Failed to open sniffer browser with more sites:', e);
   }
 };
 

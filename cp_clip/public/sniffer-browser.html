@@ -92,6 +92,332 @@
       white-space: nowrap;
       -webkit-app-region: no-drag;
     }
+    
+    /* More Sites Chip Styling */
+    .site-chip-more {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(168, 85, 247, 0.22));
+      border: 1px solid rgba(139, 92, 246, 0.45);
+      color: #c7d2fe;
+      font-weight: 600;
+    }
+    .site-chip-more:hover {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.45), rgba(168, 85, 247, 0.45));
+      border-color: rgba(167, 139, 250, 0.85);
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(139, 92, 246, 0.45);
+      transform: translateY(-1px);
+    }
+
+    /* ── More Supported Sites Modal (1800+ Directory) ── */
+    .sites-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(4, 7, 16, 0.82);
+      backdrop-filter: blur(14px);
+      z-index: 9998;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .sites-modal-card {
+      width: 920px;
+      max-width: 94vw;
+      height: 660px;
+      max-height: 88vh;
+      background: #0d1322;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-radius: 18px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 2px rgba(129, 140, 248, 0.3);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .sites-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(22, 30, 49, 0.65);
+    }
+    .sites-modal-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .sites-modal-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: #a5b4fc;
+    }
+    .sites-modal-close {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.15s ease;
+    }
+    .sites-modal-close:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+    .sites-filter-row {
+      padding: 12px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.5);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .sites-search-box {
+      display: flex;
+      align-items: center;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 8px 14px;
+      gap: 10px;
+      transition: border-color 0.2s;
+    }
+    .sites-search-box:focus-within {
+      border-color: rgba(99, 102, 241, 0.8);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+    .sites-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #f1f5f9;
+      font-size: 13px;
+    }
+    .sites-search-clear {
+      cursor: pointer;
+      color: #94a3b8;
+      display: none;
+      font-size: 13px;
+      padding: 0 4px;
+    }
+    .sites-search-clear:hover {
+      color: #ffffff;
+    }
+    .sites-search-count {
+      font-size: 12px;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+    .sites-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .sites-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .sites-tab:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+    }
+    .sites-tab.active {
+      background: rgba(99, 102, 241, 0.25);
+      border-color: rgba(99, 102, 241, 0.6);
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .sites-modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+    }
+    .sites-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .site-card {
+      background: rgba(30, 41, 59, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+    .site-card:hover {
+      background: rgba(40, 53, 76, 0.85);
+      border-color: rgba(99, 102, 241, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+    .site-card-icon {
+      font-size: 22px;
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .site-card-main {
+      flex: 1;
+      min-width: 0;
+    }
+    .site-card-name-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .site-card-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f8fafc;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .site-card-tag {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(99, 102, 241, 0.2);
+      color: #c7d2fe;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      white-space: nowrap;
+    }
+    .site-card-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .site-card-arrow {
+      color: #64748b;
+      font-size: 14px;
+      transition: transform 0.15s;
+    }
+    .site-card:hover .site-card-arrow {
+      color: #818cf8;
+      transform: translateX(3px);
+    }
+
+    /* Full Extractor Tag Cloud */
+    .extractors-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .extractors-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-content: flex-start;
+    }
+    .extractor-tag {
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .extractor-tag:hover {
+      background: rgba(99, 102, 241, 0.25);
+      border-color: rgba(99, 102, 241, 0.5);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+    .extractor-tag.is-broken {
+      opacity: 0.5;
+      border-style: dashed;
+    }
+    .extractor-tag-domain {
+      color: #818cf8;
+      font-size: 10px;
+    }
+
+    .sites-modal-footer {
+      padding: 12px 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(22, 30, 49, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .sites-modal-tip {
+      font-size: 11px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      line-height: 1.4;
+    }
+    .sites-btn-done {
+      padding: 6px 18px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .sites-btn-done:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
     .site-chip:hover {
       background: rgba(99, 102, 241, 0.25);
       border-color: rgba(99, 102, 241, 0.5);
@@ -778,6 +1104,9 @@
       <div class="site-chip" data-url="https://www.xiaohongshu.com">
         <span>📕</span><span>小红书</span>
       </div>
+      <div class="site-chip site-chip-more" id="btnMoreSites" data-i18n-title="moreSitesTooltip" title="查看全部 1800+ 支持站点名录">
+        <span>🌐</span><span data-i18n="moreSites">更多站点 (1800+)</span>
+      </div>
     </div>
 
     <!-- Large Draggable Spacer -->
@@ -880,6 +1209,54 @@
             <span data-i18n="btnDownload">⬇️ 立即下载</span>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- Supported Sites Directory Modal (1800+ Extractor Engines) -->
+  <div class="sites-modal-overlay" id="sitesModal">
+    <div class="sites-modal-card" id="sitesModalCard">
+      <!-- Header -->
+      <div class="sites-modal-header">
+        <div class="sites-modal-title">
+          <span>🌐</span>
+          <span data-i18n="moreSitesTitle">支持视频解析站点目录</span>
+          <span class="sites-modal-badge">1847+ Extractor Engines</span>
+        </div>
+        <button class="sites-modal-close" id="btnSitesModalClose" data-i18n-title="close" title="关闭">✕</button>
+      </div>
+
+      <!-- Search & Category Filters -->
+      <div class="sites-filter-row">
+        <div class="sites-search-box">
+          <span>🔍</span>
+          <input type="text" class="sites-search-input" id="sitesSearchInput" data-i18n-placeholder="sitesSearchPlaceholder" placeholder="搜索网站名称或提取器（如 youtube, bilibili, tiktok, douyin...）" />
+          <span class="sites-search-clear" id="sitesSearchClear" title="清空">✕</span>
+          <span class="sites-search-count" id="sitesSearchCount"></span>
+        </div>
+        <div class="sites-tabs" id="sitesCategoryTabs">
+          <button class="sites-tab active" data-cat="popular">⚡ <span data-i18n="tabPopular">热门精选</span></button>
+          <button class="sites-tab" data-cat="china">🇨🇳 <span data-i18n="tabChina">国内主流</span></button>
+          <button class="sites-tab" data-cat="global">🌍 <span data-i18n="tabGlobal">国际社交</span></button>
+          <button class="sites-tab" data-cat="music">🎵 <span data-i18n="tabMusic">音乐音频</span></button>
+          <button class="sites-tab" data-cat="live">🎮 <span data-i18n="tabLive">游戏直播</span></button>
+          <button class="sites-tab" data-cat="edu">🎓 <span data-i18n="tabEdu">公开课知识</span></button>
+          <button class="sites-tab" data-cat="all">📋 <span data-i18n="tabAll">全部 (1847)</span></button>
+        </div>
+      </div>
+
+      <!-- Main Body: Cards or Tag Cloud -->
+      <div class="sites-modal-body" id="sitesModalBody">
+        <div class="sites-grid" id="sitesGrid"></div>
+      </div>
+
+      <!-- Footer -->
+      <div class="sites-modal-footer">
+        <div class="sites-modal-tip">
+          <span data-i18n="sitesTip">💡 提示：ShareCLIP 内置底层强大的 yt-dlp 引擎，支持上述所有 1800+ 网站与协议，进入目标网站打开任意视频页面即可一键高速嗅探与下载！</span>
+        </div>
+        <button class="sites-btn-done" id="btnSitesModalDone" data-i18n="close">关闭</button>
       </div>
     </div>
   </div>
@@ -1317,6 +1694,292 @@
     const MOBILE_UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36";
     const DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 
+    
+    // ── More Supported Sites (1800+ Extractor Engines) ──────────
+    const btnMoreSites = document.getElementById('btnMoreSites');
+    const sitesModal = document.getElementById('sitesModal');
+    const sitesModalCard = document.getElementById('sitesModalCard');
+    const btnSitesModalClose = document.getElementById('btnSitesModalClose');
+    const btnSitesModalDone = document.getElementById('btnSitesModalDone');
+    const sitesSearchInput = document.getElementById('sitesSearchInput');
+    const sitesSearchClear = document.getElementById('sitesSearchClear');
+    const sitesSearchCount = document.getElementById('sitesSearchCount');
+    const sitesCategoryTabs = document.getElementById('sitesCategoryTabs');
+    const sitesGrid = document.getElementById('sitesGrid');
+    const sitesModalBody = document.getElementById('sitesModalBody');
+
+    let allExtractorsList = [];
+    let currentSitesCat = 'popular';
+    let currentSitesQuery = '';
+
+    const CURATED_SITES = [
+      // Domestic / China
+      { id: 'bilibili', name: '哔哩哔哩 (Bilibili)', url: 'https://www.bilibili.com', icon: '⚡', category: 'china', badge: '4K/1080p60', desc: '国内头部弹幕视频与动画番剧平台' },
+      { id: 'douyin', name: '抖音 (Douyin)', url: 'https://www.douyin.com', icon: '🎵', category: 'china', badge: '无水印超清', desc: '国民级短视频与直播分享平台' },
+      { id: 'xiaohongshu', name: '小红书', url: 'https://www.xiaohongshu.com', icon: '📕', category: 'china', badge: '图文/短视频', desc: '生活潮流与灵感发现社区' },
+      { id: 'kuaishou', name: '快手 (Kuaishou)', url: 'https://www.kuaishou.com', icon: '⚡', category: 'china', badge: '高清短视频', desc: '国民短视频与生活记录分享平台' },
+      { id: 'weibo', name: '微博视频 (Weibo)', url: 'https://weibo.com', icon: '👁️', category: 'china', badge: '社交热点', desc: '新浪微博官方短视频与直播' },
+      { id: 'ixigua', name: '西瓜视频', url: 'https://www.ixigua.com', icon: '🍉', category: 'china', badge: '4K超清', desc: '字节跳动旗下中长视频平台' },
+      { id: 'vqq', name: '腾讯视频', url: 'https://v.qq.com', icon: '🐧', category: 'china', badge: '影视综艺', desc: '海量热播影视、动漫与纪录片' },
+      { id: 'iqiyi', name: '爱奇艺 (iQIYI)', url: 'https://www.iqiyi.com', icon: '🥝', category: 'china', badge: '高码率剧集', desc: '高品质网络剧集与电影平台' },
+      { id: 'youku', name: '优酷 (Youku)', url: 'https://www.youku.com', icon: '📺', category: 'china', badge: '阿里影业', desc: '优酷热播电视剧、电影与综艺' },
+      { id: 'mangotv', name: '芒果TV', url: 'https://www.mgtv.com', icon: '🥭', category: 'china', badge: '独家综艺', desc: '湖南卫视官方网络视听平台' },
+      { id: 'zhihu', name: '知乎视频', url: 'https://www.zhihu.com', icon: '📘', category: 'china', badge: '深度知识', desc: '高价值问答与知识科普视频' },
+      { id: 'acfun', name: 'AcFun (A站)', url: 'https://www.acfun.cn', icon: '🍌', category: 'china', badge: '二次元弹幕', desc: '国内最早的弹幕视频文化网站' },
+      { id: 'pearvideo', name: '梨视频', url: 'https://www.pearvideo.com', icon: '🍐', category: 'china', badge: '资讯短视频', desc: '专业资讯与社会纪实短视频' },
+      { id: 'cctv', name: '央视网 (CCTV)', url: 'https://www.cctv.com', icon: '📺', category: 'china', badge: '官方新闻', desc: '中央广播电视总台官方视听' },
+
+      // Global Social & Mainstream
+      { id: 'youtube', name: 'YouTube', url: 'https://m.youtube.com', icon: '🔴', category: 'global', badge: '4K/8K/HDR', desc: '全球最大视频分享平台，支持无损音频/高码率' },
+      { id: 'tiktok', name: 'TikTok', url: 'https://www.tiktok.com', icon: '🖤', category: 'global', badge: '全球短视频', desc: '全球超人气短视频与原声分享' },
+      { id: 'twitter', name: 'X / Twitter', url: 'https://x.com', icon: '🐦', category: 'global', badge: '实时动态', desc: '全球即时新闻、短片与推文视频' },
+      { id: 'facebook', name: 'Facebook', url: 'https://www.facebook.com', icon: '🔷', category: 'global', badge: 'Reels/Watch', desc: 'Meta 社交平台，支持公共主页与短视频' },
+      { id: 'instagram', name: 'Instagram', url: 'https://www.instagram.com', icon: '📷', category: 'global', badge: 'Reels/Posts', desc: '全球视觉创意社区与 Reels' },
+      { id: 'reddit', name: 'Reddit', url: 'https://www.reddit.com', icon: '🤖', category: 'global', badge: '音画合成', desc: '全球最大讨论社区，支持内嵌视频完整解析' },
+      { id: 'vimeo', name: 'Vimeo', url: 'https://vimeo.com', icon: '🎞️', category: 'global', badge: '专业影视级', desc: '独立创作者与高清专业短片' },
+      { id: 'dailymotion', name: 'Dailymotion', url: 'https://www.dailymotion.com', icon: '📽️', category: 'global', badge: '欧洲主流', desc: '法国知名综合视频流媒体' },
+      { id: 'rumble', name: 'Rumble', url: 'https://rumble.com', icon: '🟢', category: 'global', badge: '高清直播', desc: '新兴自由视频与播客平台' },
+      { id: 'threads', name: 'Threads', url: 'https://www.threads.net', icon: '🧵', category: 'global', badge: '即时短片', desc: 'Meta 旗下文字与视频灵感流' },
+      { id: 'bluesky', name: 'Bluesky', url: 'https://bsky.app', icon: '🦋', category: 'global', badge: '去中心化', desc: '新一代开放社交与多媒体网络' },
+      { id: 'tumblr', name: 'Tumblr', url: 'https://www.tumblr.com', icon: '📑', category: 'global', badge: '图文多媒体', desc: '轻博客与多媒体社区' },
+      { id: 'pinterest', name: 'Pinterest', url: 'https://www.pinterest.com', icon: '📌', category: 'global', badge: '灵感视频', desc: '全球视觉发现与创意短片' },
+      { id: 'archive', name: 'Archive.org (网典)', url: 'https://archive.org', icon: '🏛️', category: 'global', badge: '历史数字档案', desc: '全球非盈利互联网数字图书馆与视听档案' },
+
+      // Music & Audio
+      { id: 'soundcloud', name: 'SoundCloud', url: 'https://soundcloud.com', icon: '☁️', category: 'music', badge: '独立音频HQ', desc: '全球最大独立音乐人与音频分享平台' },
+      { id: 'netease', name: '网易云音乐', url: 'https://music.163.com', icon: '🔴', category: 'music', badge: 'MV与播客', desc: '华语热门音乐、高清MV与电台播客' },
+      { id: 'qqmusic', name: 'QQ音乐', url: 'https://y.qq.com', icon: '🟢', category: 'music', badge: '正版音画', desc: '腾讯音乐海量正版曲库与高清MV' },
+      { id: 'ximalaya', name: '喜马拉雅', url: 'https://www.ximalaya.com', icon: '📻', category: 'music', badge: '有声电台', desc: '国内头部音频播客、有声书与知识音频' },
+      { id: 'bandcamp', name: 'Bandcamp', url: 'https://bandcamp.com', icon: '🎸', category: 'music', badge: '无损FLAC', desc: '独立音乐人、独立厂牌直接发行平台' },
+      { id: 'mixcloud', name: 'Mixcloud', url: 'https://www.mixcloud.com', icon: '🎛️', category: 'music', badge: 'DJ Set/电台', desc: '全球 DJ 混音、长篇播客与音乐广播' },
+      { id: 'audius', name: 'Audius', url: 'https://audius.co', icon: '🎧', category: 'music', badge: '320kbps高品质', desc: '新一代去中心化流媒体音乐社区' },
+      { id: 'applepodcasts', name: 'Apple Podcasts', url: 'https://podcasts.apple.com', icon: '🎙️', category: 'music', badge: '官方播客', desc: '苹果播客官方多语种节目库' },
+
+      // Live & Gaming
+      { id: 'twitch', name: 'Twitch', url: 'https://www.twitch.tv', icon: '🟣', category: 'live', badge: '游戏直播/剪辑', desc: '全球最大游戏直播社区，支持录播与剪辑提取' },
+      { id: 'kick', name: 'Kick', url: 'https://kick.com', icon: '🟩', category: 'live', badge: '高清直播VOD', desc: '热门游戏与泛娱乐互动直播平台' },
+      { id: 'huya', name: '虎牙直播 (Huya)', url: 'https://www.huya.com', icon: '🐯', category: 'live', badge: '电竞直播', desc: '国内头部游戏电竞赛事直播' },
+      { id: 'douyu', name: '斗鱼直播 (Douyu)', url: 'https://www.douyu.com', icon: '🦈', category: 'live', badge: '游戏娱乐', desc: '知名综合游戏与户外直播平台' },
+      { id: 'chzzk', name: 'CHZZK (Naver 치지직)', url: 'https://chzzk.naver.com', icon: '🧀', category: 'live', badge: '韩国主流', desc: '韩国 Naver 旗下主流游戏直播平台' },
+      { id: 'soop', name: 'SOOP (原AfreecaTV)', url: 'https://www.sooplive.co.kr', icon: '🌐', category: 'live', badge: '韩流直播', desc: '韩国领先综合视听与娱乐直播' },
+      { id: 'mirrativ', name: 'Mirrativ', url: 'https://www.mirrativ.com', icon: '🎮', category: 'live', badge: '手游直播', desc: '日本流行智能手机游戏直播与虚拟主播' },
+
+      // Education & Knowledge
+      { id: 'ted', name: 'TED Talks', url: 'https://www.ted.com', icon: '💡', category: 'edu', badge: '官方字幕', desc: '全球思想家、科学家前沿演讲，支持双语字幕' },
+      { id: 'khan', name: 'Khan Academy', url: 'https://www.khanacademy.org', icon: '🎓', category: 'edu', badge: '公开课全套', desc: '可汗学院全学科免费权威公开课' },
+      { id: 'mitocw', name: 'MIT OpenCourseWare', url: 'https://ocw.mit.edu', icon: '🏛️', category: 'edu', badge: '名校公开课', desc: '麻省理工学院全学科经典课程视听资料' },
+      { id: 'coursera', name: 'Coursera', url: 'https://www.coursera.org', icon: '📚', category: 'edu', badge: '名校认证', desc: '世界知名高校与顶级机构在线公开课' },
+      { id: 'udemy', name: 'Udemy', url: 'https://www.udemy.com', icon: '💻', category: 'edu', badge: '技能实战', desc: '全球专业编程、设计与职场技能课程' },
+      { id: 'infoq', name: 'InfoQ / 极客邦', url: 'https://www.infoq.com', icon: '🧠', category: 'edu', badge: '架构峰会', desc: '前沿软件工程、人工智能与架构技术峰会演讲' }
+    ];
+
+    async function initExtractorsData() {
+      if (allExtractorsList.length > 0) return;
+      try {
+        if (window.api?.getYtSupportedSites) {
+          const list = await window.api.getYtSupportedSites();
+          if (Array.isArray(list) && list.length > 0) {
+            allExtractorsList = list;
+            return;
+          }
+        }
+        const res = await fetch('./ytdlp-extractors.json');
+        if (res.ok) {
+          allExtractorsList = await res.json();
+        }
+      } catch (e) {
+        console.warn('[Sniffer Browser] Failed to load extractors:', e);
+      }
+    }
+
+    function resolveExtractorUrl(name) {
+      if (!name) return 'https://www.google.com';
+      const clean = name.replace(/\s*\(CURRENTLY BROKEN\)/i, '').split(':')[0].trim();
+      
+      // Match curated sites first
+      const curated = CURATED_SITES.find(s => s.id.toLowerCase() === clean.toLowerCase() || s.name.toLowerCase().includes(clean.toLowerCase()));
+      if (curated) return curated.url;
+
+      // Check if extractor name contains a domain like 56.com, abc.net.au
+      if (clean.includes('.')) {
+        return clean.startsWith('http') ? clean : `https://${clean}`;
+      }
+
+      // Default to common domain
+      return `https://www.${clean.toLowerCase()}.com`;
+    }
+
+    function renderSitesModal() {
+      const q = (currentSitesQuery || '').trim().toLowerCase();
+      sitesGrid.innerHTML = '';
+
+      if (currentSitesCat === 'all' && !q) {
+        // Render Directory View (Alphabetical tag cloud of all 1847 extractors)
+        const count = allExtractorsList.length;
+        sitesSearchCount.innerText = t('sitesCountText').replace('{count}', count);
+
+        const container = document.createElement('div');
+        container.className = 'extractors-container';
+        container.style.width = '100%';
+
+        allExtractorsList.forEach(extName => {
+          const tag = document.createElement('div');
+          const isBroken = extName.includes('CURRENTLY BROKEN');
+          tag.className = `extractor-tag ${isBroken ? 'is-broken' : ''}`;
+          tag.title = isBroken ? `${extName} (提取器暂时不稳定)` : `点击访问 ${extName} 并嗅探视频`;
+          tag.innerHTML = `<span>🌐</span> <span>${extName}</span>`;
+          tag.addEventListener('click', () => {
+            const targetUrl = resolveExtractorUrl(extName);
+            navigateToSite(targetUrl, extName);
+          });
+          container.appendChild(tag);
+        });
+
+        sitesGrid.appendChild(container);
+        return;
+      }
+
+      // Filter Curated Sites
+      let filteredCurated = [];
+      if (currentSitesCat === 'popular') {
+        filteredCurated = CURATED_SITES.slice(0, 18);
+      } else if (currentSitesCat === 'all') {
+        filteredCurated = CURATED_SITES;
+      } else {
+        filteredCurated = CURATED_SITES.filter(s => s.category === currentSitesCat);
+      }
+
+      if (q) {
+        filteredCurated = CURATED_SITES.filter(s => 
+          s.name.toLowerCase().includes(q) || 
+          s.desc.toLowerCase().includes(q) || 
+          s.id.toLowerCase().includes(q) || 
+          s.url.toLowerCase().includes(q)
+        );
+      }
+
+      // Filter Extractor List if query present
+      let matchedExtractors = [];
+      if (q) {
+        matchedExtractors = allExtractorsList.filter(ext => ext.toLowerCase().includes(q));
+      }
+
+      const totalFound = (q ? matchedExtractors.length : filteredCurated.length);
+      sitesSearchCount.innerText = t('sitesCountText').replace('{count}', totalFound);
+
+      // Render Curated Cards
+      filteredCurated.forEach(site => {
+        const card = document.createElement('div');
+        card.className = 'site-card';
+        card.innerHTML = `
+          <div class="site-card-icon">${site.icon}</div>
+          <div class="site-card-main">
+            <div class="site-card-name-row">
+              <span class="site-card-name">${site.name}</span>
+              <span class="site-card-tag">${site.badge}</span>
+            </div>
+            <div class="site-card-desc">${site.desc}</div>
+          </div>
+          <span class="site-card-arrow">→</span>
+        `;
+        card.addEventListener('click', () => {
+          navigateToSite(site.url, site.name);
+        });
+        sitesGrid.appendChild(card);
+      });
+
+      // If user searched and there are matching extractors, append them as a tag cloud
+      if (q && matchedExtractors.length > 0) {
+        const extSection = document.createElement('div');
+        extSection.style.gridColumn = '1 / -1';
+        extSection.style.marginTop = '16px';
+        extSection.innerHTML = `
+          <div class="extractors-header">
+            <span>🔍 匹配的底层提取器引擎 (${matchedExtractors.length} 个)</span>
+            <span>点击可直接跳转</span>
+          </div>
+          <div class="extractors-container" id="matchedExtContainer"></div>
+        `;
+        sitesGrid.appendChild(extSection);
+        const container = extSection.querySelector('#matchedExtContainer');
+
+        matchedExtractors.slice(0, 100).forEach(extName => {
+          const tag = document.createElement('div');
+          const isBroken = extName.includes('CURRENTLY BROKEN');
+          tag.className = `extractor-tag ${isBroken ? 'is-broken' : ''}`;
+          tag.innerHTML = `<span>⚡</span> <span>${extName}</span>`;
+          tag.addEventListener('click', () => {
+            const targetUrl = resolveExtractorUrl(extName);
+            navigateToSite(targetUrl, extName);
+          });
+          container.appendChild(tag);
+        });
+
+        if (matchedExtractors.length > 100) {
+          const moreHint = document.createElement('div');
+          moreHint.style.fontSize = '11px';
+          moreHint.style.color = '#94a3b8';
+          moreHint.style.marginTop = '8px';
+          moreHint.innerText = `... 以及其他 ${matchedExtractors.length - 100} 个匹配项，输入更精确关键词即可筛选`;
+          extSection.appendChild(moreHint);
+        }
+      }
+    }
+
+    function navigateToSite(url, name) {
+      if (!url) return;
+      closeSitesModal();
+      webview.loadURL(url);
+      showHud(t('visitingSite') || '正在前往', name || url, 10, 'ShareCLIP 极速引擎已就绪');
+    }
+
+    async function openSitesModal() {
+      await initExtractorsData();
+      sitesModal.style.display = 'flex';
+      sitesSearchInput.value = currentSitesQuery || '';
+      sitesSearchClear.style.display = currentSitesQuery ? 'inline-block' : 'none';
+      renderSitesModal();
+      setTimeout(() => sitesSearchInput.focus(), 80);
+    }
+
+    function closeSitesModal() {
+      sitesModal.style.display = 'none';
+    }
+
+    // Modal Event Bindings
+    btnMoreSites?.addEventListener('click', () => {
+      openSitesModal();
+    });
+    btnSitesModalClose?.addEventListener('click', closeSitesModal);
+    btnSitesModalDone?.addEventListener('click', closeSitesModal);
+    sitesModal?.addEventListener('click', (e) => {
+      if (e.target === sitesModal) closeSitesModal();
+    });
+
+    // Search Box Bindings
+    sitesSearchInput?.addEventListener('input', () => {
+      currentSitesQuery = sitesSearchInput.value.trim();
+      sitesSearchClear.style.display = currentSitesQuery ? 'inline-block' : 'none';
+      renderSitesModal();
+    });
+    sitesSearchClear?.addEventListener('click', () => {
+      sitesSearchInput.value = '';
+      currentSitesQuery = '';
+      sitesSearchClear.style.display = 'none';
+      sitesSearchInput.focus();
+      renderSitesModal();
+    });
+
+    // Category Tabs Bindings
+    sitesCategoryTabs?.querySelectorAll('.sites-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        sitesCategoryTabs.querySelectorAll('.sites-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentSitesCat = tab.getAttribute('data-cat') || 'popular';
+        renderSitesModal();
+      });
+    });
+
     // ── Helper Utilities ─────────────────────────────────────────
     function formatDuration(sec) {
       if (!sec || isNaN(sec)) return '';
@@ -1671,6 +2334,10 @@
     window.addEventListener('keydown', (e) => {
       if (resolutionModal.style.display === 'flex') {
         if (e.key === 'Escape') {
+          if (sitesModal && sitesModal.style.display === 'flex') {
+            closeSitesModal();
+            return;
+          }
           closeResolutionModal();
         } else if (e.key === 'Enter') {
           btnModalDownload.click();
@@ -1715,6 +2382,14 @@
       });
     }
 
+    
+    // 14. Open More Sites Modal Remote Trigger
+    if (window.api?.onSnifferOpenMoreSites) {
+      window.api.onSnifferOpenMoreSites(() => {
+        openSitesModal();
+      });
+    }
+
     // Initial URL sync & query parameter inspection
     window.addEventListener('DOMContentLoaded', () => {
       try {
@@ -1725,6 +2400,11 @@
         } else {
           const savedLocale = localStorage.getItem('shareclip_locale');
           applyLocale(savedLocale || 'zh');
+        }
+
+        const openMore = urlParams.get('moreSites');
+        if (openMore === '1' || openMore === 'true') {
+          setTimeout(() => openSitesModal(), 250);
         }
 
         const initialUrl = urlParams.get('url');

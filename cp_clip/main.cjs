@@ -4049,7 +4049,7 @@ function broadcastYtProgress(event, data) {
   }
 }
 
-function openSnifferBrowserWindow(targetUrl, targetLang) {
+function openSnifferBrowserWindow(targetUrl, targetLang, openMoreSites = false) {
   const defaultUrl = targetUrl || 'https://m.youtube.com';
   if (targetLang) currentAppLocale = targetLang;
 
@@ -4066,6 +4066,9 @@ function openSnifferBrowserWindow(targetUrl, targetLang) {
     }
     if (currentAppLocale) {
       snifferBrowserWindow.webContents.send('sniffer:locale-updated', currentAppLocale);
+    }
+    if (openMoreSites) {
+      snifferBrowserWindow.webContents.send('sniffer:open-more-sites');
     }
     return { success: true, message: 'Focused existing sniffer browser' };
   }
@@ -4106,6 +4109,9 @@ function openSnifferBrowserWindow(targetUrl, targetLang) {
       if (currentAppLocale) {
         snifferBrowserWindow.webContents.send('sniffer:locale-updated', currentAppLocale);
       }
+      if (openMoreSites) {
+        snifferBrowserWindow.webContents.send('sniffer:open-more-sites');
+      }
     }
   };
 
@@ -4116,7 +4122,8 @@ function openSnifferBrowserWindow(targetUrl, targetLang) {
   snifferBrowserWindow.loadFile(fileToLoad, {
     query: {
       url: defaultUrl,
-      lang: currentAppLocale || 'zh'
+      lang: currentAppLocale || 'zh',
+      moreSites: openMoreSites ? '1' : '0'
     }
   });
 
@@ -4137,7 +4144,23 @@ function openSnifferBrowserWindow(targetUrl, targetLang) {
 ipcMain.handle('sniffer:open-window', async (event, params) => {
   const url = typeof params === 'string' ? params : params?.url;
   const lang = typeof params === 'object' ? params?.lang : null;
-  return openSnifferBrowserWindow(url, lang);
+  const openMoreSites = typeof params === 'object' ? Boolean(params?.openMoreSites) : false;
+  return openSnifferBrowserWindow(url, lang, openMoreSites);
+});
+
+ipcMain.handle('ytdlp:get-supported-sites', async () => {
+  try {
+    const jsonPathProd = path.join(__dirname, 'dist', 'ytdlp-extractors.json');
+    const jsonPathPublic = path.join(__dirname, 'public', 'ytdlp-extractors.json');
+    const targetPath = fs.existsSync(jsonPathProd) ? jsonPathProd : jsonPathPublic;
+    if (fs.existsSync(targetPath)) {
+      const data = fs.readFileSync(targetPath, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('[ytdlp:get-supported-sites] Error loading extractors:', err);
+  }
+  return [];
 });
 
 ipcMain.handle('sniffer:set-locale', async (event, lang) => {
