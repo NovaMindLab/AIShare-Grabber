@@ -3,6 +3,23 @@ const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 
+// Ensure Windows finds native DLLs and Microsoft Visual C++ redistributables
+if (process.platform === 'win32') {
+  try {
+    const candidates = [
+      path.join(__dirname, 'resources', 'redist_x64'),
+      path.join(__dirname, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch),
+      path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch),
+      path.dirname(process.execPath || '')
+    ];
+    for (const c of candidates) {
+      if (fs.existsSync(c) && (!process.env.PATH || !process.env.PATH.includes(c))) {
+        process.env.PATH = `${c};${process.env.PATH || ''}`;
+      }
+    }
+  } catch (_) {}
+}
+
 // Force Electron to use "ShareCLIP" as product name and AppData folder
 try {
   app.setName('ShareCLIP');

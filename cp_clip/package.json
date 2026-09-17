@@ -1,18 +1,20 @@
 {
   "name": "shareclip",
   "private": true,
-  "version": "4.2.0",
+  "version": "4.2.1",
   "description": "ShareCLIP PC Client",
   "author": "ShareCLIP Team <support@shareclip.com>",
   "homepage": "https://novamindlab.github.io/AIShare-Grabber/",
   "type": "module",
   "main": "main.cjs",
   "scripts": {
+    "postinstall": "node scripts/copy-redist.cjs",
+    "prebuild": "node scripts/copy-redist.cjs",
     "vite:dev": "vite",
-    "vite:build": "vite build",
+    "vite:build": "node scripts/copy-redist.cjs && vite build",
     "electron:dev": "cross-env NODE_ENV=development electron .",
     "dev": "concurrently -k \"npm run vite:dev\" \"wait-on http://localhost:5173 && npm run electron:dev\"",
-    "build": "vite build",
+    "build": "node scripts/copy-redist.cjs && vite build",
     "preview": "vite preview",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
@@ -114,6 +116,13 @@
     "win": {
       "executableName": "ShareCLIP",
       "icon": "build/icon.ico",
+      "extraFiles": [
+        {
+          "from": "resources/redist_x64",
+          "to": ".",
+          "filter": ["*.dll"]
+        }
+      ],
       "target": [
         "nsis"
       ]

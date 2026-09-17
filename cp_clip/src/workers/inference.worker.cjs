@@ -2,12 +2,14 @@ const { parentPort } = require('worker_threads');
 const fs = require('fs');
 const path = require('path');
 
-// Ensure Windows finds native onnxruntime.dll and DirectML.dll
+// Ensure Windows finds native onnxruntime.dll, DirectML.dll, and MSVC runtime DLLs
 if (process.platform === 'win32') {
   try {
     const candidates = [
+      path.join(__dirname, '..', '..', 'resources', 'redist_x64'),
       path.join(__dirname, '..', '..', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch),
-      path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch)
+      path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch),
+      path.dirname(process.execPath || '')
     ];
     for (const c of candidates) {
       if (fs.existsSync(c) && (!process.env.PATH || !process.env.PATH.includes(c))) {
