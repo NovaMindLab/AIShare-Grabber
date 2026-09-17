@@ -80,9 +80,9 @@
         </div>
       </div>
 
-      <!-- Main Navigation -->
+      <!-- 1. Interconnection / Connect -->
       <div class="sidebar-section">
-        <h2 class="section-title">{{ t.sidebar.connHeader }}</h2>
+        <h2 class="section-title">{{ t.sidebar.connHeader || '互联互传' }}</h2>
         <div class="category-list">
           <div 
             class="category-item" 
@@ -97,9 +97,9 @@
         </div>
       </div>
 
-      <!-- Local Resources Navigation -->
+      <!-- 2. Photos & AI Albums -->
       <div class="sidebar-section">
-        <h2 class="section-title">{{ t.sidebar.localHeader }}</h2>
+        <h2 class="section-title">{{ t.sidebar.photosHeader || '照片与相册' }}</h2>
         <div class="category-list">
           <div 
             class="category-item" 
@@ -107,7 +107,7 @@
             @click="currentTab = 'images'"
           >
             <span>{{ t.sidebar.tabImages }}</span>
-            <span class="category-count" :class="{ 'ai-processing-badge': isReclassifying || aiQueueProgress.isProcessing }">{{ picturesBadgeText }}</span>
+            <span class="category-count" v-if="localImages.length > 0 || isReclassifying || aiQueueProgress.isProcessing" :class="{ 'ai-processing-badge': isReclassifying || aiQueueProgress.isProcessing }">{{ picturesBadgeText }}</span>
           </div>
           <div 
             class="category-item" 
@@ -115,7 +115,23 @@
             @click="currentTab = 'album'"
           >
             <span>{{ t.sidebar.tabAlbum }}</span>
-            <span class="category-count">{{ albumBackupImages.length }}</span>
+            <span class="category-count" v-if="albumBackupImages.length > 0">{{ albumBackupImages.length }}</span>
+          </div>
+          <div 
+            class="category-item" 
+            :class="{ active: currentTab === 'people' }"
+            @click="currentTab = 'people'"
+          >
+            <span>{{ t.sidebar.tabPeople || '👥 人物相册' }}</span>
+            <span class="category-count" v-if="personClusters.length > 0">{{ personClusters.length }}</span>
+          </div>
+          <div 
+            class="category-item" 
+            :class="{ active: currentTab === 'map' }"
+            @click="currentTab = 'map'"
+          >
+            <span>{{ t.sidebar.tabMap || '🗺️ 足迹地图' }}</span>
+            <span class="category-count" v-if="imagesWithGps.length > 0">{{ imagesWithGps.length }}</span>
           </div>
           <div 
             class="category-item" 
@@ -125,29 +141,20 @@
             <span>{{ t.sidebar.tabSimilar }}</span>
             <span class="category-count" v-if="similarGroups.length > 0">{{ similarGroups.length }}</span>
           </div>
-          <div 
-            class="category-item" 
-            :class="{ active: currentTab === 'map' }"
-            @click="currentTab = 'map'"
-          >
-            <span>{{ t.sidebar.tabMap || '🗺️ 足迹地图' }}</span>
-            <span class="category-count">{{ imagesWithGps.length }}</span>
-          </div>
-          <div 
-            class="category-item" 
-            :class="{ active: currentTab === 'people' }"
-            @click="currentTab = 'people'"
-          >
-            <span>{{ t.sidebar.tabPeople || '👥 人物相册' }}</span>
-            <span class="category-count">{{ personClusters.length }}</span>
-          </div>
+        </div>
+      </div>
+
+      <!-- 3. Media & Files -->
+      <div class="sidebar-section">
+        <h2 class="section-title">{{ t.sidebar.mediaHeader || '影音与文件' }}</h2>
+        <div class="category-list">
           <div 
             class="category-item" 
             :class="{ active: currentTab === 'videos' }"
             @click="currentTab = 'videos'"
           >
             <span>{{ t.sidebar.tabVideos }}</span>
-            <span class="category-count">{{ localVideos.length }}</span>
+            <span class="category-count" v-if="localVideos.length > 0">{{ localVideos.length }}</span>
           </div>
           <div 
             class="category-item" 
@@ -155,7 +162,7 @@
             @click="currentTab = 'audios'"
           >
             <span>{{ t.sidebar.tabAudios }}</span>
-            <span class="category-count">{{ localAudios.length }}</span>
+            <span class="category-count" v-if="localAudios.length > 0">{{ localAudios.length }}</span>
           </div>
           <div 
             class="category-item" 
@@ -163,8 +170,15 @@
             @click="currentTab = 'files'"
           >
             <span>{{ t.sidebar.tabFiles }}</span>
-            <span class="category-count">{{ localDocs.length }}</span>
+            <span class="category-count" v-if="localDocs.length > 0">{{ localDocs.length }}</span>
           </div>
+        </div>
+      </div>
+
+      <!-- 4. Tools -->
+      <div class="sidebar-section">
+        <h2 class="section-title">{{ t.sidebar.toolsHeader || '扩展工具' }}</h2>
+        <div class="category-list">
           <div 
             class="category-item" 
             :class="{ active: currentTab === 'yt-dlp' }"
@@ -2484,19 +2498,19 @@
         <!-- 5.5 SIMILAR IMAGES TAB -->
         <div v-else-if="currentTab === 'similar'" style="width: 100%; box-sizing: border-box; text-align: left; position: relative;">
           <!-- Sticky Control Bar (不随滚动移出视野) -->
-          <div style="position: sticky; top: -32px; z-index: 30; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); transition: all 0.25s ease;">
+          <div class="similar-control-bar">
             
             <!-- Threshold Slider -->
             <div style="display: flex; align-items: center; gap: 16px;">
-              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600; white-space: nowrap;">{{ t.similar?.similarityThreshold || '相似度阈值:' }}</span>
+              <span class="similar-threshold-label">{{ t.similar?.similarityThreshold || '相似度阈值:' }}</span>
               <input 
                 type="range" 
                 min="70" 
                 max="99" 
                 v-model="similarityThreshold" 
-                style="width: 180px; accent-color: #a855f7; cursor: pointer;"
+                class="similar-slider"
               />
-              <span style="font-size: 14px; font-weight: 700; color: #a855f7; background: rgba(168, 85, 247, 0.1); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.2); min-width: 45px; text-align: center;">
+              <span class="similar-threshold-badge">
                 {{ similarityThreshold }}%
               </span>
             </div>
@@ -2546,11 +2560,11 @@
           <transition name="modal-fade">
             <div 
               v-if="selectedDuplicateIds.size > 0" 
-              style="position: fixed; bottom: 36px; left: 58%; transform: translateX(-50%); z-index: 60; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(239, 68, 68, 0.35); box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 20px rgba(239, 68, 68, 0.2); border-radius: 99px; padding: 10px 24px; display: flex; align-items: center; gap: 20px; animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);"
+              class="similar-floating-bar"
             >
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 16px;">🖼️</span>
-                <span style="font-size: 13px; font-weight: 700; color: #fff;">{{ t.similar?.selectedCount ? t.similar.selectedCount.replace('{count}', selectedDuplicateIds.size) : `已选中 ${selectedDuplicateIds.size} 张重复图片` }}</span>
+                <span style="font-size: 13px; font-weight: 700;">{{ t.similar?.selectedCount ? t.similar.selectedCount.replace('{count}', selectedDuplicateIds.size) : `已选中 ${selectedDuplicateIds.size} 张重复图片` }}</span>
               </div>
               <div style="display: flex; align-items: center; gap: 10px;">
                 <button 
@@ -2899,9 +2913,11 @@
                         v-if="updateReadyToInstall"
                         class="dp-btn dp-browse"
                         style="background: linear-gradient(135deg, #f59e0b, #d97706); margin-left: 10px;"
+                        :disabled="isRestartingForUpdate"
                         @click="installUpdate"
                       >
-                        {{ t.update?.installAndRestartBtn || '🚀 立即安装并重启' }}
+                        <span v-if="isRestartingForUpdate">⏳ {{ t.update?.restarting || '正在准备安装并重启...' }}</span>
+                        <span v-else>{{ t.update?.installAndRestartBtn || '🚀 立即安装并重启' }}</span>
                       </button>
                     </div>
 
@@ -3032,9 +3048,9 @@
 
     <!-- Update Downloaded & Ready Modal -->
     <transition name="modal-fade">
-    <div class="modal-backdrop" v-if="updateReadyToInstall && showUpdateCompleteModal" @click.self="showUpdateCompleteModal = false">
+    <div class="modal-backdrop" v-if="updateReadyToInstall && showUpdateCompleteModal" @click.self="!isRestartingForUpdate && (showUpdateCompleteModal = false)">
       <div class="update-card">
-        <button class="update-card-close" @click="showUpdateCompleteModal = false">&#x2715;</button>
+        <button class="update-card-close" :disabled="isRestartingForUpdate" @click="showUpdateCompleteModal = false">&#x2715;</button>
         <div class="update-card-header">
           <div class="update-card-icon-wrap success">
             <span class="update-card-icon">&#x2705;</span>
@@ -3059,10 +3075,16 @@
             </span>
           </div>
         </div>
-        <p class="update-restart-hint">{{ t.update?.restartNotice || '重启后将自动在后台静默完成安装并重新打开，数据不会丢失。' }}</p>
+        <p class="update-restart-hint" style="color: #c084fc; font-weight: 600;" v-if="isRestartingForUpdate">
+          {{ t.update?.restartingHint || '🚀 正在启动静默安装并退出应用，即将自动重启打开...' }}
+        </p>
+        <p class="update-restart-hint" v-else>{{ t.update?.restartNotice || '重启后将自动在后台静默完成安装并重新打开，数据不会丢失。' }}</p>
         <div class="update-card-actions">
-          <button class="update-btn-cancel" @click="showUpdateCompleteModal = false">{{ t.update?.later || '稍后重启' }}</button>
-          <button class="update-btn-confirm" @click="installUpdate">{{ t.update?.restartNow || '立即重启并更新' }}</button>
+          <button class="update-btn-cancel" :disabled="isRestartingForUpdate" @click="showUpdateCompleteModal = false">{{ t.update?.later || '稍后重启' }}</button>
+          <button class="update-btn-confirm" :disabled="isRestartingForUpdate" @click="installUpdate">
+            <span v-if="isRestartingForUpdate">⏳ {{ t.update?.restarting || '正在准备安装并重启...' }}</span>
+            <span v-else>{{ t.update?.restartNow || '立即重启并更新' }}</span>
+          </button>
         </div>
       </div>
     </div>
@@ -3186,7 +3208,12 @@
         </div>
 
         <!-- Center Viewport Area with Left & Right Nav Chevrons -->
-        <div style="flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 10px 80px; box-sizing: border-box;">
+        <div 
+          ref="lightboxViewportRef"
+          @wheel="handleLightboxWheel"
+          @mousedown="handleLightboxMouseDown"
+          style="flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 10px 80px; box-sizing: border-box;"
+        >
           
           <!-- Previous Button (Left) -->
           <button 
@@ -3217,11 +3244,14 @@
                     objectFit: 'contain',
                     borderRadius: '10px',
                     boxShadow: '0 24px 60px rgba(0,0,0,0.75)',
-                    transform: `scale(${currentImageScale}) rotate(${currentImageRotation}deg)`,
-                    transition: 'transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1)',
-                    cursor: currentImageScale > 1 ? 'grab' : 'zoom-in'
+                    transform: `translate(${currentImageTranslateX}px, ${currentImageTranslateY}px) scale(${currentImageScale}) rotate(${currentImageRotation}deg)`,
+                    transition: isDraggingImage ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1)',
+                    cursor: isDraggingImage ? 'grabbing' : (currentImageScale > 1 ? 'grab' : 'zoom-in'),
+                    userSelect: 'none',
+                    pointerEvents: 'auto'
                   }"
-                  @dblclick="currentImageScale = currentImageScale === 1 ? 2 : 1"
+                  @dragstart.prevent
+                  @dblclick="handleImageDoubleClick"
                 />
                 
                 <video 
@@ -3302,25 +3332,34 @@
           <div style="display: flex; align-items: center; gap: 8px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px; padding: 5px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
             <!-- Zoom In -->
             <button 
-              @click="currentImageScale = Math.min(currentImageScale + 0.25, 4)" 
+              @click="zoomIn" 
               class="btn-icon-subtle" 
-              :title="t.lightbox?.zoomIn || '放大'"
+              :title="t.lightbox?.zoomIn || '放大 (+)'"
               style="padding: 6px 10px; font-size: 13px; color: #e2e8f0; background: transparent; border: none; cursor: pointer; border-radius: 8px;"
             >
               🔍+ {{ t.lightbox?.zoomIn || '放大' }}
             </button>
+            <!-- Zoom Percentage Indicator / Click to reset -->
+            <button 
+              @click="resetImageView" 
+              class="btn-icon-subtle" 
+              :title="t.lightbox?.reset || '重置 1:1'"
+              style="padding: 4px 8px; font-size: 11px; font-weight: 700; color: #c084fc; background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); cursor: pointer; border-radius: 6px; min-width: 46px;"
+            >
+              {{ Math.round(currentImageScale * 100) }}%
+            </button>
             <!-- Zoom Out -->
             <button 
-              @click="currentImageScale = Math.max(currentImageScale - 0.25, 0.5)" 
+              @click="zoomOut" 
               class="btn-icon-subtle" 
-              :title="t.lightbox?.zoomOut || '缩小'"
+              :title="t.lightbox?.zoomOut || '缩小 (-)'"
               style="padding: 6px 10px; font-size: 13px; color: #e2e8f0; background: transparent; border: none; cursor: pointer; border-radius: 8px;"
             >
               🔍- {{ t.lightbox?.zoomOut || '缩小' }}
             </button>
             <!-- Reset 1:1 -->
             <button 
-              @click="currentImageScale = 1; currentImageRotation = 0" 
+              @click="resetImageView" 
               class="btn-icon-subtle" 
               :title="t.lightbox?.reset || '重置'"
               style="padding: 6px 10px; font-size: 13px; color: #e2e8f0; background: transparent; border: none; cursor: pointer; border-radius: 8px;"
@@ -3571,6 +3610,128 @@ const isFetchingHighRes = ref(false);
 const isHighResLoaded = ref(false);
 const currentImageScale = ref(1);
 const currentImageRotation = ref(0);
+const currentImageTranslateX = ref(0);
+const currentImageTranslateY = ref(0);
+const isDraggingImage = ref(false);
+const dragStartX = ref(0);
+const dragStartY = ref(0);
+const lightboxViewportRef = ref(null);
+
+function resetImageView() {
+  currentImageScale.value = 1;
+  currentImageRotation.value = 0;
+  currentImageTranslateX.value = 0;
+  currentImageTranslateY.value = 0;
+}
+
+function zoomIn() {
+  const oldScale = currentImageScale.value;
+  const newScale = Math.min(Number((oldScale * 1.25).toFixed(2)), 8);
+  currentImageScale.value = newScale;
+}
+
+function zoomOut() {
+  const oldScale = currentImageScale.value;
+  const newScale = Math.max(Number((oldScale / 1.25).toFixed(2)), 0.3);
+  currentImageScale.value = newScale;
+  if (newScale <= 1) {
+    currentImageTranslateX.value = 0;
+    currentImageTranslateY.value = 0;
+  }
+}
+
+function handleLightboxWheel(event) {
+  if (selectedItemType.value !== 'image') return;
+  event.preventDefault();
+  
+  const oldScale = currentImageScale.value;
+  // Zoom factor: 15% per wheel tick
+  const zoomFactor = event.deltaY < 0 ? 1.15 : 1 / 1.15;
+  let newScale = oldScale * zoomFactor;
+  
+  // Clamp scale between 0.3x and 8x
+  if (newScale < 0.3) newScale = 0.3;
+  if (newScale > 8) newScale = 8;
+  
+  // Snap smoothly to 1.0 when zooming out close to unity
+  if (Math.abs(newScale - 1) < 0.06 && zoomFactor < 1) {
+    newScale = 1;
+  }
+  
+  if (!lightboxViewportRef.value) {
+    currentImageScale.value = Number(newScale.toFixed(3));
+    if (newScale <= 1) {
+      currentImageTranslateX.value = 0;
+      currentImageTranslateY.value = 0;
+    }
+    return;
+  }
+  
+  const rect = lightboxViewportRef.value.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const dx = event.clientX - cx;
+  const dy = event.clientY - cy;
+  
+  if (newScale <= 1) {
+    currentImageTranslateX.value = 0;
+    currentImageTranslateY.value = 0;
+  } else {
+    // Map-like focal zoom: cursor position anchors the expansion
+    const ratio = newScale / oldScale;
+    currentImageTranslateX.value = currentImageTranslateX.value - (dx - currentImageTranslateX.value) * (ratio - 1);
+    currentImageTranslateY.value = currentImageTranslateY.value - (dy - currentImageTranslateY.value) * (ratio - 1);
+  }
+  
+  currentImageScale.value = Number(newScale.toFixed(3));
+}
+
+function handleLightboxMouseDown(event) {
+  if (selectedItemType.value !== 'image' || event.button !== 0) return;
+  if (event.target.closest('button') || event.target.closest('.lightbox-nav-btn')) return;
+  
+  isDraggingImage.value = true;
+  dragStartX.value = event.clientX - currentImageTranslateX.value;
+  dragStartY.value = event.clientY - currentImageTranslateY.value;
+  
+  window.addEventListener('mousemove', handleLightboxMouseMove);
+  window.addEventListener('mouseup', handleLightboxMouseUp);
+}
+
+function handleLightboxMouseMove(event) {
+  if (!isDraggingImage.value) return;
+  currentImageTranslateX.value = event.clientX - dragStartX.value;
+  currentImageTranslateY.value = event.clientY - dragStartY.value;
+}
+
+function handleLightboxMouseUp() {
+  if (isDraggingImage.value) {
+    isDraggingImage.value = false;
+    window.removeEventListener('mousemove', handleLightboxMouseMove);
+    window.removeEventListener('mouseup', handleLightboxMouseUp);
+  }
+}
+
+function handleImageDoubleClick(event) {
+  if (selectedItemType.value !== 'image') return;
+  if (currentImageScale.value > 1.2) {
+    resetImageView();
+  } else {
+    const oldScale = currentImageScale.value;
+    const newScale = 2.5;
+    if (lightboxViewportRef.value) {
+      const rect = lightboxViewportRef.value.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = event.clientX - cx;
+      const dy = event.clientY - cy;
+      const ratio = newScale / oldScale;
+      currentImageTranslateX.value = currentImageTranslateX.value - (dx - currentImageTranslateX.value) * (ratio - 1);
+      currentImageTranslateY.value = currentImageTranslateY.value - (dy - currentImageTranslateY.value) * (ratio - 1);
+    }
+    currentImageScale.value = newScale;
+  }
+}
 const currentTab = ref('images'); // 'link' | 'images' | 'album' | 'similar' | 'map' | 'people' | 'videos' | 'audios' | 'files' | 'yt-dlp'
 
 // Person Clusters & Face Recognition State
@@ -3868,7 +4029,9 @@ function initMap() {
           return L.divIcon({
             html: `
               <div class="map-cluster-marker">
-                <img src="${firstImgSrc}" class="map-cluster-img" />
+                <div class="map-cluster-avatar">
+                  <img src="${firstImgSrc}" class="map-cluster-img" />
+                </div>
                 <span class="map-cluster-count">${count}</span>
               </div>
             `,
@@ -3887,8 +4050,8 @@ function initMap() {
             </div>
           `,
           className: 'custom-marker-icon',
-          iconSize: [40, 40],
-          iconAnchor: [20, 20]
+          iconSize: [42, 42],
+          iconAnchor: [21, 21]
         });
 
         const marker = L.marker([img.latitude, img.longitude], { 
@@ -3935,10 +4098,18 @@ function initMap() {
 watch(currentTab, (newTab) => {
   if (newTab === 'map') {
     initMap();
-  } else if (newTab === 'videos' && syncStatus.value === 'connected') {
-    queryRemoteVideoCatalog();
-  } else if (newTab === 'audios' && syncStatus.value === 'connected') {
-    queryRemoteAudioCatalog();
+  } else if (newTab === 'videos') {
+    if (syncStatus.value === 'connected') {
+      queryRemoteVideoCatalog();
+    } else if (videoTabFilter.value === 'unsynced') {
+      videoTabFilter.value = 'synced';
+    }
+  } else if (newTab === 'audios') {
+    if (syncStatus.value === 'connected') {
+      queryRemoteAudioCatalog();
+    } else if (audioTabFilter.value === 'unsynced') {
+      audioTabFilter.value = 'synced';
+    }
   }
 });
 
@@ -4667,6 +4838,16 @@ watch(syncStatus, (newStatus) => {
   if (hasApi && window.api.setSyncStatus) {
     window.api.setSyncStatus(newStatus, activeDeviceUuid.value);
   }
+  if (newStatus !== 'connected') {
+    // When disconnected from mobile, automatically switch off the "Phone Pending Download" filter
+    // so users immediately see their local downloaded/backed-up media on PC!
+    if (videoTabFilter.value === 'unsynced') {
+      videoTabFilter.value = 'synced';
+    }
+    if (audioTabFilter.value === 'unsynced') {
+      audioTabFilter.value = 'synced';
+    }
+  }
 });
 
 function toggleTheme() {
@@ -4757,6 +4938,7 @@ const updateDownloading = ref(false);
 const updateDownloadProgress = ref(0);
 const updateReadyToInstall = ref(false);
 const updateInstallerPath = ref('');
+const isRestartingForUpdate = ref(false);
 
 // Differential & Full update stats
 const showUpdateConfirmModal = ref(false);
@@ -4857,10 +5039,12 @@ async function startDownloadUpdate() {
 }
 
 async function installUpdate() {
-  if (!updateInstallerPath.value) return;
+  if (!updateInstallerPath.value || isRestartingForUpdate.value) return;
+  isRestartingForUpdate.value = true;
   try {
     await window.api.installUpdate(updateInstallerPath.value);
   } catch (err) {
+    isRestartingForUpdate.value = false;
     alert('安装失败: ' + (err.message || err));
   }
 }
@@ -5521,9 +5705,11 @@ function cleanupWebRtc() {
   activePeerIp.value = null;
   isThumbnailSyncing.value = false;
   isAlbumSyncing.value = false;
+  isVideoSyncing.value = false;
+  isAudioSyncing.value = false;
   chatMessages.value = [];
-  activeDeviceUuid.value = null;
-  activeDeviceName.value = '';
+  // Retain activeDeviceUuid.value and activeDeviceName.value so offline viewing of downloaded videos,
+  // audios, album photos, and person clusters continues seamlessly!
   activeDeviceSystemInfo.value = null;
   hasGeneratedAnswer = false;
   isProcessingOffer = false;
@@ -7489,6 +7675,47 @@ onMounted(() => {
       if (savedPath) downloadPath.value = savedPath;
     });
 
+    // Automatically load the offline device database on PC startup
+    if (window.api && window.api.loadInitialDeviceSync) {
+      window.api.loadInitialDeviceSync().then((syncInfo) => {
+        if (syncInfo && syncInfo.resources && syncInfo.resources.length > 0) {
+          console.log(`[Offline Sync] Loaded ${syncInfo.resources.length} resources for device: ${syncInfo.deviceUuid}`);
+          if (syncInfo.deviceUuid && !activeDeviceUuid.value) {
+            activeDeviceUuid.value = syncInfo.deviceUuid;
+            activeDeviceName.value = syncInfo.deviceName || '离线设备相册';
+          }
+          // Populate images.value with all resources
+          images.value = syncInfo.resources.map(res => ({
+            id: res.id,
+            path: res.path,
+            name: res.name,
+            size: res.size,
+            duration: res.duration,
+            create_date: res.create_date,
+            src: `local:///${res.path.replace(/\\/g, '/')}`,
+            status: 'completed',
+            predictions: typeof res.predictions === 'string' ? JSON.parse(res.predictions || '[]') : (res.predictions || []),
+            type: res.type,
+            latitude: res.latitude,
+            longitude: res.longitude
+          }));
+
+          thumbnailImages.value = syncInfo.resources
+            .filter(res => res.type === 'thumbnail')
+            .map(res => ({
+              src: `local:///${res.path.replace(/\\/g, '/')}`,
+              name: res.name,
+              path: res.path,
+              predictions: typeof res.predictions === 'string' ? JSON.parse(res.predictions || '[]') : (res.predictions || [])
+            }));
+
+          loadPersonClusters();
+        }
+      }).catch(err => {
+        console.warn('[Offline Sync] Failed to load initial offline device sync:', err);
+      });
+    }
+
     // Check for updates in the background on startup
     checkAppUpdates();
 
@@ -8597,8 +8824,7 @@ function scrollFilmstripToActive() {
 function openDetails(img, contextList = null) {
   if (!img) return;
   selectedImage.value = { ...img };
-  currentImageScale.value = 1;
-  currentImageRotation.value = 0;
+  resetImageView();
   isHighResLoaded.value = false;
   isFetchingHighRes.value = false;
   lightboxDirection.value = 'next';
@@ -8620,9 +8846,13 @@ function openDetails(img, contextList = null) {
 
 function closeDetails() {
   selectedImage.value = null;
-  currentImageScale.value = 1;
-  currentImageRotation.value = 0;
+  resetImageView();
   isFetchingHighRes.value = false;
+  if (isDraggingImage.value) {
+    isDraggingImage.value = false;
+    window.removeEventListener('mousemove', handleLightboxMouseMove);
+    window.removeEventListener('mouseup', handleLightboxMouseUp);
+  }
 }
 
 function prevImage() {
@@ -8632,8 +8862,7 @@ function prevImage() {
   const nextImg = currentViewingList.value[currentViewingIndex.value];
   if (nextImg) {
     selectedImage.value = { ...nextImg };
-    currentImageScale.value = 1;
-    currentImageRotation.value = 0;
+    resetImageView();
     isHighResLoaded.value = false;
     isFetchingHighRes.value = false;
     checkAndFetchHighRes(nextImg);
@@ -8649,8 +8878,7 @@ function nextImage() {
   const nextImg = currentViewingList.value[currentViewingIndex.value];
   if (nextImg) {
     selectedImage.value = { ...nextImg };
-    currentImageScale.value = 1;
-    currentImageRotation.value = 0;
+    resetImageView();
     isHighResLoaded.value = false;
     isFetchingHighRes.value = false;
     checkAndFetchHighRes(nextImg);
@@ -8667,8 +8895,7 @@ function selectLightboxImageByIndex(idx) {
   const nextImg = currentViewingList.value[idx];
   if (nextImg) {
     selectedImage.value = { ...nextImg };
-    currentImageScale.value = 1;
-    currentImageRotation.value = 0;
+    resetImageView();
     isHighResLoaded.value = false;
     isFetchingHighRes.value = false;
     checkAndFetchHighRes(nextImg);
@@ -8765,6 +8992,17 @@ function handleGlobalKeydown(e) {
   } else if (e.key === 'Escape') {
     e.preventDefault();
     closeDetails();
+  } else if (selectedItemType.value === 'image') {
+    if (e.key === '+' || e.key === '=') {
+      e.preventDefault();
+      zoomIn();
+    } else if (e.key === '-' || e.key === '_') {
+      e.preventDefault();
+      zoomOut();
+    } else if (e.key === '0') {
+      e.preventDefault();
+      resetImageView();
+    }
   }
 }
 
@@ -9202,6 +9440,26 @@ function getMockClassification(url) {
   font-size: 11px;
   opacity: 0.85;
   font-family: var(--font-mono);
+}
+
+.light-mode .video-filter-tabs {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.light-mode .video-filter-btn {
+  color: #64748b;
+}
+
+.light-mode .video-filter-btn:hover {
+  color: #0f172a;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.light-mode .video-filter-btn.active {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.28);
 }
 
 /* Date Timeline */

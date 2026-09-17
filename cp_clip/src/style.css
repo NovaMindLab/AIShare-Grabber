@@ -154,6 +154,137 @@ body {
   font-weight: 700;
 }
 
+/* Custom Window Title Bar Light Mode */
+.light-mode .custom-title-bar {
+  background: #ffffff;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.light-mode .title-bar-text {
+  color: #0f172a;
+}
+
+.light-mode .title-bar-btn {
+  color: #64748b;
+}
+
+.light-mode .title-bar-btn:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+}
+
+.light-mode .title-bar-btn.close:hover {
+  background: #e81123;
+  color: white;
+}
+
+.light-mode .title-bar-btn.settings-top-btn {
+  border-right: 1px solid rgba(15, 23, 42, 0.08);
+  color: #475569;
+}
+
+.light-mode .title-bar-btn.settings-top-btn:hover {
+  background: rgba(168, 85, 247, 0.1);
+  color: #7c3aed;
+}
+
+.light-mode .title-bar-btn.settings-top-btn.active {
+  background: rgba(168, 85, 247, 0.15);
+  color: #7c3aed;
+}
+
+/* Similar Images Control Bar & Floating Bar */
+.similar-control-bar {
+  position: sticky;
+  top: -32px;
+  z-index: 30;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  transition: all 0.25s ease;
+}
+
+.light-mode .similar-control-bar {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.similar-threshold-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.similar-slider {
+  width: 180px;
+  accent-color: #a855f7;
+  cursor: pointer;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.light-mode .similar-slider {
+  accent-color: #7c3aed;
+  background: #e2e8f0;
+}
+
+.similar-threshold-badge {
+  font-size: 14px;
+  font-weight: 700;
+  color: #a855f7;
+  background: rgba(168, 85, 247, 0.1);
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  min-width: 45px;
+  text-align: center;
+}
+
+.light-mode .similar-threshold-badge {
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.08);
+  border-color: rgba(124, 58, 237, 0.2);
+}
+
+.similar-floating-bar {
+  position: fixed;
+  bottom: 36px;
+  left: 58%;
+  transform: translateX(-50%);
+  z-index: 60;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 20px rgba(239, 68, 68, 0.2);
+  border-radius: 99px;
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.light-mode .similar-floating-bar {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 0 16px rgba(239, 68, 68, 0.1);
+  color: #0f172a;
+}
+
 /* Main app body below title bar */
 .app-body {
   display: flex;
@@ -198,7 +329,7 @@ body {
 }
 
 .sidebar-section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .section-title {
@@ -1791,57 +1922,107 @@ body {
    🗺️ Footprint Map Styles
    ========================================================================== */
 .custom-cluster-icon {
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  border: none !important;
 }
 .map-cluster-marker {
   position: relative;
   width: 46px;
   height: 46px;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.map-cluster-avatar {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  min-height: 46px;
+  max-width: 46px;
+  max-height: 46px;
   border-radius: 50%;
   border: 3px solid #8b5cf6;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
   background-color: var(--bg-secondary);
-  overflow: visible;
+  overflow: hidden; /* Crucial: strictly clips image into a circle, preventing wide oval distortion */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
+
+/* Force override Leaflet's `.leaflet-container .leaflet-marker-pane img { width: auto; max-width: none !important; }` */
+.leaflet-container .leaflet-marker-pane img.map-cluster-img,
+.map-cluster-avatar img,
 .map-cluster-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+  display: block !important;
 }
+
 .map-cluster-count {
   position: absolute;
   top: -6px;
   right: -6px;
-  background: #c084fc;
-  color: #0f172a;
+  background: linear-gradient(135deg, #c084fc, #a855f7);
+  color: #ffffff;
   font-size: 11px;
   font-weight: 800;
-  border-radius: 10px;
-  padding: 2px 6px;
-  border: 1.5px solid #0f172a;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  border-radius: 12px;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 2px solid #0f172a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  z-index: 10;
+  pointer-events: none;
 }
 
 .custom-marker-icon {
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  border: none !important;
 }
 .map-thumbnail-marker {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  max-width: 42px;
+  max-height: 42px;
   border-radius: 50%;
   border: 2.5px solid var(--accent-primary);
-  overflow: hidden;
+  overflow: hidden; /* Crucial: strictly clips thumbnail into a circle */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   background-color: var(--bg-secondary);
   transition: transform 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
+
+/* Force override Leaflet's auto width on single markers */
+.leaflet-container .leaflet-marker-pane .map-thumbnail-marker img,
 .map-thumbnail-marker img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+  display: block !important;
 }
 
 /* Style Leaflet popups to match dark theme */

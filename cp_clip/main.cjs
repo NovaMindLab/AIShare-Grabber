@@ -95,6 +95,7 @@ function getPhysicalPath(filePath) {
 }
 
 let activeDeviceUuid = null;
+let activeDeviceName = '';
 let activeDeviceDb = null;
 const { pathToFileURL } = require('url');
 let ort = null;
@@ -179,9 +180,11 @@ let tokenizer = null;
 let textEmbeddings = {};
 const imageEmbeddingsCache = {}; // imagePath -> Float32Array (512-dim)
 
-// Download path configuration (persisted in a JSON settings file)
+// Download path and device configuration (persisted in a JSON settings file)
 const settingsFilePath = path.join(app.getPath('userData'), 'app_settings.json');
 let customDownloadPath = null;
+let lastDeviceUuid = null;
+let lastDeviceName = null;
 
 function loadSettings() {
   try {
@@ -192,6 +195,14 @@ function loadSettings() {
         customDownloadPath = settings.downloadPath;
         console.log('[Settings] Loaded download path:', customDownloadPath);
       }
+      if (settings.lastDeviceUuid && typeof settings.lastDeviceUuid === 'string') {
+        lastDeviceUuid = settings.lastDeviceUuid;
+        console.log('[Settings] Loaded last device UUID:', lastDeviceUuid);
+      }
+      if (settings.lastDeviceName && typeof settings.lastDeviceName === 'string') {
+        lastDeviceName = settings.lastDeviceName;
+        console.log('[Settings] Loaded last device Name:', lastDeviceName);
+      }
     }
   } catch (err) {
     console.error('[Settings] Failed to load settings file:', err);
@@ -200,7 +211,11 @@ function loadSettings() {
 
 function saveSettings() {
   try {
-    const settings = { downloadPath: customDownloadPath };
+    const settings = {
+      downloadPath: customDownloadPath,
+      lastDeviceUuid: activeDeviceUuid || lastDeviceUuid,
+      lastDeviceName: activeDeviceName || lastDeviceName
+    };
     fs.writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2), 'utf-8');
   } catch (err) {
     console.error('[Settings] Failed to save settings file:', err);
@@ -2179,14 +2194,103 @@ ipcMain.handle('send-ice-candidate', async (event, { sdpMid, sdpMLineIndex, cand
   return false;
 });
 
-ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => {
+// Scan media files recursively
+function scanMediaRecursive(dir, allowedExts) {
+  let results = [];
+  if (!dir || !fs.existsSync(dir)) return results;
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        results = results.concat(scanMediaRecursive(fullPath, allowedExts));
+      } else if (entry.isFile()) {
+        const ext = path.extname(entry.name).toLowerCase();
+        if (allowedExts.includes(ext)) {
+          results.push(fullPath);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Disk Reconcile] Scan directory failed:', dir, err);
+  }
+  return results;
+}
+
+// Reconcile physical video and audio files from disk into SQLite DB so offline media is never lost
+async function reconcileDiskMedia(deviceUuid, db) {
+  if (!deviceUuid || !db) return;
+  try {
+    const videoExts = ['.mp4', '.mkv', '.mov', '.avi', '.webm', '.flv', '.3gp'];
+    const audioExts = ['.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac', '.wma', '.opus'];
+
+    const videoBase = customDownloadPath
+      ? path.join(customDownloadPath, 'videos_sync', deviceUuid)
+      : path.join(app.getPath('downloads'), 'ShareCLIP_Data', 'videos_sync', deviceUuid);
+
+    const audioBase = customDownloadPath
+      ? path.join(customDownloadPath, 'audios_sync', deviceUuid)
+      : path.join(app.getPath('downloads'), 'ShareCLIP_Data', 'audios_sync', deviceUuid);
+
+    const videoFiles = scanMediaRecursive(videoBase, videoExts);
+    const audioFiles = scanMediaRecursive(audioBase, audioExts);
+
+    if (videoFiles.length === 0 && audioFiles.length === 0) return;
+
+    await new Promise((resolve) => {
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+        const stmt = db.prepare(`
+          INSERT OR IGNORE INTO resources (id, name, path, type, size, predictions, sync_time, create_date)
+          VALUES (?, ?, ?, ?, ?, '[]', ?, ?)
+        `);
+
+        for (const filePath of videoFiles) {
+          try {
+            const stat = fs.statSync(filePath);
+            const fileName = path.basename(filePath);
+            const parentName = path.basename(path.dirname(filePath));
+            const dateStr = /^\d{4}-\d{2}-\d{2}$/.test(parentName) ? parentName : new Date(stat.mtimeMs).toISOString().substring(0, 10);
+            const id = crypto.createHash('md5').update(filePath).digest('hex');
+            stmt.run(id, fileName, filePath, 'video', stat.size, Math.round(stat.mtimeMs), dateStr);
+          } catch (_) {}
+        }
+
+        for (const filePath of audioFiles) {
+          try {
+            const stat = fs.statSync(filePath);
+            const fileName = path.basename(filePath);
+            const parentName = path.basename(path.dirname(filePath));
+            const dateStr = /^\d{4}-\d{2}-\d{2}$/.test(parentName) ? parentName : new Date(stat.mtimeMs).toISOString().substring(0, 10);
+            const id = crypto.createHash('md5').update(filePath).digest('hex');
+            stmt.run(id, fileName, filePath, 'audio', stat.size, Math.round(stat.mtimeMs), dateStr);
+          } catch (_) {}
+        }
+
+        stmt.finalize();
+        db.run('COMMIT', resolve);
+      });
+    });
+  } catch (reconcileErr) {
+    console.warn('[Disk Reconcile] Error reconciling media:', reconcileErr);
+  }
+}
+
+async function openAndLoadDeviceSync(deviceUuid, deviceName) {
+  if (!deviceUuid) return null;
   activeDeviceUuid = deviceUuid;
-  
+  lastDeviceUuid = deviceUuid;
+  if (deviceName) {
+    activeDeviceName = deviceName;
+    lastDeviceName = deviceName;
+  }
+  saveSettings();
+
   const baseDir = path.join(app.getPath('userData'), 'sync_storage', deviceUuid);
   if (!fs.existsSync(baseDir)) {
     fs.mkdirSync(baseDir, { recursive: true });
   }
-  
+
   // Create folders for sub-resources
   const dirs = ['images', 'videos', 'audios', 'files'];
   for (const d of dirs) {
@@ -2195,18 +2299,18 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
       fs.mkdirSync(subpath, { recursive: true });
     }
   }
-  
+
   // Close old database connection if any
   if (activeDeviceDb) {
     try {
       activeDeviceDb.close();
     } catch (_) {}
   }
-  
+
   // Open SQLite database file for this device
   const dbPath = path.join(baseDir, 'database.sqlite');
   activeDeviceDb = new sqlite3.Database(dbPath);
-  
+
   // Initialize table (including embedding BLOB column)
   await new Promise((resolve, reject) => {
     activeDeviceDb.run(`
@@ -2228,53 +2332,30 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
     });
   });
 
-  // Safe schema upgrade: ALTER TABLE to add embedding if it's missing from previous versions
+  // Schema upgrades
   await new Promise((resolve) => {
-    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN embedding BLOB`, () => {
-      resolve(); // ignore error if already exists
-    });
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN embedding BLOB`, () => resolve());
+  });
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN cluster_id TEXT`, () => resolve());
+  });
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN latitude REAL`, () => resolve());
+  });
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN longitude REAL`, () => resolve());
+  });
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN create_date TEXT`, () => resolve());
+  });
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN face_scanned INTEGER DEFAULT 0`, () => resolve());
+  });
+  await new Promise((resolve) => {
+    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN duration REAL`, () => resolve());
   });
 
-  // Safe schema upgrade: ALTER TABLE to add cluster_id if missing
-  await new Promise((resolve) => {
-    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN cluster_id TEXT`, () => {
-      resolve(); // ignore error if already exists
-    });
-  });
-
-  // Safe schema upgrade: ALTER TABLE to add latitude and longitude if they are missing
-  await new Promise((resolve) => {
-    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN latitude REAL`, () => {
-      resolve();
-    });
-  });
-  await new Promise((resolve) => {
-    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN longitude REAL`, () => {
-      resolve();
-    });
-  });
-  // Safe schema upgrade: add create_date column for album sync breakpoint tracking
-  await new Promise((resolve) => {
-    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN create_date TEXT`, () => {
-      resolve(); // ignore error if already exists
-    });
-  });
-
-  // Safe schema upgrade: add face_scanned for background asynchronous face recognition
-  await new Promise((resolve) => {
-    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN face_scanned INTEGER DEFAULT 0`, () => {
-      resolve(); // ignore error if already exists
-    });
-  });
-
-  // Safe schema upgrade: add duration for video files
-  await new Promise((resolve) => {
-    activeDeviceDb.run(`ALTER TABLE resources ADD COLUMN duration REAL`, () => {
-      resolve(); // ignore error if already exists
-    });
-  });
-
-  // Create faces table for storing face BBoxes and face Embeddings
+  // Create faces table
   await new Promise((resolve) => {
     activeDeviceDb.run(`
       CREATE TABLE IF NOT EXISTS faces (
@@ -2289,7 +2370,7 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
     `, () => resolve());
   });
 
-  // Create person_clusters table for storing people/person album groups
+  // Create person_clusters table
   await new Promise((resolve) => {
     activeDeviceDb.run(`
       CREATE TABLE IF NOT EXISTS person_clusters (
@@ -2300,7 +2381,10 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
       )
     `, () => resolve());
   });
-  
+
+  // Reconcile physical media files from disk to make sure none are missed
+  await reconcileDiskMedia(deviceUuid, activeDeviceDb);
+
   // Read and return already synced assets
   const syncInfo = await new Promise((resolve, reject) => {
     activeDeviceDb.all(`SELECT id, name, path, type, size, predictions, embedding, latitude, longitude, create_date, duration FROM resources`, (err, rows) => {
@@ -2308,25 +2392,22 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
         reject(err);
       } else {
         const syncedIds = rows.map(r => r.id);
-        
-        // Populated cached embeddings directly from SQLite into memory for instantaneous similarity calculations!
+
         for (const row of rows) {
           if (row.embedding && row.path) {
             try {
-              const buffer = row.embedding; // Node.js Buffer from sqlite3 BLOB
+              const buffer = row.embedding;
               const floatArray = new Float32Array(buffer.buffer, buffer.byteOffset, buffer.byteLength / 4);
-              const floatArrayClone = Float32Array.from(floatArray); // safe clone
-              imageEmbeddingsCache[row.path] = floatArrayClone; 
+              const floatArrayClone = Float32Array.from(floatArray);
+              imageEmbeddingsCache[row.path] = floatArrayClone;
               taskManager.addEmbeddingToSAB(row.path, floatArrayClone);
             } catch (loadErr) {
               console.error(`[Database] Failed to load embedding from DB for ${row.path}:`, loadErr);
             }
           }
-          // Delete heavy 2KB BLOB buffer from object to prevent V8 Heap OOM memory crash over IPC
           delete row.embedding;
         }
 
-        // Find the most recent create_date among album_photo records for breakpoint resume
         let lastAlbumSyncDate = '';
         const albumRows = rows.filter(r => r.type === 'album_photo' && r.create_date);
         if (albumRows.length > 0) {
@@ -2334,28 +2415,65 @@ ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => 
           lastAlbumSyncDate = sorted[sorted.length - 1].create_date;
         }
 
-        // Find the most recent create_date among video records for breakpoint resume
         let lastVideoSyncDate = '';
         const videoRows = rows.filter(r => r.type === 'video' && r.create_date);
         if (videoRows.length > 0) {
           const sorted = videoRows.sort((a, b) => (a.create_date > b.create_date ? 1 : -1));
           lastVideoSyncDate = sorted[sorted.length - 1].create_date;
         }
-        
-        resolve({ syncedIds, resources: rows, lastAlbumSyncDate, lastVideoSyncDate });
+
+        resolve({ deviceUuid, deviceName: deviceName || activeDeviceName || '设备相册', syncedIds, resources: rows, lastAlbumSyncDate, lastVideoSyncDate });
       }
     });
   });
-  
-  console.log(`[Database] Initialized for device: ${deviceName} (${deviceUuid}). Loaded ${syncInfo.syncedIds.length} synced assets. Last album sync: ${syncInfo.lastAlbumSyncDate || 'none'}`);
-  
-  // Kick off background clustering in case there are unclustered images
+
+  console.log(`[Database] Initialized for device: ${deviceName || activeDeviceName} (${deviceUuid}). Loaded ${syncInfo.syncedIds.length} synced assets. Last album sync: ${syncInfo.lastAlbumSyncDate || 'none'}`);
   scheduleBackgroundClustering();
-  
-  // Start main-process driven heartbeat keepalive to prevent disconnects during AI computation
-  startPcHeartbeat();
-  
   return syncInfo;
+}
+
+ipcMain.handle('init-device-sync', async (event, { deviceUuid, deviceName }) => {
+  const syncInfo = await openAndLoadDeviceSync(deviceUuid, deviceName);
+  startPcHeartbeat();
+  return syncInfo;
+});
+
+ipcMain.handle('load-initial-device-sync', async () => {
+  let targetUuid = activeDeviceUuid || lastDeviceUuid;
+  
+  if (!targetUuid) {
+    const syncStorageDir = path.join(app.getPath('userData'), 'sync_storage');
+    if (fs.existsSync(syncStorageDir)) {
+      try {
+        const entries = fs.readdirSync(syncStorageDir);
+        let latestMtime = 0;
+        let latestDevice = null;
+        for (const entry of entries) {
+          const dbFile = path.join(syncStorageDir, entry, 'database.sqlite');
+          if (fs.existsSync(dbFile)) {
+            const mtime = fs.statSync(dbFile).mtimeMs;
+            if (mtime > latestMtime) {
+              latestMtime = mtime;
+              latestDevice = entry;
+            }
+          }
+        }
+        if (latestDevice) {
+          targetUuid = latestDevice;
+        }
+      } catch (e) {
+        console.warn('[Offline Sync] Error scanning sync_storage for initial device:', e);
+      }
+    }
+  }
+
+  if (!targetUuid) {
+    return null;
+  }
+
+  const deviceName = lastDeviceName || (targetUuid.startsWith('local_') ? '本地导入资源' : '已备份手机设备');
+  console.log(`[Offline Sync] Auto-loading offline database on startup: ${targetUuid} (${deviceName})`);
+  return await openAndLoadDeviceSync(targetUuid, deviceName);
 });
 
 ipcMain.handle('clear-device-database', async (event) => {
@@ -2836,14 +2954,55 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
   }
 });
 
+function prepareForUpdateExit() {
+  try {
+    if (httpServer) {
+      httpServer.close();
+      httpServer = null;
+    }
+  } catch (_) {}
+  try {
+    if (activeDeviceDb) {
+      activeDeviceDb.close();
+      activeDeviceDb = null;
+    }
+  } catch (_) {}
+  try {
+    if (hotspotProcess) {
+      hotspotProcess.kill();
+      hotspotProcess = null;
+    }
+  } catch (_) {}
+  try {
+    if (snifferBrowserWindow && !snifferBrowserWindow.isDestroyed()) {
+      snifferBrowserWindow.destroy();
+      snifferBrowserWindow = null;
+    }
+  } catch (_) {}
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.hide();
+      mainWindow.destroy();
+      mainWindow = null;
+    }
+  } catch (_) {}
+}
+
 ipcMain.handle('install-update', async (event, filePath) => {
   try {
     console.log('[Update Install] Installing update (silent mode enabled), target:', filePath);
     if (!filePath || filePath === 'managed') {
+      console.log('[Update Install] Triggering autoUpdater.quitAndInstall (silent mode)...');
+      prepareForUpdateExit();
       setImmediate(() => {
-        // isSilent: true -> Execute NSIS installer in silent mode with /S
-        // isForceRunAfter: true -> Automatically restart ShareCLIP after silent installation
-        autoUpdater.quitAndInstall(true, true);
+        try {
+          autoUpdater.quitAndInstall(true, true);
+        } catch (e) {
+          console.error('[Update Install] autoUpdater.quitAndInstall error:', e);
+        }
+        setTimeout(() => {
+          app.exit(0);
+        }, 400);
       });
     } else if (fs.existsSync(filePath)) {
       if (process.platform === 'win32' && filePath.toLowerCase().endsWith('.exe')) {
@@ -2854,14 +3013,16 @@ ipcMain.handle('install-update', async (event, filePath) => {
           stdio: 'ignore'
         });
         child.unref();
+        prepareForUpdateExit();
         setTimeout(() => {
-          app.quit();
-        }, 800);
+          app.exit(0);
+        }, 200);
       } else {
         shell.openPath(filePath);
+        prepareForUpdateExit();
         setTimeout(() => {
-          app.quit();
-        }, 1000);
+          app.exit(0);
+        }, 500);
       }
     } else {
       throw new Error(`Installer file does not exist at ${filePath}`);
@@ -5061,13 +5222,17 @@ let isWebRtcConnected = false;
 ipcMain.handle('set-sync-status', (event, { status, deviceUuid }) => {
   if (status === 'connected') {
     isWebRtcConnected = true;
-    if (deviceUuid) activeDeviceUuid = deviceUuid;
+    if (deviceUuid) {
+      activeDeviceUuid = deviceUuid;
+      lastDeviceUuid = deviceUuid;
+      saveSettings();
+    }
     console.log(`[Sync Status] Active device set: ${activeDeviceUuid}`);
   } else {
     isWebRtcConnected = false;
-    activeDeviceUuid = null;
+    // Keep activeDeviceDb and activeDeviceUuid so offline playback and browsing of downloaded media works!
     stopPcHeartbeat();
-    console.log(`[Sync Status] Disconnected. Resuming UDP discovery broadcast immediately.`);
+    console.log(`[Sync Status] Disconnected. Keeping offline database active for device: ${activeDeviceUuid}. Resuming UDP discovery broadcast immediately.`);
     broadcastDiscovery();
   }
 });

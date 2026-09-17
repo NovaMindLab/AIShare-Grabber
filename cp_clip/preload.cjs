@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('save-full-photo', { fileId, payload, metadata }),
   initDeviceSync: (deviceUuid, deviceName) => 
     ipcRenderer.invoke('init-device-sync', { deviceUuid, deviceName }),
+  loadInitialDeviceSync: () => ipcRenderer.invoke('load-initial-device-sync'),
   clearDeviceDatabase: () => ipcRenderer.invoke('clear-device-database'),
 
   // Event listeners (IPC Notifications)
