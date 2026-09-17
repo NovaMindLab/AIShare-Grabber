@@ -164,9 +164,34 @@ class _MediaTabState extends State<MediaTab> {
           // Media Grid View
           Expanded(
             child: currentList.isEmpty
-                ? _buildEmptyState(context, _selectedTab == 0, t)
+                ? (viewModel.isLoadingGallery
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              t.get('loading') != 'loading' ? t.get('loading') : '正在极速加载本地图库...',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _buildEmptyState(context, _selectedTab == 0, t))
                 : GridView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    cacheExtent: 600,
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
                       crossAxisSpacing: 4,
@@ -185,6 +210,7 @@ class _MediaTabState extends State<MediaTab> {
                               media,
                               isOriginal: false,
                               thumbnailSize: const ThumbnailSize.square(200),
+                              thumbnailFormat: ThumbnailFormat.jpeg,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Container(
                                 color: Theme.of(context).dividerColor,

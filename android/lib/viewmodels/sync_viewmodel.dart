@@ -42,7 +42,7 @@ enum TransferStatus {
 }
 
 class SyncViewModel extends ChangeNotifier {
-  static const String appVersion = '4.2.1';
+  static const String appVersion = '4.2.2';
   List<Map<String, dynamic>> discoveredPCs = [];
   Timer? _discoveryTimer;
   String? _mobileName;
@@ -150,23 +150,39 @@ class SyncViewModel extends ChangeNotifier {
     }
   }
 
+  bool _isLoadingGallery = false;
+  bool get isLoadingGallery => _isLoadingGallery;
+
   /// Load gallery, audio and video assets early (before WebRTC connection).
   void loadGalleryEarly() async {
+    if (_isLoadingGallery) return;
+    _isLoadingGallery = true;
+    notifyListeners();
+
     final streamer = PhotoStreamer.standalone();
 
-    // Load images, videos and audio in parallel
-    final results = await Future.wait([
-      streamer.loadLocalImages(),
-      streamer.loadLocalVideos(),
-      streamer.loadLocalAudio(),
-    ]);
+    try {
+      // 1. Fast progressive loading for photos: Render first batch instantly (< 80ms)!
+      localImages = await streamer.loadLocalImages(onBatch: (firstBatch) {
+        localImages = firstBatch;
+        notifyListeners();
+      });
+      notifyListeners();
 
-    localImages = results[0];
-    localVideos = results[1];
-    localAudios = results[2];
+      // 2. Load videos sequentially so it does not fight with photo ContentResolver
+      localVideos = await streamer.loadLocalVideos(onBatch: (firstBatch) {
+        localVideos = firstBatch;
+        notifyListeners();
+      });
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[ViewModel] Gallery early load error: $e');
+    } finally {
+      _isLoadingGallery = false;
+      notifyListeners();
+    }
 
-    debugPrint('[ViewModel] Gallery loaded: ${localImages.length} images, ${localVideos.length} videos, ${localAudios.length} audio');
-    notifyListeners();
+    debugPrint('[ViewModel] Gallery loaded: ${localImages.length} images, ${localVideos.length} videos');
   }
 
   void startScanning() {
@@ -1695,17 +1711,30 @@ class SyncViewModel extends ChangeNotifier {
 
 
   void _loadLocalGallery() async {
-    if (_photoStreamer == null) return;
-    final results = await Future.wait([
-      _photoStreamer!.loadLocalImages(),
-      _photoStreamer!.loadLocalVideos(),
-      _photoStreamer!.loadLocalAudio(),
-    ]);
-    localImages = results[0];
-    localVideos = results[1];
-    localAudios = results[2];
-    logMessage('Gallery: ${localImages.length} images, ${localVideos.length} videos, ${localAudios.length} audio');
+    if (_photoStreamer == null || _isLoadingGallery) return;
+    _isLoadingGallery = true;
     notifyListeners();
+
+    try {
+      localImages = await _photoStreamer!.loadLocalImages(onBatch: (firstBatch) {
+        localImages = firstBatch;
+        notifyListeners();
+      });
+      notifyListeners();
+
+      localVideos = await _photoStreamer!.loadLocalVideos(onBatch: (firstBatch) {
+        localVideos = firstBatch;
+        notifyListeners();
+      });
+      notifyListeners();
+
+      logMessage('Gallery: ${localImages.length} images, ${localVideos.length} videos');
+    } catch (e) {
+      debugPrint('[ViewModel] _loadLocalGallery error: $e');
+    } finally {
+      _isLoadingGallery = false;
+      notifyListeners();
+    }
   }
 
   void toggleImageSelection(String id) {

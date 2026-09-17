@@ -24,7 +24,7 @@ class _AiTabState extends State<AiTab> {
     final t = Provider.of<LocalizationService>(context);
 
     // If local images are not loaded yet, request early load
-    if (viewModel.localImages.isEmpty && viewModel.permissionsGranted) {
+    if (viewModel.localImages.isEmpty && viewModel.permissionsGranted && !viewModel.isLoadingGallery) {
       viewModel.loadGalleryEarly();
     }
 

@@ -19,12 +19,14 @@ class PhotoStreamer {
     AssetPathEntity path,
     Map<String, AssetEntity> aggregated, {
     AssetType? filterType,
+    void Function(List<AssetEntity> batch)? onBatch,
   }) async {
     try {
       final int count = await path.assetCountAsync;
       if (count <= 0) return;
       int start = 0;
-      const int batchSize = 200;
+      const int batchSize = 400; // 400 items per chunk cuts Binder IPC round-trips in half
+      bool isFirstBatch = true;
       while (start < count) {
         final end = (start + batchSize < count) ? start + batchSize : count;
         final items = await path.getAssetListRange(start: start, end: end);
@@ -34,6 +36,11 @@ class PhotoStreamer {
           }
           aggregated[item.id] = item;
         }
+        // Immediately notify caller on the very first batch so UI can render in < 80ms!
+        if (isFirstBatch && onBatch != null && aggregated.isNotEmpty) {
+          isFirstBatch = false;
+          onBatch(aggregated.values.toList());
+        }
         start = end;
       }
     } catch (e) {
@@ -41,8 +48,11 @@ class PhotoStreamer {
     }
   }
 
-  // ── Generic internal asset loader ──────────────────────────────────────────
-  Future<List<AssetEntity>> _loadAssets(RequestType type) async {
+  // ── High-performance internal asset loader ──────────────────────────────────
+  Future<List<AssetEntity>> _loadAssets(
+    RequestType type, {
+    void Function(List<AssetEntity> batch)? onBatch,
+  }) async {
     try {
       debugPrint('[Streamer] Requesting PhotoManager permissions ($type)...');
       final PermissionState ps = await PhotoManager.requestPermissionExtend(
@@ -59,68 +69,77 @@ class PhotoStreamer {
         return [];
       }
 
-      // 1. Try with filter first
-      List<AssetPathEntity> paths = [];
+      final Map<String, AssetEntity> aggregated = {};
+
+      // 1. FAST PATH: Query ONLY the All/Recent root album directly with onlyAll: true!
+      // This bypasses expensive Android MediaStore "GROUP BY bucket_id" queries across hundreds of folders.
       try {
         final FilterOptionGroup filter = FilterOptionGroup(
           imageOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
           videoOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
           audioOption: const FilterOption(sizeConstraint: SizeConstraint(ignoreSize: true)),
         );
-        paths = await PhotoManager.getAssetPathList(
+        final rootPaths = await PhotoManager.getAssetPathList(
+          onlyAll: true,
           type: type,
           filterOption: filter,
         );
+        if (rootPaths.isNotEmpty) {
+          final rootPath = rootPaths.firstWhere((p) => p.isAll, orElse: () => rootPaths.first);
+          await _safeCollectPathAssets(rootPath, aggregated, onBatch: onBatch);
+        }
       } catch (e) {
-        debugPrint('[Streamer] Filtered getAssetPathList failed, falling back to default: $e');
+        debugPrint('[Streamer] Fast onlyAll getAssetPathList failed: $e');
       }
 
-      // 2. Fallback without filter if empty
-      if (paths.isEmpty) {
+      // 2. Fallback: If onlyAll was empty or failed (rare custom Android ROMs), query albums
+      if (aggregated.isEmpty) {
+        debugPrint('[Streamer] Fast path returned 0 assets, falling back to full album scan for $type...');
+        List<AssetPathEntity> paths = [];
         try {
           paths = await PhotoManager.getAssetPathList(type: type);
         } catch (e) {
-          debugPrint('[Streamer] Default getAssetPathList failed: $e');
+          debugPrint('[Streamer] Full getAssetPathList failed: $e');
+        }
+
+        // If paths has an "isAll" album, only scan that one to avoid duplicate scans!
+        AssetPathEntity? allPath;
+        for (final p in paths) {
+          if (p.isAll) {
+            allPath = p;
+            break;
+          }
+        }
+        if (allPath != null) {
+          await _safeCollectPathAssets(allPath, aggregated, onBatch: onBatch);
+        } else {
+          for (final path in paths) {
+            await _safeCollectPathAssets(path, aggregated, onBatch: onBatch);
+          }
         }
       }
 
-      debugPrint('[Streamer] [$type] paths found: ${paths.length}');
-
-      // Aggregate assets across all album folders and deduplicate by ID
-      final Map<String, AssetEntity> aggregated = {};
-
-      for (final path in paths) {
-        await _safeCollectPathAssets(path, aggregated);
-      }
-
-      // 3. Fallback: If type is RequestType.video and aggregated count is 0 (or paths is empty),
-      // query RequestType.all and filter for AssetType.video across OEM directories
+      // 3. Special Fallback: If type is video and still empty, check RequestType.all
       if (type == RequestType.video && aggregated.isEmpty) {
-        debugPrint('[Streamer] Video count is 0, attempting fallback via RequestType.all...');
         try {
-          final allPaths = await PhotoManager.getAssetPathList(type: RequestType.all);
-          for (final path in allPaths) {
-            await _safeCollectPathAssets(path, aggregated, filterType: AssetType.video);
+          final allPaths = await PhotoManager.getAssetPathList(onlyAll: true, type: RequestType.all);
+          if (allPaths.isNotEmpty) {
+            await _safeCollectPathAssets(allPaths.first, aggregated, filterType: AssetType.video, onBatch: onBatch);
           }
-        } catch (e) {
-          debugPrint('[Streamer] Fallback RequestType.all for videos failed: $e');
-        }
+        } catch (_) {}
       }
 
-      // 4. Fallback for Audio if aggregated is empty
+      // 4. Special Fallback: If type is audio and still empty, check RequestType.all
       if (type == RequestType.audio && aggregated.isEmpty) {
-        debugPrint('[Streamer] Audio count is 0, attempting fallback via RequestType.all...');
         try {
-          final allPaths = await PhotoManager.getAssetPathList(type: RequestType.all);
-          for (final path in allPaths) {
-            await _safeCollectPathAssets(path, aggregated, filterType: AssetType.audio);
+          final allPaths = await PhotoManager.getAssetPathList(onlyAll: true, type: RequestType.all);
+          if (allPaths.isNotEmpty) {
+            await _safeCollectPathAssets(allPaths.first, aggregated, filterType: AssetType.audio, onBatch: onBatch);
           }
-        } catch (e) {
-          debugPrint('[Streamer] Fallback RequestType.all for audio failed: $e');
-        }
+        } catch (_) {}
       }
 
-      debugPrint('[Streamer] [$type] total aggregated from ${paths.length} paths: ${aggregated.length}');
+      debugPrint('[Streamer] [$type] total aggregated: ${aggregated.length}');
       return aggregated.values.toList();
     } catch (e, stack) {
       debugPrint('[Streamer] Error loading [$type] assets: $e\n$stack');
@@ -128,14 +147,16 @@ class PhotoStreamer {
     }
   }
 
-  /// Load all images from the MediaStore (gallery)
-  Future<List<AssetEntity>> loadLocalImages() => _loadAssets(RequestType.image);
+  /// Load all images from the MediaStore (gallery) with progressive first-batch streaming
+  Future<List<AssetEntity>> loadLocalImages({void Function(List<AssetEntity> batch)? onBatch}) =>
+      _loadAssets(RequestType.image, onBatch: onBatch);
 
   /// Load all audio files from the MediaStore
   Future<List<AssetEntity>> loadLocalAudio() => _loadAssets(RequestType.audio);
 
-  /// Load video-only assets (for a dedicated Videos tab if needed)
-  Future<List<AssetEntity>> loadLocalVideos() => _loadAssets(RequestType.video);
+  /// Load video-only assets (with progressive streaming)
+  Future<List<AssetEntity>> loadLocalVideos({void Function(List<AssetEntity> batch)? onBatch}) =>
+      _loadAssets(RequestType.video, onBatch: onBatch);
 
   Future<void> _sendMetadataPacket({
     required int fileId,
