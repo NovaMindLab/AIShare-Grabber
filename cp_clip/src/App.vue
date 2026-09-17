@@ -203,8 +203,8 @@
 
     <!-- Main Content Area -->
     <main class="main-content">
-      <!-- Top Header Bar (Hidden in yt-dlp tab as it has its own dedicated top header) -->
-      <header class="top-bar" v-if="currentTab !== 'yt-dlp'">
+      <!-- Top Header Bar (Shown only in 'link' tab or in 'images' tab when images exist) -->
+      <header class="top-bar" v-if="currentTab === 'link' || (currentTab === 'images' && localImages.length > 0)">
         <!-- Scenario A: Link Mobile Tab Header -->
         <div v-if="currentTab === 'link'" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
           <!-- Left Title & Device Connection Badge -->
@@ -263,22 +263,18 @@
           </div>
         </div>
 
-        <!-- Scenario B: Other Tabs Header (Images, Settings, etc.) -->
-        <div v-else style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div class="folder-path-display" style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-              <span v-if="currentFolderPath" style="color: var(--text-secondary); font-size: 13px;">
-                {{ t.header.currentPath }}<code style="background-color: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px; font-family: monospace;">{{ currentFolderPath }}</code>
-              </span>
-              <span v-else style="color: var(--text-muted); font-size: 13px;">
-                {{ t.header.noPath }}
-              </span>
-            </div>
+        <!-- Scenario B: Images Tab Header (Search Bar Only) -->
+        <div v-else-if="currentTab === 'images' && localImages.length > 0" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+              <span>🖼️</span> {{ selectedCategory ? (getShortCategory(selectedCategory) || selectedCategory) : (t.sidebar?.allImages || '全部照片') }}
+              <span class="category-count" style="font-size: 11.5px; opacity: 0.8;">({{ filteredImages.length }})</span>
+            </h3>
           </div>
 
           <div style="display: flex; align-items: center; gap: 16px;">
             <!-- Search Bar -->
-            <div class="search-bar-container" v-if="images.length > 0">
+            <div class="search-bar-container">
               <input 
                 type="text" 
                 class="search-input" 
@@ -297,19 +293,19 @@
             </div>
           </div>
         </div>
-
-        <!-- Live Decoupled AI Queue Progress Banner -->
-        <div class="ai-queue-status-banner" v-if="aiQueueProgress.isProcessing">
-          <div class="ai-queue-info">
-            <span class="ai-pulse-icon">🧠</span>
-            <span class="ai-queue-title">{{ t.aiQueue?.processingTitle || 'AI 照片特征识别中' }}</span>
-            <span class="ai-queue-counts">{{ aiQueueProgress.completed }} / {{ aiQueueProgress.total }} ({{ t.aiQueue?.remaining ? t.aiQueue.remaining.replace('{count}', aiQueueProgress.remaining) : `剩余 ${aiQueueProgress.remaining} 张` }})</span>
-          </div>
-          <div class="ai-queue-bar-track">
-            <div class="ai-queue-bar-fill" :style="{ width: aiQueueProgress.percent + '%' }"></div>
-          </div>
-        </div>
       </header>
+
+      <!-- Live Decoupled AI Queue Progress Banner -->
+      <div class="ai-queue-status-banner" v-if="aiQueueProgress.isProcessing" style="margin: 8px 20px 0 20px;">
+        <div class="ai-queue-info">
+          <span class="ai-pulse-icon">🧠</span>
+          <span class="ai-queue-title">{{ t.aiQueue?.processingTitle || 'AI 照片特征识别中' }}</span>
+          <span class="ai-queue-counts">{{ aiQueueProgress.completed }} / {{ aiQueueProgress.total }} ({{ t.aiQueue?.remaining ? t.aiQueue.remaining.replace('{count}', aiQueueProgress.remaining) : `剩余 ${aiQueueProgress.remaining} 张` }})</span>
+        </div>
+        <div class="ai-queue-bar-track">
+          <div class="ai-queue-bar-fill" :style="{ width: aiQueueProgress.percent + '%' }"></div>
+        </div>
+      </div>
 
       <!-- Grid Gallery -->
       <section class="gallery-container" ref="galleryContainerRef">
@@ -2756,7 +2752,7 @@
         </div>
 
         <!-- 5.6 FOOTPRINT MAP TAB -->
-        <div v-else-if="currentTab === 'map'" style="width: 100%; display: flex; flex-direction: column; height: calc(100vh - 120px); text-align: left;">
+        <div v-else-if="currentTab === 'map'" style="width: 100%; display: flex; flex-direction: column; height: 100%; flex: 1; min-height: 0; text-align: left;">
           <h2 style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
             {{ t.map?.title || t.sidebar?.tabMap || '🗺️ 足迹地图' }}
           </h2>
@@ -9631,11 +9627,14 @@ function getMockClassification(url) {
   outline: none;
 }
 
-/* Audios Tab (Cyber Hi-Fi Music Station) */
+/* Audios Tab (Hi-Fi Music Station) */
 .audios-tab-container {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 120px);
   gap: 12px;
   overflow: hidden;
 }
