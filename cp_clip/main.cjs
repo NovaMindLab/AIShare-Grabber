@@ -1311,7 +1311,17 @@ async function computeEmbeddingInternal(imagePath, thumbPath = null) {
   }
 }
 
+let lastClassificationErrorLoggedTime = 0;
+
 async function classifyPhotoInternal(imagePath, thumbPath = null) {
+  // If TaskManager AI engine is permanently unavailable/disabled, return fallback immediately
+  if (!taskManager.isAiAvailable()) {
+    return [
+      { category: "💻 电脑配置过低 (不支持AI加速或内存不足)", score: 1.0 },
+      { category: "AI inference engine disabled", score: 0.0 }
+    ];
+  }
+
   try {
     const imageEmbedding = await computeEmbeddingInternal(imagePath, thumbPath);
 
@@ -1350,8 +1360,17 @@ async function classifyPhotoInternal(imagePath, thumbPath = null) {
     return results.slice(0, 3);
 
   } catch (error) {
-    console.error("Error classifying photo:", error);
-    const isHardware = error.message && error.message.includes("Text embeddings not loaded");
+    const now = Date.now();
+    if (now - lastClassificationErrorLoggedTime > 5000) {
+      console.warn("AI photo classification warning:", error.message);
+      lastClassificationErrorLoggedTime = now;
+    }
+    const isHardware = error.message && (
+      error.message.includes("Text embeddings not loaded") ||
+      error.message.includes("unavailable") ||
+      error.message.includes("WorkerPool") ||
+      error.message.includes("onnxruntime")
+    );
     const title = isHardware ? "💻 电脑配置过低 (不支持AI加速或内存不足)" : "❌ 分类出错";
     return [
       { category: title, score: 1.0 },
@@ -1414,7 +1433,43 @@ async function processAiQueue() {
   if (isProcessingAiQueue) return;
   isProcessingAiQueue = true;
 
+  let aiDisabledLogged = false;
+
   while (aiClassificationQueue.length > 0) {
+    // If AI engine is disabled on this machine, fast-forward all remaining queued photos!
+    if (!taskManager.isAiAvailable()) {
+      if (!aiDisabledLogged) {
+        console.warn(`[AI Queue] AI inference engine unavailable. Fast-forwarding ${aiClassificationQueue.length} queued photo(s) with hardware fallback.`);
+        aiDisabledLogged = true;
+      }
+      const fallbackPredictions = [
+        { category: "💻 电脑配置过低 (不支持AI加速或内存不足)", score: 1.0 }
+      ];
+      const fallbackStr = JSON.stringify(fallbackPredictions);
+
+      while (aiClassificationQueue.length > 0) {
+        const fastTask = aiClassificationQueue.shift();
+        aiCompletedBatchTasks++;
+        if (activeDeviceUuid && activeDeviceDb) {
+          activeDeviceDb.run(
+            `UPDATE resources SET predictions = ? WHERE path = ?`,
+            [fallbackStr, fastTask.targetPath],
+            () => {}
+          );
+        }
+        if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
+          mainWindow.webContents.send('single-photo-predictions-updated', {
+            id: fastTask.filename,
+            path: fastTask.targetPath,
+            name: fastTask.filename,
+            predictions: fallbackPredictions
+          });
+        }
+      }
+      sendAiQueueProgress(true);
+      break;
+    }
+
     // If WebRTC file/thumbnail transfers are actively occurring right now (< 2s ago),
     // throttle AI queue execution to yield 100% CPU/bandwidth to network transfer and heartbeats!
     const timeSinceLastTransfer = Date.now() - lastNetworkTransferTime;
@@ -1451,15 +1506,6 @@ async function processAiQueue() {
             path: task.targetPath,
             name: task.filename,
             predictions
-          });
-          mainWindow.webContents.send('photo-synced', {
-            isThumbnail: task.isThumbnail,
-            path: task.targetPath,
-            name: task.filename,
-            src: `local:///${task.targetPath.replace(/\\/g, '/')}`,
-            predictions,
-            latitude: task.latitude,
-            longitude: task.longitude
           });
         }
       }

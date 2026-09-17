@@ -1,12 +1,39 @@
 const { parentPort } = require('worker_threads');
 const fs = require('fs');
-let ort;
-let sharp;
+const path = require('path');
+
+// Ensure Windows finds native onnxruntime.dll and DirectML.dll
+if (process.platform === 'win32') {
+  try {
+    const candidates = [
+      path.join(__dirname, '..', '..', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch),
+      path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', process.arch)
+    ];
+    for (const c of candidates) {
+      if (fs.existsSync(c) && (!process.env.PATH || !process.env.PATH.includes(c))) {
+        process.env.PATH = `${c};${process.env.PATH || ''}`;
+      }
+    }
+  } catch (_) {}
+}
+
+let ort = null;
+let ortLoadError = null;
+let sharp = null;
 
 try {
   ort = require('onnxruntime-node');
 } catch (err) {
-  console.error("[Inference Worker] Critical: Failed to load onnxruntime-node.", err);
+  ortLoadError = err;
+  try {
+    const unpackedOrt = path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'onnxruntime-node');
+    if (fs.existsSync(unpackedOrt)) {
+      ort = require(unpackedOrt);
+      ortLoadError = null;
+    }
+  } catch (err2) {
+    ortLoadError = new Error(`${err.message} / Unpacked fallback: ${err2.message}`);
+  }
 }
 
 try {
@@ -172,8 +199,12 @@ parentPort.on('message', async (msg) => {
         parentPort.postMessage({ type: 'init_result', success: false, error: err.message });
       }
     } else {
-      const errMsg = "[Inference Worker] Image Encoder ONNX model not found or onnxruntime-node missing.";
-      console.error(errMsg);
+      const details = [];
+      if (!ort) details.push(`onnxruntime-node failed to load (${ortLoadError ? ortLoadError.message : 'missing module'})`);
+      if (!physicalModelPath) details.push('physicalModelPath is empty');
+      else if (!fs.existsSync(physicalModelPath)) details.push(`Model file not found: ${physicalModelPath}`);
+      const errMsg = `[Inference Worker] Image Encoder unavailable: ${details.join('; ')}`;
+      console.warn(errMsg);
       parentPort.postMessage({ type: 'init_result', success: false, error: errMsg });
     }
   } else if (msg.type === 'compute_clip') {

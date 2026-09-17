@@ -9,37 +9,72 @@ class WorkerPool {
     this.idleTimeoutMs = idleTimeoutMs;
     this.initData = initData; 
     
-    this.workers = []; // { worker, busy, callbacks }
+    this.workers = []; // { worker, busy, initialized, callbacks }
     this.queue = [];   // { reqId, msg, resolve, reject }
     this.reqIdCounter = 0;
     this.idleTimer = null;
+    
+    // Circuit breaker & anti-thrashing protection
+    this.initFailed = false;
+    this.initError = null;
+    this.initAttempts = 0;
+    this.maxInitAttempts = 2; // Maximum attempts before permanently disabling pool
+    this.isSpawning = false;
     
     console.log(`[WorkerPool] Created pool for ${path.basename(scriptPath)} (Max: ${maxWorkers}, TTL: ${idleTimeoutMs / 1000}s)`);
   }
 
   _spawnWorker() {
-    const worker = new Worker(this.scriptPath);
+    if (this.initFailed) return null;
+    this.isSpawning = true;
+    
+    let worker;
+    try {
+      worker = new Worker(this.scriptPath);
+    } catch (spawnErr) {
+      console.error(`[WorkerPool] Failed to instantiate worker ${path.basename(this.scriptPath)}:`, spawnErr);
+      this.isSpawning = false;
+      this.initAttempts++;
+      if (this.initAttempts >= this.maxInitAttempts) {
+        this.initFailed = true;
+        this.initError = spawnErr;
+        this._rejectAllQueue(spawnErr);
+      }
+      return null;
+    }
+
     const requiresInit = !!this.initData;
     const workerObj = { worker, initialized: !requiresInit, busy: requiresInit, callbacks: new Map() };
     
     worker.on('message', (msg) => {
       // Handle initialization responses
       if (msg.type === 'init_result') {
+        this.isSpawning = false;
         if (!msg.success) {
            const errMsg = `[WorkerPool] Init failed for ${path.basename(this.scriptPath)}: ${msg.error || JSON.stringify(msg)}`;
            console.warn(errMsg);
+           
+           // CRITICAL FIX: Explicitly terminate the failed worker OS thread immediately to prevent thread & memory leaks!
+           try { workerObj.worker.terminate(); } catch (_) {}
            this.workers = this.workers.filter(w => w !== workerObj);
            
-           // If no other workers exist and tasks are waiting in queue, reject them to prevent hanging forever
+           this.initAttempts++;
+           if (this.initAttempts >= this.maxInitAttempts) {
+             this.initFailed = true;
+             this.initError = new Error(errMsg);
+             console.error(`[WorkerPool] 🛑 Permanently disabling pool for ${path.basename(this.scriptPath)} to protect system stability (Max init retries reached).`);
+             this._rejectAllQueue(this.initError);
+             return;
+           }
+           
+           // If no workers left, reject waiting tasks
            if (this.workers.length === 0 && this.queue.length > 0) {
              const initErr = new Error(errMsg);
-             while (this.queue.length > 0) {
-               const task = this.queue.shift();
-               task.reject(initErr);
-             }
+             this._rejectAllQueue(initErr);
            }
         } else {
            console.log(`[WorkerPool] Init success for ${path.basename(this.scriptPath)}`);
+           this.initAttempts = 0; // Reset counter on successful init
            workerObj.initialized = true;
            workerObj.busy = false;
            this._pumpQueue();
@@ -64,15 +99,29 @@ class WorkerPool {
 
     worker.on('error', (err) => {
       console.error(`[WorkerPool] Error in ${path.basename(this.scriptPath)}:`, err);
+      this.isSpawning = false;
+      try { workerObj.worker.terminate(); } catch (_) {}
       for (const resolveObj of workerObj.callbacks.values()) {
         resolveObj.reject(err);
       }
       workerObj.callbacks.clear();
       this.workers = this.workers.filter(w => w !== workerObj);
+      
+      if (!workerObj.initialized) {
+        this.initAttempts++;
+        if (this.initAttempts >= this.maxInitAttempts) {
+          this.initFailed = true;
+          this.initError = err;
+          this._rejectAllQueue(err);
+          return;
+        }
+      }
       this._pumpQueue();
     });
 
     worker.on('exit', (code) => {
+      this.isSpawning = false;
+      try { workerObj.worker.terminate(); } catch (_) {}
       if (workerObj.callbacks.size > 0) {
         const exitErr = new Error(`[WorkerPool] Worker ${path.basename(this.scriptPath)} terminated unexpectedly (exit code ${code})`);
         for (const resolveObj of workerObj.callbacks.values()) {
@@ -85,20 +134,42 @@ class WorkerPool {
     });
 
     if (this.initData) {
-      worker.postMessage({ type: 'init', ...this.initData });
+      try {
+        worker.postMessage({ type: 'init', ...this.initData });
+      } catch (postErr) {
+        console.error(`[WorkerPool] Failed to post init message to ${path.basename(this.scriptPath)}:`, postErr);
+        this.isSpawning = false;
+        try { worker.terminate(); } catch (_) {}
+        return null;
+      }
     }
     
     this.workers.push(workerObj);
     return workerObj;
   }
 
+  _rejectAllQueue(error) {
+    while (this.queue.length > 0) {
+      const task = this.queue.shift();
+      task.reject(error);
+    }
+  }
+
   _pumpQueue() {
     this._resetIdleTimer();
+    
+    if (this.initFailed) {
+      const err = this.initError || new Error(`WorkerPool for ${path.basename(this.scriptPath)} is disabled.`);
+      this._rejectAllQueue(err);
+      return;
+    }
     
     if (this.queue.length === 0) return;
     
     let freeWorker = this.workers.find(w => w.initialized && !w.busy);
-    if (!freeWorker && this.workers.length < this.maxWorkers) {
+    const currentlyInitializing = this.workers.some(w => !w.initialized) || this.isSpawning;
+    
+    if (!freeWorker && !currentlyInitializing && this.workers.length < this.maxWorkers) {
       this._spawnWorker();
       return; // Wait for newly spawned worker to finish init_result before assigning task
     }
@@ -113,7 +184,14 @@ class WorkerPool {
          task.msg.payload.reqId = task.reqId;
       }
       
-      freeWorker.worker.postMessage(task.msg);
+      try {
+        freeWorker.worker.postMessage(task.msg);
+      } catch (sendErr) {
+        console.error(`[WorkerPool] Failed to post task to worker:`, sendErr);
+        freeWorker.callbacks.delete(task.reqId);
+        freeWorker.busy = false;
+        task.reject(sendErr);
+      }
       
       // If there are still items in queue and we have other free workers or room to spawn, pump queue
       if (this.queue.length > 0) {
@@ -130,7 +208,7 @@ class WorkerPool {
       this.idleTimer = setTimeout(() => {
         console.log(`[WorkerPool] Hibernation TTL reached for ${path.basename(this.scriptPath)}. Terminating ${this.workers.length} worker(s) to free memory.`);
         for (const w of this.workers) {
-          w.worker.terminate();
+          try { w.worker.terminate(); } catch (_) {}
         }
         this.workers = [];
       }, this.idleTimeoutMs);
@@ -138,6 +216,9 @@ class WorkerPool {
   }
 
   async executeTask(msg) {
+    if (this.initFailed) {
+      throw (this.initError || new Error(`WorkerPool for ${path.basename(this.scriptPath)} failed initialization and is disabled.`));
+    }
     return new Promise((resolve, reject) => {
       const reqId = this.reqIdCounter++;
       msg.reqId = reqId; 
@@ -332,8 +413,19 @@ class TaskManager {
     );
   }
   
+  isAiAvailable() {
+    return !!(this.inferencePool && !this.inferencePool.initFailed);
+  }
+
+  isSearchAvailable() {
+    return !!(this.searchPool && !this.searchPool.initFailed);
+  }
+  
   async computeClip(imagePath, thumbPath = null) {
     if (!this.inferencePool) throw new Error("TaskManager not initialized");
+    if (this.inferencePool.initFailed) {
+      throw new Error(`AI inference engine is unavailable: ${this.inferencePool.initError?.message || 'Init failed'}`);
+    }
     const result = await this.inferencePool.executeTask({ type: 'compute_clip', imagePath, thumbPath });
     
     // Automatically populate SAB when computed
@@ -345,6 +437,9 @@ class TaskManager {
 
   async computeFace(imagePath) {
     if (!this.inferencePool) throw new Error("TaskManager not initialized");
+    if (this.inferencePool.initFailed) {
+      throw new Error(`Face recognition engine is unavailable: ${this.inferencePool.initError?.message || 'Init failed'}`);
+    }
     const result = await this.inferencePool.executeTask({ type: 'compute_face', imagePath });
     
     if (result.faces && Array.isArray(result.faces)) {

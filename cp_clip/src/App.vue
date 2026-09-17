@@ -4825,6 +4825,19 @@ const pcActiveTransferName = ref(null);
 const pcActiveProgress = ref(0.0);
 const incomingTransfer = ref(null);
 const thumbnailImages = ref([]);
+const knownThumbNames = new Set();
+function rebuildKnownThumbNames() {
+  knownThumbNames.clear();
+  const arr = thumbnailImages.value;
+  if (Array.isArray(arr)) {
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i]?.name) knownThumbNames.add(arr[i].name);
+    }
+  }
+}
+watch(thumbnailImages, () => {
+  rebuildKnownThumbNames();
+}, { deep: false });
 const isThumbnailSyncing = ref(false);
 const thumbSyncDone = ref(0);
 const thumbSyncTotal = ref(0);
@@ -8120,18 +8133,17 @@ onMounted(() => {
         return;
       }
       
-      logSyncEvent(`🎉 图片接收完成并自动分类: ${imageInfo.name}`);
-      
       if (imageInfo.isThumbnail) {
-        const exists = thumbnailImages.value.some(img => img.name === imageInfo.name);
-        if (!exists) {
+        const isKnown = knownThumbNames.has(imageInfo.name);
+        if (!isKnown) {
+          knownThumbNames.add(imageInfo.name);
           const newThumb = {
             src: imageInfo.src,
             name: imageInfo.name,
             path: imageInfo.path,
             predictions: imageInfo.predictions
           };
-          thumbnailImages.value.unshift(newThumb);
+          thumbnailImages.value.push(newThumb);
           
           // Also push to images.value for main gallery browsing
           images.value.push({
@@ -8167,10 +8179,14 @@ onMounted(() => {
         }
         // Always increment counter regardless of whether thumbnail was new or already existed
         thumbSyncDone.value++;
+        if (thumbSyncDone.value % 50 === 0 || (thumbSyncTotal.value > 0 && thumbSyncDone.value >= thumbSyncTotal.value)) {
+          logSyncEvent(`🧠 AI 同步中 (${thumbSyncDone.value}/${thumbSyncTotal.value || '...'}): ${imageInfo.name}`);
+        }
         if (thumbSyncTotal.value > 0 && thumbSyncDone.value >= thumbSyncTotal.value) {
           isThumbnailSyncing.value = false;
         }
       } else {
+        logSyncEvent(`🎉 图片接收完成: ${imageInfo.name}`);
         incomingTransfer.value = null;
 
         // Update chatMessage to completed
