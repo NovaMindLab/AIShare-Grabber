@@ -1,7 +1,7 @@
 {
   "name": "shareclip",
   "private": true,
-  "version": "4.2.7",
+  "version": "4.2.8",
   "description": "ShareCLIP PC Client",
   "author": "ShareCLIP Team <support@shareclip.com>",
   "homepage": "https://novamindlab.github.io/AIShare-Grabber/",
@@ -140,6 +140,7 @@
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerHeaderIcon": "build/icon.ico",
+      "include": "build/installer.nsh",
       "differentialPackage": true
     },
     "mac": {

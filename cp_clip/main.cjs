@@ -833,6 +833,23 @@ app.on('will-quit', () => {
     } catch (_) {}
     hotspotProcess = null;
   }
+  if (bleProcess) {
+    try {
+      bleProcess.kill();
+    } catch (_) {}
+    bleProcess = null;
+  }
+  if (process.platform === 'win32') {
+    try {
+      const { execSync } = require('child_process');
+      execSync('taskkill /f /im ble_signaling_server.exe 2>nul || exit 0', { stdio: 'ignore' });
+    } catch (_) {}
+  }
+  try {
+    if (taskManager && typeof taskManager.destroy === 'function') {
+      taskManager.destroy();
+    }
+  } catch (_) {}
 });
 
 // --- Background Asynchronous Face Scanner ---
@@ -3335,6 +3352,21 @@ function prepareForUpdateExit() {
     }
   } catch (_) {}
   try {
+    if (bleProcess) {
+      bleProcess.kill();
+      bleProcess = null;
+    }
+    if (process.platform === 'win32') {
+      const { execSync } = require('child_process');
+      execSync('taskkill /f /im ble_signaling_server.exe 2>nul || exit 0', { stdio: 'ignore' });
+    }
+  } catch (_) {}
+  try {
+    if (taskManager && typeof taskManager.destroy === 'function') {
+      taskManager.destroy();
+    }
+  } catch (_) {}
+  try {
     if (snifferBrowserWindow && !snifferBrowserWindow.isDestroyed()) {
       snifferBrowserWindow.destroy();
       snifferBrowserWindow = null;
@@ -3363,21 +3395,23 @@ ipcMain.handle('install-update', async (event, filePath) => {
         }
         setTimeout(() => {
           app.exit(0);
-        }, 400);
+        }, 500);
       });
     } else if (fs.existsSync(filePath)) {
       if (process.platform === 'win32' && filePath.toLowerCase().endsWith('.exe')) {
-        console.log('[Update Install] Spawning NSIS silent installer with /S:', filePath);
-        const { spawn } = require('child_process');
-        const child = spawn(filePath, ['/S', '--updated', '--force-run'], {
-          detached: true,
-          stdio: 'ignore'
-        });
-        child.unref();
+        console.log('[Update Install] Preparing clean shutdown before spawning NSIS installer:', filePath);
         prepareForUpdateExit();
         setTimeout(() => {
-          app.exit(0);
-        }, 200);
+          const { spawn } = require('child_process');
+          const child = spawn(filePath, ['/S', '--updated', '--force-run'], {
+            detached: true,
+            stdio: 'ignore'
+          });
+          child.unref();
+          setTimeout(() => {
+            app.exit(0);
+          }, 300);
+        }, 300);
       } else if (process.platform === 'darwin') {
         console.log('[Update Install] Opening macOS package (DMG/ZIP):', filePath);
         shell.openPath(filePath);

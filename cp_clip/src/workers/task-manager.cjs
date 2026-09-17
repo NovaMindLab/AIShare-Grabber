@@ -234,6 +234,19 @@ class WorkerPool {
     this.isSpawning = false;
     console.log(`[WorkerPool] Circuit breaker reset for ${path.basename(this.scriptPath)}`);
   }
+
+  terminateAll() {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
+    for (const w of this.workers) {
+      try { w.worker.terminate(); } catch (_) {}
+    }
+    this.workers = [];
+    this.queue = [];
+    console.log(`[WorkerPool] Terminated all workers for ${path.basename(this.scriptPath)}`);
+  }
 }
 
 class TaskManager {
@@ -494,6 +507,18 @@ class TaskManager {
       payload: { validImages }
     });
     return result.searchResults;
+  }
+
+  destroy() {
+    if (this.inferencePool) {
+      this.inferencePool.terminateAll();
+      this.inferencePool = null;
+    }
+    if (this.searchPool) {
+      this.searchPool.terminateAll();
+      this.searchPool = null;
+    }
+    console.log('[TaskManager] Destroyed all worker pools.');
   }
 }
 
