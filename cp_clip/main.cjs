@@ -3291,13 +3291,14 @@ ipcMain.handle('yt-cookies-set-mode', async (event, mode) => {
         });
       });
 
-      if (extractResult.code !== 0 || !fs.existsSync(tempCookiesFile) || fs.statSync(tempCookiesFile).size < 100) {
+      const hasValidFile = fs.existsSync(tempCookiesFile) && fs.statSync(tempCookiesFile).size >= 100;
+      if (extractResult.code !== 0 || !hasValidFile) {
         const combinedErr = (extractResult.stderr + extractResult.stdout).toLowerCase();
-        if (combinedErr.includes('permission') || combinedErr.includes('could not copy') || combinedErr.includes('database')) {
+        if (combinedErr.includes('permission') || combinedErr.includes('could not copy') || combinedErr.includes('database') || combinedErr.includes('locked')) {
           return {
             success: false,
             code: 'LOCKED',
-            message: `${mode.toUpperCase()} 浏览器正在运行锁定了 Cookie 数据库。\n推荐直接切换为【Microsoft Edge】(无需关闭即可免密秒同步)，或完全退出 ${mode} 后重试。`
+            message: `Google Chrome 正在运行并独占锁定了 Cookie 数据库（Windows 系统限制）。\n\n【解决方法】：\n1. 直接使用列表中已推荐的【Microsoft Edge】免密秒同步（体验与画质完全相同，无需关闭浏览器）；\n2. 或完全退出 Chrome（包括任务栏右下角后台托盘进程）后重试；\n3. 或点击下方【重新登录 YouTube】在应用内直接登录。`
           };
         }
         return {
