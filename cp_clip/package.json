@@ -14,7 +14,7 @@
     "vite:build": "node scripts/copy-redist.cjs && vite build",
     "electron:dev": "cross-env NODE_ENV=development electron .",
     "dev": "concurrently -k \"npm run vite:dev\" \"wait-on http://localhost:5173 && npm run electron:dev\"",
-    "build": "node scripts/copy-redist.cjs && vite build",
+    "build": "node scripts/copy-redist.cjs && node scripts/prune-onnxruntime.cjs && vite build",
     "preview": "vite preview",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
