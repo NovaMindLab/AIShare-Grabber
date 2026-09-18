@@ -150,6 +150,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: cp_clip/package-lock.json
 
+      - name: 🧠 Download Pretrained AI Models
+        shell: pwsh
+        run: |
+          cd cp_clip
+          Write-Host "==== Downloading Pretrained AI Models Bundle from GitHub Releases ===="
+          curl.exe -sL -o shareclip-models-v1.zip https://github.com/NovaMindLab/AIShare-Grabber/releases/download/models-v1/shareclip-models-v1.zip
+          tar.exe -xf shareclip-models-v1.zip
+          Remove-Item shareclip-models-v1.zip -Force -ErrorAction SilentlyContinue
+          Write-Host "==== Verifying Downloaded Models in cp_clip ===="
+          Get-ChildItem -Filter "*.onnx*" | Select-Object Name, Length
+
       - name: Build Windows Client
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -260,6 +271,16 @@ jobs:
         with:
           node-version: 20
 
+      - name: 🧠 Download Pretrained AI Models
+        run: |
+          cd cp_clip
+          echo "==== Downloading Pretrained AI Models Bundle from GitHub Releases ===="
+          curl -sL -o shareclip-models-v1.zip https://github.com/NovaMindLab/AIShare-Grabber/releases/download/models-v1/shareclip-models-v1.zip
+          tar -xf shareclip-models-v1.zip
+          rm -f shareclip-models-v1.zip
+          echo "==== Verifying Downloaded Models in cp_clip ===="
+          ls -lh *.onnx*
+
       - name: Build macOS Client (${{ matrix.arch }})
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -346,6 +367,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: 🧠 Download Pretrained AI Models
+        run: |
+          cd cp_clip
+          echo "==== Downloading Pretrained AI Models Bundle from GitHub Releases ===="
+          curl -sL -o shareclip-models-v1.zip https://github.com/NovaMindLab/AIShare-Grabber/releases/download/models-v1/shareclip-models-v1.zip
+          tar -xf shareclip-models-v1.zip
+          rm -f shareclip-models-v1.zip
+          echo "==== Verifying Downloaded Models in cp_clip ===="
+          ls -lh *.onnx*
 
       - name: Build Linux Client
         env:

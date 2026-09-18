@@ -162,7 +162,11 @@ parentPort.on('message', async (msg) => {
     physicalScrfdPath = msg.physicalScrfdModelPath;
     physicalMobilefacenetPath = msg.physicalMobilefacenetModelPath;
 
-    if (ort && fs.existsSync(physicalModelPath)) {
+    const dataPath = physicalModelPath ? physicalModelPath + '.data' : null;
+    const isImageEncoder = physicalModelPath && physicalModelPath.includes('mobileclip2_s0_image_encoder');
+    const modelExists = physicalModelPath && fs.existsSync(physicalModelPath) && (!isImageEncoder || !dataPath || fs.existsSync(dataPath));
+
+    if (ort && modelExists) {
       try {
         console.log("[Inference Worker] Loading MobileCLIP Image Encoder ONNX model from:", physicalModelPath);
         if (sharp) {
@@ -243,16 +247,31 @@ parentPort.on('message', async (msg) => {
         parentPort.postMessage({ type: 'init_result', success: true });
       } catch (err) {
         console.error("[Inference Worker] Failed to initialize Image Encoder ONNX model session:", err);
-        parentPort.postMessage({ type: 'init_result', success: false, error: err.message });
+        const isMissing = err.message && (
+          err.message.includes('No such file') || 
+          err.message.includes('not found') || 
+          !fs.existsSync(physicalModelPath) ||
+          (isImageEncoder && dataPath && !fs.existsSync(dataPath))
+        );
+        parentPort.postMessage({ type: 'init_result', success: false, error: err.message, isModelMissing: !!isMissing });
       }
     } else {
       const details = [];
+      let isMissing = false;
       if (!ort) details.push(`onnxruntime-node failed to load (${ortLoadError ? ortLoadError.message : 'missing module'})`);
-      if (!physicalModelPath) details.push('physicalModelPath is empty');
-      else if (!fs.existsSync(physicalModelPath)) details.push(`Model file not found: ${physicalModelPath}`);
+      if (!physicalModelPath) {
+        details.push('physicalModelPath is empty');
+        isMissing = true;
+      } else if (!fs.existsSync(physicalModelPath)) {
+        details.push(`Model file not found: ${physicalModelPath}`);
+        isMissing = true;
+      } else if (isImageEncoder && dataPath && !fs.existsSync(dataPath)) {
+        details.push(`Model data file not found: ${dataPath}`);
+        isMissing = true;
+      }
       const errMsg = `[Inference Worker] Image Encoder unavailable: ${details.join('; ')}`;
       console.warn(errMsg);
-      parentPort.postMessage({ type: 'init_result', success: false, error: errMsg });
+      parentPort.postMessage({ type: 'init_result', success: false, error: errMsg, isModelMissing: isMissing });
     }
   } else if (msg.type === 'compute_clip') {
     const reqId = msg.reqId;

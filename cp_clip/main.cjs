@@ -220,6 +220,159 @@ function getPhysicalPath(filePath) {
   return filePath.replace(/\bapp\.asar\b/, 'app.asar.unpacked');
 }
 
+function resolveModelPath(filename) {
+  const isAsar = __dirname.includes('app.asar');
+  let resourcesDir = '';
+  if (isAsar) {
+    const asarIndex = __dirname.indexOf('app.asar');
+    resourcesDir = path.resolve(__dirname.substring(0, asarIndex));
+  } else {
+    resourcesDir = path.join(__dirname, '..', 'resources');
+  }
+
+  let userDataModelsDir = '';
+  try {
+    if (app && app.getPath) {
+      userDataModelsDir = path.join(app.getPath('userData'), 'models');
+    }
+  } catch (_) {}
+
+  const candidates = [
+    // 1. Primary: unpacked resources directory
+    resourcesDir ? path.join(resourcesDir, 'app.asar.unpacked', filename) : null,
+    getPhysicalPath(path.join(__dirname, filename)),
+    // 2. Direct resources directory
+    resourcesDir ? path.join(resourcesDir, filename) : null,
+    // 3. User data models directory (downloaded via background self-healing)
+    userDataModelsDir ? path.join(userDataModelsDir, filename) : null,
+    // 4. Source root / dev directory
+    path.join(__dirname, filename)
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      if (filename.includes('mobileclip2_s0_image_encoder.onnx') && !filename.endsWith('.data')) {
+        if (fs.existsSync(candidate + '.data')) {
+          return candidate;
+        }
+      } else {
+        return candidate;
+      }
+    }
+  }
+
+  return candidates[0] || getPhysicalPath(path.join(__dirname, filename));
+}
+
+let isDownloadingModels = false;
+let modelDownloadPromise = null;
+
+async function downloadSingleModel(filename) {
+  let targetDir = '';
+  try {
+    targetDir = path.join(app.getPath('userData'), 'models');
+  } catch (_) {
+    targetDir = path.join(__dirname, 'models');
+  }
+
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+
+  const finalPath = path.join(targetDir, filename);
+  if (fs.existsSync(finalPath) && fs.statSync(finalPath).size > 1000) {
+    return finalPath;
+  }
+
+  const urls = [
+    `https://github.com/NovaMindLab/AIShare-Grabber/releases/download/models-v1/${filename}`,
+    `https://ghproxy.net/https://github.com/NovaMindLab/AIShare-Grabber/releases/download/models-v1/${filename}`
+  ];
+
+  for (const url of urls) {
+    try {
+      console.log(`[AI Model Auto-Downloader] Fetching ${filename} from: ${url}`);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+
+      const { Readable } = require('stream');
+      const { pipeline } = require('stream/promises');
+      const tempPath = path.join(targetDir, `${filename}.tmp_${Date.now()}`);
+
+      await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(tempPath));
+      if (fs.existsSync(finalPath)) {
+        try { fs.unlinkSync(finalPath); } catch (_) {}
+      }
+      fs.renameSync(tempPath, finalPath);
+      console.log(`[AI Model Auto-Downloader] Successfully downloaded ${filename} (${fs.statSync(finalPath).size} bytes).`);
+      return finalPath;
+    } catch (err) {
+      console.warn(`[AI Model Auto-Downloader] Download of ${filename} from ${url} failed:`, err.message);
+    }
+  }
+  return null;
+}
+
+async function ensureCoreAiModels() {
+  if (isDownloadingModels) return modelDownloadPromise;
+
+  const required = [
+    'mobileclip2_s0_image_encoder.onnx',
+    'mobileclip2_s0_image_encoder.onnx.data',
+    'mobileclip2_s0_text_encoder_quant.onnx',
+    'det_500m.onnx',
+    'w600k_mbf.onnx'
+  ];
+
+  const missing = [];
+  for (const f of required) {
+    const p = resolveModelPath(f);
+    if (!fs.existsSync(p)) {
+      missing.push(f);
+    }
+  }
+
+  if (missing.length === 0) return true;
+
+  console.log(`[AI Model Auto-Downloader] Missing ${missing.length} AI model files: ${missing.join(', ')}. Starting background download...`);
+  isDownloadingModels = true;
+
+  modelDownloadPromise = (async () => {
+    try {
+      for (const f of missing) {
+        const res = await downloadSingleModel(f);
+        if (!res) {
+          console.warn(`[AI Model Auto-Downloader] Failed to fetch ${f}. AI will remain in fallback mode.`);
+          return false;
+        }
+      }
+      console.log('[AI Model Auto-Downloader] All missing models downloaded successfully! Re-initializing AI...');
+      await initializeAI();
+      return true;
+    } catch (e) {
+      console.error('[AI Model Auto-Downloader] Error downloading models:', e);
+      return false;
+    } finally {
+      isDownloadingModels = false;
+      modelDownloadPromise = null;
+    }
+  })();
+
+  return modelDownloadPromise;
+}
+
+function getAiFallbackCategory(err = null) {
+  if (isDownloadingModels) {
+    return "⏳ 正在准备 AI 模型 (请稍候...)";
+  }
+  const isModelMissing = (taskManager && taskManager.isModelMissing && taskManager.isModelMissing()) || 
+    (err && err.message && (err.message.includes('not found') || err.message.includes('No such file')));
+  if (isModelMissing) {
+    return "⚠️ AI 模型文件缺失 (正在联网自动恢复或请更新客户端)";
+  }
+  return "💻 电脑配置过低 (不支持AI加速或内存不足)";
+}
+
 let activeDeviceUuid = null;
 let activeDeviceName = '';
 let activeDeviceDb = null;
@@ -419,8 +572,8 @@ function stopPcHeartbeat() {
 
 // Load ONNX model and embeddings
 async function initializeAI() {
-  const modelPath = path.join(__dirname, 'mobileclip2_s0_image_encoder.onnx');
-  const textModelPath = path.join(__dirname, 'mobileclip2_s0_text_encoder_quant.onnx');
+  const modelPath = resolveModelPath('mobileclip2_s0_image_encoder.onnx');
+  const textModelPath = resolveModelPath('mobileclip2_s0_text_encoder_quant.onnx');
   const mergesPath = path.join(__dirname, 'merges.txt');
   const embeddingsPath = path.join(__dirname, 'text_embeddings.json');
 
@@ -473,18 +626,27 @@ async function initializeAI() {
   }
 
   // 3. Initialize Task Manager & Worker Threads
-  const physicalModelPath = getPhysicalPath(modelPath);
-  const scrfdModelPath = path.join(__dirname, 'det_500m.onnx');
-  const mobilefacenetModelPath = path.join(__dirname, 'w600k_mbf.onnx');
-  const physicalScrfdModelPath = getPhysicalPath(scrfdModelPath);
-  const physicalMobilefacenetModelPath = getPhysicalPath(mobilefacenetModelPath);
+  const physicalModelPath = modelPath;
+  const scrfdModelPath = resolveModelPath('det_500m.onnx');
+  const mobilefacenetModelPath = resolveModelPath('w600k_mbf.onnx');
+  const physicalScrfdModelPath = scrfdModelPath;
+  const physicalMobilefacenetModelPath = mobilefacenetModelPath;
   try {
     taskManager.init(physicalModelPath, physicalScrfdModelPath, physicalMobilefacenetModelPath);
   } catch (err) {
     console.error("[AI Init] TaskManager failed to initialize models:", err);
   }
 
-  // 4. Text Encoder ONNX Model (Deferred to lazy on-demand loading to save ~92MB RAM at startup)
+  // 4. If models are missing locally, trigger non-blocking background self-healing download
+  const isImageReady = fs.existsSync(physicalModelPath) && fs.existsSync(physicalModelPath + '.data');
+  if (!isImageReady || !fs.existsSync(scrfdModelPath) || !fs.existsSync(mobilefacenetModelPath) || !fs.existsSync(textModelPath)) {
+    console.warn("[AI Init] One or more AI models missing. Triggering background model self-healing...");
+    setTimeout(() => {
+      ensureCoreAiModels().catch(err => console.warn("[AI Model Auto-Downloader] Error in background task:", err.message));
+    }, 1500);
+  }
+
+  // 5. Text Encoder ONNX Model (Deferred to lazy on-demand loading to save ~92MB RAM at startup)
   console.log("[AI Init] Text Encoder ONNX model deferred to lazy on-demand loading.");
 }
 
@@ -494,8 +656,8 @@ async function getTextEncoderSession() {
   if (textEncoderSessionPromise) return textEncoderSessionPromise;
 
   const onnxRuntime = getOrt();
-  const textModelPath = path.join(__dirname, 'mobileclip2_s0_text_encoder_quant.onnx');
-  const physicalTextModelPath = getPhysicalPath(textModelPath);
+  const textModelPath = resolveModelPath('mobileclip2_s0_text_encoder_quant.onnx');
+  const physicalTextModelPath = textModelPath;
 
   if (!onnxRuntime || !fs.existsSync(physicalTextModelPath)) {
     console.warn("[AI Search] Text Encoder ONNX model not found or onnxruntime-node missing. Search will run in mock mode.");
@@ -1460,7 +1622,7 @@ async function classifyPhotoInternal(imagePath, thumbPath = null) {
   // If TaskManager AI engine is permanently unavailable/disabled, return fallback immediately
   if (!taskManager.isAiAvailable()) {
     return [
-      { category: "💻 电脑配置过低 (不支持AI加速或内存不足)", score: 1.0 },
+      { category: getAiFallbackCategory(), score: 1.0 },
       { category: "AI inference engine disabled", score: 0.0 }
     ];
   }
@@ -1508,13 +1670,15 @@ async function classifyPhotoInternal(imagePath, thumbPath = null) {
       console.warn("AI photo classification warning:", error.message);
       lastClassificationErrorLoggedTime = now;
     }
-    const isHardware = error.message && (
+    const isHardwareOrModel = error.message && (
       error.message.includes("Text embeddings not loaded") ||
       error.message.includes("unavailable") ||
       error.message.includes("WorkerPool") ||
-      error.message.includes("onnxruntime")
+      error.message.includes("onnxruntime") ||
+      error.message.includes("not found") ||
+      error.message.includes("No such file")
     );
-    const title = isHardware ? "💻 电脑配置过低 (不支持AI加速或内存不足)" : "❌ 分类出错";
+    const title = isHardwareOrModel ? getAiFallbackCategory(error) : "❌ 分类出错";
     return [
       { category: title, score: 1.0 },
       { category: error.message || "Unknown error", score: 0.0 }
@@ -1582,11 +1746,11 @@ async function processAiQueue() {
     // If AI engine is disabled on this machine, fast-forward all remaining queued photos!
     if (!taskManager.isAiAvailable()) {
       if (!aiDisabledLogged) {
-        console.warn(`[AI Queue] AI inference engine unavailable. Fast-forwarding ${aiClassificationQueue.length} queued photo(s) with hardware fallback.`);
+        console.warn(`[AI Queue] AI inference engine unavailable. Fast-forwarding ${aiClassificationQueue.length} queued photo(s) with fallback.`);
         aiDisabledLogged = true;
       }
       const fallbackPredictions = [
-        { category: "💻 电脑配置过低 (不支持AI加速或内存不足)", score: 1.0 }
+        { category: getAiFallbackCategory(), score: 1.0 }
       ];
       const fallbackStr = JSON.stringify(fallbackPredictions);
 
@@ -5954,16 +6118,7 @@ let activeAnimeConverter = null;
 
 function resolveAnimeModelPath(style) {
   const filename = `animegan_${style}.onnx`;
-  const candidates = [
-    path.join(__dirname, filename),
-    path.join(process.resourcesPath || __dirname, filename),
-    path.join(process.resourcesPath || __dirname, 'app.asar.unpacked', filename),
-    path.join(typeof app !== 'undefined' && app.getAppPath ? app.getAppPath() : __dirname, filename)
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
-  }
-  return path.join(__dirname, filename);
+  return resolveModelPath(filename);
 }
 
 ipcMain.handle('video-anime:check-env', async () => {

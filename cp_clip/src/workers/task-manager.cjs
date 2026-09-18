@@ -17,6 +17,7 @@ class WorkerPool {
     // Circuit breaker & anti-thrashing protection
     this.initFailed = false;
     this.initError = null;
+    this.isModelMissing = false;
     this.initAttempts = 0;
     this.maxInitAttempts = 2; // Maximum attempts before permanently disabling pool
     this.isSpawning = false;
@@ -53,6 +54,9 @@ class WorkerPool {
         if (!msg.success) {
            const errMsg = `[WorkerPool] Init failed for ${path.basename(this.scriptPath)}: ${msg.error || JSON.stringify(msg)}`;
            console.warn(errMsg);
+           if (msg.isModelMissing) {
+             this.isModelMissing = true;
+           }
            
            // CRITICAL FIX: Explicitly terminate the failed worker OS thread immediately to prevent thread & memory leaks!
            try { workerObj.worker.terminate(); } catch (_) {}
@@ -406,6 +410,10 @@ class TaskManager {
   }
 
   init(modelPath, scrfdModelPath = null, mobilefacenetModelPath = null) {
+    if (this.inferencePool) {
+      try { this.inferencePool.terminateAll(); } catch (_) {}
+      this.inferencePool = null;
+    }
     const inferenceWorkers = this.maxInferenceWorkers || 1;
     
     this.inferencePool = new WorkerPool(
@@ -420,22 +428,28 @@ class TaskManager {
       }
     );
     
-    // Pass the WebAssembly.Memory objects to the Search Worker
-    this.searchPool = new WorkerPool(
-      path.join(__dirname, 'search.worker.cjs'), 
-      1, 
-      this.idleTimeoutMs,
-      { 
-        wasmMemImages: this.wasmMemImages,
-        wasmMemFaces: this.wasmMemFaces,
-        sharedBuffer: this.sharedBuffer,
-        faceSharedBuffer: this.faceSharedBuffer
-      }
-    );
+    if (!this.searchPool) {
+      // Pass the WebAssembly.Memory objects to the Search Worker
+      this.searchPool = new WorkerPool(
+        path.join(__dirname, 'search.worker.cjs'), 
+        1, 
+        this.idleTimeoutMs,
+        { 
+          wasmMemImages: this.wasmMemImages,
+          wasmMemFaces: this.wasmMemFaces,
+          sharedBuffer: this.sharedBuffer,
+          faceSharedBuffer: this.faceSharedBuffer
+        }
+      );
+    }
   }
   
   isAiAvailable() {
     return !!(this.inferencePool && !this.inferencePool.initFailed);
+  }
+
+  isModelMissing() {
+    return !!(this.inferencePool && this.inferencePool.isModelMissing);
   }
 
   isSearchAvailable() {
