@@ -386,7 +386,7 @@ jobs:
           cd cp_clip
           npm install
           npm run build
-          npx electron-builder --linux
+          npx electron-builder --linux || (echo "Retrying Linux electron-builder packaging..." && sleep 5 && npx electron-builder --linux)
 
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
