@@ -276,7 +276,7 @@ jobs:
           cd cp_clip
           echo "==== Downloading Pretrained AI Models Bundle from GitHub Releases ===="
           curl -sL -o shareclip-models-v1.zip https://github.com/NovaMindLab/AIShare-Grabber/releases/download/models-v1/shareclip-models-v1.zip
-          tar -xf shareclip-models-v1.zip
+          unzip -o shareclip-models-v1.zip
           rm -f shareclip-models-v1.zip
           echo "==== Verifying Downloaded Models in cp_clip ===="
           ls -lh *.onnx*
@@ -361,7 +361,7 @@ jobs:
       - name: Install Linux Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfuse2 libarchive-tools rpm
+          sudo apt-get install -y libfuse2 libarchive-tools rpm unzip
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -373,7 +373,7 @@ jobs:
           cd cp_clip
           echo "==== Downloading Pretrained AI Models Bundle from GitHub Releases ===="
           curl -sL -o shareclip-models-v1.zip https://github.com/NovaMindLab/AIShare-Grabber/releases/download/models-v1/shareclip-models-v1.zip
-          tar -xf shareclip-models-v1.zip
+          unzip -o shareclip-models-v1.zip
           rm -f shareclip-models-v1.zip
           echo "==== Verifying Downloaded Models in cp_clip ===="
           ls -lh *.onnx*
