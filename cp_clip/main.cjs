@@ -3017,55 +3017,132 @@ function isNewVersionAvailable(current, latest) {
   return false;
 }
 
+const http = require('http');
 const https = require('https');
 
 function downloadFile(url, destPath, progressCallback) {
   return new Promise((resolve, reject) => {
+    let hops = 0;
+    const maxHops = 10;
+    let fileStream = null;
+
     const request = (targetUrl) => {
-      https.get(targetUrl, {
-        headers: { 'User-Agent': 'ShareCLIP-PC-App' }
+      if (hops++ > maxHops) {
+        if (fileStream) fileStream.destroy();
+        fs.unlink(destPath, () => {});
+        return reject(new Error('Too many redirects while downloading file'));
+      }
+
+      let parsedUrl;
+      try {
+        parsedUrl = new URL(targetUrl);
+      } catch (err) {
+        if (fileStream) fileStream.destroy();
+        fs.unlink(destPath, () => {});
+        return reject(new Error(`Invalid URL: ${targetUrl}`));
+      }
+
+      const client = parsedUrl.protocol === 'http:' ? http : https;
+      const req = client.get(targetUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': '*/*'
+        }
       }, (res) => {
-        if (res.statusCode === 302 || res.statusCode === 301) {
-          request(res.headers.location);
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          res.resume();
+          const redirectUrl = new URL(res.headers.location, targetUrl).href;
+          request(redirectUrl);
           return;
         }
-        
+
         if (res.statusCode !== 200) {
+          res.resume();
+          if (fileStream) fileStream.destroy();
+          fs.unlink(destPath, () => {});
           reject(new Error(`Failed to download: status code ${res.statusCode}`));
           return;
         }
-        
-        const totalBytes = parseInt(res.headers['content-length'], 10);
+
+        const totalBytes = parseInt(res.headers['content-length'], 10) || 0;
         let downloadedBytes = 0;
-        const fileStream = fs.createWriteStream(destPath);
-        
+        fileStream = fs.createWriteStream(destPath);
+
         res.on('data', (chunk) => {
           downloadedBytes += chunk.length;
           fileStream.write(chunk);
-          if (totalBytes > 0) {
-            const progress = Math.round((downloadedBytes / totalBytes) * 100);
+          if (totalBytes > 0 && typeof progressCallback === 'function') {
+            const progress = Math.min(100, Math.round((downloadedBytes / totalBytes) * 100));
             progressCallback(progress, downloadedBytes, totalBytes);
           }
         });
-        
+
         res.on('end', () => {
-          fileStream.end();
-          resolve();
+          if (fileStream) {
+            fileStream.end(() => resolve(destPath));
+          } else {
+            resolve(destPath);
+          }
         });
-        
+
         res.on('error', (err) => {
-          fileStream.end();
+          if (fileStream) fileStream.destroy();
           fs.unlink(destPath, () => {});
           reject(err);
         });
-      }).on('error', (err) => {
+      });
+
+      req.setTimeout(60000, () => {
+        req.destroy();
+        if (fileStream) fileStream.destroy();
+        fs.unlink(destPath, () => {});
+        reject(new Error(`Download timed out after 60s: ${targetUrl}`));
+      });
+
+      req.on('error', (err) => {
+        if (fileStream) fileStream.destroy();
+        fs.unlink(destPath, () => {});
         reject(err);
       });
     };
-    
+
     request(url);
   });
 }
+
+function getGitHubMirrors(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return [];
+  const list = [];
+  if (rawUrl.includes('github.com')) {
+    list.push(`https://ghfast.top/${rawUrl}`);
+    list.push(`https://ghproxy.net/${rawUrl}`);
+    list.push(`https://mirror.ghproxy.com/${rawUrl}`);
+  }
+  list.push(rawUrl);
+  return list;
+}
+
+async function downloadFileWithMirrors(urls, destPath, progressCallback) {
+  const candidateList = Array.isArray(urls) ? urls : [urls];
+  let lastErr = null;
+
+  for (let i = 0; i < candidateList.length; i++) {
+    const candidate = candidateList[i];
+    try {
+      console.log(`[Downloader] Attempting download (${i + 1}/${candidateList.length}): ${candidate}`);
+      await downloadFile(candidate, destPath, progressCallback);
+      console.log(`[Downloader] Successfully downloaded to ${destPath} via: ${candidate}`);
+      return destPath;
+    } catch (err) {
+      lastErr = err;
+      console.warn(`[Downloader] Mirror attempt failed for ${candidate}:`, err.message);
+      try { if (fs.existsSync(destPath)) fs.unlinkSync(destPath); } catch (_) {}
+    }
+  }
+
+  throw lastErr || new Error('All download mirrors failed');
+}
+
 
 const { autoUpdater } = require('electron-updater');
 
@@ -3740,11 +3817,12 @@ async function ensureFFmpeg(event) {
   }
 
   try {
-    console.log(`[FFmpeg] Downloading portable FFmpeg core from ${downloadUrl} to ${destPath}`);
+    const candidateUrls = getGitHubMirrors(downloadUrl);
+    console.log(`[FFmpeg] Downloading portable FFmpeg core to ${destPath}`);
     if (event && !event.sender.isDestroyed()) {
-      event.sender.send('yt-progress', { status: '正在静默准备便携版 FFmpeg 编解码器...', progress: 0 });
+      event.sender.send('yt-progress', { status: '正在准备便携版 FFmpeg 编解码器...', progress: 0 });
     }
-    await downloadFile(downloadUrl, destPath, (progress) => {
+    await downloadFileWithMirrors(candidateUrls, destPath, (progress) => {
       if (event && !event.sender.isDestroyed()) {
         event.sender.send('yt-progress', { status: `正在拉取编解码器: ${progress}%`, progress });
       }
@@ -3818,9 +3896,10 @@ async function ensureYtDlp(event) {
   
   if (!fs.existsSync(ytDlpPath)) {
     console.log(`[YT-DLP] Downloading yt-dlp.exe to ${ytDlpPath}`);
-    if (event) event.sender.send('yt-progress', { status: 'Downloading yt-dlp.exe core...', progress: 0 });
-    await downloadFile(YTDLP_URL, ytDlpPath, (progress) => {
-      if (event) event.sender.send('yt-progress', { status: `Downloading core: ${progress}%`, progress });
+    if (event && !event.sender.isDestroyed()) event.sender.send('yt-progress', { status: '正在准备下载核心引擎 (首次运行)...', progress: 0 });
+    const candidateUrls = getGitHubMirrors(YTDLP_URL);
+    await downloadFileWithMirrors(candidateUrls, ytDlpPath, (progress) => {
+      if (event && !event.sender.isDestroyed()) event.sender.send('yt-progress', { status: `正在拉取解析引擎: ${progress}%`, progress });
     });
     console.log(`[YT-DLP] Download complete.`);
   }
@@ -4353,7 +4432,7 @@ ipcMain.handle('yt-get-info', async (event, url) => {
                 id: `video_${h}`,
                 height: h,
                 label: getResLabel(h),
-                formatSpec: `bestvideo[height<=${h}]+bestaudio/best[height<=${h}]/best`,
+                formatSpec: `bv*[height<=${h}]+ba/b[height<=${h}]/bv*+ba/b`,
                 fps: bestFmt?.fps || null,
                 vcodec: bestFmt?.vcodec || '',
                 filesize: totalEstimatedSize,
@@ -4367,7 +4446,7 @@ ipcMain.handle('yt-get-info', async (event, url) => {
               id: 'audio_only',
               height: 0,
               label: '🎵 仅提取音频 (MP3 高音质)',
-              formatSpec: 'bestaudio/best',
+              formatSpec: 'ba/bestaudio/best',
               filesize: maxAudioSize,
               ext: 'mp3',
               type: 'audio'
@@ -4379,7 +4458,7 @@ ipcMain.handle('yt-get-info', async (event, url) => {
                 id: 'best_quality',
                 height: sortedHeights[0],
                 label: `⚡ 最佳画质 (${getResLabel(sortedHeights[0])})`,
-                formatSpec: 'bestvideo+bestaudio/best',
+                formatSpec: 'bv*+ba/b',
                 filesize: resolutions[0]?.filesize || 0,
                 ext: 'mp4',
                 type: 'video',
@@ -4391,7 +4470,7 @@ ipcMain.handle('yt-get-info', async (event, url) => {
                 id: 'best_quality',
                 height: 1080,
                 label: '⚡ 最佳画质 (自动最佳)',
-                formatSpec: 'bestvideo+bestaudio/best',
+                formatSpec: 'bv*+ba/b',
                 filesize: info.filesize || info.filesize_approx || 0,
                 ext: 'mp4',
                 type: 'video',
@@ -4410,7 +4489,7 @@ ipcMain.handle('yt-get-info', async (event, url) => {
               webpage_url: info.webpage_url || url,
               extractor: extractor || info.extractor_key || info.extractor || '',
               resolutions: resolutions.length > 0 ? resolutions : [
-                { id: 'best', height: 1080, label: 'Auto (Best)', formatSpec: 'best', ext: 'mp4', type: 'video' }
+                { id: 'best', height: 1080, label: 'Auto (Best)', formatSpec: 'bv*+ba/b', ext: 'mp4', type: 'video' }
               ]
             });
           } catch (e) {
@@ -4453,18 +4532,43 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
       args.push('--windows-filenames');
     }
 
-    const ffmpegDir = getFFmpegDirectory();
+    // Auto-detect or provision portable FFmpeg
+    let ffmpegDir = getFFmpegDirectory();
+    if (!ffmpegDir) {
+      console.log('[YT-DLP] FFmpeg not found on this machine, auto-provisioning portable FFmpeg...');
+      broadcastYtProgress(event, {
+        taskId: currentTaskId,
+        status: '首次下载：正在准备便携版 FFmpeg 编解码器...',
+        progress: 0
+      });
+      try {
+        await ensureFFmpeg(event);
+        ffmpegDir = getFFmpegDirectory();
+      } catch (ffErr) {
+        console.warn('[YT-DLP] Auto FFmpeg setup failed:', ffErr.message);
+      }
+    }
+
+    args.push('--user-agent', YT_USER_AGENT);
+    args.push('--no-check-certificates');
+
+    const h = resolution?.height;
+    // Build robust multi-format selector that NEVER fails on modern YouTube/Bilibili
+    let videoFmt = resolution?.formatSpec;
+    if (!videoFmt || videoFmt === 'best' || videoFmt.startsWith('best[')) {
+      videoFmt = h ? `bv*[height<=${h}]+ba/b[height<=${h}]/bv*+ba/b` : 'bv*+ba/b';
+    } else if (!videoFmt.includes('/b') && !videoFmt.includes('/bv*')) {
+      videoFmt = `${videoFmt}/bv*+ba/b`;
+    }
+
     if (ffmpegDir) {
       args.push('--ffmpeg-location', ffmpegDir);
-      args.push('--user-agent', YT_USER_AGENT);
-      args.push('--no-check-certificates');
 
       if (isAudio) {
         args.push('-x', '--audio-format', 'mp3');
-        args.push('-f', 'bestaudio/best');
+        args.push('-f', 'ba/bestaudio/best');
       } else {
-        const fmt = resolution?.formatSpec || 'bestvideo+bestaudio/best';
-        args.push('-f', fmt);
+        args.push('-f', videoFmt);
         args.push('--merge-output-format', 'mp4');
       }
 
@@ -4473,23 +4577,11 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
       args.push('--write-thumbnail');
       args.push('--convert-thumbnails', 'jpg');
     } else {
-      console.warn('[YT-DLP] FFmpeg is not found on this system. Activating single-stream fallback to prevent exit code 1 crash.');
-      // Auto-trigger background download of portable FFmpeg for future requests
-      ensureFFmpeg(event).catch(e => console.warn('[FFmpeg] Background auto-download failed:', e.message));
-
-      args.push('--user-agent', YT_USER_AGENT);
-      args.push('--no-check-certificates');
-
+      console.warn('[YT-DLP] FFmpeg is not found on this system. Activating non-ffmpeg multi-format stream download.');
       if (isAudio) {
-        args.push('-f', 'bestaudio/best');
+        args.push('-f', 'ba/bestaudio/best');
       } else {
-        // Fall back to best pre-merged container with audio to avoid needing ffmpeg merge
-        const h = resolution?.height;
-        if (h) {
-          args.push('-f', `best[height<=${h}][ext=mp4]/best[height<=${h}]/best[ext=mp4]/best`);
-        } else {
-          args.push('-f', 'best[ext=mp4]/best');
-        }
+        args.push('-f', videoFmt);
       }
 
       // Write cover image without requiring ffmpeg conversion or embedding
@@ -4510,7 +4602,9 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
       const child = require('child_process').spawn(ytPath, args);
       activeYtDownloads.set(currentTaskId, { child, url, title, thumbnail, destDir });
 
-      let detectedFilePath = '';
+      let detectedMergedPath = '';
+      let detectedVideoPath = '';
+      let detectedAudioPath = '';
       let lastProgress = 0;
       let stderrChunks = [];
 
@@ -4518,11 +4612,20 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
         const text = data.toString();
         
         // Detect destination or merged file path
-        const fileMatch = text.match(/(?:Destination:|Merging formats into|Adding thumbnail to)\s+"?([^"\r\n]+)"?/);
-        if (fileMatch && fileMatch[1]) {
-          const p = fileMatch[1].trim();
-          if (p.endsWith('.mp4') || p.endsWith('.mp3') || p.endsWith('.mkv') || p.endsWith('.webm')) {
-            detectedFilePath = p;
+        const mergeMatch = text.match(/Merging formats into\s+"?([^"\r\n]+)"?/);
+        if (mergeMatch && mergeMatch[1]) {
+          detectedMergedPath = mergeMatch[1].trim();
+        }
+
+        const destMatch = text.match(/(?:Destination:|Adding thumbnail to)\s+"?([^"\r\n]+)"?/);
+        if (destMatch && destMatch[1]) {
+          const p = destMatch[1].trim();
+          if (p.endsWith('.mp4') || p.endsWith('.mkv') || p.endsWith('.avi') || p.endsWith('.mov')) {
+            detectedVideoPath = p;
+          } else if (p.endsWith('.mp3') || p.endsWith('.m4a') || p.endsWith('.aac') || p.endsWith('.opus') || p.endsWith('.flac')) {
+            detectedAudioPath = p;
+          } else if (p.endsWith('.webm')) {
+            if (!detectedVideoPath) detectedVideoPath = p;
           }
         }
 
@@ -4555,16 +4658,22 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
       child.on('close', (code) => {
         activeYtDownloads.delete(currentTaskId);
         if (code === 0) {
-          // If detectedFilePath is empty, find newest file in destDir
-          let finalFile = detectedFilePath;
+          // Determine finalFile: merged > video > audio > newest file in destDir
+          let finalFile = detectedMergedPath || (isAudio ? (detectedAudioPath || detectedVideoPath) : (detectedVideoPath || detectedAudioPath));
           if (!finalFile || !fs.existsSync(finalFile)) {
             try {
               const files = fs.readdirSync(destDir).map(f => ({
                 name: f,
                 full: path.join(destDir, f),
                 mtime: fs.statSync(path.join(destDir, f)).mtimeMs
-              })).filter(f => f.name.endsWith('.mp4') || f.name.endsWith('.mp3') || f.name.endsWith('.mkv'))
-                .sort((a, b) => b.mtime - a.mtime);
+              })).filter(f => f.name.endsWith('.mp4') || f.name.endsWith('.mp3') || f.name.endsWith('.mkv') || f.name.endsWith('.webm'))
+                .sort((a, b) => {
+                  const aIsMp4 = a.name.endsWith('.mp4');
+                  const bIsMp4 = b.name.endsWith('.mp4');
+                  if (aIsMp4 && !bIsMp4) return -1;
+                  if (!aIsMp4 && bIsMp4) return 1;
+                  return b.mtime - a.mtime;
+                });
               if (files.length > 0) finalFile = files[0].full;
             } catch (e) {}
           }
@@ -4629,7 +4738,9 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
           } else if (lines.length > 0) {
             detailedError = lines[lines.length - 1];
           }
-          if (detailedError.includes('ffmpeg not found') || detailedError.includes('ffprobe and ffmpeg not found')) {
+          if (detailedError.includes('Requested format is not available')) {
+            detailedError = '所选清晰度在此视频中不可用或源站未提供该规格，建议选择【⚡ 最佳画质】重试。';
+          } else if (detailedError.includes('ffmpeg not found') || detailedError.includes('ffprobe and ffmpeg not found')) {
             detailedError = '检测到系统中缺少 FFmpeg 编解码器组件，已为您自动触发后台下载，请稍候重试。';
           }
           resolve({ success: false, error: detailedError });
@@ -5969,7 +6080,7 @@ ipcMain.handle('send-udp-ice', async (event, { ip, candidate }) => {
 // ─────────────────────────────────────────────────────────────────
 // 🌐 HIGH-SPEED HTTP / TCP SIGNALING SERVER (FOR NON-BLE & LOW-END PCS)
 // ─────────────────────────────────────────────────────────────────
-const http = require('http');
+// http declared above
 let httpServer = null;
 let httpSignalingPort = 15186;
 const pendingSignalRequests = new Map(); // reqId -> res
