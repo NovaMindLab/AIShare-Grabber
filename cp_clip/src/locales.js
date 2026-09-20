@@ -548,6 +548,7 @@ export const locales = {
     },
     "anime": {
       "closeTitle": "Close Studio (ESC)",
+      "shortTitle": "Anime",
       "title": "Short Video 1-Click AnimeGAN Studio",
       "subtitle": "Neural AnimeGAN style transfer & FFmpeg raw stdio pipeline, lossless audio extraction and frame-by-frame aesthetic anime redraw",
       "ffmpegMissingTitle": "FFmpeg Video Codec Component Not Detected (Cannot Convert Video)",
@@ -1190,6 +1191,7 @@ export const locales = {
     },
     "anime": {
       "closeTitle": "关闭工作室 (ESC)",
+      "shortTitle": "AI动漫",
       "title": "短视频一键二次元 / 动漫化转换工作室",
       "subtitle": "基于 AnimeGAN 神经网络与 FFmpeg 裸流管道，无损提取原声并逐帧重绘为唯美二次元画风",
       "ffmpegMissingTitle": "未检测到 FFmpeg 视频编解码组件 (无法直接转换视频)",
@@ -1844,6 +1846,7 @@ export const locales = {
     },
     "anime": {
       "closeTitle": "關閉工作室 (ESC)",
+      "shortTitle": "AI動漫",
       "title": "短影片一鍵二次元 / 動漫化轉換工作室",
       "subtitle": "基於 AnimeGAN 神經網路與 FFmpeg 裸流管線，無損擷取原聲並逐幀重繪為唯美二次元畫風",
       "ffmpegMissingTitle": "未檢測到 FFmpeg 視訊編解碼組件 (無法直接轉換影片)",

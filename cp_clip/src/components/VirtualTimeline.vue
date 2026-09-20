@@ -139,32 +139,29 @@
               <!-- Video Info Footer -->
               <div class="video-card-footer">
                 <div class="video-card-name" :title="item.name">{{ item.name }}</div>
-                <div class="video-card-sub">
+                <div class="video-card-meta">
                   <span class="video-size-badge">{{ formatBytes(item.size) }}</span>
-                  <div v-if="item.isSynced" class="video-action-group">
+                  <div class="video-action-group">
+                    <!-- Synced: AnimeGAN 1-Click Studio Pill -->
                     <button 
-                      class="btn-video-anime-edit" 
+                      v-if="item.isSynced"
+                      class="btn-video-anime-pill" 
                       @click.stop="$emit('open-anime-studio', item)"
-                      :title="t?.anime?.title || 'Anime Style Conversion'"
+                      :title="t?.anime?.title || 'AnimeGAN Studio'"
                     >
-                      🎨 {{ t?.anime?.title || 'Anime' }}
+                      <span class="anime-sparkle">🎨</span>
+                      <span class="anime-label">{{ t?.anime?.shortTitle || 'AI动漫' }}</span>
                     </button>
+                    <!-- Unsynced: Quick Download Pill -->
                     <button 
-                      class="btn-video-play-action" 
-                      @click.stop="$emit('play-video', item)"
-                      :title="t?.videos?.playHint || 'Play'"
-                    >
-                      <span>▶️</span> {{ t?.videos?.playHint || '播放' }}
-                    </button>
-                  </div>
-                  <div v-else class="video-action-group">
-                    <button 
-                      class="btn-video-quick-download" 
+                      v-else
+                      class="btn-video-download-pill" 
                       @click.stop="$emit('download-video', item)"
                       :disabled="isVideoSyncing"
-                      :title="t?.videos?.quickDownload || 'Download'"
+                      :title="t?.videos?.quickDownload || '下载视频'"
                     >
-                      ⬇️ {{ t?.videos?.quickDownload || '下载' }}
+                      <span>⬇️</span>
+                      <span>{{ t?.videos?.quickDownload || '下载' }}</span>
                     </button>
                   </div>
                 </div>
@@ -288,7 +285,7 @@ const itemWidth = computed(() => {
 const cardRowHeight = computed(() => {
   const w = itemWidth.value;
   const posterH = w / (16 / 9);
-  const footerH = 64;
+  const footerH = 68;
   return Math.round(posterH + footerH);
 });
 
@@ -432,12 +429,28 @@ defineExpose({
   overflow: hidden;
 }
 
+.video-poster-box::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, transparent 45%, rgba(0, 0, 0, 0.45) 100%);
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  opacity: 0.65;
+  z-index: 2;
+}
+
+.video-card:hover .video-poster-box::after {
+  opacity: 0.85;
+}
+
 .video-poster-media {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1;
 }
 
 .video-card:hover .video-poster-media {
@@ -630,106 +643,101 @@ defineExpose({
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  justify-content: space-between;
+  height: 68px;
+  box-sizing: border-box;
   text-align: left;
-  background: transparent;
+  background: rgba(18, 24, 38, 0.55);
 }
 
 .video-card-name {
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-primary, #f8fafc);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
-.video-card-sub {
+.video-card-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
+  gap: 8px;
+  min-height: 24px;
 }
 
 .video-size-badge {
   color: var(--text-secondary, #94a3b8);
+  font-size: 11px;
   font-weight: 600;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: nowrap;
 }
 
 .video-action-group {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
-.btn-video-anime-edit {
-  padding: 2.5px 8px;
-  font-size: 10.5px;
-  font-weight: 700;
+.btn-video-anime-pill {
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 600;
   border-radius: 6px;
-  background: rgba(168, 85, 247, 0.16);
-  border: 1px solid rgba(168, 85, 247, 0.45);
+  background: rgba(168, 85, 247, 0.14);
+  border: 1px solid rgba(168, 85, 247, 0.4);
   color: #c084fc;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
+  white-space: nowrap;
+  line-height: 1;
 }
 
-.btn-video-anime-edit:hover {
+.btn-video-anime-pill:hover {
   background: linear-gradient(135deg, #a855f7, #6366f1);
   color: #fff;
   border-color: #a855f7;
-  transform: scale(1.06);
-  box-shadow: 0 3px 12px rgba(168, 85, 247, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(168, 85, 247, 0.4);
 }
 
-.btn-video-play-action {
-  padding: 2.5px 9px;
-  font-size: 10.5px;
-  font-weight: 700;
+.btn-video-download-pill {
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 600;
   border-radius: 6px;
-  background: rgba(6, 182, 212, 0.16);
+  background: rgba(6, 182, 212, 0.14);
   border: 1px solid rgba(6, 182, 212, 0.45);
   color: #38bdf8;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
+  white-space: nowrap;
+  line-height: 1;
 }
 
-.btn-video-play-action:hover {
+.btn-video-download-pill:hover:not(:disabled) {
   background: linear-gradient(135deg, #06b6d4, #3b82f6);
   color: #fff;
   border-color: #06b6d4;
-  transform: scale(1.06);
-  box-shadow: 0 3px 12px rgba(6, 182, 212, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(6, 182, 212, 0.4);
 }
 
-.btn-video-quick-download {
-  padding: 3px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: 6px;
-  background: rgba(6, 182, 212, 0.18);
-  border: 1px solid rgba(6, 182, 212, 0.5);
-  color: #38bdf8;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.btn-video-quick-download:hover {
-  background: linear-gradient(135deg, #06b6d4, #3b82f6);
-  color: #fff;
-  transform: scale(1.06);
-  box-shadow: 0 3px 12px rgba(6, 182, 212, 0.45);
+.btn-video-download-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Glassmorphism Date Header */
@@ -738,12 +746,11 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: rgba(18, 24, 38, 0.65);
+  background: rgba(18, 24, 38, 0.55);
   backdrop-filter: blur(12px);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-left: 4px solid #a855f7;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
 
 .video-date-title-wrap {
