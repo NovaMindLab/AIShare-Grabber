@@ -1,11 +1,11 @@
 {
-  "version": "4.2.9",
-  "description": "Cross-platform high-speed P2P photo album synchronization with offline on-device MobileCLIP AI classification",
-  "homepage": "https://novamindlab.github.io/AIShare-Grabber/",
+  "version": "4.3.0",
+  "description": "High-speed local network photo sharing & offline MobileCLIP image search application.",
+  "homepage": "https://github.com/NovaMindLab/AIShare-Grabber",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.2.9/ShareCLIP-Setup-4.2.9.exe#/dl.7z"
+      "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.3.0/ShareCLIP-Setup-4.3.0.exe#/dl.7z"
     }
   },
   "shortcuts": [
