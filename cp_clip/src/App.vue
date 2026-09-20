@@ -3256,9 +3256,9 @@
           </div>
         </div>
         <p class="update-restart-hint" style="color: #c084fc; font-weight: 600;" v-if="isRestartingForUpdate">
-          {{ t.update?.restartingHint || '🚀 正在启动静默安装并退出应用，即将自动重启打开...' }}
+          {{ t.update?.restartingHint || '🚀 正在启动更新安装程序，即将显示安装进度...' }}
         </p>
-        <p class="update-restart-hint" v-else>{{ t.update?.restartNotice || '重启后将自动在后台静默完成安装并重新打开，数据不会丢失。' }}</p>
+        <p class="update-restart-hint" v-else>{{ t.update?.restartNotice || '重启后将弹出进度窗口自动完成安装并重新打开，数据不会丢失。' }}</p>
         <div class="update-card-actions">
           <button class="update-btn-cancel" :disabled="isRestartingForUpdate" @click="showUpdateCompleteModal = false">{{ t.update?.later || '稍后重启' }}</button>
           <button class="update-btn-confirm" :disabled="isRestartingForUpdate" @click="installUpdate">

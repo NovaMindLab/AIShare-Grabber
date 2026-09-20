@@ -3549,11 +3549,11 @@ ipcMain.handle('install-update', async (event, filePath) => {
   try {
     console.log('[Update Install] Installing update, target:', filePath, 'platform:', process.platform);
     if (!filePath || filePath === 'managed') {
-      console.log('[Update Install] Triggering autoUpdater.quitAndInstall (silent mode)...');
+      console.log('[Update Install] Triggering autoUpdater.quitAndInstall (progress mode)...');
       prepareForUpdateExit();
       setImmediate(() => {
         try {
-          autoUpdater.quitAndInstall(true, true);
+          autoUpdater.quitAndInstall(false, true);
         } catch (e) {
           console.error('[Update Install] autoUpdater.quitAndInstall error:', e);
         }
@@ -3563,11 +3563,11 @@ ipcMain.handle('install-update', async (event, filePath) => {
       });
     } else if (fs.existsSync(filePath)) {
       if (process.platform === 'win32' && filePath.toLowerCase().endsWith('.exe')) {
-        console.log('[Update Install] Preparing clean shutdown before spawning NSIS installer:', filePath);
+        console.log('[Update Install] Spawning NSIS installer with progress window:', filePath);
         prepareForUpdateExit();
         setTimeout(() => {
           const { spawn } = require('child_process');
-          const child = spawn(filePath, ['/S', '--updated', '--force-run'], {
+          const child = spawn(filePath, ['--updated', '--force-run'], {
             detached: true,
             stdio: 'ignore'
           });

@@ -502,7 +502,7 @@ export const locales = {
       "fullType": "Full Installer",
       "downloadSize": "Download Size",
       "savedBandwidth": "Saved 90%+",
-      "restartNotice": "The app will restart and complete silent installation automatically. No data will be lost.",
+      "restartNotice": "The app will restart and show the installation progress window automatically. No data will be lost.",
       "restartNow": "Restart & Update Now",
       "downloadingDiff": "⚡ Downloading differential update patch ({transferred} MB / {total} MB)",
       "downloadingFull": "📦 Downloading full installer package ({transferred} MB / {total} MB)",
@@ -521,7 +521,7 @@ export const locales = {
       "newFeatures": "New Features",
       "defaultNotes": "✨ Includes latest feature enhancements, sync stability improvements, and bug fixes.",
       "restarting": "⏳ Preparing install & restarting...",
-      "restartingHint": "🚀 Closing app and starting silent update, will relaunch shortly..."
+      "restartingHint": "🚀 Launching installer with progress window, will relaunch shortly..."
     },
     "lightbox": {
       "fetchingUltra": "Fetching ultra-high-res original from phone...",
@@ -1144,7 +1144,7 @@ export const locales = {
       "fullType": "全量安装包",
       "downloadSize": "下载大小",
       "savedBandwidth": "节省 90%+",
-      "restartNotice": "重启后将自动在后台静默完成安装并重新启动，数据不会丢失。",
+      "restartNotice": "重启后将弹出进度窗口自动完成安装并重新启动，数据不会丢失。",
       "restartNow": "立即重启并更新",
       "downloadingDiff": "⚡ 正在下载差分增量补丁包 (已下载 {transferred} MB / {total} MB)",
       "downloadingFull": "📦 正在下载全量安装包 (已下载 {transferred} MB / {total} MB)",
@@ -1163,7 +1163,7 @@ export const locales = {
       "newFeatures": "新功能",
       "defaultNotes": "✨ 包含最新的功能增强、跨端连接优化及已知问题修复。",
       "restarting": "⏳ 正在准备安装并重启...",
-      "restartingHint": "🚀 正在启动静默安装并退出应用，即将自动重启打开..."
+      "restartingHint": "🚀 正在启动更新安装程序，即将显示安装进度..."
     },
     "lightbox": {
       "fetchingUltra": "正在从手机拉取超清原图...",
@@ -1798,7 +1798,7 @@ export const locales = {
       "fullType": "完整安裝包",
       "downloadSize": "下載大小",
       "savedBandwidth": "節省 90%+",
-      "restartNotice": "重啟後將自動在後台靜默完成安裝並重新啟動，資料不會遺失。",
+      "restartNotice": "重啟後將彈出進度視窗自動完成安裝並重新啟動，資料不會遺失。",
       "restartNow": "立即重啟並更新",
       "downloadingDiff": "⚡ 正在下載差分增量修補檔 (已下載 {transferred} MB / {total} MB)",
       "downloadingFull": "📦 正在下載完整安裝包 (已下載 {transferred} MB / {total} MB)",
@@ -1817,7 +1817,7 @@ export const locales = {
       "newFeatures": "新功能",
       "defaultNotes": "✨ 包含最新的功能增強、跨端連線最佳化及已知問題修復。",
       "restarting": "⏳ 正在準備安裝並重啟...",
-      "restartingHint": "🚀 正在啟動無聲安裝並退出應用，即將自動重啟打開..."
+      "restartingHint": "🚀 正在啟動更新安裝程式，即將顯示安裝進度..."
     },
     "lightbox": {
       "fetchingUltra": "正在從手機拉取超清原圖...",
