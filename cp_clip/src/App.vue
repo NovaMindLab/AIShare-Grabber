@@ -1323,67 +1323,72 @@
             </p>
           </div>
 
-          <!-- Cyber Hi-Fi Date-Grouped Music Playlist -->
+          <!-- Modern Playlist Card Grouped by Date -->
           <div v-else class="audios-scroll-container">
             <div 
               v-for="group in filteredAudioGroupsByDate" 
               :key="group.rawDate"
-              class="audio-date-group"
+              class="audio-playlist-card"
             >
-              <!-- Glassmorphism Audio Date Header -->
-              <div class="audio-date-header glass-panel">
-                <div class="audio-date-title-wrap">
-                  <span class="audio-date-calendar">📅</span>
-                  <h4 class="audio-date-text">{{ group.dateKey }}</h4>
-                  <span class="audio-date-meta-pill">{{ t.audios?.dateAudiosMeta ? t.audios.dateAudiosMeta.replace('{count}', group.filteredCount).replace('{size}', formatBytes(group.filteredBytes)) : `${group.filteredCount} 首 • ${formatBytes(group.filteredBytes)}` }}</span>
+              <!-- Sleek Date Header inside Playlist Card -->
+              <div class="playlist-header">
+                <div class="playlist-header-left">
+                  <span class="playlist-calendar-icon">📅</span>
+                  <span class="playlist-date-title">{{ group.dateKey }}</span>
+                  <span class="playlist-meta-dot">·</span>
+                  <span class="playlist-meta-pill">{{ group.filteredCount }} {{ currentLocale === 'zh' || currentLocale === 'zh-TW' ? '首' : 'tracks' }}</span>
+                  <span class="playlist-meta-dot">·</span>
+                  <span class="playlist-meta-pill">{{ formatBytes(group.filteredBytes) }}</span>
                 </div>
-                <div class="audio-date-actions" v-if="group.hasUnsynced && syncStatus === 'connected'">
-                  <button 
-                    class="btn-audio-date-select"
-                    :class="{ 'is-selected': isAudioDateAllSelected(group) }"
-                    @click="toggleAudioDateSelection(group)"
-                    :title="isAudioDateAllSelected(group) ? (t.audios?.clearDate || '取消全选') : (t.audios?.selectDate ? t.audios.selectDate.replace('{count}', group.unsyncedCount) : `全选此日期 (${group.unsyncedCount})`)"
-                  >
-                    <span class="btn-check-dot">{{ isAudioDateAllSelected(group) ? '✓' : '' }}</span>
-                    <span>{{ isAudioDateAllSelected(group) ? (t.audios?.clearDate || '取消全选') : (t.audios?.selectDate ? t.audios.selectDate.replace('{count}', group.unsyncedCount) : `全选 (${group.unsyncedCount})`) }}</span>
-                  </button>
-                  <button 
-                    class="btn-audio-date-sync"
-                    :disabled="isAudioSyncing"
-                    @click="requestAudioSync({ targetDate: group.rawDate, targetIds: group.unsyncedIds })"
-                    :title="t.audios?.syncDateBtn ? t.audios.syncDateBtn.replace('{count}', group.unsyncedCount) : '下载此日期的全部音乐'"
-                  >
-                    <span class="bolt-icon">⚡</span>
-                    <span>{{ t.audios?.syncDateBtn ? t.audios.syncDateBtn.replace('{count}', group.unsyncedCount).replace(/^⚡\s*/, '') : `同步此日期 (${group.unsyncedCount})` }}</span>
-                  </button>
-                </div>
-                <div class="audio-date-actions" v-else-if="!group.hasUnsynced">
-                  <span class="audio-all-synced-badge">
-                    <span class="check-pill-icon">✓</span>
-                    <span>{{ t.audios?.allDateSynced || '已全部备份' }}</span>
-                  </span>
+
+                <div class="playlist-header-right">
+                  <template v-if="group.hasUnsynced && syncStatus === 'connected'">
+                    <button 
+                      class="btn-date-select"
+                      :class="{ 'is-selected': isAudioDateAllSelected(group) }"
+                      @click="toggleAudioDateSelection(group)"
+                      :title="isAudioDateAllSelected(group) ? (t.audios?.clearDate || '取消全选') : (t.audios?.selectDate ? t.audios.selectDate.replace('{count}', group.unsyncedCount) : `全选此日期 (${group.unsyncedCount})`)"
+                    >
+                      <span class="btn-check-dot">{{ isAudioDateAllSelected(group) ? '✓' : '' }}</span>
+                      <span>{{ isAudioDateAllSelected(group) ? (t.audios?.clearDate || '取消全选') : (t.audios?.selectDate ? t.audios.selectDate.replace('{count}', group.unsyncedCount) : `全选 (${group.unsyncedCount})`) }}</span>
+                    </button>
+                    <button 
+                      class="btn-date-sync"
+                      :disabled="isAudioSyncing"
+                      @click="requestAudioSync({ targetDate: group.rawDate, targetIds: group.unsyncedIds })"
+                      :title="t.audios?.syncDateBtn ? t.audios.syncDateBtn.replace('{count}', group.unsyncedCount) : '下载此日期的全部音乐'"
+                    >
+                      <span class="bolt-icon">⚡</span>
+                      <span>{{ t.audios?.syncDateBtn ? t.audios.syncDateBtn.replace('{count}', group.unsyncedCount).replace(/^⚡\s*/, '') : `下载 (${group.unsyncedCount})` }}</span>
+                    </button>
+                  </template>
+                  <template v-else-if="!group.hasUnsynced">
+                    <span class="audio-all-synced-badge">
+                      <span class="check-pill-icon">✓</span>
+                      <span>{{ t.audios?.allDateSynced || '已全部备份' }}</span>
+                    </span>
+                  </template>
                 </div>
               </div>
 
-              <!-- Sleek Cyber Hi-Fi Track Cards -->
-              <div class="audio-track-list">
+              <!-- Sleek Playlist Track Rows -->
+              <div class="playlist-rows">
                 <div 
                   v-for="track in group.items" 
                   :key="track.id || track.path"
-                  class="audio-track-card glass-panel"
+                  class="playlist-row"
                   :class="{ 
                     'track-selected': isAudioSelected(track),
-                    'track-synced': track.isSynced,
                     'track-playing': activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path)
                   }"
                   @click="track.isSynced ? openAudioPlayer(track) : toggleAudioSelection(track)"
                 >
-                  <!-- Left: Checkbox (for unsynced) + Spinning Vinyl Record Art -->
-                  <div class="audio-track-left">
+                  <!-- Left: Checkbox (for unsynced) + Vinyl Cover Art with Hover Play -->
+                  <div class="playlist-row-left">
                     <!-- Unsynced Multi-Select Checkbox -->
                     <div 
                       v-if="!track.isSynced" 
-                      class="hifi-track-checkbox"
+                      class="row-checkbox"
                       :class="{ 'is-checked': isAudioSelected(track) }"
                       @click.stop="toggleAudioSelection(track)"
                       :title="t.audios?.selectTrackHint || '勾选/取消勾选曲目'"
@@ -1391,46 +1396,48 @@
                       <span v-if="isAudioSelected(track)" class="check-icon">✓</span>
                     </div>
 
-                    <!-- Hi-Fi Vinyl Cover / Equalizer Animation -->
+                    <!-- Vinyl Disc Art (Hover to show Play / Equalizer when playing) -->
                     <div 
-                      class="hifi-vinyl-cover" 
+                      class="row-cover-disc" 
                       :class="{ 'is-playing': activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path) }"
+                      @click.stop="track.isSynced ? openAudioPlayer(track) : toggleAudioSelection(track)"
                     >
-                      <div class="hifi-vinyl-disc">
-                        <div class="vinyl-groove-rings"></div>
-                        <div class="vinyl-center-label">
-                          <span class="vinyl-icon-symbol">🎵</span>
-                        </div>
+                      <span class="disc-icon">🎵</span>
+                      
+                      <!-- Hover Play Icon for synced tracks -->
+                      <div v-if="track.isSynced" class="disc-hover-play">
+                        <span v-if="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path)">🔊</span>
+                        <span v-else>▶</span>
                       </div>
 
-                      <!-- Equalizer wave jumping animation when playing -->
-                      <div v-if="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path)" class="hifi-eq-bars">
-                        <span class="eq-bar bar-1"></span>
-                        <span class="eq-bar bar-2"></span>
-                        <span class="eq-bar bar-3"></span>
-                        <span class="eq-bar bar-4"></span>
+                      <!-- Mini Equalizer jumping animation when playing -->
+                      <div v-if="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path)" class="disc-eq-bars">
+                        <span class="disc-eq-bar bar-1"></span>
+                        <span class="disc-eq-bar bar-2"></span>
+                        <span class="disc-eq-bar bar-3"></span>
                       </div>
                     </div>
 
-                    <!-- Track Metadata Info with Smart Title & Tags -->
-                    <div class="hifi-track-meta">
-                      <div class="hifi-title-row">
-                        <span class="hifi-track-title" :title="track.name">{{ getCleanAudioTitle(track.name) }}</span>
-                        <span v-if="getAudioFormatType(track.name) === 'hi-res'" class="hifi-tag hifi-tag-hires">Hi-Res</span>
+                    <!-- Track Metadata Info: Smart Title & Clean Single-Line Typography -->
+                    <div class="row-meta">
+                      <div class="row-title-line">
+                        <span class="row-track-title" :title="track.name">{{ getCleanAudioTitle(track.name) }}</span>
+                        <span v-if="getAudioFormatType(track.name) === 'hi-res'" class="row-hires-badge">Hi-Res</span>
                       </div>
-                      <div class="hifi-track-tags">
-                        <span class="hifi-tag" :class="`hifi-tag-${getAudioFormatType(track.name)}`">
+                      <div class="row-sub-line">
+                        <span class="row-fmt-tag" :class="`fmt-${getAudioFormatType(track.name)}`">
                           {{ getAudioFormat(track.name) }}
                         </span>
-                        <span v-if="track.duration" class="hifi-tag hifi-tag-duration">
-                          {{ formatVideoDuration(track.duration) }}
-                        </span>
-                        <span class="hifi-tag hifi-tag-size">
-                          {{ formatBytes(track.size) }}
-                        </span>
+                        <template v-if="track.duration">
+                          <span class="sub-sep">·</span>
+                          <span class="sub-duration">{{ formatVideoDuration(track.duration) }}</span>
+                        </template>
+                        <span class="sub-sep">·</span>
+                        <span class="sub-size">{{ formatBytes(track.size) }}</span>
+                        <span class="sub-sep">·</span>
                         <span 
-                          class="hifi-status-pill" 
-                          :class="track.isSynced ? 'pill-synced' : 'pill-unsynced'"
+                          class="row-status-pill" 
+                          :class="track.isSynced ? 'status-synced' : 'status-unsynced'"
                         >
                           <span class="status-dot"></span>
                           <span>{{ track.isSynced ? (t.audios?.tagSynced || '已备份') : (t.audios?.tagUnsynced || '待下载') }}</span>
@@ -1439,22 +1446,37 @@
                     </div>
                   </div>
 
-                  <!-- Right: Action Buttons (Play / Quick Download) -->
-                  <div class="hifi-track-actions" @click.stop>
+                  <!-- Right: Actions (Locate in Folder + Play / Download) -->
+                  <div class="playlist-row-actions" @click.stop>
                     <template v-if="track.isSynced">
+                      <!-- Locate in Folder Button (revealed on hover) -->
                       <button 
-                        class="btn-hifi-play"
+                        v-if="hasApi && track.path"
+                        class="btn-row-locate"
+                        @click="openAudioFolder(track.path)"
+                        :title="t.audios?.locateFileBtn || '在文件夹中定位文件'"
+                      >
+                        📂
+                      </button>
+
+                      <!-- Play / Playing Button -->
+                      <button 
+                        class="btn-row-play"
                         :class="{ 'is-active-playing': activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path) }"
                         @click="openAudioPlayer(track)"
                         :title="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path) ? (t.audios?.playing || '正在播放中') : (t.audios?.playHint || '播放此音乐')"
                       >
-                        <span v-if="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path)">🔊 {{ t.audios?.playing || '播放中' }}</span>
-                        <span v-else>▶ {{ t.audios?.playHint || '播放' }}</span>
+                        <span v-if="activePlayingAudio && (activePlayingAudio.id === track.id || activePlayingAudio.path === track.path)">
+                          <span class="icon-playing">🔊</span> {{ t.audios?.playing || '播放中' }}
+                        </span>
+                        <span v-else>
+                          <span>▶</span> {{ currentLocale === 'zh' || currentLocale === 'zh-TW' ? '播放' : 'Play' }}
+                        </span>
                       </button>
                     </template>
                     <template v-else>
                       <button 
-                        class="btn-hifi-download"
+                        class="btn-row-download"
                         :disabled="isAudioSyncing"
                         @click="downloadSingleAudio(track)"
                         :title="t.audios?.quickDownload || '单曲下载'"
@@ -4612,8 +4634,56 @@ function processPosterQueue() {
 
 function getCleanAudioTitle(name) {
   if (!name) return '未知曲目';
-  let clean = name.replace(/\.(mp3|m4a|flac|wav|aac|ogg|wma|opus|ape|dsf|dff|alac)$/i, '');
-  return clean.trim() || name;
+  let clean = name.replace(/\.(mp3|m4a|flac|wav|aac|ogg|wma|opus|ape|dsf|dff|alac)$/i, '').trim();
+
+  // If it already has Chinese / Japanese characters or readable words with spaces, keep it
+  if (/[\u4e00-\u9fa5\u3040-\u30ff]/.test(clean)) return clean;
+  if (/\s+/.test(clean) && !/^[a-f0-9\s-]+$/i.test(clean)) return clean;
+
+  // Cryptic patterns: pure numbers/underscores, hex hashes, UUIDs, long hash-like strings
+  const isCryptic = /^[0-9_-]+$/.test(clean) || 
+                    /^[a-f0-9]{20,}/i.test(clean) ||
+                    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i.test(clean) ||
+                    (clean.length > 20 && /^[\w-]+$/.test(clean) && (clean.match(/\d/g) || []).length > 8);
+
+  if (isCryptic) {
+    const isZh = currentLocale.value === 'zh' || currentLocale.value === 'zh-TW';
+    const voicePrefix = isZh ? '语音录音' : 'Voice Note';
+
+    // 13-digit timestamp (ms) between 2018 and 2035
+    const match13 = clean.match(/1[5-9]\d{11}|20\d{11}/);
+    if (match13) {
+      const ts = parseInt(match13[0], 10);
+      const d = new Date(ts);
+      if (!isNaN(d.getTime()) && d.getFullYear() >= 2018 && d.getFullYear() <= 2035) {
+        const pad = (n) => String(n).padStart(2, '0');
+        const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        return `${voicePrefix} ${dateStr} ${timeStr}`;
+      }
+    }
+
+    // 10-digit timestamp (seconds) between 2018 and 2035
+    const match10 = clean.match(/1[5-9]\d{8}|20\d{8}/);
+    if (match10) {
+      const ts = parseInt(match10[0], 10) * 1000;
+      const d = new Date(ts);
+      if (!isNaN(d.getTime()) && d.getFullYear() >= 2018 && d.getFullYear() <= 2035) {
+        const pad = (n) => String(n).padStart(2, '0');
+        const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        return `${voicePrefix} ${dateStr} ${timeStr}`;
+      }
+    }
+
+    // Hex or UUID shortened
+    if (clean.length > 18) {
+      const clipPrefix = isZh ? '音频片段' : 'Audio Clip';
+      return `${clipPrefix} #${clean.slice(-6)}`;
+    }
+  }
+
+  return clean || name;
 }
 
 function getAudioFormat(name) {
@@ -4871,6 +4941,12 @@ function openAudioPlayer(audio) {
 
 function closeAudioPlayer() {
   activePlayingAudio.value = null;
+}
+
+function openAudioFolder(filePath) {
+  if (filePath && window.api?.openFileLocation) {
+    window.api.openFileLocation(filePath);
+  }
 }
 
 const localDocs = computed(() => {
@@ -10121,131 +10197,133 @@ function getMockClassification(url) {
   padding-right: 6px;
 }
 
-.audio-date-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* Audio Playlist Card (Unified Container per Date Group) */
+.audio-playlist-card {
+  background: var(--bg-secondary, #131a2c);
+  backdrop-filter: blur(12px);
+  border-radius: 14px;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Audio Date Header */
-.audio-date-header {
+.audio-playlist-card:hover {
+  border-color: var(--glass-border, rgba(255, 255, 255, 0.14));
+}
+
+/* Playlist Header (Date + Meta + Actions) */
+.playlist-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
-  background: var(--bg-secondary, #131a2c);
-  backdrop-filter: blur(12px);
-  border-radius: 12px;
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
-  border-left: 3.5px solid var(--primary, #6366f1);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  transition: all 0.2s ease;
+  padding: 11px 18px;
+  background: rgba(15, 23, 42, 0.45);
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.06));
 }
 
-.audio-date-title-wrap {
+.playlist-header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
-.audio-date-calendar {
-  font-size: 15px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.9;
+.playlist-calendar-icon {
+  font-size: 14px;
+  opacity: 0.85;
 }
 
-.audio-date-text {
-  margin: 0;
+.playlist-date-title {
   font-size: 13.5px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 0.2px;
 }
 
-.audio-date-meta-pill {
-  font-size: 11.5px;
-  color: var(--text-secondary);
-  font-weight: 600;
-  background: var(--glass-hover, rgba(255, 255, 255, 0.06));
-  padding: 2px 10px;
-  border-radius: 99px;
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+.playlist-meta-dot {
+  color: var(--text-muted, #64748b);
+  opacity: 0.6;
+  font-weight: bold;
 }
 
-.audio-date-actions {
+.playlist-meta-pill {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.playlist-header-right {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.btn-audio-date-select {
-  padding: 4px 12px;
+.btn-date-select {
+  padding: 4px 10px;
   font-size: 11.5px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--glass-hover, rgba(255, 255, 255, 0.06));
   border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.12));
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
+  gap: 5px;
+  transition: all 0.18s ease;
 }
 
-.btn-audio-date-select:hover {
-  background: var(--glass-border, rgba(255, 255, 255, 0.1));
+.btn-date-select:hover {
+  background: var(--glass-border, rgba(255, 255, 255, 0.12));
   color: var(--text-primary);
 }
 
-.btn-audio-date-select.is-selected {
+.btn-date-select.is-selected {
   background: rgba(99, 102, 241, 0.15);
   border-color: rgba(99, 102, 241, 0.5);
   color: var(--primary, #6366f1);
 }
 
-.btn-audio-date-select .btn-check-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
+.btn-date-select .btn-check-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
   border: 1.2px solid currentColor;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1;
 }
 
-.btn-audio-date-select.is-selected .btn-check-dot {
+.btn-date-select.is-selected .btn-check-dot {
   background: var(--primary, #6366f1);
   border-color: var(--primary, #6366f1);
   color: #fff;
 }
 
-.btn-audio-date-sync {
-  padding: 4px 14px;
+.btn-date-sync {
+  padding: 4px 12px;
   font-size: 11.5px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 6px;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   border: none;
   color: #fff;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
-.btn-audio-date-sync:hover:not(:disabled) {
+.btn-date-sync:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.45);
 }
 
-.btn-audio-date-sync:disabled {
+.btn-date-sync:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -10255,306 +10333,283 @@ function getMockClassification(url) {
   color: #10b981;
   font-weight: 600;
   background: rgba(16, 185, 129, 0.1);
-  padding: 4px 12px;
-  border-radius: 8px;
+  padding: 3px 10px;
+  border-radius: 6px;
   border: 1px solid rgba(16, 185, 129, 0.25);
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
-/* Audio Track Cards List */
-.audio-track-list {
+/* Playlist Rows */
+.playlist-rows {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
-.audio-track-card {
+.playlist-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
-  border-radius: 12px;
-  background: var(--bg-secondary, #131a2c);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.04));
+  transition: background 0.15s ease, transform 0.15s ease;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.audio-track-card:hover {
-  border-color: rgba(99, 102, 241, 0.4);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 12px rgba(99, 102, 241, 0.1);
+.playlist-row:last-child {
+  border-bottom: none;
 }
 
-.audio-track-card.track-selected {
+.playlist-row:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.playlist-row.track-selected {
   background: rgba(99, 102, 241, 0.08) !important;
-  border-color: #6366f1 !important;
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.2) !important;
 }
 
-.audio-track-card.track-playing {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
-  border-color: #6366f1 !important;
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.25) !important;
+.playlist-row.track-playing {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.06) 100%) !important;
 }
 
-.audio-track-left {
+.playlist-row-left {
   display: flex;
   align-items: center;
-  gap: 14px;
   min-width: 0;
   flex: 1;
 }
 
-/* Unsynced Track Multi-Select Checkbox */
-.hifi-track-checkbox {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: rgba(15, 23, 42, 0.3);
-  border: 1.5px solid var(--glass-border, rgba(255, 255, 255, 0.4));
+/* Row Checkbox */
+.row-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1.5px solid var(--glass-border, rgba(255, 255, 255, 0.35));
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   flex-shrink: 0;
+  margin-right: 12px;
   font-size: 11px;
 }
 
-.hifi-track-checkbox:hover {
-  transform: scale(1.1);
+.row-checkbox:hover {
   border-color: var(--primary, #6366f1);
+  transform: scale(1.08);
 }
 
-.hifi-track-checkbox.is-checked {
+.row-checkbox.is-checked {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   border-color: #ffffff;
   color: #fff;
   box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
 }
 
-/* Hi-Fi Vinyl Disc Art Placeholder */
-.hifi-vinyl-cover {
+/* Cover Art Disc */
+.row-cover-disc {
   position: relative;
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle, #2d3748 0%, #1a202c 60%, #0d1117 100%);
+  background: radial-gradient(circle, #334155 0%, #1e293b 65%, #0f172a 100%);
   border: 1.5px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  margin-right: 14px;
   overflow: hidden;
+  transition: all 0.2s ease;
 }
 
-.hifi-vinyl-cover.is-playing {
+.row-cover-disc.is-playing {
   border-color: #6366f1;
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.45);
 }
 
-.hifi-vinyl-disc {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
+.disc-icon {
+  font-size: 15px;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
 }
 
-.hifi-vinyl-cover.is-playing .hifi-vinyl-disc {
-  animation: spin 3s linear infinite;
-}
-
-.vinyl-groove-rings {
-  position: absolute;
-  inset: 3px;
-  border-radius: 50%;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.6);
-}
-
-.vinyl-center-label {
-  width: 17px;
-  height: 17px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-}
-
-.vinyl-icon-symbol {
-  font-size: 8.5px;
-}
-
-/* Audio Wave Equalizer Animation (Shown when playing) */
-.hifi-eq-bars {
+.disc-hover-play {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  background: rgba(15, 23, 42, 0.82);
+  background: rgba(99, 102, 241, 0.85);
+  backdrop-filter: blur(2px);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+}
+
+.playlist-row:hover .disc-hover-play {
+  opacity: 1;
+}
+
+.playlist-row:hover .disc-icon {
+  opacity: 0;
+}
+
+/* Mini Equalizer inside Disc when playing */
+.disc-eq-bars {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.8);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2.5px;
-  z-index: 4;
+  gap: 2px;
+  z-index: 3;
 }
 
-.eq-bar {
+.disc-eq-bar {
   width: 2.5px;
   background: linear-gradient(to top, #6366f1, #c084fc);
   border-radius: 2px;
-  animation: eq-jump 0.8s ease-in-out infinite alternate;
+  animation: eq-jump 0.7s ease-in-out infinite alternate;
 }
 
-.bar-1 { height: 12px; animation-delay: 0.1s; }
-.bar-2 { height: 18px; animation-delay: 0.3s; }
-.bar-3 { height: 10px; animation-delay: 0.5s; }
-.bar-4 { height: 16px; animation-delay: 0.2s; }
-
-@keyframes eq-jump {
-  0% {
-    height: 4px;
-    opacity: 0.5;
-  }
-  100% {
-    height: 20px;
-    opacity: 1;
-  }
-}
+.disc-eq-bar.bar-1 { height: 10px; animation-delay: 0.1s; }
+.disc-eq-bar.bar-2 { height: 16px; animation-delay: 0.3s; }
+.disc-eq-bar.bar-3 { height: 8px; animation-delay: 0.5s; }
 
 /* Track Metadata Info */
-.hifi-track-meta {
+.row-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
+  flex: 1;
   text-align: left;
 }
 
-.hifi-title-row {
+.row-title-line {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
 
-.hifi-track-title {
+.row-track-title {
   font-size: 13.5px;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 480px;
+  max-width: 520px;
   letter-spacing: 0.1px;
 }
 
-.hifi-track-tags {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.hifi-tag {
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 1.5px 7px;
-  border-radius: 5px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.2px;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.hifi-tag-hires {
+.row-hires-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
   background: rgba(234, 179, 8, 0.15);
   border: 1px solid rgba(234, 179, 8, 0.35);
   color: #fbbf24;
-  font-weight: 800;
+  line-height: 1.2;
 }
 
-.hifi-tag-m4a {
-  background: rgba(14, 165, 233, 0.15);
-  border: 1px solid rgba(14, 165, 233, 0.35);
-  color: #38bdf8;
+.row-sub-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
 }
 
-.hifi-tag-mp3 {
+.row-fmt-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.row-fmt-tag.fmt-mp3 {
   background: rgba(168, 85, 247, 0.15);
-  border: 1px solid rgba(168, 85, 247, 0.35);
   color: #c084fc;
 }
 
-.hifi-tag-ogg {
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  color: #34d399;
+.row-fmt-tag.fmt-m4a {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
 }
 
-.hifi-tag-wav, .hifi-tag-flac, .hifi-tag-other {
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.35);
-  color: #a5b4fc;
-}
-
-.hifi-tag-duration, .hifi-tag-size {
-  background: var(--glass-hover, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
-  color: var(--text-secondary);
-}
-
-.hifi-status-pill {
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 1.5px 8px;
-  border-radius: 5px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.hifi-status-pill .status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.hifi-status-pill.pill-unsynced {
-  background: rgba(245, 158, 11, 0.14);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+.row-fmt-tag.fmt-hi-res {
+  background: rgba(234, 179, 8, 0.15);
   color: #fbbf24;
 }
 
-.hifi-status-pill.pill-unsynced .status-dot {
-  background: #f59e0b;
-}
-
-.hifi-status-pill.pill-synced {
-  background: rgba(16, 185, 129, 0.14);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+.row-fmt-tag.fmt-ogg {
+  background: rgba(16, 185, 129, 0.15);
   color: #34d399;
 }
 
-.hifi-status-pill.pill-synced .status-dot {
+.row-fmt-tag.fmt-other {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+.sub-sep {
+  opacity: 0.4;
+  font-size: 10px;
+}
+
+.sub-duration, .sub-size {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+}
+
+.row-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4.5px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.row-status-pill .status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.row-status-pill.status-synced {
+  color: #10b981;
+}
+
+.row-status-pill.status-synced .status-dot {
   background: #10b981;
 }
 
-.hifi-track-actions {
+.row-status-pill.status-unsynced {
+  color: #f59e0b;
+}
+
+.row-status-pill.status-unsynced .status-dot {
+  background: #f59e0b;
+}
+
+/* Playlist Row Action Buttons */
+.playlist-row-actions {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -10562,56 +10617,88 @@ function getMockClassification(url) {
   margin-left: 14px;
 }
 
-.btn-hifi-play {
-  padding: 4.5px 14px;
+.btn-row-locate {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.18s ease;
+}
+
+.playlist-row:hover .btn-row-locate {
+  opacity: 0.75;
+}
+
+.btn-row-locate:hover {
+  opacity: 1 !important;
+  background: var(--glass-hover, rgba(255, 255, 255, 0.08));
+  border-color: var(--glass-border, rgba(255, 255, 255, 0.15));
+  color: var(--text-primary);
+  transform: scale(1.08);
+}
+
+.btn-row-play {
+  padding: 4.5px 12px;
   font-size: 11.5px;
   font-weight: 600;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border: none;
-  color: #fff;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #818cf8;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
   display: flex;
   align-items: center;
   gap: 5px;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.btn-hifi-play:hover {
+.btn-row-play:hover {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #ffffff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
 }
 
-.btn-hifi-play.is-active-playing {
+.btn-row-play.is-active-playing {
   background: linear-gradient(135deg, #10b981, #059669);
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
 }
 
-.btn-hifi-download {
-  padding: 4.5px 14px;
+.btn-row-download {
+  padding: 4.5px 12px;
   font-size: 11.5px;
   font-weight: 600;
-  border-radius: 8px;
-  background: rgba(99, 102, 241, 0.14);
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
   color: #a5b4fc;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;
   gap: 5px;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.btn-hifi-download:hover:not(:disabled) {
+.btn-row-download:hover:not(:disabled) {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   border-color: transparent;
   color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
 }
 
-.btn-hifi-download:disabled {
+.btn-row-download:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -10682,36 +10769,43 @@ function getMockClassification(url) {
 }
 
 /* Light Mode Overrides for Audios Tab */
-.light-mode .audio-date-header {
+.light-mode .audio-playlist-card {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-left: 3.5px solid #6366f1;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
-.light-mode .audio-date-text {
+.light-mode .audio-playlist-card:hover {
+  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+}
+
+.light-mode .playlist-header {
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.light-mode .playlist-date-title {
   color: #0f172a;
 }
 
-.light-mode .audio-date-meta-pill {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
+.light-mode .playlist-meta-pill {
   color: #64748b;
 }
 
-.light-mode .btn-audio-date-select {
-  background: #f8fafc;
+.light-mode .btn-date-select {
+  background: #ffffff;
   border-color: #cbd5e1;
   color: #475569;
 }
 
-.light-mode .btn-audio-date-select:hover {
+.light-mode .btn-date-select:hover {
   background: #f1f5f9;
   border-color: #94a3b8;
-  color: #1e293b;
+  color: #0f172a;
 }
 
-.light-mode .btn-audio-date-select.is-selected {
+.light-mode .btn-date-select.is-selected {
   background: rgba(99, 102, 241, 0.08);
   border-color: #6366f1;
   color: #4f46e5;
@@ -10723,130 +10817,121 @@ function getMockClassification(url) {
   color: #059669;
 }
 
-.light-mode .audio-track-card {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+.light-mode .playlist-row {
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.light-mode .audio-track-card:hover {
-  background: #fafafa;
-  border-color: rgba(99, 102, 241, 0.35);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-}
-
-.light-mode .audio-track-card.track-selected {
-  background: rgba(99, 102, 241, 0.04) !important;
-  border-color: #6366f1 !important;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15) !important;
-}
-
-.light-mode .audio-track-card.track-playing {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%) !important;
-  border-color: #6366f1 !important;
-}
-
-.light-mode .hifi-track-checkbox {
+.light-mode .playlist-row:hover {
   background: #f8fafc;
+}
+
+.light-mode .playlist-row.track-selected {
+  background: rgba(99, 102, 241, 0.04) !important;
+}
+
+.light-mode .playlist-row.track-playing {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.03) 100%) !important;
+}
+
+.light-mode .row-checkbox {
+  background: #ffffff;
   border: 1.5px solid #cbd5e1;
 }
 
-.light-mode .hifi-track-checkbox:hover {
+.light-mode .row-checkbox:hover {
   border-color: #6366f1;
 }
 
-.light-mode .hifi-track-checkbox.is-checked {
+.light-mode .row-checkbox.is-checked {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   border-color: #6366f1;
   color: #fff;
-  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.3);
 }
 
-.light-mode .hifi-vinyl-cover {
+.light-mode .row-cover-disc {
   background: radial-gradient(circle, #ffffff 0%, #f1f5f9 65%, #e2e8f0 100%);
   border: 1.5px solid #e2e8f0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-.light-mode .hifi-vinyl-cover.is-playing {
+.light-mode .row-cover-disc.is-playing {
   border-color: #6366f1;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
 }
 
-.light-mode .vinyl-groove-rings {
-  border: 1px dashed rgba(0, 0, 0, 0.08);
-  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.05);
-}
-
-.light-mode .hifi-track-title {
+.light-mode .row-track-title {
   color: #0f172a;
 }
 
-.light-mode .hifi-tag-mp3 {
-  background: rgba(168, 85, 247, 0.08);
-  border-color: rgba(168, 85, 247, 0.22);
-  color: #7e22ce;
-}
-
-.light-mode .hifi-tag-m4a {
-  background: rgba(14, 165, 233, 0.08);
-  border-color: rgba(14, 165, 233, 0.22);
-  color: #0284c7;
-}
-
-.light-mode .hifi-tag-ogg {
-  background: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.22);
-  color: #059669;
-}
-
-.light-mode .hifi-tag-wav, 
-.light-mode .hifi-tag-flac, 
-.light-mode .hifi-tag-hires, 
-.light-mode .hifi-tag-other {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.22);
-  color: #d97706;
-}
-
-.light-mode .hifi-tag-duration, 
-.light-mode .hifi-tag-size {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
+.light-mode .row-sub-line {
   color: #64748b;
 }
 
-.light-mode .hifi-status-pill.pill-unsynced {
+.light-mode .row-fmt-tag.fmt-mp3 {
+  background: rgba(168, 85, 247, 0.08);
+  color: #7e22ce;
+}
+
+.light-mode .row-fmt-tag.fmt-m4a {
+  background: rgba(14, 165, 233, 0.08);
+  color: #0284c7;
+}
+
+.light-mode .row-fmt-tag.fmt-hi-res {
   background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.22);
   color: #d97706;
 }
 
-.light-mode .hifi-status-pill.pill-unsynced .status-dot {
-  background: #d97706;
-}
-
-.light-mode .hifi-status-pill.pill-synced {
+.light-mode .row-fmt-tag.fmt-ogg {
   background: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.22);
   color: #059669;
 }
 
-.light-mode .hifi-status-pill.pill-synced .status-dot {
-  background: #10b981;
+.light-mode .row-fmt-tag.fmt-other {
+  background: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
 }
 
-.light-mode .btn-hifi-download {
+.light-mode .btn-row-locate {
+  color: #64748b;
+}
+
+.light-mode .btn-row-locate:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.light-mode .btn-row-play {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: #4f46e5;
+}
+
+.light-mode .btn-row-play:hover {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #ffffff;
+}
+
+.light-mode .btn-row-play.is-active-playing {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+}
+
+.light-mode .btn-row-download {
   background: rgba(99, 102, 241, 0.08);
   border: 1px solid rgba(99, 102, 241, 0.25);
   color: #4f46e5;
 }
 
-.light-mode .btn-hifi-download:hover:not(:disabled) {
+.light-mode .btn-row-download:hover:not(:disabled) {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: #fff;
+  color: #ffffff;
   border-color: transparent;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
 }
 
 .light-mode .audio-floating-bar {
