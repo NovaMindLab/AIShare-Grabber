@@ -3229,8 +3229,8 @@ autoUpdater.on('download-progress', (progressObj) => {
   const percent = Math.round(progressObj.percent);
   const transferredMB = (progressObj.transferred / (1024 * 1024)).toFixed(2);
   const totalMB = (progressObj.total / (1024 * 1024)).toFixed(2);
-  // Full installer size is ~96-160 MB. If progressObj.total < 40 MB, it's a differential patch!
-  const isDifferential = progressObj.total > 0 && progressObj.total < 40 * 1024 * 1024;
+  // Full installer size is ~240-295 MB. If progressObj.total < 180 MB, it's a differential patch!
+  const isDifferential = progressObj.total > 0 && progressObj.total < 180 * 1024 * 1024;
   
   lastUpdateProgressInfo = {
     percent,
