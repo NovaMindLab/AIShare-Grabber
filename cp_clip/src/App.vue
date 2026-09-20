@@ -1811,8 +1811,22 @@
               </button>
             </div>
 
-            <!-- Right Controls: Cookie Sync Dropdown + Context Actions -->
+            <!-- Right Controls: Cookie Sync Dropdown + Engine Version + Context Actions -->
             <div style="display: flex; gap: 10px; align-items: center;">
+              <!-- ⚡ yt-dlp Engine Version & Auto-Update Button -->
+              <button 
+                class="yt-engine-version-btn" 
+                :class="{ 'updating': ytUpdating }"
+                @click="checkYtDlpUpdate(true)"
+                :title="ytUpdating ? (ytUpdateStatusText || '正在自动拉取并更新 yt-dlp 引擎...') : `yt-dlp 解析引擎: v${ytVersion || '2026.08.19'} (点击手动检查更新，全自动跟踪更新已开启)`"
+                :disabled="ytUpdating"
+              >
+                <span v-if="ytUpdating" class="yt-cookie-spinner"></span>
+                <span v-else class="yt-engine-icon">⚡</span>
+                <span>{{ ytUpdating ? (ytUpdateStatusText || '更新中...') : `yt-dlp v${ytVersion || '2026.08.19'}` }}</span>
+                <span v-if="!ytUpdating" class="yt-auto-tag" title="全自动跟踪更新中">AUTO</span>
+              </button>
+
               <!-- 🔐 YouTube Cookie & Login Sync Dropdown -->
               <div class="yt-cookie-sync-wrapper" ref="ytCookieWrapperRef">
                 <button 
@@ -4069,6 +4083,8 @@ async function promptRenamePerson(person) {
 watch(currentTab, (newTab) => {
   if (newTab === 'people') {
     loadPersonClusters();
+  } else if (newTab === 'yt-dlp') {
+    loadYtVersionInfo();
   }
 });
 
@@ -4098,6 +4114,9 @@ const ytSyncStatusText = ref('');
 const showYtCookieMenu = ref(false);
 const ytCookieWrapperRef = ref(null);
 const snifferWindowStatus = ref({ isOpen: false, url: '', title: '' });
+const ytVersion = ref('');
+const ytUpdating = ref(false);
+const ytUpdateStatusText = ref('');
 
 const ytCookieSummaryLabel = computed(() => {
   const mode = ytCookieConfig.value?.mode || 'none';
@@ -7555,6 +7574,43 @@ const clearAllYtHistory = async () => {
   ytHistory.value = [];
 };
 
+const loadYtVersionInfo = async () => {
+  if (!window.api?.ytGetVersionInfo) return;
+  try {
+    const res = await window.api.ytGetVersionInfo();
+    if (res?.currentVersion) {
+      ytVersion.value = res.currentVersion;
+    }
+    if (res?.isUpdating) {
+      ytUpdating.value = true;
+      ytUpdateStatusText.value = '正在更新...';
+    }
+  } catch (err) {
+    console.warn('[YT-DLP] Failed to load version info:', err);
+  }
+};
+
+const checkYtDlpUpdate = async (manual = false) => {
+  if (ytUpdating.value) return;
+  ytUpdating.value = true;
+  ytUpdateStatusText.value = '检查中...';
+  try {
+    const res = await window.api.ytCheckUpdate(manual);
+    if (res) {
+      if (res.currentVersion) ytVersion.value = res.currentVersion;
+      if (res.status === 'up-to-date' && manual) {
+        showAppToast(`yt-dlp 已是最新版本 (v${res.currentVersion || ytVersion.value})`, 'info', 3000);
+      }
+    }
+  } catch (err) {
+    console.warn('[YT-DLP] Manual check error:', err);
+    if (manual) showAppToast(`检查更新失败: ${err.message || err}`, 'warning', 4000);
+  } finally {
+    ytUpdating.value = false;
+    ytUpdateStatusText.value = '';
+  }
+};
+
 const openYtFile = async (filePath) => {
   if (!filePath) return;
   if (hasApi && window.api?.openVideoWindow) {
@@ -8007,8 +8063,38 @@ onMounted(() => {
     // Check for updates in the background on startup
     checkAppUpdates();
 
-    // Load YT-DLP history
+    // Load YT-DLP history and version info
     loadYtHistory();
+    loadYtVersionInfo();
+
+    if (window.api?.onYtUpdateStatus) {
+      window.api.onYtUpdateStatus((data) => {
+        if (!data) return;
+        if (data.status === 'checking') {
+          ytUpdating.value = true;
+          ytUpdateStatusText.value = '检查更新中...';
+        } else if (data.status === 'downloading') {
+          ytUpdating.value = true;
+          ytUpdateStatusText.value = `下载中: ${data.progress || 0}%`;
+        } else if (data.status === 'updated') {
+          ytUpdating.value = false;
+          ytUpdateStatusText.value = '';
+          if (data.currentVersion) ytVersion.value = data.currentVersion;
+          showAppToast(data.message || `✨ yt-dlp 已自动升级至最新版 v${data.currentVersion}！`, 'success', 5000);
+        } else if (data.status === 'pending-swap') {
+          ytUpdating.value = false;
+          ytUpdateStatusText.value = '';
+          showAppToast(data.message || '新版 yt-dlp 已就绪，将在当前任务完成后应用。', 'info', 4000);
+        } else if (data.status === 'up-to-date') {
+          ytUpdating.value = false;
+          ytUpdateStatusText.value = '';
+          if (data.currentVersion) ytVersion.value = data.currentVersion;
+        } else if (data.status === 'error') {
+          ytUpdating.value = false;
+          ytUpdateStatusText.value = '';
+        }
+      });
+    }
 
     // Load YouTube Cookie & Login config
     if (window.api.ytGetCookieConfig) {

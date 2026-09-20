@@ -971,6 +971,14 @@ app.whenReady().then(async () => {
     }
   }, 1200);
 
+  // Automatic yt-dlp tracking & auto-update daemon
+  setTimeout(() => {
+    checkAndUpdateYtDlp(false).catch(e => console.warn('[YT-DLP] Startup auto-check error:', e.message));
+  }, 8000); // 8 seconds after app startup
+  setInterval(() => {
+    checkAndUpdateYtDlp(false).catch(e => console.warn('[YT-DLP] Periodic auto-check error:', e.message));
+  }, 12 * 3600 * 1000); // Recurring check every 12 hours
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -3008,7 +3016,7 @@ function isNewVersionAvailable(current, latest) {
   const currentParts = cleanCurrent.split('.').map(x => parseInt(x, 10));
   const latestParts = cleanLatest.split('.').map(x => parseInt(x, 10));
   
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < Math.max(currentParts.length, latestParts.length); i++) {
     const currentVal = currentParts[i] || 0;
     const latestVal = latestParts[i] || 0;
     if (latestVal > currentVal) return true;
@@ -3883,28 +3891,325 @@ function detectExtractor(info, url) {
 }
 
 // -------------------------------------------------------------------------------
-// YT-DLP Integration
+// YT-DLP Integration & Automatic Update Tracking Daemon
 // -------------------------------------------------------------------------------
-const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
+const activeYtDownloads = new Map();
+let cachedYtDlpVersion = null;
+let lastYtDlpCheckTimestamp = 0;
+let isYtDlpUpdating = false;
+let pendingYtDlpUpdatePath = null;
+
+function getYtDlpTargetInfo() {
+  const isWin = process.platform === 'win32';
+  const isMac = process.platform === 'darwin';
+  const binaryName = isWin ? 'yt-dlp.exe' : 'yt-dlp';
+  let downloadAsset = 'yt-dlp.exe';
+  if (isMac) {
+    downloadAsset = 'yt-dlp_macos';
+  } else if (!isWin) {
+    downloadAsset = 'yt-dlp';
+  }
+  const downloadUrl = `https://github.com/yt-dlp/yt-dlp/releases/latest/download/${downloadAsset}`;
+  return { binaryName, downloadUrl };
+}
+
+function getYtDlpPath() {
+  const binDir = path.join(app.getPath('userData'), 'bin');
+  const { binaryName } = getYtDlpTargetInfo();
+  return path.join(binDir, binaryName);
+}
+
+function getLocalYtDlpVersion() {
+  try {
+    const ytPath = getYtDlpPath();
+    if (!fs.existsSync(ytPath)) return null;
+    const cp = require('child_process');
+    const out = cp.execFileSync(ytPath, ['--version'], { encoding: 'utf8', timeout: 6000 }).trim();
+    if (out) {
+      cachedYtDlpVersion = out;
+      return out;
+    }
+  } catch (e) {
+    console.warn('[YT-DLP] Failed to read local version:', e.message);
+  }
+  return cachedYtDlpVersion;
+}
+
+function getLatestYtDlpVersion() {
+  return new Promise((resolve, reject) => {
+    const candidateUrls = [
+      'https://github.com/yt-dlp/yt-dlp/releases/latest',
+      'https://ghfast.top/https://github.com/yt-dlp/yt-dlp/releases/latest',
+      'https://ghproxy.net/https://github.com/yt-dlp/yt-dlp/releases/latest',
+      'https://mirror.ghproxy.com/https://github.com/yt-dlp/yt-dlp/releases/latest'
+    ];
+
+    const tryUrl = (index) => {
+      if (index >= candidateUrls.length) {
+        // Fallback: query GitHub Releases API directly
+        https.get('https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest', {
+          headers: { 'User-Agent': 'ShareCLIP-PC-App' },
+          timeout: 8000
+        }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(data);
+              if (json && json.tag_name) {
+                return resolve(json.tag_name.replace(/^v/, ''));
+              }
+            } catch (_) {}
+            reject(new Error('Failed to resolve latest release from GitHub API'));
+          });
+        }).on('error', reject);
+        return;
+      }
+
+      const targetUrl = candidateUrls[index];
+      try {
+        const parsed = new URL(targetUrl);
+        const client = parsed.protocol === 'http:' ? http : https;
+        const req = client.get(targetUrl, {
+          headers: { 'User-Agent': 'ShareCLIP-PC-App' },
+          timeout: 8000
+        }, (res) => {
+          res.resume();
+          const loc = res.headers.location;
+          if (loc) {
+            const match = loc.match(/tag\/([^\/\?#]+)/);
+            if (match && match[1]) {
+              return resolve(match[1].replace(/^v/, ''));
+            }
+          }
+          tryUrl(index + 1);
+        });
+        req.on('timeout', () => { req.destroy(); tryUrl(index + 1); });
+        req.on('error', () => tryUrl(index + 1));
+      } catch (_) {
+        tryUrl(index + 1);
+      }
+    };
+
+    tryUrl(0);
+  });
+}
+
+function broadcastYtUpdateStatus(data) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('yt-update-status', data);
+  }
+  if (snifferBrowserWindow && !snifferBrowserWindow.isDestroyed()) {
+    snifferBrowserWindow.webContents.send('yt-update-status', data);
+  }
+}
+
+function applyYtDlpBinarySwap(tempPath, ytPath) {
+  if (!fs.existsSync(tempPath)) return;
+  const oldPath = ytPath + '.old';
+  try { if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath); } catch (_) {}
+  try { fs.renameSync(ytPath, oldPath); } catch (_) {}
+  fs.renameSync(tempPath, ytPath);
+  if (process.platform !== 'win32') {
+    try { fs.chmodSync(ytPath, 0o755); } catch (_) {}
+  }
+  try { fs.unlinkSync(oldPath); } catch (_) {}
+}
+
+function checkAndApplyPendingYtDlpSwap() {
+  if (activeYtDownloads.size === 0 && pendingYtDlpUpdatePath && fs.existsSync(pendingYtDlpUpdatePath)) {
+    try {
+      const ytPath = getYtDlpPath();
+      console.log('[YT-DLP Update] All download tasks finished. Applying pending yt-dlp update...');
+      applyYtDlpBinarySwap(pendingYtDlpUpdatePath, ytPath);
+      pendingYtDlpUpdatePath = null;
+      const newVer = getLocalYtDlpVersion();
+      broadcastYtUpdateStatus({
+        status: 'updated',
+        currentVersion: newVer,
+        latestVersion: newVer,
+        message: `✨ yt-dlp 引擎已成功升级至最新版 v${newVer}！`
+      });
+    } catch (swapErr) {
+      console.warn('[YT-DLP Update] Failed to apply queued hot swap:', swapErr.message);
+    }
+  }
+}
+
+async function checkAndUpdateYtDlp(force = false, event = null) {
+  if (isYtDlpUpdating) {
+    console.log('[YT-DLP Update] Update check is already in progress, skipping.');
+    return { status: 'updating', currentVersion: cachedYtDlpVersion };
+  }
+
+  const now = Date.now();
+  // Throttle automatic checks: don't check again within 4 hours unless force = true
+  if (!force && cachedYtDlpVersion && (now - lastYtDlpCheckTimestamp < 4 * 3600 * 1000)) {
+    return { status: 'up-to-date', currentVersion: cachedYtDlpVersion };
+  }
+
+  isYtDlpUpdating = true;
+  lastYtDlpCheckTimestamp = now;
+
+  try {
+    const ytPath = getYtDlpPath();
+    const currentVersion = getLocalYtDlpVersion();
+
+    // If binary does not exist, ensureYtDlp will download it on demand
+    if (!fs.existsSync(ytPath)) {
+      isYtDlpUpdating = false;
+      return { status: 'not-installed' };
+    }
+
+    console.log(`[YT-DLP Update] Checking latest release (current: ${currentVersion || 'unknown'})...`);
+    broadcastYtUpdateStatus({
+      status: 'checking',
+      currentVersion,
+      manual: force,
+      message: '正在检查 yt-dlp 引擎更新...'
+    });
+
+    const latestVersion = await getLatestYtDlpVersion();
+    console.log(`[YT-DLP Update] Resolved latest: ${latestVersion} vs current: ${currentVersion}`);
+
+    const hasNewVersion = isNewVersionAvailable(currentVersion || '2020.01.01', latestVersion);
+    if (!hasNewVersion) {
+      console.log(`[YT-DLP Update] yt-dlp is already up-to-date (${currentVersion}).`);
+      broadcastYtUpdateStatus({
+        status: 'up-to-date',
+        currentVersion,
+        latestVersion,
+        manual: force,
+        message: `yt-dlp 已是最新版本 (${currentVersion})`
+      });
+      return { status: 'up-to-date', currentVersion, latestVersion };
+    }
+
+    console.log(`[YT-DLP Update] New version detected: ${latestVersion}! Downloading update...`);
+    broadcastYtUpdateStatus({
+      status: 'downloading',
+      currentVersion,
+      latestVersion,
+      progress: 0,
+      manual: force,
+      message: `正在自动下载并升级 yt-dlp 至最新版 v${latestVersion}...`
+    });
+
+    const { downloadUrl } = getYtDlpTargetInfo();
+    const binDir = path.dirname(ytPath);
+    const tempPath = path.join(binDir, `yt-dlp-update-${Date.now()}.tmp`);
+
+    const candidateUrls = getGitHubMirrors(downloadUrl);
+    await downloadFileWithMirrors(candidateUrls, tempPath, (progress) => {
+      broadcastYtUpdateStatus({
+        status: 'downloading',
+        currentVersion,
+        latestVersion,
+        progress,
+        manual: force,
+        message: `正在下载解析引擎升级包: ${progress}%`
+      });
+    });
+
+    if (process.platform !== 'win32') {
+      try { fs.chmodSync(tempPath, 0o755); } catch (_) {}
+    }
+
+    // Verify downloaded binary
+    const cp = require('child_process');
+    let testVer = '';
+    try {
+      testVer = cp.execFileSync(tempPath, ['--version'], { encoding: 'utf8', timeout: 6000 }).trim();
+    } catch (checkErr) {
+      try { fs.unlinkSync(tempPath); } catch (_) {}
+      throw new Error(`Downloaded binary failed execution test: ${checkErr.message}`);
+    }
+
+    console.log(`[YT-DLP Update] Downloaded binary test succeeded: version ${testVer}`);
+
+    // If downloads are currently running, queue hot-swap
+    if (activeYtDownloads && activeYtDownloads.size > 0) {
+      console.log(`[YT-DLP Update] Active tasks running (${activeYtDownloads.size}). Queuing hot-swap after completion.`);
+      pendingYtDlpUpdatePath = tempPath;
+      broadcastYtUpdateStatus({
+        status: 'pending-swap',
+        currentVersion,
+        latestVersion: testVer,
+        manual: force,
+        message: `新版 v${testVer} 已就绪，将在当前视频下载完成后自动应用。`
+      });
+      return { status: 'pending-swap', currentVersion, latestVersion: testVer };
+    }
+
+    // Hot-swap immediately
+    applyYtDlpBinarySwap(tempPath, ytPath);
+    cachedYtDlpVersion = testVer;
+
+    console.log(`[YT-DLP Update] Successfully updated yt-dlp to version ${testVer}`);
+    broadcastYtUpdateStatus({
+      status: 'updated',
+      currentVersion: testVer,
+      latestVersion: testVer,
+      manual: force,
+      message: `✨ yt-dlp 引擎已成功自动更新至最新版 v${testVer}，解析规则已刷新！`
+    });
+
+    return { status: 'updated', currentVersion: testVer, latestVersion: testVer };
+  } catch (err) {
+    console.warn('[YT-DLP Update] Auto-update check/download error:', err.message);
+    broadcastYtUpdateStatus({
+      status: 'error',
+      currentVersion: cachedYtDlpVersion,
+      manual: force,
+      error: err.message
+    });
+    return { status: 'error', error: err.message };
+  } finally {
+    isYtDlpUpdating = false;
+  }
+}
 
 async function ensureYtDlp(event) {
   const binDir = path.join(app.getPath('userData'), 'bin');
   if (!fs.existsSync(binDir)) {
     fs.mkdirSync(binDir, { recursive: true });
   }
-  const ytDlpPath = path.join(binDir, 'yt-dlp.exe');
+  const ytDlpPath = getYtDlpPath();
+  const { downloadUrl } = getYtDlpTargetInfo();
   
   if (!fs.existsSync(ytDlpPath)) {
-    console.log(`[YT-DLP] Downloading yt-dlp.exe to ${ytDlpPath}`);
-    if (event && !event.sender.isDestroyed()) event.sender.send('yt-progress', { status: '正在准备下载核心引擎 (首次运行)...', progress: 0 });
-    const candidateUrls = getGitHubMirrors(YTDLP_URL);
+    console.log(`[YT-DLP] Downloading yt-dlp core to ${ytDlpPath}`);
+    if (event && !event.sender.isDestroyed()) event.sender.send('yt-progress', { status: '正在准备下载核心解析引擎 (首次运行)...', progress: 0 });
+    const candidateUrls = getGitHubMirrors(downloadUrl);
     await downloadFileWithMirrors(candidateUrls, ytDlpPath, (progress) => {
       if (event && !event.sender.isDestroyed()) event.sender.send('yt-progress', { status: `正在拉取解析引擎: ${progress}%`, progress });
     });
+    if (process.platform !== 'win32') {
+      try { fs.chmodSync(ytDlpPath, 0o755); } catch (_) {}
+    }
     console.log(`[YT-DLP] Download complete.`);
+    getLocalYtDlpVersion();
+  } else {
+    // If already exists, trigger a background update check if > 24 hours since last check
+    if (Date.now() - lastYtDlpCheckTimestamp > 24 * 3600 * 1000) {
+      checkAndUpdateYtDlp(false).catch(e => console.warn('[YT-DLP] Background auto-update failed:', e.message));
+    }
   }
   return ytDlpPath;
 }
+
+ipcMain.handle('yt-get-version-info', async () => {
+  const currentVersion = getLocalYtDlpVersion();
+  return {
+    currentVersion,
+    isUpdating: isYtDlpUpdating,
+    lastCheckTime: lastYtDlpCheckTimestamp
+  };
+});
+
+ipcMain.handle('yt-check-update', async (event, force = false) => {
+  return await checkAndUpdateYtDlp(force, event);
+});
 
 // Persistent Download History
 function getYtHistoryFilePath() {
@@ -4332,8 +4637,7 @@ ipcMain.handle('yt-cookies-clear', async () => {
   }
 });
 
-// Active downloading tasks tracking
-const activeYtDownloads = new Map();
+// activeYtDownloads defined above
 
 ipcMain.handle('yt-get-info', async (event, url) => {
   try {
@@ -4657,6 +4961,7 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
 
       child.on('close', (code) => {
         activeYtDownloads.delete(currentTaskId);
+        checkAndApplyPendingYtDlpSwap();
         if (code === 0) {
           // Determine finalFile: merged > video > audio > newest file in destDir
           let finalFile = detectedMergedPath || (isAudio ? (detectedAudioPath || detectedVideoPath) : (detectedVideoPath || detectedAudioPath));
@@ -4749,6 +5054,7 @@ ipcMain.handle('yt-download', async (event, { taskId, url, outputDir, resolution
       
       child.on('error', (err) => {
         activeYtDownloads.delete(currentTaskId);
+        checkAndApplyPendingYtDlpSwap();
         resolve({ success: false, error: err.message });
       });
     });
@@ -4767,6 +5073,7 @@ ipcMain.handle('yt-cancel-download', async (event, taskId) => {
       }, 800);
     } catch (e) {}
     activeYtDownloads.delete(taskId);
+    checkAndApplyPendingYtDlpSwap();
     return { success: true };
   }
   return { success: false, error: 'Task not active' };

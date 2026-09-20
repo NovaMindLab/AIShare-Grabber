@@ -169,6 +169,12 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('yt-progress', (event, data) => callback(data));
   },
   ensureFFmpeg: () => ipcRenderer.invoke('ensure-ffmpeg'),
+  ytGetVersionInfo: () => ipcRenderer.invoke('yt-get-version-info'),
+  ytCheckUpdate: (force) => ipcRenderer.invoke('yt-check-update', force),
+  onYtUpdateStatus: (callback) => {
+    ipcRenderer.removeAllListeners('yt-update-status');
+    ipcRenderer.on('yt-update-status', (event, data) => callback(data));
+  },
 
   // YT-DLP Cookie & Login Sync
   ytGetCookieConfig: () => ipcRenderer.invoke('yt-cookies-get-config'),
