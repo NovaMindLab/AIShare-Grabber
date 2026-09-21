@@ -1524,62 +1524,65 @@
             </div>
           </transition>
 
-          <!-- Modern Cyber Hi-Fi Audio Player Lightbox Modal -->
-          <transition name="modal-fade">
-            <div v-if="activePlayingAudio" class="video-player-overlay" @click.self="closeAudioPlayer">
-              <div class="audio-player-modal glass-panel">
-                <button class="vp-floating-close-btn" @click="closeAudioPlayer" :title="t.lightbox?.closeApp || '关闭播放器 (ESC)'">✕</button>
-
-                <div class="audio-player-content">
-                  <!-- Modern Cyber Hi-Fi Vinyl Deck -->
-                  <div class="hifi-player-deck">
-                    <div class="vinyl-record spinning">
-                      <div class="vinyl-groove-rings"></div>
-                      <div class="vinyl-inner">
-                        <span style="font-size: 28px;">🎵</span>
-                      </div>
-                    </div>
+          <!-- Sleek Bottom Floating Mini Audio Player Bar (Zero screen blocking) -->
+          <transition name="audio-bar-slide">
+            <div 
+              v-if="activePlayingAudio" 
+              class="audio-mini-bar glass-panel"
+              :style="{ bottom: selectedAudiosCount > 0 ? '88px' : '24px' }"
+            >
+              <!-- Left: Mini Vinyl & Track Info -->
+              <div class="audio-mini-left">
+                <div class="audio-mini-vinyl spinning">
+                  <div class="audio-mini-vinyl-inner">
+                    <span>🎵</span>
                   </div>
-
-                  <!-- Dynamic Equalizer Frequency Wave in Player -->
-                  <div class="hifi-player-equalizer">
-                    <span class="eq-bar bar-1"></span>
-                    <span class="eq-bar bar-2"></span>
-                    <span class="eq-bar bar-3"></span>
-                    <span class="eq-bar bar-4"></span>
-                    <span class="eq-bar bar-5"></span>
-                    <span class="eq-bar bar-6"></span>
-                    <span class="eq-bar bar-7"></span>
-                    <span class="eq-bar bar-8"></span>
-                  </div>
-
-                  <!-- Track Info -->
-                  <div class="audio-player-info">
-                    <h3 class="audio-player-title">{{ getCleanAudioTitle(activePlayingAudio.name) }}</h3>
-                    <div class="audio-player-specs">
-                      <span class="hifi-tag" :class="`hifi-tag-${getAudioFormatType(activePlayingAudio.name)}`">
-                        {{ getAudioFormat(activePlayingAudio.name) }}
-                      </span>
-                      <span v-if="activePlayingAudio.duration" class="hifi-player-spec-pill">
-                        ⏱️ {{ formatVideoDuration(activePlayingAudio.duration) }}
-                      </span>
-                      <span class="hifi-player-spec-pill">
-                        💾 {{ formatBytes(activePlayingAudio.size) }}
-                      </span>
-                    </div>
-                    <p class="audio-player-raw-name" :title="activePlayingAudio.name">
-                      {{ activePlayingAudio.name }}
-                    </p>
-                  </div>
-
-                  <!-- Native Audio Player -->
-                  <audio 
-                    :src="activePlayingAudio.src || `local:///${activePlayingAudio.path.replace(/\\/g, '/')}`" 
-                    controls 
-                    autoplay 
-                    class="audio-native-element"
-                  ></audio>
                 </div>
+                <div class="audio-mini-meta">
+                  <div class="audio-mini-title" :title="activePlayingAudio.name">
+                    {{ getCleanAudioTitle(activePlayingAudio.name) }}
+                  </div>
+                  <div class="audio-mini-specs">
+                    <span class="hifi-tag" :class="`hifi-tag-${getAudioFormatType(activePlayingAudio.name)}`">
+                      {{ getAudioFormat(activePlayingAudio.name) }}
+                    </span>
+                    <span v-if="activePlayingAudio.duration" class="audio-mini-pill">
+                      ⏱️ {{ formatVideoDuration(activePlayingAudio.duration) }}
+                    </span>
+                    <span class="audio-mini-pill">
+                      💾 {{ formatBytes(activePlayingAudio.size) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Center: Native Audio Player Controls -->
+              <div class="audio-mini-center">
+                <audio 
+                  :src="activePlayingAudio.src || `local:///${activePlayingAudio.path.replace(/\\/g, '/')}`" 
+                  controls 
+                  autoplay 
+                  class="audio-mini-native"
+                ></audio>
+              </div>
+
+              <!-- Right: Actions (Locate & Close) -->
+              <div class="audio-mini-actions">
+                <button 
+                  v-if="hasApi && activePlayingAudio.path"
+                  class="audio-mini-btn" 
+                  @click="openAudioFolder(activePlayingAudio.path)"
+                  :title="t.audios?.locateFileBtn || '在文件夹中定位文件'"
+                >
+                  📂
+                </button>
+                <button 
+                  class="audio-mini-btn close" 
+                  @click="closeAudioPlayer" 
+                  :title="t.lightbox?.closeApp || '关闭播放 (ESC)'"
+                >
+                  ✕
+                </button>
               </div>
             </div>
           </transition>
@@ -11404,125 +11407,195 @@ function getMockClassification(url) {
   color: #64748b;
 }
 
-/* Modern Cyber Hi-Fi Audio Player Lightbox Modal */
-.audio-player-modal {
-  position: relative;
-  width: 100%;
-  max-width: 520px;
-  background: linear-gradient(145deg, #111827 0%, #0b0f19 100%);
-  border: 1.5px solid rgba(6, 182, 212, 0.35);
-  border-radius: 24px;
+/* Modern Sleek Bottom Floating Mini Audio Player Bar */
+.audio-mini-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 64px);
+  max-width: 860px;
+  height: 64px;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 0 16px 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 24px rgba(99, 102, 241, 0.25);
+  z-index: 1000;
+  transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+
+.light-mode .audio-mini-bar {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.04), 0 0 24px rgba(99, 102, 241, 0.15);
+}
+
+.audio-mini-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 180px;
+  max-width: 280px;
+  flex-shrink: 0;
   overflow: hidden;
-  padding: 36px 28px 28px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(6, 182, 212, 0.25);
 }
 
-.audio-player-content {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;
-}
-
-.hifi-player-deck {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.vinyl-record {
-  width: 130px;
-  height: 130px;
+.audio-mini-vinyl {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: radial-gradient(circle, #334155 0%, #0f172a 65%, #020617 100%);
-  border: 4px solid #1e293b;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7), 0 0 25px rgba(6, 182, 212, 0.35);
+  border: 2px solid #6366f1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 14px rgba(99, 102, 241, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
+  flex-shrink: 0;
 }
 
-.vinyl-record.spinning {
+.audio-mini-vinyl.spinning {
   animation: spin 5s linear infinite;
 }
 
-.vinyl-inner {
-  width: 52px;
-  height: 52px;
+.audio-mini-vinyl-inner {
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: linear-gradient(135deg, #06b6d4, #8b5cf6);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
-  z-index: 2;
+  font-size: 10px;
 }
 
-.hifi-player-equalizer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 24px;
-  width: 100%;
-}
-
-.audio-player-info {
-  text-align: center;
-  max-width: 90%;
+.audio-mini-meta {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.audio-player-title {
-  font-size: 16px;
-  font-weight: 800;
+.audio-mini-title {
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text-primary, #f8fafc);
-  margin: 0;
-  word-break: break-word;
-}
-
-.audio-player-specs {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.hifi-player-spec-pill {
-  font-size: 11px;
-  color: var(--text-secondary, #94a3b8);
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.06);
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
-
-.audio-player-raw-name {
-  font-size: 11px;
-  color: var(--text-muted, #64748b);
-  margin: 0;
-  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.audio-native-element {
+.light-mode .audio-mini-title {
+  color: #0f172a;
+}
+
+.audio-mini-specs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.audio-mini-pill {
+  font-size: 10px;
+  color: var(--text-secondary, #94a3b8);
+  font-family: ui-monospace, monospace;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.light-mode .audio-mini-pill {
+  color: #475569;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.audio-mini-center {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.audio-mini-native {
   width: 100%;
-  border-radius: 12px;
+  height: 38px;
   outline: none;
+  border-radius: 20px;
+  filter: invert(0.88) hue-rotate(180deg);
+}
+
+.light-mode .audio-mini-native {
+  filter: none;
+}
+
+.audio-mini-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.audio-mini-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary, #cbd5e1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.audio-mini-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  transform: scale(1.06);
+}
+
+.audio-mini-btn.close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.light-mode .audio-mini-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #475569;
+}
+
+.light-mode .audio-mini-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #0f172a;
+}
+
+.light-mode .audio-mini-btn.close:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.audio-bar-slide-enter-active,
+.audio-bar-slide-leave-active {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.audio-bar-slide-enter-from,
+.audio-bar-slide-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 24px);
 }
 
 /* YouTube / Web Downloader Grid & List View Enhancements */
