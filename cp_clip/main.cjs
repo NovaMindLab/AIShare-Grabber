@@ -2670,8 +2670,18 @@ async function reconcileDiskMedia(deviceUuid, db) {
   }
 }
 
+let deviceSyncMutex = Promise.resolve();
+
 async function openAndLoadDeviceSync(deviceUuid, deviceName) {
   if (!deviceUuid) return null;
+  const currentTask = deviceSyncMutex.then(() => _openAndLoadDeviceSyncInternal(deviceUuid, deviceName));
+  deviceSyncMutex = currentTask.catch(() => {});
+  return currentTask;
+}
+
+async function _openAndLoadDeviceSyncInternal(deviceUuid, deviceName) {
+  if (!deviceUuid) return null;
+  const isDifferentDevice = activeDeviceUuid !== deviceUuid;
   activeDeviceUuid = deviceUuid;
   lastDeviceUuid = deviceUuid;
   if (deviceName) {
@@ -2694,16 +2704,23 @@ async function openAndLoadDeviceSync(deviceUuid, deviceName) {
     }
   }
 
-  // Close old database connection if any
-  if (activeDeviceDb) {
-    try {
-      activeDeviceDb.close();
-    } catch (_) {}
+  // Reset SAB when switching to a different device
+  if (isDifferentDevice && taskManager && typeof taskManager.resetImageSAB === 'function') {
+    taskManager.resetImageSAB();
   }
 
-  // Open SQLite database file for this device
+  // Close old database connection if switching or if none exists
   const dbPath = path.join(baseDir, 'database.sqlite');
-  activeDeviceDb = new sqlite3.Database(dbPath);
+  if (isDifferentDevice || !activeDeviceDb) {
+    if (activeDeviceDb) {
+      try {
+        activeDeviceDb.close();
+      } catch (_) {}
+      activeDeviceDb = null;
+    }
+    // Open SQLite database file for this device
+    activeDeviceDb = new sqlite3.Database(dbPath);
+  }
 
   // Initialize table (including embedding BLOB column)
   await new Promise((resolve, reject) => {
@@ -5879,8 +5896,10 @@ function getExtension(buffer) {
 }
 
 ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
+  const tStart = Date.now();
   try {
     if (!queryText || !imagePaths || imagePaths.length === 0) {
+      console.log(`[AI Search] Empty query or 0 image paths received (query: "${queryText}", paths: ${imagePaths ? imagePaths.length : 0})`);
       return [];
     }
 
@@ -5910,12 +5929,14 @@ ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
     const tensor = new ort.Tensor('int64', bigintData, [1, 77]);
     
     // 4. Run ONNX session
+    const tOnnxStart = Date.now();
     const inputName = activeTextSession.inputNames[0];
     const feeds = {};
     feeds[inputName] = tensor;
     const outputs = await activeTextSession.run(feeds);
     const outputName = activeTextSession.outputNames[0];
     const textFeatures = outputs[outputName].data; // Float32Array (512-dim)
+    const tOnnx = Date.now() - tOnnxStart;
     
     // 5. L2 Normalize query embedding
     let norm = 0;
@@ -5933,13 +5954,22 @@ ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
 
     // 6. Delegate search to TaskManager (WASM SIMD)
     const validImages = [];
+    let matchedSabCount = 0;
     for (const imagePath of imagePaths) {
       // Find SAB index for fast SIMD comparison
       const sabIdx = taskManager.getExistingSabIndex(imagePath);
+      if (sabIdx !== -1) matchedSabCount++;
       validImages.push({ path: imagePath, sabIdx: sabIdx !== -1 ? sabIdx : -1 });
     }
 
+    const tSimdStart = Date.now();
     const results = await taskManager.searchImages(queryEmbedding, validImages);
+    const tSimd = Date.now() - tSimdStart;
+    const totalTime = Date.now() - tStart;
+
+    const topScore = results.length > 0 ? results[0].score.toFixed(4) : 'N/A';
+    console.log(`[AI Search] Query: "${queryText}" | Paths: ${imagePaths.length} | SAB Matched: ${matchedSabCount} | ONNX: ${tOnnx}ms | SIMD Search: ${tSimd}ms | Total: ${totalTime}ms | Top Score: ${topScore} | Results: ${results.length}`);
+
     return results;
     
   } catch (error) {

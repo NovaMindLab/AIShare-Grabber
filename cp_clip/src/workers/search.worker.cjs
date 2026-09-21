@@ -131,34 +131,75 @@ parentPort.on('message', async (msg) => {
         return sum;
       }
 
-      // Initialize each face as its own singleton cluster
-      // Each cluster holds:
-      // - members: array of face indices [0..n-1]
-      // - sumVec: Float32Array(512), sum of all member embeddings in the cluster
-      // - paths: Set of photo paths (for strict Same-Photo Exclusion)
-      const clusters = [];
-      for (let i = 0; i < n; i++) {
-        const offset = faceSabIndices[i] * 512;
-        const sumVec = new Float32Array(512);
-        for (let d = 0; d < 512; d++) {
-          sumVec[d] = faceFloatView[offset + d];
+      // High-performance 2-Phase Clustering:
+      // Phase 1: If n > 200, fast Leader Pre-clustering with strict same-photo exclusion & high similarity (>= 0.72)
+      // Highly similar faces (>= 0.72) from different photos merge immediately into initial sub-clusters in milliseconds!
+      // This collapses thousands of raw faces down to manageable sub-clusters, eliminating the O(N^3) bottleneck.
+      let clusters = [];
+      if (n > 200) {
+        for (let i = 0; i < n; i++) {
+          const offset = faceSabIndices[i] * 512;
+          const p = validFaces[i] && validFaces[i].path ? validFaces[i].path : null;
+          let bestLeaderIdx = -1;
+          let bestSim = -1;
+
+          for (let g = 0; g < clusters.length; g++) {
+            const c = clusters[g];
+            if (p && c.paths.has(p)) continue; // Same-photo exclusion
+            let sim = 0;
+            for (let d = 0; d < 512; d++) {
+              sim += faceFloatView[offset + d] * c.repVec[d];
+            }
+            if (sim > bestSim) {
+              bestSim = sim;
+              bestLeaderIdx = g;
+            }
+          }
+
+          if (bestSim >= 0.72) {
+            const c = clusters[bestLeaderIdx];
+            c.members.push(i);
+            if (p) c.paths.add(p);
+            for (let d = 0; d < 512; d++) c.sumVec[d] += faceFloatView[offset + d];
+            let norm = 0;
+            for (let d = 0; d < 512; d++) norm += c.sumVec[d] * c.sumVec[d];
+            norm = Math.sqrt(norm);
+            if (norm > 0) {
+              for (let d = 0; d < 512; d++) c.repVec[d] = c.sumVec[d] / norm;
+            }
+          } else {
+            const sumVec = new Float32Array(512);
+            const repVec = new Float32Array(512);
+            for (let d = 0; d < 512; d++) {
+              const val = faceFloatView[offset + d];
+              sumVec[d] = val;
+              repVec[d] = val;
+            }
+            const paths = new Set();
+            if (p) paths.add(p);
+            clusters.push({ members: [i], sumVec, repVec, paths });
+          }
         }
-        const paths = new Set();
-        if (validFaces[i] && validFaces[i].path) {
-          paths.add(validFaces[i].path);
+      } else {
+        // Direct singleton initialization for smaller datasets
+        for (let i = 0; i < n; i++) {
+          const offset = faceSabIndices[i] * 512;
+          const sumVec = new Float32Array(512);
+          for (let d = 0; d < 512; d++) {
+            sumVec[d] = faceFloatView[offset + d];
+          }
+          const paths = new Set();
+          if (validFaces[i] && validFaces[i].path) {
+            paths.add(validFaces[i].path);
+          }
+          clusters.push({ members: [i], sumVec, paths });
         }
-        clusters.push({
-          members: [i],
-          sumVec,
-          paths
-        });
       }
 
-      // Agglomerative Hierarchical Clustering (HAC) with Average Linkage (UPGMA)
+      // Phase 2: Agglomerative Hierarchical Clustering (HAC) with Average Linkage (UPGMA)
       // Mathematical property in cosine space:
       // average_similarity(cA, cB) = (cA.sumVec . cB.sumVec) / (|cA| * |cB|)
-      // This is mathematically immune to single-linkage chaining (which previously caused 68 unrelated
-      // photos to be merged into one giant cluster), while computing in O(512) per cluster pair.
+      // Immune to single-linkage chaining and strictly enforces Same-Photo Exclusion
       while (clusters.length > 1) {
         let bestAvgSim = -1;
         let bestI = -1;

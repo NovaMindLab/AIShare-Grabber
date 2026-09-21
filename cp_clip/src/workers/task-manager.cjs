@@ -290,6 +290,7 @@ class TaskManager {
     
     this.inferencePool = null;
     this.searchPool = null;
+    this.clusterPool = null;
 
     // --- Stage 3: SharedArrayBuffer Setup ---
     if (this.tier === 'Low') {
@@ -335,21 +336,33 @@ class TaskManager {
     console.log(`[TaskManager] Allocated initial ${initialPages * 64}KB Image SAB (Max ${maxPages} pages) and Face SAB for Zero-Copy exchange.`);
   }
   
+  _normalizePath(p) {
+    if (typeof p !== 'string') return p;
+    return path.normalize(p).toLowerCase();
+  }
+
+  resetImageSAB() {
+    this.imageToIndex.clear();
+    this.nextIndex = 1; // Reserve index 0 for the query vector
+  }
+  
   getSabIndex(imagePath) {
-    if (this.imageToIndex.has(imagePath)) {
-      return this.imageToIndex.get(imagePath);
+    const key = this._normalizePath(imagePath);
+    if (this.imageToIndex.has(key)) {
+      return this.imageToIndex.get(key);
     }
     if (this.nextIndex >= this.MAX_IMAGES) {
       console.warn("[TaskManager] SAB capacity reached! Ignoring new images for SAB.");
       return -1;
     }
     const idx = this.nextIndex++;
-    this.imageToIndex.set(imagePath, idx);
+    this.imageToIndex.set(key, idx);
     return idx;
   }
 
   getExistingSabIndex(imagePath) {
-    return this.imageToIndex.has(imagePath) ? this.imageToIndex.get(imagePath) : -1;
+    const key = this._normalizePath(imagePath);
+    return this.imageToIndex.has(key) ? this.imageToIndex.get(key) : -1;
   }
 
   addEmbeddingToSAB(imagePath, embedding) {
@@ -429,8 +442,23 @@ class TaskManager {
     );
     
     if (!this.searchPool) {
-      // Pass the WebAssembly.Memory objects to the Search Worker
+      // Dedicated WorkerPool for fast interactive photo searches (never blocked by background tasks)
       this.searchPool = new WorkerPool(
+        path.join(__dirname, 'search.worker.cjs'), 
+        1, 
+        this.idleTimeoutMs,
+        { 
+          wasmMemImages: this.wasmMemImages,
+          wasmMemFaces: this.wasmMemFaces,
+          sharedBuffer: this.sharedBuffer,
+          faceSharedBuffer: this.faceSharedBuffer
+        }
+      );
+    }
+
+    if (!this.clusterPool) {
+      // Dedicated WorkerPool for heavy background clustering (photo clustering & face clustering)
+      this.clusterPool = new WorkerPool(
         path.join(__dirname, 'search.worker.cjs'), 
         1, 
         this.idleTimeoutMs,
@@ -459,6 +487,7 @@ class TaskManager {
   reset() {
     if (this.inferencePool) this.inferencePool.resetCircuitBreaker();
     if (this.searchPool) this.searchPool.resetCircuitBreaker();
+    if (this.clusterPool) this.clusterPool.resetCircuitBreaker();
   }
   
   async computeClip(imagePath, thumbPath = null) {
@@ -493,8 +522,9 @@ class TaskManager {
   }
   
   async clusterImages(sabIndices, validImages, threshold) {
-    if (!this.searchPool) throw new Error("TaskManager not initialized");
-    const result = await this.searchPool.executeTask({ 
+    const pool = this.clusterPool || this.searchPool;
+    if (!pool) throw new Error("TaskManager not initialized");
+    const result = await pool.executeTask({ 
       type: 'cluster', 
       payload: { sabIndices, validImages, threshold } 
     });
@@ -502,8 +532,9 @@ class TaskManager {
   }
 
   async clusterFaces(faceSabIndices, validFaces, threshold = 0.55) {
-    if (!this.searchPool) throw new Error("TaskManager not initialized");
-    const result = await this.searchPool.executeTask({
+    const pool = this.clusterPool || this.searchPool;
+    if (!pool) throw new Error("TaskManager not initialized");
+    const result = await pool.executeTask({
       type: 'cluster_faces',
       payload: { faceSabIndices, validFaces, threshold }
     });
@@ -531,6 +562,10 @@ class TaskManager {
     if (this.searchPool) {
       this.searchPool.terminateAll();
       this.searchPool = null;
+    }
+    if (this.clusterPool) {
+      this.clusterPool.terminateAll();
+      this.clusterPool = null;
     }
     console.log('[TaskManager] Destroyed all worker pools.');
   }

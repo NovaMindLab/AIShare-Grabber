@@ -9369,6 +9369,13 @@ async function handleSearch() {
       images.value.forEach(img => {
         img.searchScore = scoreMap[img.path] !== undefined ? scoreMap[img.path] : -1;
       });
+
+      if (results.length === 0 && images.value.length > 0) {
+        const hasPredictions = images.value.some(img => img.predictions && img.predictions.length > 0);
+        if (!hasPredictions) {
+          logSyncEvent("⚠️ 当前相册照片尚未生成 AI 特征向量，请点击左侧【重新算 AI】以启用语义搜索。");
+        }
+      }
     } else {
       // Web demo mock search
       await new Promise(resolve => setTimeout(resolve, 600));
