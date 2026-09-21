@@ -4639,6 +4639,114 @@ ipcMain.handle('yt-cookies-clear', async () => {
 
 // activeYtDownloads defined above
 
+function isPlaylistUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (/\/playlist(\?|\/|$)/i.test(trimmed)) return true;
+  if (/[?&]list=([a-zA-Z0-9_-]+)/i.test(trimmed)) return true;
+  return false;
+}
+
+ipcMain.handle('yt-get-playlist-info', async (event, url) => {
+  try {
+    const ytPath = await ensureYtDlp(event);
+    if (event) event.sender.send('yt-progress', { status: '正在解析播放列表元数据及条目...', progress: 0 });
+
+    return new Promise((resolve) => {
+      const args = [
+        '--flat-playlist',
+        '-J',
+        '--user-agent', YT_USER_AGENT,
+        '--no-check-certificates'
+      ];
+      applyCookiesArgs(args);
+      const ffmpegDir = getFFmpegDirectory();
+      if (ffmpegDir) {
+        args.push('--ffmpeg-location', ffmpegDir);
+      }
+      args.push(url);
+
+      const child = require('child_process').spawn(ytPath, args);
+      const outputChunks = [];
+      let errOutput = '';
+
+      child.stdout.on('data', data => { outputChunks.push(data); });
+      child.stderr.on('data', data => { errOutput += data.toString(); });
+
+      child.on('close', code => {
+        if (code === 0) {
+          try {
+            const output = Buffer.concat(outputChunks).toString('utf8');
+            const jsonStart = output.indexOf('{');
+            if (jsonStart === -1) throw new Error('No JSON object found in output');
+            const cleanOutput = output.substring(jsonStart);
+            const info = JSON.parse(cleanOutput);
+
+            if (info._type === 'playlist' || Array.isArray(info.entries)) {
+              const rawEntries = info.entries || [];
+              const entries = rawEntries.map((e, index) => {
+                let videoUrl = e.url || '';
+                if (!videoUrl && e.id) {
+                  videoUrl = `https://www.youtube.com/watch?v=${e.id}`;
+                } else if (videoUrl && !videoUrl.startsWith('http')) {
+                  videoUrl = `https://www.youtube.com/watch?v=${videoUrl}`;
+                }
+                const thumbs = e.thumbnails || [];
+                const bestThumb = thumbs.length > 0 ? (thumbs[thumbs.length - 1].url || '') : '';
+                return {
+                  id: e.id || `item_${index + 1}`,
+                  index: index + 1,
+                  title: e.title || `Video #${index + 1}`,
+                  url: videoUrl,
+                  duration: typeof e.duration === 'number' ? e.duration : 0,
+                  thumbnail: bestThumb || (e.id ? `https://i.ytimg.com/vi/${e.id}/hqdefault.jpg` : ''),
+                  uploader: e.uploader || e.channel || info.uploader || info.channel || ''
+                };
+              });
+
+              let singleVideoId = '';
+              const matchV = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+              if (matchV) singleVideoId = matchV[1];
+
+              const thumbs = info.thumbnails || [];
+              const playlistThumb = thumbs.length > 0 ? thumbs[thumbs.length - 1].url : (entries[0]?.thumbnail || '');
+
+              resolve({
+                success: true,
+                isPlaylist: true,
+                id: info.id || '',
+                title: info.title || 'Untitled Playlist',
+                uploader: info.uploader || info.channel || '',
+                playlistCount: info.playlist_count || entries.length,
+                thumbnail: playlistThumb,
+                singleVideoId,
+                entries
+              });
+            } else {
+              resolve({
+                success: false,
+                isPlaylist: false,
+                error: '链接未识别为播放列表'
+              });
+            }
+          } catch (e) {
+            console.error('[YT-DLP PLAYLIST PARSE ERR]', e.message);
+            resolve({ success: false, isPlaylist: false, error: '解析播放列表数据失败: ' + e.message });
+          }
+        } else {
+          let errText = errOutput.trim() || `Failed with code ${code}`;
+          console.error('[YT-DLP PLAYLIST ERR]', errText);
+          resolve({ success: false, isPlaylist: false, error: errText });
+        }
+      });
+
+      child.on('error', err => resolve({ success: false, isPlaylist: false, error: err.message }));
+    });
+  } catch (err) {
+    return { success: false, isPlaylist: false, error: err.message };
+  }
+});
+
 ipcMain.handle('yt-get-info', async (event, url) => {
   try {
     const ytPath = await ensureYtDlp(event);

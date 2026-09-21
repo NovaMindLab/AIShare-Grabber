@@ -3702,6 +3702,174 @@
         </div>
       </div>
     </div>
+
+    <!-- YouTube Playlist Multi-Selection & Batch Download Modal -->
+    <transition name="modal-fade">
+      <div class="modal-backdrop" v-if="ytPlaylistModalOpen && ytPlaylistData" @click.self="ytPlaylistModalOpen = false">
+        <div class="modal-content yt-playlist-modal" style="max-width: 960px; width: 92%; max-height: 88vh; padding: 24px; border-radius: 20px; display: flex; flex-direction: column; text-align: left; background: var(--bg-surface, #0f172a); border: 1px solid var(--glass-border); box-shadow: 0 24px 60px rgba(0,0,0,0.6); position: relative;">
+          <!-- Close button -->
+          <button class="modal-close" @click="ytPlaylistModalOpen = false" title="关闭">✕</button>
+
+          <!-- Modal Header -->
+          <div style="display: flex; gap: 18px; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--glass-border); flex-shrink: 0;">
+            <div style="position: relative; width: 110px; height: 65px; border-radius: 8px; overflow: hidden; background: var(--bg-tertiary); flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1);">
+              <img v-if="ytPlaylistData.thumbnail" :src="getYtMediaSrc(ytPlaylistData.thumbnail)" style="width: 100%; height: 100%; object-fit: cover;" />
+              <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); font-size: 10px; color: #fff; text-align: center; padding: 2px 4px; font-weight: 600;">
+                📑 {{ ytPlaylistData.playlistCount || ytPlaylistData.entries?.length || 0 }} 视频
+              </div>
+            </div>
+            <div style="flex: 1; min-width: 0; padding-right: 32px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span class="yt-playlist-badge">YouTube 播放列表</span>
+                <span v-if="ytPlaylistData.uploader" style="font-size: 12px; color: var(--text-secondary);">
+                  👤 {{ ytPlaylistData.uploader }}
+                </span>
+              </div>
+              <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ ytPlaylistData.title }}
+              </h3>
+            </div>
+          </div>
+
+          <!-- Controls & Filter Toolbar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; flex-shrink: 0;">
+            <!-- Left: Select All / Clear & Search -->
+            <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 260px;">
+              <button 
+                class="btn btn-secondary" 
+                style="padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 8px;"
+                @click="selectAllPlaylistEntries"
+              >
+                ✓ 全选 ({{ ytPlaylistData.entries?.length || 0 }})
+              </button>
+              <button 
+                class="btn btn-secondary" 
+                style="padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 8px;"
+                @click="deselectAllPlaylistEntries"
+              >
+                ✕ 清空
+              </button>
+              <div class="yt-playlist-search-box" style="flex: 1; min-width: 140px; position: relative;">
+                <input 
+                  v-model="ytPlaylistSearchQuery" 
+                  type="text" 
+                  placeholder="🔍 搜索视频标题..." 
+                  class="yt-playlist-search-input"
+                />
+                <button 
+                  v-if="ytPlaylistSearchQuery" 
+                  @click="ytPlaylistSearchQuery = ''"
+                  style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 11px;"
+                >✕</button>
+              </div>
+            </div>
+
+            <!-- Right: Quality Preset Selector -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">下载画质:</span>
+              <div style="display: flex; gap: 6px; background: var(--bg-tertiary); padding: 3px; border-radius: 8px; border: 1px solid var(--glass-border);">
+                <button
+                  v-for="opt in ytPlaylistQualityOptions"
+                  :key="opt.id"
+                  @click="ytPlaylistResolution = opt.id"
+                  style="padding: 4px 10px; font-size: 11px; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s ease;"
+                  :style="ytPlaylistResolution === opt.id ? 'background: var(--accent-primary); color: #fff; font-weight: 700;' : 'background: transparent; color: var(--text-secondary);'"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Items List -->
+          <div class="yt-playlist-items-scroll" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; margin-bottom: 16px; max-height: calc(88vh - 250px);">
+            <div 
+              v-for="item in filteredPlaylistEntries" 
+              :key="item.id"
+              class="yt-playlist-item-card"
+              :class="{ selected: ytPlaylistSelectedIds.has(item.id) }"
+              @click="togglePlaylistEntrySelection(item.id)"
+            >
+              <!-- Checkbox -->
+              <div class="yt-custom-checkbox" :class="{ checked: ytPlaylistSelectedIds.has(item.id) }">
+                <span v-if="ytPlaylistSelectedIds.has(item.id)">✓</span>
+              </div>
+
+              <!-- Index -->
+              <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); width: 28px; text-align: center; flex-shrink: 0;">
+                #{{ item.index }}
+              </span>
+
+              <!-- Thumbnail -->
+              <div style="position: relative; width: 100px; height: 56px; border-radius: 6px; overflow: hidden; background: var(--bg-tertiary); flex-shrink: 0; border: 1px solid rgba(255,255,255,0.06);">
+                <img v-if="item.thumbnail" :src="getYtMediaSrc(item.thumbnail)" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" />
+                <div v-if="item.duration" style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.85); color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: 600;">
+                  {{ formatDuration(item.duration) }}
+                </div>
+              </div>
+
+              <!-- Title & Uploader -->
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 2px;">
+                  {{ item.title }}
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); display: flex; gap: 12px;">
+                  <span v-if="item.uploader">👤 {{ item.uploader }}</span>
+                  <span v-if="item.duration">⏱️ {{ formatDuration(item.duration) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty filtered state -->
+            <div v-if="filteredPlaylistEntries.length === 0" style="text-align: center; padding: 36px 0; color: var(--text-muted); font-size: 13px;">
+              🔍 未找到匹配 "{{ ytPlaylistSearchQuery }}" 的视频条目
+            </div>
+          </div>
+
+          <!-- Footer Actions -->
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--glass-border); padding-top: 14px; flex-shrink: 0; flex-wrap: wrap; gap: 10px;">
+            <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+              <span>已选中:</span>
+              <strong style="color: var(--accent-primary); font-size: 15px;">{{ ytPlaylistSelectedIds.size }}</strong>
+              <span>/ {{ ytPlaylistData.entries?.length || 0 }} 个视频</span>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <!-- Option to download single video if watch?v= was in URL -->
+              <button 
+                v-if="ytPlaylistData.singleVideoId"
+                class="btn btn-secondary" 
+                style="padding: 9px 16px; font-size: 12px; font-weight: 600; border-radius: 8px;"
+                @click="parseSingleVideoFromPlaylist"
+                title="放弃整列表，仅解析当前链接对应的这一个单视频"
+              >
+                🎬 仅下载当前单视频
+              </button>
+
+              <button 
+                class="btn btn-secondary" 
+                style="padding: 9px 18px; font-size: 12px; font-weight: 600; border-radius: 8px;"
+                @click="ytPlaylistModalOpen = false"
+              >
+                取消
+              </button>
+
+              <button 
+                class="btn btn-primary" 
+                style="padding: 9px 24px; font-size: 13px; font-weight: 700; border-radius: 8px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(99,102,241,0.4);"
+                :disabled="ytPlaylistSelectedIds.size === 0"
+                @click="startPlaylistBatchDownload"
+              >
+                <span>📥 开始批量排队下载</span>
+                <span v-if="ytPlaylistSelectedIds.size > 0" style="background: rgba(255,255,255,0.25); padding: 1px 7px; border-radius: 10px; font-size: 12px;">
+                  {{ ytPlaylistSelectedIds.size }}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
     </div>
   </div>
 </template>
@@ -4117,6 +4285,48 @@ const snifferWindowStatus = ref({ isOpen: false, url: '', title: '' });
 const ytVersion = ref('');
 const ytUpdating = ref(false);
 const ytUpdateStatusText = ref('');
+
+// YouTube Playlist Batch Downloader State
+const ytPlaylistModalOpen = ref(false);
+const ytPlaylistData = ref(null);
+const ytPlaylistSelectedIds = ref(new Set());
+const ytPlaylistSearchQuery = ref('');
+const ytPlaylistResolution = ref('best_quality');
+
+const ytPlaylistQualityOptions = [
+  { id: 'best_quality', label: '⚡ 最佳画质 (推荐)', formatSpec: 'bv*+ba/b', height: 1080, type: 'video' },
+  { id: '1080p', label: '1080p 全高清', formatSpec: 'bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b', height: 1080, type: 'video' },
+  { id: '720p', label: '720p 高清', formatSpec: 'bv*[height<=720]+ba/b[height<=720]/bv*+ba/b', height: 720, type: 'video' },
+  { id: 'audio_only', label: '🎵 仅提取音频 (MP3)', formatSpec: 'ba/bestaudio/best', height: 0, type: 'audio' }
+];
+
+const filteredPlaylistEntries = computed(() => {
+  if (!ytPlaylistData.value?.entries) return [];
+  const q = ytPlaylistSearchQuery.value.trim().toLowerCase();
+  if (!q) return ytPlaylistData.value.entries;
+  return ytPlaylistData.value.entries.filter(e => 
+    (e.title && e.title.toLowerCase().includes(q)) || 
+    (e.uploader && e.uploader.toLowerCase().includes(q))
+  );
+});
+
+const togglePlaylistEntrySelection = (id) => {
+  if (ytPlaylistSelectedIds.value.has(id)) {
+    ytPlaylistSelectedIds.value.delete(id);
+  } else {
+    ytPlaylistSelectedIds.value.add(id);
+  }
+  ytPlaylistSelectedIds.value = new Set(ytPlaylistSelectedIds.value);
+};
+
+const selectAllPlaylistEntries = () => {
+  if (!ytPlaylistData.value?.entries) return;
+  ytPlaylistSelectedIds.value = new Set(ytPlaylistData.value.entries.map(e => e.id));
+};
+
+const deselectAllPlaylistEntries = () => {
+  ytPlaylistSelectedIds.value = new Set();
+};
 
 const ytCookieSummaryLabel = computed(() => {
   const mode = ytCookieConfig.value?.mode || 'none';
@@ -7268,6 +7478,14 @@ const pasteFromClipboard = async () => {
   }
 };
 
+const isPlaylistUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (/\/playlist(\?|\/|$)/i.test(trimmed)) return true;
+  if (/[?&]list=([a-zA-Z0-9_-]+)/i.test(trimmed)) return true;
+  return false;
+};
+
 const parseYtVideo = async () => {
   if (!ytUrl.value || ytParsing.value) return;
 
@@ -7276,6 +7494,54 @@ const parseYtVideo = async () => {
     ytUrl.value = cleanUrl;
   }
 
+  // If detected to be a playlist URL, parse playlist items
+  if (isPlaylistUrl(cleanUrl)) {
+    await parseYtPlaylist(cleanUrl);
+    return;
+  }
+
+  await parseYtSingleVideo(cleanUrl);
+};
+
+const parseYtPlaylist = async (url) => {
+  ytParsing.value = true;
+  ytParseError.value = '';
+  ytProgress.value = { status: '正在探测与分析播放列表视频项...', progress: 0 };
+  ytVideoInfo.value = null;
+  ytSelectedResolution.value = null;
+
+  try {
+    const res = await window.api.getYtPlaylistInfo(url);
+    if (res && res.success && res.isPlaylist && res.entries?.length > 0) {
+      ytPlaylistData.value = res;
+      ytPlaylistSelectedIds.value = new Set(res.entries.map(e => e.id));
+      ytPlaylistSearchQuery.value = '';
+      ytPlaylistResolution.value = 'best_quality';
+      ytPlaylistModalOpen.value = true;
+      ytProgress.value = null;
+    } else {
+      // If playlist parse failed but URL has watch?v=, fallback to single video parse
+      if (url.includes('watch?v=') || url.includes('youtu.be/')) {
+        console.warn('Playlist parse failed, falling back to single video:', res?.error);
+        await parseYtSingleVideo(url);
+        return;
+      }
+      ytParseError.value = (res && res.error) ? res.error : '未能解析该播放列表，请检查链接或网络';
+      ytProgress.value = null;
+    }
+  } catch (err) {
+    if (url.includes('watch?v=') || url.includes('youtu.be/')) {
+      await parseYtSingleVideo(url);
+      return;
+    }
+    ytParseError.value = err.message || '解析播放列表出现异常';
+    ytProgress.value = null;
+  } finally {
+    ytParsing.value = false;
+  }
+};
+
+const parseYtSingleVideo = async (cleanUrl) => {
   ytParsing.value = true;
   ytParseError.value = '';
   ytProgress.value = { status: '正在探测与分析视频流地址及元数据...', progress: 0 };
@@ -7301,6 +7567,15 @@ const parseYtVideo = async () => {
   } finally {
     ytParsing.value = false;
   }
+};
+
+const parseSingleVideoFromPlaylist = async () => {
+  if (!ytPlaylistData.value?.singleVideoId) return;
+  const singleId = ytPlaylistData.value.singleVideoId;
+  ytPlaylistModalOpen.value = false;
+  const singleUrl = `https://www.youtube.com/watch?v=${singleId}`;
+  ytUrl.value = singleUrl;
+  await parseYtSingleVideo(singleUrl);
 };
 
 const openSnifferBrowser = async (url) => {
@@ -7457,6 +7732,62 @@ const goBackWebview = () => {};
 const goForwardWebview = () => {};
 const reloadWebview = () => {};
 
+const MAX_YT_CONCURRENT_DOWNLOADS = 2;
+
+const checkAndRunNextYtTask = () => {
+  const activeCount = ytActiveTasks.value.filter(t => !t.isQueued && !t.error).length;
+  const availableSlots = MAX_YT_CONCURRENT_DOWNLOADS - activeCount;
+  if (availableSlots <= 0) return;
+
+  const queuedTasks = ytActiveTasks.value.filter(t => t.isQueued && !t.error);
+  if (queuedTasks.length === 0) return;
+
+  const tasksToStart = queuedTasks.slice(0, availableSlots);
+  tasksToStart.forEach(task => {
+    task.isQueued = false;
+    task.status = '正在连接下载节点...';
+    executeYtDownloadTask(task);
+  });
+
+  updateQueuedStatusLabels();
+};
+
+const updateQueuedStatusLabels = () => {
+  let queueNum = 1;
+  ytActiveTasks.value.forEach(t => {
+    if (t.isQueued && !t.error) {
+      t.status = `排队等待下载 (#${queueNum++})`;
+    }
+  });
+};
+
+const executeYtDownloadTask = async (task) => {
+  try {
+    const res = await window.api.downloadYtVideo(task.payload);
+    if (res && res.success) {
+      ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== task.id);
+      await loadYtHistory();
+    } else {
+      const errMsg = (res && res.error) ? res.error : '下载未能正常完成';
+      console.error('Download error for task', task.id, errMsg);
+      const target = ytActiveTasks.value.find(t => t.id === task.id);
+      if (target) {
+        target.status = `❌ 下载失败: ${errMsg}`;
+        target.error = errMsg;
+      }
+    }
+  } catch (err) {
+    console.error('Download exception for task', task.id, err);
+    const target = ytActiveTasks.value.find(t => t.id === task.id);
+    if (target) {
+      target.status = `❌ 异常: ${err.message || err}`;
+      target.error = err.message || String(err);
+    }
+  } finally {
+    checkAndRunNextYtTask();
+  }
+};
+
 const startYtDownload = async () => {
   if (!ytUrl.value || !ytVideoInfo.value) return;
 
@@ -7470,29 +7801,9 @@ const startYtDownload = async () => {
   const resolution = ytSelectedResolution.value;
   const videoInfo = ytVideoInfo.value;
 
-  const newTask = {
-    id: taskId,
-    url: ytUrl.value.trim(),
-    title: videoInfo.title || 'Video',
-    thumbnail: videoInfo.thumbnail || '',
-    duration: videoInfo.duration || 0,
-    resolution: resolution.label || '1080p',
-    progress: 0,
-    status: '正在连接下载节点...',
-    size: resolution.filesize > 0 ? formatFileSize(resolution.filesize) : '',
-    speed: '',
-    eta: '',
-    error: null
-  };
-
-  ytActiveTasks.value.unshift(newTask);
-  // Auto switch to downloading tab to give instant visual feedback
-  ytSubTab.value = 'downloading';
-
-  // Sanitize payload to pure POJO to prevent Vue reactive Proxy clone errors across Electron IPC
   const cleanPayload = {
     taskId,
-    url: newTask.url,
+    url: ytUrl.value.trim(),
     extractor: String(videoInfo.extractor || ''),
     resolution: {
       id: resolution.id,
@@ -7502,43 +7813,101 @@ const startYtDownload = async () => {
       type: resolution.type,
       height: resolution.height
     },
-    title: String(newTask.title || ''),
-    thumbnail: String(newTask.thumbnail || ''),
-    duration: Number(newTask.duration || 0)
+    title: String(videoInfo.title || 'Video'),
+    thumbnail: String(videoInfo.thumbnail || ''),
+    duration: Number(videoInfo.duration || 0)
   };
 
-  try {
-    const res = await window.api.downloadYtVideo(cleanPayload);
+  const newTask = {
+    id: taskId,
+    url: cleanPayload.url,
+    title: cleanPayload.title,
+    thumbnail: cleanPayload.thumbnail,
+    duration: cleanPayload.duration,
+    resolution: resolution.label || '1080p',
+    progress: 0,
+    status: '正在排队准备...',
+    size: resolution.filesize > 0 ? formatFileSize(resolution.filesize) : '',
+    speed: '',
+    eta: '',
+    error: null,
+    isQueued: true,
+    payload: cleanPayload
+  };
 
-    if (res && res.success) {
-      ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== taskId);
-      await loadYtHistory();
-    } else {
-      const errMsg = (res && res.error) ? res.error : '下载未能正常完成';
-      console.error('Download error:', errMsg);
-      const task = ytActiveTasks.value.find(t => t.id === taskId);
-      if (task) {
-        task.status = `❌ 下载失败: ${errMsg}`;
-        task.error = errMsg;
-      }
-    }
-  } catch (err) {
-    console.error('Download exception:', err);
-    const task = ytActiveTasks.value.find(t => t.id === taskId);
-    if (task) {
-      task.status = `❌ 异常: ${err.message || err}`;
-      task.error = err.message || String(err);
-    }
+  ytActiveTasks.value.unshift(newTask);
+  ytSubTab.value = 'downloading';
+  checkAndRunNextYtTask();
+};
+
+const startPlaylistBatchDownload = () => {
+  if (!ytPlaylistData.value?.entries) return;
+  const selectedEntries = ytPlaylistData.value.entries.filter(e => ytPlaylistSelectedIds.value.has(e.id));
+  if (selectedEntries.length === 0) {
+    showAppToast('请至少勾选一个视频进行下载', 'warning');
+    return;
   }
+
+  const resChoice = ytPlaylistQualityOptions.find(o => o.id === ytPlaylistResolution.value) || ytPlaylistQualityOptions[0];
+
+  selectedEntries.forEach(entry => {
+    const taskId = `yt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const cleanPayload = {
+      taskId,
+      url: entry.url,
+      extractor: 'youtube',
+      resolution: {
+        id: resChoice.id,
+        label: resChoice.label,
+        formatSpec: resChoice.formatSpec,
+        filesize: 0,
+        type: resChoice.type,
+        height: resChoice.height
+      },
+      title: String(entry.title || ''),
+      thumbnail: String(entry.thumbnail || ''),
+      duration: Number(entry.duration || 0)
+    };
+
+    const newTask = {
+      id: taskId,
+      url: entry.url,
+      title: entry.title,
+      thumbnail: entry.thumbnail,
+      duration: entry.duration,
+      resolution: resChoice.label,
+      progress: 0,
+      status: '排队等待下载...',
+      size: '',
+      speed: '',
+      eta: '',
+      error: null,
+      isQueued: true,
+      payload: cleanPayload
+    };
+
+    ytActiveTasks.value.push(newTask);
+  });
+
+  ytPlaylistModalOpen.value = false;
+  ytSubTab.value = 'downloading';
+  updateQueuedStatusLabels();
+  checkAndRunNextYtTask();
+  showAppToast(`已将 ${selectedEntries.length} 个视频加入批量下载队列`, 'success');
 };
 
 const cancelYtTask = async (taskId) => {
-  try {
-    await window.api.cancelYtDownload(taskId);
-  } catch (e) {
-    console.warn('Failed to cancel task:', e);
+  const task = ytActiveTasks.value.find(t => t.id === taskId);
+  if (task && !task.isQueued && !task.error) {
+    try {
+      await window.api.cancelYtDownload(taskId);
+    } catch (e) {
+      console.warn('Failed to cancel task:', e);
+    }
   }
   ytActiveTasks.value = ytActiveTasks.value.filter(t => t.id !== taskId);
+  updateQueuedStatusLabels();
+  checkAndRunNextYtTask();
 };
 
 const loadYtHistory = async () => {

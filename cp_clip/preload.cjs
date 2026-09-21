@@ -155,6 +155,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // YT-DLP Downloader
   getYtVideoInfo: (url) => ipcRenderer.invoke('yt-get-info', url),
+  getYtPlaylistInfo: (url) => ipcRenderer.invoke('yt-get-playlist-info', url),
   downloadYtVideo: (params) => {
     const clean = typeof params === 'string' ? { url: params } : JSON.parse(JSON.stringify(params));
     return ipcRenderer.invoke('yt-download', clean);
