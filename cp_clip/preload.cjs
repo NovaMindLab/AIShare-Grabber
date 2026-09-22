@@ -133,6 +133,7 @@ contextBridge.exposeInMainWorld('api', {
   getPreventSleep: () => ipcRenderer.invoke('get-prevent-sleep'),
   setPreventSleep: (enabled) => ipcRenderer.invoke('set-prevent-sleep', enabled),
   openFileLocation: (filePath) => ipcRenderer.invoke('open-file-location', filePath),
+  openPath: (targetPath) => ipcRenderer.invoke('open-path', targetPath),
   openLogFolder: () => ipcRenderer.invoke('open-log-folder'),
   getLogPath: () => ipcRenderer.invoke('get-log-path'),
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),

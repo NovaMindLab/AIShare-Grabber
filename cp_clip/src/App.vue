@@ -1529,20 +1529,31 @@
             <div 
               v-if="activePlayingAudio" 
               class="audio-mini-bar glass-panel"
+              :class="{ 'is-minimized': isAudioPlayerMinimized }"
               :style="{ bottom: selectedAudiosCount > 0 ? '88px' : '24px' }"
+              @dblclick.self="toggleAudioPlayerMinimize"
             >
               <!-- Left: Mini Vinyl & Track Info -->
-              <div class="audio-mini-left">
-                <div class="audio-mini-vinyl spinning">
+              <div 
+                class="audio-mini-left"
+                @dblclick="toggleAudioPlayerMinimize"
+                :title="isAudioPlayerMinimized ? (t.audios?.expandPlayer || '双击展开播放栏') : (t.audios?.minimizePlayer || '双击缩小播放栏')"
+              >
+                <div 
+                  class="audio-mini-vinyl" 
+                  :class="{ spinning: isNativeAudioPlaying }"
+                  @click.stop="toggleAudioPlayPause"
+                  :title="isNativeAudioPlaying ? '点击暂停' : '点击播放'"
+                >
                   <div class="audio-mini-vinyl-inner">
-                    <span>🎵</span>
+                    <span>{{ isNativeAudioPlaying ? '🎵' : '⏸️' }}</span>
                   </div>
                 </div>
                 <div class="audio-mini-meta">
                   <div class="audio-mini-title" :title="activePlayingAudio.name">
                     {{ getCleanAudioTitle(activePlayingAudio.name) }}
                   </div>
-                  <div class="audio-mini-specs">
+                  <div class="audio-mini-specs" v-show="!isAudioPlayerMinimized">
                     <span class="hifi-tag" :class="`hifi-tag-${getAudioFormatType(activePlayingAudio.name)}`">
                       {{ getAudioFormat(activePlayingAudio.name) }}
                     </span>
@@ -1556,25 +1567,36 @@
                 </div>
               </div>
 
-              <!-- Center: Native Audio Player Controls -->
-              <div class="audio-mini-center">
+              <!-- Center: Native Audio Player Controls (Hidden in minimized mode, kept in DOM to prevent interruption) -->
+              <div class="audio-mini-center" v-show="!isAudioPlayerMinimized">
                 <audio 
+                  ref="nativeAudioEl"
                   :src="activePlayingAudio.src || `local:///${activePlayingAudio.path.replace(/\\/g, '/')}`" 
                   controls 
                   autoplay 
                   class="audio-mini-native"
+                  @play="isNativeAudioPlaying = true"
+                  @pause="isNativeAudioPlaying = false"
                 ></audio>
               </div>
 
-              <!-- Right: Actions (Locate & Close) -->
+              <!-- Right: Actions (Locate, Minimize/Expand & Close) -->
               <div class="audio-mini-actions">
                 <button 
-                  v-if="hasApi && activePlayingAudio.path"
+                  v-if="hasApi && activePlayingAudio.path && !isAudioPlayerMinimized"
                   class="audio-mini-btn" 
                   @click="openAudioFolder(activePlayingAudio.path)"
                   :title="t.audios?.locateFileBtn || '在文件夹中定位文件'"
                 >
                   📂
+                </button>
+                <button 
+                  class="audio-mini-btn minimize" 
+                  @click="toggleAudioPlayerMinimize"
+                  :title="isAudioPlayerMinimized ? (t.audios?.expandPlayer || '展开播放栏') : (t.audios?.minimizePlayer || '缩小播放栏')"
+                >
+                  <span v-if="isAudioPlayerMinimized">🗖</span>
+                  <span v-else>🗕</span>
                 </button>
                 <button 
                   class="audio-mini-btn close" 
@@ -3029,135 +3051,223 @@
               </div>
 
               <!-- Card: System Information -->
-              <div class="settings-card full-width" @vue:mounted="fetchSystemInfo">
-                <div class="settings-card-header">
-                  <span class="settings-card-icon">🖥️</span>
-                  <div>
-                    <h3 class="settings-card-title">{{ t.settings.sysInfoTitle || '系统环境信息' }}</h3>
-                    <p class="settings-card-desc">{{ t.settings.sysInfoDesc || '当前运行环境的硬件与软件配置，可用于排查兼容性问题。' }}</p>
+              <div class="settings-card full-width sysinfo-main-card" @vue:mounted="fetchSystemInfo">
+                <div class="settings-card-header sysinfo-card-header">
+                  <div class="sysinfo-header-left">
+                    <span class="settings-card-icon sysinfo-icon-glow">🖥️</span>
+                    <div>
+                      <div class="sysinfo-title-badge-row">
+                        <h3 class="settings-card-title">{{ t.settings.sysInfoTitle || '系统环境信息' }}</h3>
+                        <span class="sysinfo-status-pill" :class="{ ok: systemInfo?.ok, loading: systemInfoLoading }">
+                          <span class="status-pulse-dot"></span>
+                          {{ systemInfoLoading ? (t.settings.sysInfoRefreshing || '检测中...') : (systemInfo?.ok ? '运行正常' : '异常') }}
+                        </span>
+                      </div>
+                      <p class="settings-card-desc">{{ t.settings.sysInfoDesc || '当前运行环境的硬件与软件配置，可用于排查兼容性问题。' }}</p>
+                    </div>
                   </div>
-                </div>
-                <div class="settings-card-body">
-                  <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-                    <button class="dp-btn dp-browse" :disabled="systemInfoLoading" @click="fetchSystemInfo">
-                      <span v-if="systemInfoLoading">⏳ {{ t.settings.sysInfoRefreshing || '读取中...' }}</span>
-                      <span v-else>🔄 {{ t.settings.sysInfoRefresh || '刷新信息' }}</span>
+                  <div class="sysinfo-header-right">
+                    <button class="sysinfo-refresh-action-btn" :disabled="systemInfoLoading" @click="fetchSystemInfo">
+                      <span class="refresh-spinner-icon" :class="{ spin: systemInfoLoading }">🔄</span>
+                      <span>{{ systemInfoLoading ? (t.settings.sysInfoRefreshing || '刷新中...') : (t.settings.sysInfoRefresh || '刷新信息') }}</span>
                     </button>
                   </div>
+                </div>
 
-                  <div v-if="!systemInfo && !systemInfoLoading" style="color:var(--text-muted); font-size:13px;">
+                <div class="settings-card-body" style="padding-top: 4px;">
+                  <div v-if="!systemInfo && !systemInfoLoading" class="sysinfo-empty-hint">
                     {{ t.settings.sysInfoNotLoaded || '点击"刷新信息"加载系统信息' }}
                   </div>
 
-                  <div v-else-if="systemInfo && !systemInfo.ok" style="color:#f87171; font-size:13px;">
-                    ⚠️ {{ systemInfo.error }}
+                  <div v-else-if="systemInfo && !systemInfo.ok" class="sysinfo-error-banner">
+                    <span class="err-icon">⚠️</span>
+                    <span class="err-text">{{ systemInfo.error }}</span>
                   </div>
 
-                  <div v-else-if="systemInfo && systemInfo.ok" class="sysinfo-grid">
-                    <!-- OS / Hardware -->
-                    <div class="sysinfo-section">
-                      <div class="sysinfo-section-title">{{ t.settings.sysInfoHardware || '硬件 & 操作系统' }}</div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">{{ t.settings.sysInfoOs || '操作系统' }}</span>
-                        <span class="sysinfo-val">{{ systemInfo.system.os }}</span>
+                  <div v-else-if="systemInfo && systemInfo.ok" class="sysinfo-cards-grid">
+                    <!-- Card 1: Hardware & OS -->
+                    <div class="sysinfo-panel">
+                      <div class="sysinfo-panel-head">
+                        <div class="panel-head-title">
+                          <span class="panel-icon">💻</span>
+                          <span>{{ t.settings.sysInfoHardware || '硬件与操作系统' }}</span>
+                        </div>
+                        <span class="panel-tag arch-tag">{{ systemInfo.system.arch }}</span>
                       </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">{{ t.settings.sysInfoOsRaw || '内核版本' }}</span>
-                        <span class="sysinfo-val mono">{{ systemInfo.system.osRaw }}</span>
-                      </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">{{ t.settings.sysInfoArch || '架构' }}</span>
-                        <span class="sysinfo-val mono">{{ systemInfo.system.arch }}</span>
-                      </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">{{ t.settings.sysInfoCpu || 'CPU' }}</span>
-                        <span class="sysinfo-val" style="max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="systemInfo.system.cpu">{{ systemInfo.system.cpu }}</span>
-                      </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">{{ t.settings.sysInfoCpuCores || '逻辑核心' }}</span>
-                        <span class="sysinfo-val mono">{{ systemInfo.system.cpuCores }}</span>
-                      </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">{{ t.settings.sysInfoMem || '内存' }}</span>
-                        <span class="sysinfo-val mono">{{ systemInfo.system.freeMemGB }} GB 可用 / {{ systemInfo.system.totalMemGB }} GB 总计</span>
-                      </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">{{ t.settings.sysInfoHostname || '主机名' }}</span>
-                        <span class="sysinfo-val mono">{{ systemInfo.system.hostname }}</span>
+
+                      <div class="sysinfo-panel-body">
+                        <!-- OS -->
+                        <div class="sysinfo-prop-group">
+                          <div class="prop-label-row">
+                            <span class="prop-label">{{ t.settings.sysInfoOs || '操作系统' }}</span>
+                            <span class="prop-val-highlight">{{ systemInfo.system.os }}</span>
+                          </div>
+                          <div class="prop-sub-kernel mono">{{ systemInfo.system.osRaw }}</div>
+                        </div>
+
+                        <!-- CPU -->
+                        <div class="sysinfo-prop-group">
+                          <div class="prop-label-row">
+                            <span class="prop-label">{{ t.settings.sysInfoCpu || '中央处理器' }}</span>
+                            <span class="prop-badge-chip">{{ systemInfo.system.cpuCores }} 逻辑核心</span>
+                          </div>
+                          <div class="prop-cpu-name" :title="systemInfo.system.cpu">{{ systemInfo.system.cpu }}</div>
+                        </div>
+
+                        <!-- Memory -->
+                        <div class="sysinfo-prop-group mem-group">
+                          <div class="prop-label-row">
+                            <span class="prop-label">{{ t.settings.sysInfoMem || '内存使用率' }}</span>
+                            <span class="prop-mem-stats mono">
+                              {{ memUsedGB }} / {{ systemInfo.system.totalMemGB }} GB
+                              <span class="mem-pct-num" :class="{ alert: memUsagePercent > 85 }">({{ memUsagePercent }}%)</span>
+                            </span>
+                          </div>
+                          <div class="sysinfo-mem-track">
+                            <div 
+                              class="sysinfo-mem-fill" 
+                              :style="{ width: memUsagePercent + '%' }"
+                              :class="{ 'mem-alert': memUsagePercent > 85 }"
+                            ></div>
+                          </div>
+                          <div class="prop-mem-hint">
+                            <span>空闲可用: {{ systemInfo.system.freeMemGB }} GB</span>
+                            <span>物理总计: {{ systemInfo.system.totalMemGB }} GB</span>
+                          </div>
+                        </div>
+
+                        <!-- Hostname -->
+                        <div class="sysinfo-prop-row">
+                          <span class="prop-label">{{ t.settings.sysInfoHostname || '设备主机名' }}</span>
+                          <span class="prop-badge-chip mono host-chip">{{ systemInfo.system.hostname }}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <!-- Runtime Versions -->
-                    <div class="sysinfo-section">
-                      <div class="sysinfo-section-title">{{ t.settings.sysInfoRuntime || '运行时版本' }}</div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">{{ t.settings.sysInfoAppVer || '应用版本' }}</span>
-                        <span class="sysinfo-val mono">v{{ systemInfo.runtime.appVersion }}</span>
+                    <!-- Card 2: AI Engine -->
+                    <div class="sysinfo-panel">
+                      <div class="sysinfo-panel-head">
+                        <div class="panel-head-title">
+                          <span class="panel-icon">🚀</span>
+                          <span>{{ t.settings.sysInfoAi || 'AI 推理计算引擎' }}</span>
+                        </div>
+                        <span class="panel-tag tier-tag" :class="systemInfo.ai.tier?.toLowerCase()">
+                          {{ systemInfo.ai.tier === 'High' ? '🚀 High 旗舰' : (systemInfo.ai.tier === 'Mid' ? '⚡ Mid 主流' : systemInfo.ai.tier) }}
+                        </span>
                       </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">Electron</span>
-                        <span class="sysinfo-val mono">{{ systemInfo.runtime.electron }}</span>
-                      </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">Node.js</span>
-                        <span class="sysinfo-val mono">{{ systemInfo.runtime.node }}</span>
-                      </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">Chromium</span>
-                        <span class="sysinfo-val mono">{{ systemInfo.runtime.chrome }}</span>
-                      </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">V8</span>
-                        <span class="sysinfo-val mono">{{ systemInfo.runtime.v8 }}</span>
-                      </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">{{ t.settings.sysInfoUserData || '数据目录' }}</span>
-                        <span class="sysinfo-val mono" style="font-size:11px; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="systemInfo.runtime.userData">{{ systemInfo.runtime.userData }}</span>
+
+                      <div class="sysinfo-panel-body">
+                        <!-- AI Hero Status Banner -->
+                        <div class="ai-hero-banner" :class="systemInfo.ai.available ? 'is-ok' : 'is-error'">
+                          <div class="ai-hero-icon">{{ systemInfo.ai.available ? '✅' : '❌' }}</div>
+                          <div class="ai-hero-info">
+                            <div class="ai-hero-title">
+                              {{ systemInfo.ai.available ? (t.settings.sysInfoAiOk || 'MobileCLIP 引擎就绪') : (t.settings.sysInfoAiFail || '引擎初始化未就绪') }}
+                            </div>
+                            <div class="ai-hero-desc">
+                              {{ systemInfo.ai.available ? '交互式语义检索已启用 · SIMD 加速支持' : (systemInfo.ai.initError || '底层环境异常') }}
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Concurrency Workers -->
+                        <div class="sysinfo-prop-group">
+                          <div class="prop-label-row">
+                            <span class="prop-label">{{ t.settings.sysInfoAiWorkers || '工作线程架构' }}</span>
+                            <span class="prop-badge-chip accent-chip">独立双通道</span>
+                          </div>
+                          <div class="ai-worker-chips-row">
+                            <div class="ai-chip-item">
+                              <span class="chip-num mono">{{ systemInfo.ai.maxWorkers }}</span>
+                              <span class="chip-desc">进程池 (Workers)</span>
+                            </div>
+                            <div class="ai-chip-divider">×</div>
+                            <div class="ai-chip-item">
+                              <span class="chip-num mono">{{ systemInfo.ai.intraThreads }}</span>
+                              <span class="chip-desc">线程/核 (Threads)</span>
+                            </div>
+                          </div>
+                          <div class="ai-arch-hint">前台搜索与后台聚类物理隔离，零卡顿响应</div>
+                        </div>
+
+                        <!-- Native DLL Checks -->
+                        <div class="sysinfo-prop-group dll-group" v-if="systemInfo.ai.redistExists !== null || systemInfo.ai.ortDllFound !== null">
+                          <div class="prop-label-row" style="margin-bottom: 6px;">
+                            <span class="prop-label">底层运行库状态</span>
+                          </div>
+                          <div class="dll-status-items">
+                            <div class="dll-item" v-if="systemInfo.ai.redistExists !== null">
+                              <span class="dll-name">MSVC C++ Redist (x64)</span>
+                              <span class="dll-pill" :class="systemInfo.ai.redistExists ? 'ok' : 'err'">
+                                {{ systemInfo.ai.redistExists ? '✓ 已就绪' : '✗ 缺失' }}
+                              </span>
+                            </div>
+                            <div class="dll-item" v-if="systemInfo.ai.ortDllFound !== null">
+                              <span class="dll-name">ONNX Runtime Native</span>
+                              <span class="dll-pill" :class="systemInfo.ai.ortDllFound ? 'ok' : 'warn'">
+                                {{ systemInfo.ai.ortDllFound ? '✓ 已挂载' : '⚠ 未找到' }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <!-- AI Engine -->
-                    <div class="sysinfo-section">
-                      <div class="sysinfo-section-title">{{ t.settings.sysInfoAi || 'AI 引擎状态' }}</div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">{{ t.settings.sysInfoAiStatus || 'AI 可用性' }}</span>
-                        <span class="sysinfo-val">
-                          <span v-if="systemInfo.ai.available" style="color:#34d399; font-weight:600;">✅ {{ t.settings.sysInfoAiOk || '正常' }}</span>
-                          <span v-else style="color:#f87171; font-weight:600;">❌ {{ t.settings.sysInfoAiFail || '不可用 (初始化失败)' }}</span>
-                        </span>
-                      </div>
-                      <div class="sysinfo-row" v-if="!systemInfo.ai.available && systemInfo.ai.initError">
-                        <span class="sysinfo-key" style="color:#f87171;">{{ t.settings.sysInfoAiError || '失败原因' }}</span>
-                        <span class="sysinfo-val" style="color:#f87171; font-size:11px; word-break:break-all;" :title="systemInfo.ai.initError">{{ systemInfo.ai.initError }}</span>
-                      </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">{{ t.settings.sysInfoAiTier || '硬件档位' }}</span>
-                        <span class="sysinfo-val mono">
-                          <span v-if="systemInfo.ai.tier === 'High'" style="color:#a78bfa;">{{ systemInfo.ai.tier }} 🚀</span>
-                          <span v-else-if="systemInfo.ai.tier === 'Mid'" style="color:#38bdf8;">{{ systemInfo.ai.tier }} ⚡</span>
-                          <span v-else>{{ systemInfo.ai.tier }}</span>
-                        </span>
-                      </div>
-                      <div class="sysinfo-row">
-                        <span class="sysinfo-key">{{ t.settings.sysInfoAiWorkers || 'AI Workers' }}</span>
-                        <span class="sysinfo-val mono">{{ systemInfo.ai.maxWorkers }} × {{ systemInfo.ai.intraThreads }} 线程</span>
-                      </div>
-                      <template v-if="systemInfo.ai.redistExists !== null">
-                        <div class="sysinfo-row">
-                          <span class="sysinfo-key">{{ t.settings.sysInfoDll || 'MSVC Redist DLL' }}</span>
-                          <span class="sysinfo-val">
-                            <span v-if="systemInfo.ai.redistExists" style="color:#34d399;">✅ {{ t.settings.sysInfoDllFound || '已就绪' }}</span>
-                            <span v-else style="color:#f87171;">⚠️ {{ t.settings.sysInfoDllMissing || '目录缺失' }}</span>
-                          </span>
+                    <!-- Card 3: Runtime & Storage -->
+                    <div class="sysinfo-panel">
+                      <div class="sysinfo-panel-head">
+                        <div class="panel-head-title">
+                          <span class="panel-icon">📦</span>
+                          <span>{{ t.settings.sysInfoRuntime || '运行时与数据目录' }}</span>
                         </div>
-                        <div class="sysinfo-row">
-                          <span class="sysinfo-key">{{ t.settings.sysInfoOrtDll || 'ONNX Runtime DLL' }}</span>
-                          <span class="sysinfo-val">
-                            <span v-if="systemInfo.ai.ortDllFound" style="color:#34d399;">✅ {{ t.settings.sysInfoDllFound || '已就绪' }}</span>
-                            <span v-else style="color:#f59e0b;">⚠️ {{ t.settings.sysInfoOrtDllMissing || '目录未找到' }}</span>
-                          </span>
+                        <span class="panel-tag app-ver-tag">v{{ systemInfo.runtime.appVersion }}</span>
+                      </div>
+
+                      <div class="sysinfo-panel-body">
+                        <!-- Runtime Core Grid -->
+                        <div class="sysinfo-prop-group">
+                          <div class="prop-label-row" style="margin-bottom: 6px;">
+                            <span class="prop-label">核心内核组件</span>
+                          </div>
+                          <div class="runtime-matrix-grid">
+                            <div class="matrix-tile">
+                              <span class="tile-key">Electron</span>
+                              <span class="tile-val mono">{{ systemInfo.runtime.electron }}</span>
+                            </div>
+                            <div class="matrix-tile">
+                              <span class="tile-key">Node.js</span>
+                              <span class="tile-val mono">{{ systemInfo.runtime.node }}</span>
+                            </div>
+                            <div class="matrix-tile">
+                              <span class="tile-key">Chromium</span>
+                              <span class="tile-val mono">{{ systemInfo.runtime.chrome }}</span>
+                            </div>
+                            <div class="matrix-tile">
+                              <span class="tile-key">V8</span>
+                              <span class="tile-val mono">{{ systemInfo.runtime.v8 }}</span>
+                            </div>
+                          </div>
                         </div>
-                      </template>
+
+                        <!-- Data Directory -->
+                        <div class="sysinfo-prop-group storage-group">
+                          <div class="prop-label-row">
+                            <span class="prop-label">{{ t.settings.sysInfoUserData || '数据存储目录' }}</span>
+                            <div class="storage-action-btns">
+                              <button class="action-btn-sm" @click="copyUserDataPath" :title="'复制目录绝对路径'">
+                                {{ copiedUserData ? '✓ 已复制' : '📋 复制' }}
+                              </button>
+                              <button class="action-btn-sm primary-sm" @click="openUserDataFolder" :title="'在资源管理器中打开'">
+                                📂 打开
+                              </button>
+                            </div>
+                          </div>
+                          <div class="storage-path-display" :title="systemInfo.runtime.userData">
+                            <span class="path-text mono">{{ systemInfo.runtime.userData }}</span>
+                          </div>
+                          <div class="storage-hint">保存了相册数据库、人脸聚类缓存与客户端配置</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -4948,6 +5058,9 @@ const audioSyncDone = ref(0);
 const audioSyncTotal = ref(0);
 const activePlayingAudio = ref(null);
 const isAudioControlExpanded = ref(false);
+const isAudioPlayerMinimized = ref(false);
+const nativeAudioEl = ref(null);
+const isNativeAudioPlaying = ref(true);
 
 const currentAudioSyncPercent = computed(() => {
   if (audioSyncTotal.value <= 0) return 0;
@@ -5169,10 +5282,25 @@ function downloadSingleAudio(item) {
 
 function openAudioPlayer(audio) {
   activePlayingAudio.value = audio;
+  isNativeAudioPlaying.value = true;
 }
 
 function closeAudioPlayer() {
   activePlayingAudio.value = null;
+  isAudioPlayerMinimized.value = false;
+}
+
+function toggleAudioPlayerMinimize() {
+  isAudioPlayerMinimized.value = !isAudioPlayerMinimized.value;
+}
+
+function toggleAudioPlayPause() {
+  if (!nativeAudioEl.value) return;
+  if (nativeAudioEl.value.paused) {
+    nativeAudioEl.value.play().catch(() => {});
+  } else {
+    nativeAudioEl.value.pause();
+  }
 }
 
 function openAudioFolder(filePath) {
@@ -5401,6 +5529,43 @@ async function fetchSystemInfo() {
     systemInfoLoading.value = false;
   }
 }
+
+const copiedUserData = ref(false);
+function copyUserDataPath() {
+  const p = systemInfo.value?.runtime?.userData;
+  if (!p) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(p);
+  }
+  copiedUserData.value = true;
+  setTimeout(() => { copiedUserData.value = false; }, 2000);
+}
+
+function openUserDataFolder() {
+  const p = systemInfo.value?.runtime?.userData;
+  if (!p) return;
+  if (window.api?.openPath) {
+    window.api.openPath(p);
+  } else if (window.api?.openFileLocation) {
+    window.api.openFileLocation(p);
+  }
+}
+
+const memUsagePercent = computed(() => {
+  if (!systemInfo.value?.system?.totalMemGB || !systemInfo.value?.system?.freeMemGB) return 0;
+  const total = parseFloat(systemInfo.value.system.totalMemGB);
+  const free = parseFloat(systemInfo.value.system.freeMemGB);
+  if (isNaN(total) || total <= 0) return 0;
+  const used = Math.max(0, total - free);
+  return Math.min(100, Math.round((used / total) * 100));
+});
+
+const memUsedGB = computed(() => {
+  if (!systemInfo.value?.system?.totalMemGB || !systemInfo.value?.system?.freeMemGB) return '0.0';
+  const total = parseFloat(systemInfo.value.system.totalMemGB);
+  const free = parseFloat(systemInfo.value.system.freeMemGB);
+  return Math.max(0, total - free).toFixed(1);
+});
 
 // App Update checks
 const updateStatus = ref('idle'); // 'idle' | 'checking' | 'up-to-date' | 'new-available' | 'failed'
@@ -11434,7 +11599,43 @@ function getMockClassification(url) {
   gap: 16px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 24px rgba(99, 102, 241, 0.25);
   z-index: 1000;
-  transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s ease;
+}
+
+/* Minimized Floating Capsule Mode */
+.audio-mini-bar.is-minimized {
+  max-width: 290px;
+  height: 52px;
+  padding: 0 12px 0 10px;
+  gap: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 18px rgba(99, 102, 241, 0.35);
+}
+
+.light-mode .audio-mini-bar.is-minimized {
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.04), 0 0 18px rgba(99, 102, 241, 0.18);
+}
+
+.audio-mini-bar.is-minimized .audio-mini-left {
+  min-width: 0;
+  max-width: 170px;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.audio-mini-bar.is-minimized .audio-mini-vinyl {
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+}
+
+.audio-mini-bar.is-minimized .audio-mini-vinyl-inner {
+  width: 14px;
+  height: 14px;
+  font-size: 8px;
+}
+
+.audio-mini-bar.is-minimized .audio-mini-title {
+  font-size: 12px;
 }
 
 .light-mode .audio-mini-bar {
@@ -11572,6 +11773,12 @@ function getMockClassification(url) {
   transform: scale(1.06);
 }
 
+.audio-mini-btn.minimize:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #818cf8;
+}
+
 .audio-mini-btn.close:hover {
   background: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.4);
@@ -11587,6 +11794,12 @@ function getMockClassification(url) {
 .light-mode .audio-mini-btn:hover {
   background: rgba(0, 0, 0, 0.1);
   color: #0f172a;
+}
+
+.light-mode .audio-mini-btn.minimize:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #4f46e5;
 }
 
 .light-mode .audio-mini-btn.close:hover {

@@ -3024,6 +3024,14 @@ ipcMain.handle('open-file-location', async (event, filePath) => {
   return false;
 });
 
+ipcMain.handle('open-path', async (event, targetPath) => {
+  if (targetPath && fs.existsSync(targetPath)) {
+    shell.openPath(targetPath);
+    return true;
+  }
+  return false;
+});
+
 // ---- Check for Updates --------------------------------------------------------
 
 function isNewVersionAvailable(current, latest) {
