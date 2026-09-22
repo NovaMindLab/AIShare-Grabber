@@ -5,33 +5,13 @@
 ; ==============================================================================
 
 ; ------------------------------------------------------------------------------
-; 0. Override ${isUpdated} so that --updated, /passive, and --force-run
-;    trigger the unattended update flow with standard LogicLib label branching.
+; 0. Additional command line flags (without overriding native isUpdated)
 ; ------------------------------------------------------------------------------
-!macro _isUpdatedCustom _a _b _t _f
-  !define UniqueID ${__LINE__}
-  ${StdUtils.TestParameter} $R9 "updated"
-  StrCmp "$R9" "true" _isUpdate_match_${UniqueID} 0
+!macro _isPassive _a _b _t _f
   ${StdUtils.TestParameter} $R9 "passive"
-  StrCmp "$R9" "true" _isUpdate_match_${UniqueID} 0
-  ${StdUtils.TestParameter} $R9 "force-run"
-  StrCmp "$R9" "true" _isUpdate_match_${UniqueID} 0
-  !if `${_f}` != ``
-    Goto `${_f}`
-  !else
-    Goto _isUpdate_skip_${UniqueID}
-  !endif
-_isUpdate_match_${UniqueID}:
-  !if `${_t}` != ``
-    Goto `${_t}`
-  !endif
-!if `${_f}` == ``
-_isUpdate_skip_${UniqueID}:
-!endif
-  !undef UniqueID
+  StrCmp "$R9" "true" `${_t}` `${_f}`
 !macroend
-!undef isUpdated
-!define isUpdated `"" isUpdatedCustom ""`
+!define isPassive `"" isPassive ""`
 
 ; ------------------------------------------------------------------------------
 ; 1. Process termination before installation starts
@@ -84,11 +64,12 @@ _isUpdate_skip_${UniqueID}:
 ; ------------------------------------------------------------------------------
 !macro customInstallMode
   ${if} ${isUpdated}
+  ${OrIf} ${isPassive}
     ${if} $hasPerMachineInstallation == "1"
       StrCpy $hasPerMachineInstallation "1"
       StrCpy $hasPerUserInstallation "0"
       ${ifNot} ${UAC_IsAdmin}
-        ShowWindow $HWNDPARENT ${SW_HIDE}
+        ShowWindow $HWNDPARENT 0
         !insertmacro UAC_RunElevated
         Quit
       ${endIf}
@@ -109,6 +90,7 @@ _isUpdate_skip_${UniqueID}:
 !macro customFinishPage
   Function customFinishPagePre
     ${if} ${isUpdated}
+    ${OrIf} ${isPassive}
       ; On update/passive mode, launch new version immediately and exit installer without showing finish page
       ${if} $launchLink != ""
       ${andIf} ${FileExists} "$launchLink"
@@ -122,6 +104,7 @@ _isUpdate_skip_${UniqueID}:
 
   Function customFinishPageRunApp
     ${if} ${isUpdated}
+    ${OrIf} ${isPassive}
       StrCpy $1 "--updated"
     ${else}
       StrCpy $1 ""
