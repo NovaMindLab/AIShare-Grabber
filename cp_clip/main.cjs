@@ -3669,7 +3669,7 @@ ipcMain.handle('install-update', async (event, filePath) => {
         prepareForUpdateExit();
         setTimeout(() => {
           const { spawn } = require('child_process');
-          const child = spawn(filePath, ['--updated', '--force-run'], {
+          const child = spawn(filePath, ['--updated', '/passive', '--force-run'], {
             detached: true,
             stdio: 'ignore'
           });
