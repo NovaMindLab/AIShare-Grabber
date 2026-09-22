@@ -1,11 +1,11 @@
 {
-  "version": "4.5.1",
-  "description": "High-speed local network photo sharing & offline MobileCLIP image search application.",
+  "version": "4.5.2",
+  "description": "Cross-platform photo & clipboard sync tool",
   "homepage": "https://github.com/NovaMindLab/AIShare-Grabber",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.1/ShareCLIP-Setup-4.5.1.exe#/dl.7z"
+      "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.2/ShareCLIP-Setup-4.5.2.exe#/dl.7z"
     }
   },
   "shortcuts": [

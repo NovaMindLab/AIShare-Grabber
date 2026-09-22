@@ -3327,6 +3327,7 @@ function sanitizeUpdaterCache() {
 }
 
 let updateDownloadEventSender = null;
+let lastDownloadedUpdateExe = null;
 let lastUpdateProgressInfo = {
   percent: 0,
   transferredMB: '0.00',
@@ -3506,9 +3507,14 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
           };
           autoUpdater.on('download-progress', progressHandler);
           
-          autoUpdater.once('update-downloaded', () => { 
+          autoUpdater.once('update-downloaded', (info) => { 
             clearTimeout(timeout); 
             autoUpdater.removeListener('download-progress', progressHandler);
+            if (info && info.downloadedFile) {
+              lastDownloadedUpdateExe = info.downloadedFile;
+            } else if (autoUpdater.installerPath) {
+              lastDownloadedUpdateExe = autoUpdater.installerPath;
+            }
             resolve(); 
           });
           autoUpdater.once('error', (err) => { 
@@ -3586,6 +3592,7 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
     });
 
     console.log(`[Update Download] Direct download completed: ${destPath}`);
+    lastDownloadedUpdateExe = destPath;
     return { 
       success: true, 
       filePath: destPath,
@@ -3658,8 +3665,52 @@ function prepareForUpdateExit() {
 ipcMain.handle('install-update', async (event, filePath) => {
   try {
     console.log('[Update Install] Installing update, target:', filePath, 'platform:', process.platform);
-    if (!filePath || filePath === 'managed') {
-      console.log('[Update Install] Triggering autoUpdater.quitAndInstall (progress mode)...');
+
+    if (process.platform === 'win32') {
+      let targetInstaller = null;
+      if (filePath && filePath !== 'managed' && fs.existsSync(filePath) && filePath.toLowerCase().endsWith('.exe')) {
+        targetInstaller = filePath;
+      } else if (lastDownloadedUpdateExe && fs.existsSync(lastDownloadedUpdateExe) && lastDownloadedUpdateExe.toLowerCase().endsWith('.exe')) {
+        targetInstaller = lastDownloadedUpdateExe;
+      } else if (autoUpdater.installerPath && fs.existsSync(autoUpdater.installerPath)) {
+        targetInstaller = autoUpdater.installerPath;
+      } else if (autoUpdater.downloadedUpdateHelper && autoUpdater.downloadedUpdateHelper.file && fs.existsSync(autoUpdater.downloadedUpdateHelper.file)) {
+        targetInstaller = autoUpdater.downloadedUpdateHelper.file;
+      } else {
+        try {
+          const pendingDir = path.join(app.getPath('userData'), '..', 'shareclip-updater', 'pending');
+          if (fs.existsSync(pendingDir)) {
+            const files = fs.readdirSync(pendingDir).filter(f => f.toLowerCase().endsWith('.exe'));
+            if (files.length > 0) {
+              targetInstaller = path.join(pendingDir, files[0]);
+            }
+          }
+        } catch (_) {}
+      }
+
+      const isPerMachine = process.execPath.toLowerCase().includes('program files') || process.execPath.toLowerCase().includes('programdata');
+      const installModeFlag = isPerMachine ? '--allusers' : '--currentuser';
+      const spawnArgs = ['--updated', '/passive', '--force-run', installModeFlag];
+
+      if (targetInstaller && fs.existsSync(targetInstaller)) {
+        console.log('[Update Install] Spawning NSIS installer directly with zero-click flags:', targetInstaller, spawnArgs);
+        prepareForUpdateExit();
+        setTimeout(() => {
+          const { spawn } = require('child_process');
+          const child = spawn(targetInstaller, spawnArgs, {
+            detached: true,
+            stdio: 'ignore'
+          });
+          child.unref();
+          setTimeout(() => {
+            app.exit(0);
+          }, 300);
+        }, 300);
+        return { success: true };
+      }
+
+      // Fallback to autoUpdater.quitAndInstall
+      console.log('[Update Install] Triggering autoUpdater.quitAndInstall fallback...');
       prepareForUpdateExit();
       setImmediate(() => {
         try {
@@ -3671,22 +3722,11 @@ ipcMain.handle('install-update', async (event, filePath) => {
           app.exit(0);
         }, 500);
       });
-    } else if (fs.existsSync(filePath)) {
-      if (process.platform === 'win32' && filePath.toLowerCase().endsWith('.exe')) {
-        console.log('[Update Install] Spawning NSIS installer with progress window:', filePath);
-        prepareForUpdateExit();
-        setTimeout(() => {
-          const { spawn } = require('child_process');
-          const child = spawn(filePath, ['--updated', '/passive', '--force-run'], {
-            detached: true,
-            stdio: 'ignore'
-          });
-          child.unref();
-          setTimeout(() => {
-            app.exit(0);
-          }, 300);
-        }, 300);
-      } else if (process.platform === 'darwin') {
+      return { success: true };
+    }
+
+    if (fs.existsSync(filePath)) {
+      if (process.platform === 'darwin') {
         console.log('[Update Install] Opening macOS package (DMG/ZIP):', filePath);
         shell.openPath(filePath);
         prepareForUpdateExit();
@@ -3708,6 +3748,7 @@ ipcMain.handle('install-update', async (event, filePath) => {
           app.exit(0);
         }, 500);
       }
+      return { success: true };
     } else {
       throw new Error(`Installer file does not exist at ${filePath}`);
     }

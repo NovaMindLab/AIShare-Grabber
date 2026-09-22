@@ -5,17 +5,33 @@
 ; ==============================================================================
 
 ; ------------------------------------------------------------------------------
-; 0. Override ${isUpdated} so that both --updated and /passive (or --passive)
-;    trigger the unattended update flow (progress-only, zero-click, auto-restart).
+; 0. Override ${isUpdated} so that --updated, /passive, and --force-run
+;    trigger the unattended update flow with standard LogicLib label branching.
 ; ------------------------------------------------------------------------------
-!macro _isUpdatedPassive _a _b _t _f
+!macro _isUpdatedCustom _a _b _t _f
+  !define UniqueID ${__LINE__}
   ${StdUtils.TestParameter} $R9 "updated"
-  StrCmp "$R9" "true" `${_t}` 0
+  StrCmp "$R9" "true" _isUpdate_match_${UniqueID} 0
   ${StdUtils.TestParameter} $R9 "passive"
-  StrCmp "$R9" "true" `${_t}` `${_f}`
+  StrCmp "$R9" "true" _isUpdate_match_${UniqueID} 0
+  ${StdUtils.TestParameter} $R9 "force-run"
+  StrCmp "$R9" "true" _isUpdate_match_${UniqueID} 0
+  !if `${_f}` != ``
+    Goto `${_f}`
+  !else
+    Goto _isUpdate_skip_${UniqueID}
+  !endif
+_isUpdate_match_${UniqueID}:
+  !if `${_t}` != ``
+    Goto `${_t}`
+  !endif
+!if `${_f}` == ``
+_isUpdate_skip_${UniqueID}:
+!endif
+  !undef UniqueID
 !macroend
 !undef isUpdated
-!define isUpdated `"" isUpdatedPassive ""`
+!define isUpdated `"" isUpdatedCustom ""`
 
 ; ------------------------------------------------------------------------------
 ; 1. Process termination before installation starts
@@ -69,9 +85,20 @@
 !macro customInstallMode
   ${if} ${isUpdated}
     ${if} $hasPerMachineInstallation == "1"
-      StrCpy $isForceMachineInstall "1"
+      StrCpy $hasPerMachineInstallation "1"
+      StrCpy $hasPerUserInstallation "0"
+      ${ifNot} ${UAC_IsAdmin}
+        ShowWindow $HWNDPARENT ${SW_HIDE}
+        !insertmacro UAC_RunElevated
+        Quit
+      ${endIf}
+      !insertmacro setInstallModePerAllUsers
+      Abort
     ${else}
-      StrCpy $isForceCurrentInstall "1"
+      StrCpy $hasPerMachineInstallation "0"
+      StrCpy $hasPerUserInstallation "1"
+      !insertmacro setInstallModePerUser
+      Abort
     ${endif}
   ${endif}
 !macroend
