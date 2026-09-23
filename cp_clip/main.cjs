@@ -3734,35 +3734,39 @@ ipcMain.handle('install-update', async (event, filePath) => {
     console.log('[Update Install] Installing update, target:', filePath, 'platform:', process.platform);
 
     if (process.platform === 'win32') {
-      let targetInstaller = null;
-      if (filePath && filePath !== 'managed' && fs.existsSync(filePath) && filePath.toLowerCase().endsWith('.exe')) {
-        targetInstaller = filePath;
-      } else if (lastDownloadedUpdateExe && fs.existsSync(lastDownloadedUpdateExe) && lastDownloadedUpdateExe.toLowerCase().endsWith('.exe')) {
-        targetInstaller = lastDownloadedUpdateExe;
-      } else if (autoUpdater.installerPath && fs.existsSync(autoUpdater.installerPath)) {
-        targetInstaller = autoUpdater.installerPath;
-      } else if (autoUpdater.downloadedUpdateHelper && autoUpdater.downloadedUpdateHelper.file && fs.existsSync(autoUpdater.downloadedUpdateHelper.file)) {
-        targetInstaller = autoUpdater.downloadedUpdateHelper.file;
-      } else {
-        try {
-          const pendingDir = path.join(app.getPath('userData'), '..', 'shareclip-updater', 'pending');
-          if (fs.existsSync(pendingDir)) {
-            const files = fs.readdirSync(pendingDir).filter(f => f.toLowerCase().endsWith('.exe'));
-            if (files.length > 0) {
-              targetInstaller = path.join(pendingDir, files[0]);
+      // 1. Official managed autoUpdater update path
+      if (!filePath || filePath === 'managed') {
+        console.log('[Update Install] Triggering official autoUpdater.quitAndInstall (interactive progress mode)...');
+        prepareForUpdateExit();
+        setImmediate(() => {
+          try {
+            autoUpdater.quitAndInstall(false, true);
+          } catch (e) {
+            console.error('[Update Install] autoUpdater.quitAndInstall error:', e);
+            let fallbackInstaller = autoUpdater.installerPath || (autoUpdater.downloadedUpdateHelper && autoUpdater.downloadedUpdateHelper.file);
+            if (fallbackInstaller && fs.existsSync(fallbackInstaller)) {
+              const { spawn } = require('child_process');
+              const child = spawn(fallbackInstaller, ['--updated', '--force-run'], {
+                detached: true,
+                stdio: 'ignore'
+              });
+              child.unref();
             }
           }
-        } catch (_) {}
+          setTimeout(() => {
+            app.exit(0);
+          }, 500);
+        });
+        return { success: true };
       }
 
-      const spawnArgs = ['--updated', '--force-run'];
-
-      if (targetInstaller && fs.existsSync(targetInstaller)) {
-        console.log('[Update Install] Spawning NSIS installer with standard progress window:', targetInstaller, spawnArgs);
+      // 2. Direct downloaded installer file fallback
+      if (fs.existsSync(filePath) && filePath.toLowerCase().endsWith('.exe')) {
+        console.log('[Update Install] Spawning downloaded installer file with progress window:', filePath);
         prepareForUpdateExit();
         setTimeout(() => {
           const { spawn } = require('child_process');
-          const child = spawn(targetInstaller, spawnArgs, {
+          const child = spawn(filePath, ['--updated', '--force-run'], {
             detached: true,
             stdio: 'ignore'
           });
@@ -3773,21 +3777,6 @@ ipcMain.handle('install-update', async (event, filePath) => {
         }, 300);
         return { success: true };
       }
-
-      // Fallback to autoUpdater.quitAndInstall
-      console.log('[Update Install] Triggering autoUpdater.quitAndInstall fallback...');
-      prepareForUpdateExit();
-      setImmediate(() => {
-        try {
-          autoUpdater.quitAndInstall(false, true);
-        } catch (e) {
-          console.error('[Update Install] autoUpdater.quitAndInstall error:', e);
-        }
-        setTimeout(() => {
-          app.exit(0);
-        }, 500);
-      });
-      return { success: true };
     }
 
     if (fs.existsSync(filePath)) {
