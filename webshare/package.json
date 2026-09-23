@@ -1,7 +1,7 @@
 {
   "name": "shareclip-webshare",
   "private": true,
-  "version": "4.5.6",
+  "version": "4.5.7",
   "description": "ShareCLIP WebShare - Pure Web P2P Photo Sync & WebGPU AI Classification",
   "type": "module",
   "scripts": {
