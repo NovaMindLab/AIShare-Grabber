@@ -57,49 +57,38 @@ if (-not $NoBump) {
 
         Write-Host "⬆️ [Version++] Automatically bumping version: $curVersion -> $newVersion (Code: $newVersionCode)" -ForegroundColor Green
 
+        function Replace-InFileUtf8($filePath, $pattern, $replacement) {
+            if (Test-Path $filePath) {
+                $text = [System.IO.File]::ReadAllText($filePath, [System.Text.Encoding]::UTF8)
+                $newText = [regex]::Replace($text, $pattern, $replacement)
+                [System.IO.File]::WriteAllText($filePath, $newText, [System.Text.Encoding]::UTF8)
+            }
+        }
+
         # Update cp_clip/package.json
-        (Get-Content $pcPkg -Raw) -replace '"version":\s*"[0-9.]+"', "`"version`": `"$newVersion`"" | Set-Content $pcPkg -NoNewline
+        Replace-InFileUtf8 $pcPkg '"version":\s*"[0-9.]+"' "`"version`": `"$newVersion`""
 
         # Update web/package.json
-        if (Test-Path $webPkg) {
-            (Get-Content $webPkg -Raw) -replace '"version":\s*"[0-9.]+"', "`"version`": `"$newVersion`"" | Set-Content $webPkg -NoNewline
-        }
+        Replace-InFileUtf8 $webPkg '"version":\s*"[0-9.]+"' "`"version`": `"$newVersion`""
 
         # Update webshare/package.json
-        $webSharePkg = "$PSScriptRoot\webshare\package.json"
-        if (Test-Path $webSharePkg) {
-            (Get-Content $webSharePkg -Raw) -replace '"version":\s*"[0-9.]+"', "`"version`": `"$newVersion`"" | Set-Content $webSharePkg -NoNewline
-        }
+        Replace-InFileUtf8 "$PSScriptRoot\webshare\package.json" '"version":\s*"[0-9.]+"' "`"version`": `"$newVersion`""
 
         # Update android/pubspec.yaml
-        if (Test-Path $pubspec) {
-            (Get-Content $pubspec -Raw) -replace 'version:\s*[0-9.+]+', "version: $newVersion+$newVersionCode" | Set-Content $pubspec -NoNewline
-        }
+        Replace-InFileUtf8 $pubspec 'version:\s*[0-9.+]+' "version: $newVersion+$newVersionCode"
 
         # Update android/lib/main.dart
-        if (Test-Path $mainDart) {
-            (Get-Content $mainDart -Raw) -replace "const String appVersion = '[0-9.]+';", "const String appVersion = '$newVersion';" | Set-Content $mainDart -NoNewline
-        }
+        Replace-InFileUtf8 $mainDart "const String appVersion = '[0-9.]+';" "const String appVersion = '$newVersion';"
 
         # Update android/lib/viewmodels/sync_viewmodel.dart
-        $syncVmDart = "$PSScriptRoot\android\lib\viewmodels\sync_viewmodel.dart"
-        if (Test-Path $syncVmDart) {
-            (Get-Content $syncVmDart -Raw) -replace "static const String appVersion = '[0-9.]+';", "static const String appVersion = '$newVersion';" | Set-Content $syncVmDart -NoNewline
-        }
+        Replace-InFileUtf8 "$PSScriptRoot\android\lib\viewmodels\sync_viewmodel.dart" "static const String appVersion = '[0-9.]+';" "static const String appVersion = '$newVersion';"
 
         # Update cp_clip/index.html
-        $indexHtml = "$PSScriptRoot\cp_clip\index.html"
-        if (Test-Path $indexHtml) {
-            (Get-Content $indexHtml -Raw) -replace "v[0-9.]+\s*&bull;\s*Initializing", "v$newVersion &bull; Initializing" | Set-Content $indexHtml -NoNewline
-        }
+        Replace-InFileUtf8 "$PSScriptRoot\cp_clip\index.html" "v[0-9.]+\s*&bull;\s*Initializing" "v$newVersion &bull; Initializing"
 
         # Update manifests/scoop/shareclip.json
-        $scoopJson = "$PSScriptRoot\manifests\scoop\shareclip.json"
-        if (Test-Path $scoopJson) {
-            $scContent = (Get-Content $scoopJson -Raw) -replace '"version":\s*"[0-9.]+"', "`"version`": `"$newVersion`""
-            $scContent = $scContent -replace '/v[0-9.]+/ShareCLIP-Setup-[0-9.]+\.exe', "/v$newVersion/ShareCLIP-Setup-$newVersion.exe"
-            $scContent | Set-Content $scoopJson -NoNewline
-        }
+        Replace-InFileUtf8 "$PSScriptRoot\manifests\scoop\shareclip.json" '"version":\s*"[0-9.]+"' "`"version`": `"$newVersion`""
+        Replace-InFileUtf8 "$PSScriptRoot\manifests\scoop\shareclip.json" '/v[0-9.]+/ShareCLIP-Setup-[0-9.]+\.exe' "/v$newVersion/ShareCLIP-Setup-$newVersion.exe"
     }
 } else {
     Write-Host "ℹ️ [Version] Version bump skipped (-NoBump passed)." -ForegroundColor Yellow

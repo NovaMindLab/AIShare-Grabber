@@ -234,14 +234,14 @@ class SyncViewModel extends ChangeNotifier {
         httpPort: payload.httpPort,
       );
 
-      logMessage("�?扫描到电�?IP (${validIps.join(', ')}，HTTP 端口: ${payload.httpPort})，启动极速局域网直连信令...");
+      logMessage("⚡ 扫描到电脑 IP (${validIps.join(', ')}，HTTP 端口: ${payload.httpPort})，启动极速局域网直连信令...");
       appState = AppState.connectingWebRtc;
       notifyListeners();
       _initializeWebRtc(isUdpFallback: true);
       
       Timer(const Duration(seconds: 10), () {
         if (appState != AppState.connected && appState != AppState.failed) {
-          logMessage("局域网直连超时 (10s)。正在尝试回退至蓝牙信�?..");
+          logMessage("局域网直连超时 (10s)。正在尝试回退至蓝牙信令...");
           cleanup();
           appState = AppState.connectingBle;
           notifyListeners();
@@ -266,7 +266,7 @@ class SyncViewModel extends ChangeNotifier {
     }
 
     if (payload.bleMac.isEmpty && payload.hotspotSsid != null) {
-      logMessage("二维码指示无蓝牙支持，正在自动连接电脑热�?..");
+      logMessage("二维码指示无蓝牙支持，正在自动连接电脑热点...");
       _triggerHotspotFallback(payload);
       return;
     }
@@ -328,7 +328,7 @@ class SyncViewModel extends ChangeNotifier {
 
   Future<void> _triggerHotspotFallback(QrPayload payload) async {
     if (payload.hotspotSsid == null || payload.hotspotSsid!.isEmpty) {
-      errorMsg = "无可用电脑热点信�?;
+      errorMsg = "无可用电脑热点信息";
       appState = AppState.failed;
       notifyListeners();
       return;
@@ -349,7 +349,7 @@ class SyncViewModel extends ChangeNotifier {
 
       // 1. Try native silent connection (never launches Settings intent or exits app)
       for (int i = 0; i < 3; i++) {
-        logMessage("自动无感连入热点 ${payload.hotspotSsid} (�?${i + 1} 次尝�?...");
+        logMessage("自动无感连入热点 ${payload.hotspotSsid} (第 ${i + 1} 次尝试)...");
         try {
           final bool? res = await platform.invokeMethod<bool>('connectWifiSilent', {
             'ssid': payload.hotspotSsid,
@@ -378,7 +378,7 @@ class SyncViewModel extends ChangeNotifier {
       }
 
       if (connected) {
-        logMessage("🎉 热点自动连接成功！绑定网络流量接�?..");
+        logMessage("🎉 热点自动连接成功！绑定网络流量接口...");
         try {
           await WiFiForIoTPlugin.forceWifiUsage(true);
         } catch (_) {}
@@ -386,7 +386,7 @@ class SyncViewModel extends ChangeNotifier {
         logMessage("启动热点 UDP 直连信令...");
         _initializeWebRtc(isUdpFallback: true);
       } else {
-        logMessage("⚠️ 自动连接热点超时，请检查热点或手动连接�?);
+        logMessage("⚠️ 自动连接热点超时，请检查热点或手动连接。");
         errorMsg = "自动连接电脑热点 (${payload.hotspotSsid}) 失败，请检查热点密码或尝试手动连接 Wi-Fi";
         appState = AppState.failed;
         notifyListeners();
@@ -641,7 +641,7 @@ class SyncViewModel extends ChangeNotifier {
 
   void _initializeWebRtc({bool isUdpFallback = false}) async {
     if (isUdpFallback) {
-      logMessage("�?局域网直连信令启动，正在初始化本地 WebRTC...");
+      logMessage("⚡ 局域网直连信令启动，正在初始化本地 WebRTC...");
     } else {
       logMessage("GATT signaling connected. Starting local WebRTC...");
     }
@@ -689,7 +689,7 @@ class SyncViewModel extends ChangeNotifier {
           // CRITICAL FAILSAFE: If we received ANY packet from PC over the WebRTC DataChannel,
           // it is absolute proof that the DataChannel is fully open and PC is active.
           if (appState != AppState.connected) {
-            logMessage("�?收到来自 PC 的数据包 (fileId: $fileId)，确认双向通道畅通！");
+            logMessage("⚡ 收到来自 PC 的数据包 (fileId: $fileId)，确认双向通道畅通！");
             _handshakeAckTimer?.cancel();
             _handshakeAckTimer = null;
             _handshakeRetryTimer?.cancel();
@@ -770,7 +770,7 @@ class SyncViewModel extends ChangeNotifier {
                 }
 
                 lastAlbumSyncDate = data['last_album_sync_date'] ?? '';
-                logMessage("收到 PC 端握手确认！双向 WebRTC 通道已验证，进入传输控制台�?);
+                logMessage("收到 PC 端握手确认！双向 WebRTC 通道已验证，进入传输控制台。");
                 
                 // Only enter connected screen when PC explicitly confirmed the handshake!
                 appState = AppState.connected;
@@ -834,7 +834,7 @@ class SyncViewModel extends ChangeNotifier {
                   final Map<String, dynamic> data = jsonDecode(payloadStr);
                   await aiService.importSyncPayload(data);
                   isAiVectorSyncing = false;
-                  logMessage("🎉 成功同步 PC AI 矢量数据: ${aiService.categoryCount} 个分�? ${aiService.syncedPhotoCount} 张照片特征向�?");
+                  logMessage("🎉 成功同步 PC AI 矢量数据: ${aiService.categoryCount} 个分类, ${aiService.syncedPhotoCount} 张照片特征向量!");
                   notifyListeners();
                 } catch (e) {
                   logMessage("Error parsing chunked AI vector sync payload: $e");
@@ -854,7 +854,7 @@ class SyncViewModel extends ChangeNotifier {
               final Map<String, dynamic> data = jsonDecode(payloadStr);
               await aiService.importSyncPayload(data);
               isAiVectorSyncing = false;
-              logMessage("🎉 成功同步 PC AI 矢量数据: ${aiService.categoryCount} 个分�? ${aiService.syncedPhotoCount} 张照片特征向�?");
+              logMessage("🎉 成功同步 PC AI 矢量数据: ${aiService.categoryCount} 个分类, ${aiService.syncedPhotoCount} 张照片特征向量!");
               notifyListeners();
             } catch (e) {
               logMessage("Error parsing AI vector sync payload: $e");
@@ -889,7 +889,7 @@ class SyncViewModel extends ChangeNotifier {
 
             // Store the last album sync date for breakpoint resume
             lastAlbumSyncDate = data['last_album_sync_date'] ?? '';
-            logMessage("收到 PC 端握手确认！双向 WebRTC 通道已验证，进入传输控制台。PC 已有 ${pcSyncedIds.length} 个文件，${pcSyncedThumbnailIds.length} 个缩略图�?);
+            logMessage("收到 PC 端握手确认！双向 WebRTC 通道已验证，进入传输控制台。PC 已有 ${pcSyncedIds.length} 个文件，${pcSyncedThumbnailIds.length} 个缩略图。");
             
             // Critical fix: Transition to connected state, keep screen on and start heartbeat!
             appState = AppState.connected;
@@ -976,17 +976,17 @@ class SyncViewModel extends ChangeNotifier {
             final List<String> assetIdsToDelete = rawIds.map((e) => e.toString()).toList();
 
             if (assetIdsToDelete.isNotEmpty) {
-              logMessage("🗑�?收到电脑端同步删�?${assetIdsToDelete.length} 张照片请�?..");
+              logMessage("🗑️ 收到电脑端同步删除 ${assetIdsToDelete.length} 张照片请求...");
               try {
                 final List<String> deletedResult = await PhotoManager.editor.deleteWithIds(assetIdsToDelete);
-                logMessage("🗑�?手机相册已成功删�?${deletedResult.length} 张照片�?);
+                logMessage("🗑️ 手机相册已成功删除 ${deletedResult.length} 张照片。");
                 // Remove from in-memory lists
                 localImages.removeWhere((img) => deletedResult.contains(img.id));
                 pcSyncedIds.removeWhere((id) => deletedResult.contains(id));
                 pcSyncedThumbnailIds.removeWhere((id) => deletedResult.contains(id));
                 notifyListeners();
               } catch (e) {
-                logMessage("�?手机端删除照片发生异�? $e");
+                logMessage("❌ 手机端删除照片发生异常: $e");
               }
             }
             return;
@@ -1000,7 +1000,7 @@ class SyncViewModel extends ChangeNotifier {
             final String? targetAssetId = data['asset_id']?.toString();
 
             if (targetAssetId != null && targetAssetId.isNotEmpty && _photoStreamer != null) {
-              logMessage("📥 PC 端请求查看超清原�? $targetAssetId");
+              logMessage("📥 PC 端请求查看超清原图: $targetAssetId");
               Future.microtask(() async {
                 try {
                   AssetEntity? targetEntity;
@@ -1019,13 +1019,13 @@ class SyncViewModel extends ChangeNotifier {
                       onProgress: (chunkIndex, totalChunks, bytesSent) {},
                     );
                     if (success) {
-                      logMessage("�?超清原图已直传至电脑�? ${targetEntity.title}");
+                      logMessage("✅ 超清原图已直传至电脑端: ${targetEntity.title}");
                     }
                   } else {
-                    logMessage("⚠️ 未在手机相册中找到照�?ID: $targetAssetId");
+                    logMessage("⚠️ 未在手机相册中找到照片 ID: $targetAssetId");
                   }
                 } catch (e) {
-                  logMessage("�?直传超清原图异常: $e");
+                  logMessage("❌ 直传超清原图异常: $e");
                 }
               });
             }
@@ -1107,7 +1107,7 @@ class SyncViewModel extends ChangeNotifier {
                   respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
                   respPacket.setRange(16, respPacket.length, respBytes);
                   await _syncEngine?.sendBinary(respPacket);
-                  logMessage("�?Sent empty video catalog to PC.");
+                  logMessage("✅ Sent empty video catalog to PC.");
                   return;
                 }
 
@@ -1191,9 +1191,9 @@ class SyncViewModel extends ChangeNotifier {
 
                   await Future.delayed(const Duration(milliseconds: 20));
                 }
-                logMessage("�?Sent video catalog with ${localVideos.length} videos ($totalChunks chunks) to PC.");
+                logMessage("✅ Sent video catalog with ${localVideos.length} videos ($totalChunks chunks) to PC.");
               } catch (e) {
-                logMessage("�?Error scanning/sending video catalog: $e");
+                logMessage("❌ Error scanning/sending video catalog: $e");
               }
             });
             return;
@@ -1318,7 +1318,7 @@ class SyncViewModel extends ChangeNotifier {
                   respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
                   respPacket.setRange(16, respPacket.length, respBytes);
                   await _syncEngine?.sendBinary(respPacket);
-                  logMessage("�?Sent empty audio catalog to PC.");
+                  logMessage("✅ Sent empty audio catalog to PC.");
                   return;
                 }
 
@@ -1351,9 +1351,9 @@ class SyncViewModel extends ChangeNotifier {
                     await Future.delayed(const Duration(milliseconds: 15));
                   }
                 }
-                logMessage("�?Sent audio catalog with ${catalog.length} tracks ($totalChunks chunks) to PC.");
+                logMessage("✅ Sent audio catalog with ${catalog.length} tracks ($totalChunks chunks) to PC.");
               } catch (e) {
-                logMessage("�?Error scanning/sending audio catalog: $e");
+                logMessage("❌ Error scanning/sending audio catalog: $e");
               }
             });
             return;
@@ -1432,10 +1432,10 @@ class SyncViewModel extends ChangeNotifier {
                 logMessage("🎉 Successfully saved ${isVideo ? 'video' : 'image'} from PC to gallery: ${entity.title}");
                 _loadLocalGallery();
               } else {
-                logMessage("�?Failed to save file: Editor returned null");
+                logMessage("❌ Failed to save file: Editor returned null");
               }
             } catch (e) {
-              logMessage("�?Failed to save file: $e");
+              logMessage("❌ Failed to save file: $e");
             }
           }
         } catch (e) {
@@ -1485,7 +1485,7 @@ class SyncViewModel extends ChangeNotifier {
          bool httpSuccess = false;
          if (pcIps != null && pcIps.isNotEmpty) {
            final httpPort = _lastScannedPayload!.httpPort;
-           logMessage("�?[局域网直连] 优先发起极�?HTTP 信令握手 (${pcIps.join(', ')}:$httpPort)...");
+           logMessage("⚡ [局域网直连] 优先发起极速 HTTP 信令握手 (${pcIps.join(', ')}:$httpPort)...");
            appState = AppState.waitingForAnswer;
            notifyListeners();
 
@@ -1498,7 +1498,7 @@ class SyncViewModel extends ChangeNotifier {
 
              if (httpResult != null && httpResult['sdp'] != null && appState != AppState.connected) {
                httpSuccess = true;
-               logMessage("🎉 [局域网直连] 极�?HTTP 信令握手成功！耗时 < 100ms");
+               logMessage("🎉 [局域网直连] 极速 HTTP 信令握手成功！耗时 < 100ms");
                _handleRemoteAnswer(httpResult['sdp'].toString());
                if (httpResult['candidates'] is List) {
                  for (final c in httpResult['candidates']) {
@@ -1521,7 +1521,7 @@ class SyncViewModel extends ChangeNotifier {
                    } catch (_) {}
                  }
                }
-               return; // 局域网极速直连成功！无需启动后续耗时�?UDP 广播与分片传输！
+               return; // 局域网极速直连成功！无需启动后续耗时的 UDP 广播与分片传输！
              }
            } catch (e) {
              logMessage("⚠️ HTTP 信令异常: $e");
@@ -1635,7 +1635,7 @@ class SyncViewModel extends ChangeNotifier {
         _handshakeRetryTimer = null;
         return;
       }
-      logMessage("正在补发身份握手�?(�?$_handshakeRetryCount �?...");
+      logMessage("正在补发身份握手包 (第 $_handshakeRetryCount 次)...");
       _sendHandshake();
     });
   }
@@ -1644,7 +1644,7 @@ class SyncViewModel extends ChangeNotifier {
     _handshakeAckTimer?.cancel();
     _handshakeAckTimer = Timer(const Duration(seconds: 15), () {
       if (appState != AppState.connected) {
-        logMessage("⚠️ 握手确认超时 (15s)：PC 未能响应握手确认包�?);
+        logMessage("⚠️ 握手确认超时 (15s)：PC 未能响应握手确认包。");
         _handshakeRetryTimer?.cancel();
         _handshakeRetryTimer = null;
         cleanup();
@@ -1660,14 +1660,14 @@ class SyncViewModel extends ChangeNotifier {
     logMessage("WebRTC DataChannel state: $state");
 
     if (state == RTCDataChannelState.RTCDataChannelOpen) {
-      logMessage("WebRTC DataChannel 已开启，正在�?PC 发送身份握手，等待确认...");
+      logMessage("WebRTC DataChannel 已开启，正在向 PC 发送身份握手，等待确认...");
       _photoStreamer = PhotoStreamer(syncEngine: _syncEngine!);
       _loadLocalGallery();
       _startHandshakeRetries();
       _startHandshakeAckTimer();
     } else if (state == RTCDataChannelState.RTCDataChannelClosed) {
       if (appState == AppState.connected) {
-        logMessage("WebRTC DataChannel 已断开�?);
+        logMessage("WebRTC DataChannel 已断开。");
         cleanup();
         appState = AppState.failed;
         notifyListeners();
@@ -1686,10 +1686,10 @@ class SyncViewModel extends ChangeNotifier {
 
       final diff = DateTime.now().difference(_lastHeartbeatReceived);
       if (diff.inSeconds > 15) {
-        logMessage("⚠️ 心跳超时 (15s 未收�?PC 响应)，断开连接");
+        logMessage("⚠️ 心跳超时 (15s 未收到 PC 响应)，断开连接");
         cleanup();
         appState = AppState.failed;
-        errorMsg = "与电脑连接中�?(心跳超时)";
+        errorMsg = "与电脑连接中断 (心跳超时)";
         notifyListeners();
         return;
       }
@@ -1954,7 +1954,7 @@ class SyncViewModel extends ChangeNotifier {
     try {
       final PermissionState ps = await PhotoManager.requestPermissionExtend();
       if (!ps.isAuth) {
-        logMessage("�?无法同步缩略图：无媒体读取权�?);
+        logMessage("❌ 无法同步缩略图：无媒体读取权限");
         final doneHeader = ByteData(16);
         doneHeader.setInt32(0, -6, Endian.big);
         doneHeader.setInt32(4, 0, Endian.big);
@@ -1965,14 +1965,14 @@ class SyncViewModel extends ChangeNotifier {
       }
 
       if (localImages.isEmpty) {
-        logMessage("🧠 AI 缩略图同�? 本地相册尚未加载完成，正在读�?..");
+        logMessage("🧠 AI 缩略图同步: 本地相册尚未加载完成，正在读取...");
         final streamer = PhotoStreamer.standalone();
         localImages = await streamer.loadLocalImages();
       }
 
       final list = targets ?? localImages.where((e) => e.type == AssetType.image).toList();
       if (list.isEmpty) {
-        logMessage("ℹ️ 相册中暂无可同步的图�?);
+        logMessage("ℹ️ 相册中暂无可同步的图片");
         final doneHeader = ByteData(16);
         doneHeader.setInt32(0, -6, Endian.big);
         doneHeader.setInt32(4, 0, Endian.big);
@@ -2039,12 +2039,12 @@ class SyncViewModel extends ChangeNotifier {
 
         thumbnailSyncDone++;
         if (!success) {
-          logMessage("⏭️ 跳过无法读取的图�? ${entity.title ?? entity.id}");
+          logMessage("⏭️ 跳过无法读取的图片: ${entity.title ?? entity.id}");
         }
         notifyListeners();
       }
     } catch (e) {
-      logMessage("�?缩略图同步发生异�? $e");
+      logMessage("❌ 缩略图同步发生异常: $e");
     } finally {
       // Send completion signal to PC: fileId=-6, totalCount=-1 means "sync all done"
       try {
@@ -2087,7 +2087,7 @@ class SyncViewModel extends ChangeNotifier {
     try {
       final PermissionState ps = await PhotoManager.requestPermissionExtend();
       if (!ps.isAuth) {
-        logMessage("�?Album sync failed: no media permission");
+        logMessage("❌ Album sync failed: no media permission");
         isAlbumSyncing = false;
         notifyListeners();
         return;
@@ -2131,7 +2131,7 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
 
       if (toSync.isEmpty) {
-        logMessage("�?Album sync complete: all photos already synced.");
+        logMessage("✅ Album sync complete: all photos already synced.");
         // Notify PC that sync is done
         final doneHeader = ByteData(16);
         doneHeader.setInt32(0, -8, Endian.big);
@@ -2206,7 +2206,7 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
 
       if (isAlbumSyncing) {
-        logMessage("�?Album sync finished: $albumSyncDone/${albumSyncTotal} photos sent.");
+        logMessage("✅ Album sync finished: $albumSyncDone/${albumSyncTotal} photos sent.");
         // Notify PC that sync is done
         final doneHeader = ByteData(16);
         doneHeader.setInt32(0, -8, Endian.big);
@@ -2216,7 +2216,7 @@ class SyncViewModel extends ChangeNotifier {
         await _syncEngine?.sendBinary(doneHeader.buffer.asUint8List());
       }
     } catch (e, stack) {
-      logMessage("�?Album sync error: $e");
+      logMessage("❌ Album sync error: $e");
       debugPrint("[AlbumSync] Error: $e\n$stack");
     } finally {
       isAlbumSyncing = false;
@@ -2290,7 +2290,7 @@ class SyncViewModel extends ChangeNotifier {
     try {
       final PermissionState ps = await PhotoManager.requestPermissionExtend();
       if (!ps.isAuth) {
-        logMessage("�?Video sync failed: no media permission");
+        logMessage("❌ Video sync failed: no media permission");
         isVideoSyncing = false;
         notifyListeners();
         return;
@@ -2371,7 +2371,7 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
 
       if (toSync.isEmpty) {
-        logMessage("�?Video sync complete: no matching or pending videos.");
+        logMessage("✅ Video sync complete: no matching or pending videos.");
         final doneHeader = ByteData(16);
         doneHeader.setInt32(0, -16, Endian.big);
         doneHeader.setInt32(4, 0, Endian.big);
@@ -2436,7 +2436,7 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
 
       if (isVideoSyncing) {
-        logMessage("�?Video sync finished: $videoSyncDone/${videoSyncTotal} videos sent.");
+        logMessage("✅ Video sync finished: $videoSyncDone/${videoSyncTotal} videos sent.");
         final finishHeader = ByteData(16);
         finishHeader.setInt32(0, -16, Endian.big);
         finishHeader.setInt32(4, videoSyncDone, Endian.big);
@@ -2445,7 +2445,7 @@ class SyncViewModel extends ChangeNotifier {
         await _syncEngine?.sendBinary(finishHeader.buffer.asUint8List());
       }
     } catch (e, stack) {
-      logMessage("�?Video sync error: $e");
+      logMessage("❌ Video sync error: $e");
       debugPrint("[VideoSync] Error: $e\n$stack");
     } finally {
       isVideoSyncing = false;
@@ -2516,7 +2516,7 @@ class SyncViewModel extends ChangeNotifier {
     try {
       final PermissionState ps = await PhotoManager.requestPermissionExtend();
       if (!ps.isAuth) {
-        logMessage("�?Audio sync failed: no media permission");
+        logMessage("❌ Audio sync failed: no media permission");
         isAudioSyncing = false;
         notifyListeners();
         return;
@@ -2597,7 +2597,7 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
 
       if (toSync.isEmpty) {
-        logMessage("�?Audio sync complete: no matching or pending audios.");
+        logMessage("✅ Audio sync complete: no matching or pending audios.");
         final doneHeader = ByteData(16);
         doneHeader.setInt32(0, -22, Endian.big);
         doneHeader.setInt32(4, 0, Endian.big);
@@ -2671,7 +2671,7 @@ class SyncViewModel extends ChangeNotifier {
       notifyListeners();
 
       if (isAudioSyncing) {
-        logMessage("�?Audio sync finished: $audioSyncDone/${audioSyncTotal} tracks sent.");
+        logMessage("✅ Audio sync finished: $audioSyncDone/${audioSyncTotal} tracks sent.");
         final finishHeader = ByteData(16);
         finishHeader.setInt32(0, -22, Endian.big);
         finishHeader.setInt32(4, audioSyncDone, Endian.big);
@@ -2680,7 +2680,7 @@ class SyncViewModel extends ChangeNotifier {
         await _syncEngine?.sendBinary(finishHeader.buffer.asUint8List());
       }
     } catch (e, stack) {
-      logMessage("�?Audio sync error: $e");
+      logMessage("❌ Audio sync error: $e");
       debugPrint("[AudioSync] Error: $e\n$stack");
     } finally {
       isAudioSyncing = false;
@@ -2853,14 +2853,14 @@ class SyncViewModel extends ChangeNotifier {
   /// Request on-demand AI vector and classification sync from PC (packet -29)
   Future<void> syncAiVectorsFromPc() async {
     if (appState != AppState.connected || _syncEngine == null) {
-      logMessage("未连接到电脑，无法同�?AI 矢量数据");
+      logMessage("未连接到电脑，无法同步 AI 矢量数据");
       return;
     }
 
     try {
       isAiVectorSyncing = true;
       notifyListeners();
-      logMessage("正在�?PC 发�?AI 矢量数据同步请求 (-29)...");
+      logMessage("正在向 PC 发送 AI 矢量数据同步请求 (-29)...");
 
       final header = ByteData(16);
       header.setInt32(0, -29, Endian.big);
