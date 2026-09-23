@@ -1,17 +1,7 @@
 ; ==============================================================================
 ; ShareCLIP NSIS Custom Installer Script
 ; Fixes: "Failed to uninstall old application files. Please try running the installer again.: 2"
-; Supports: Passive update mode (shows progress bar, zero clicks, auto-restart)
 ; ==============================================================================
-
-; ------------------------------------------------------------------------------
-; 0. Additional command line flags (without overriding native isUpdated)
-; ------------------------------------------------------------------------------
-!macro _isPassive _a _b _t _f
-  ${StdUtils.TestParameter} $R9 "passive"
-  StrCmp "$R9" "true" `${_t}` `${_f}`
-!macroend
-!define isPassive `"" isPassive ""`
 
 ; ------------------------------------------------------------------------------
 ; 1. Process termination before installation starts
@@ -57,68 +47,4 @@
 
 !macro customUnInstallCheckCurrentUser
   DetailPrint "Previous uninstaller finished with code $R0. Proceeding with installation..."
-!macroend
-
-; ------------------------------------------------------------------------------
-; 2. Skip User Mode Selection page when updating or running in passive mode
-; ------------------------------------------------------------------------------
-!macro customInstallMode
-  ${if} ${isUpdated}
-  ${OrIf} ${isPassive}
-    ${if} $hasPerMachineInstallation == "1"
-      StrCpy $hasPerMachineInstallation "1"
-      StrCpy $hasPerUserInstallation "0"
-      ${ifNot} ${UAC_IsAdmin}
-        ShowWindow $HWNDPARENT 0
-        !insertmacro UAC_RunElevated
-        Quit
-      ${endIf}
-      !insertmacro setInstallModePerAllUsers
-      Abort
-    ${else}
-      StrCpy $hasPerMachineInstallation "0"
-      StrCpy $hasPerUserInstallation "1"
-      !insertmacro setInstallModePerUser
-      Abort
-    ${endif}
-  ${endif}
-!macroend
-
-; ------------------------------------------------------------------------------
-; 3. Auto-close Finish page and auto-launch application when updating
-; ------------------------------------------------------------------------------
-!macro customFinishPage
-  Function customFinishPagePre
-    ${if} ${isUpdated}
-    ${OrIf} ${isPassive}
-      ; On update/passive mode, launch new version immediately and exit installer without showing finish page
-      ${if} $launchLink != ""
-      ${andIf} ${FileExists} "$launchLink"
-        ${StdUtils.ExecShellAsUser} $0 "$launchLink" "open" "--updated"
-      ${else}
-        ${StdUtils.ExecShellAsUser} $0 "$INSTDIR\${APP_EXECUTABLE_FILENAME}" "open" "--updated"
-      ${endif}
-      Quit
-    ${endif}
-  FunctionEnd
-
-  Function customFinishPageRunApp
-    ${if} ${isUpdated}
-    ${OrIf} ${isPassive}
-      StrCpy $1 "--updated"
-    ${else}
-      StrCpy $1 ""
-    ${endif}
-    ${if} $launchLink != ""
-    ${andIf} ${FileExists} "$launchLink"
-      ${StdUtils.ExecShellAsUser} $0 "$launchLink" "open" "$1"
-    ${else}
-      ${StdUtils.ExecShellAsUser} $0 "$INSTDIR\${APP_EXECUTABLE_FILENAME}" "open" "$1"
-    ${endif}
-  FunctionEnd
-
-  !define MUI_PAGE_CUSTOMFUNCTION_PRE customFinishPagePre
-  !define MUI_FINISHPAGE_RUN
-  !define MUI_FINISHPAGE_RUN_FUNCTION "customFinishPageRunApp"
-  !insertmacro MUI_PAGE_FINISH
 !macroend

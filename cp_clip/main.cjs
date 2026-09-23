@@ -3755,12 +3755,10 @@ ipcMain.handle('install-update', async (event, filePath) => {
         } catch (_) {}
       }
 
-      const isPerMachine = process.execPath.toLowerCase().includes('program files') || process.execPath.toLowerCase().includes('programdata');
-      const installModeFlag = isPerMachine ? '--allusers' : '--currentuser';
-      const spawnArgs = ['--updated', '/passive', '--force-run', installModeFlag];
+      const spawnArgs = ['--updated', '--force-run'];
 
       if (targetInstaller && fs.existsSync(targetInstaller)) {
-        console.log('[Update Install] Spawning NSIS installer directly with zero-click flags:', targetInstaller, spawnArgs);
+        console.log('[Update Install] Spawning NSIS installer with standard progress window:', targetInstaller, spawnArgs);
         prepareForUpdateExit();
         setTimeout(() => {
           const { spawn } = require('child_process');
@@ -3771,7 +3769,7 @@ ipcMain.handle('install-update', async (event, filePath) => {
           child.unref();
           setTimeout(() => {
             app.exit(0);
-          }, 300);
+          }, 500);
         }, 300);
         return { success: true };
       }

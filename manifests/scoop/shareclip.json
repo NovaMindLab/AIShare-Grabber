@@ -1,11 +1,11 @@
 {
-  "version": "4.5.4",
+  "version": "4.5.5",
   "description": "Cross-platform photo & clipboard sync tool",
   "homepage": "https://github.com/NovaMindLab/AIShare-Grabber",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.4/ShareCLIP-Setup-4.5.4.exe#/dl.7z"
+      "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.5/ShareCLIP-Setup-4.5.5.exe#/dl.7z"
     }
   },
   "shortcuts": [
