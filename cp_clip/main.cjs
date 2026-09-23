@@ -54,6 +54,34 @@ if (process.platform === 'win32') {
 
 const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, session, powerSaveBlocker } = require('electron');
 
+// 🔒 Enforce Single Instance Application
+// Prevent multiple ShareCLIP windows or duplicate background processes from running simultaneously.
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.shareclip.album.sync');
+}
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  console.log('[App] Another instance of ShareCLIP is already running. Exiting duplicate instance immediately.');
+  app.quit();
+  return;
+}
+
+app.on('second-instance', (event, commandLine, workingDirectory) => {
+  console.log('[App] Second instance launch attempt detected. Restoring and focusing primary window.');
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    if (!mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+    mainWindow.setAlwaysOnTop(true);
+    mainWindow.focus();
+    mainWindow.setAlwaysOnTop(false);
+  }
+});
+
 // Resilient native SQLite3 loader with multi-architecture fallback
 function loadSqlite3() {
   try {
@@ -738,6 +766,17 @@ async function extractImageGPS(imagePath) {
 }
 
 function createWindow() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    if (!mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+    mainWindow.focus();
+    return;
+  }
+
   mainWindow = new BrowserWindow({
     width: 1080,
     height: 700,
@@ -3219,15 +3258,43 @@ ipcMain.handle('get-system-info', async () => {
     const intraThreads = typeof taskManager !== 'undefined' ? (taskManager.intraThreadsPerWorker || 0) : 0;
 
     // DLL / redist paths (Windows only)
-    const redistDir = path.join(__dirname, 'resources', 'redist_x64');
-    const redistExists = process.platform === 'win32' ? fs.existsSync(redistDir) : null;
-
-    // onnxruntime-node DLL presence check (Windows)
+    let redistExists = null;
     let ortDllFound = null;
     if (process.platform === 'win32') {
+      const isAsar = __dirname.includes('app.asar');
+      const resDir = isAsar
+        ? path.resolve(__dirname.substring(0, __dirname.indexOf('app.asar')))
+        : (process.resourcesPath || path.join(__dirname, 'resources'));
+      const appRoot = isAsar ? path.resolve(resDir, '..') : __dirname;
+      const execDir = path.dirname(process.execPath || '');
+      const sysRoot = process.env.SystemRoot || 'C:\\Windows';
+      const system32Dir = path.join(sysRoot, 'System32');
+
+      const redistCandidates = [
+        // 1. Packaged next to ShareCLIP.exe (via electron-builder extraFiles)
+        path.join(execDir, 'vcruntime140.dll'),
+        path.join(appRoot, 'vcruntime140.dll'),
+        path.join(execDir, 'msvcp140.dll'),
+        path.join(appRoot, 'msvcp140.dll'),
+        // 2. Windows System32 (system-wide installed Visual C++ Redistributable)
+        path.join(system32Dir, 'vcruntime140.dll'),
+        path.join(system32Dir, 'msvcp140.dll'),
+        // 3. Bundled redist directories (dev or unpacked)
+        path.join(__dirname, 'resources', 'redist_x64'),
+        path.join(resDir, 'redist_x64'),
+        path.join(appRoot, 'resources', 'redist_x64'),
+        // 4. Copied inside unpacked node_modules binaries
+        path.join(resDir, 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', arch, 'vcruntime140.dll'),
+        path.join(__dirname, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', arch, 'vcruntime140.dll'),
+        path.join(__dirname, 'node_modules', 'sqlite3', 'build', 'Release', 'vcruntime140.dll')
+      ];
+
+      redistExists = redistCandidates.some(c => fs.existsSync(c));
+
+      // onnxruntime-node DLL presence check (Windows)
       const ortBinDir = path.join(__dirname, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', arch);
       const ortUnpackedBinDir = path.join(
-        process.resourcesPath || __dirname,
+        resDir,
         'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'win32', arch
       );
       ortDllFound = fs.existsSync(ortBinDir) || fs.existsSync(ortUnpackedBinDir);

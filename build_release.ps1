@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   ShareCLIP Release Packaging Helper with Safe Mixpanel Token Injection
 .DESCRIPTION
@@ -86,6 +86,20 @@ if (-not $NoBump) {
         if (Test-Path $syncVmDart) {
             (Get-Content $syncVmDart -Raw) -replace "static const String appVersion = '[0-9.]+';", "static const String appVersion = '$newVersion';" | Set-Content $syncVmDart -NoNewline
         }
+
+        # Update cp_clip/index.html
+        $indexHtml = "$PSScriptRoot\cp_clip\index.html"
+        if (Test-Path $indexHtml) {
+            (Get-Content $indexHtml -Raw) -replace "v[0-9.]+\s*&bull;\s*Initializing", "v$newVersion &bull; Initializing" | Set-Content $indexHtml -NoNewline
+        }
+
+        # Update manifests/scoop/shareclip.json
+        $scoopJson = "$PSScriptRoot\manifests\scoop\shareclip.json"
+        if (Test-Path $scoopJson) {
+            $scContent = (Get-Content $scoopJson -Raw) -replace '"version":\s*"[0-9.]+"', "`"version`": `"$newVersion`""
+            $scContent = $scContent -replace '/v[0-9.]+/ShareCLIP-Setup-[0-9.]+\.exe', "/v$newVersion/ShareCLIP-Setup-$newVersion.exe"
+            $scContent | Set-Content $scoopJson -NoNewline
+        }
     }
 } else {
     Write-Host "ℹ️ [Version] Version bump skipped (-NoBump passed)." -ForegroundColor Yellow
@@ -163,7 +177,7 @@ if ($Publish) {
     if (Get-Command git -ErrorAction SilentlyContinue) {
         Write-Host "Committing release updates to Git..." -ForegroundColor Yellow
         git add .
-        git commit -m "chore: bump version to $newVersion & release"
+        git commit -m "fix: enforce single instance lock, fix runtime check, and update mac logo (v$newVersion)"
         Write-Host "Pushing updates to origin (master) and github (main)..." -ForegroundColor Yellow
         git push origin master
         git push github master:main
@@ -205,19 +219,22 @@ if ($Publish) {
         }
     }
 
-    $releaseNotes = "### ShareCLIP $tag Release`n`n- 🛡️ **4GB RAM Low-End PC AI Inference Hardening**: Multi-layer ONNX provider fallback (CPU AVX2 -> DirectML GPU -> Safe Single-thread CPU) ensures 100% startup and computation success on low-end chips lacking AVX2 (such as Celeron N4020/N4120/Pentium Silver).`n- 🚀 **On-Demand Lazy Model Loading**: Defer SCRFD face detection, MobileFaceNet, and Text Encoder model loading until explicitly invoked, freeing >140MB RAM during image classification and boot on memory-constrained systems.`n- ⚡ **WorkerPool Hang Prevention**: Immediately reject pending tasks and active callbacks upon worker exit or initialization failure, eliminating UI freezing and indefinite hangs.`n- 🎯 **Fine-Grained Hardware Tiering**: Refined Low Tier (<=4.5GB RAM or <=2 threads, 1 Worker + 2 threads) and High Tier (>15GB RAM, 2 Workers + 4 threads) to guarantee zero interference between high-end and low-end devices.`n- ⚡ **Adaptive DB Batch Flushing**: Reduced batch commit size to 10 items on Low Tier for smoother real-time progress and lower transient memory usage.`n- 📦 **Dual-Platform Builds**: Pre-built Android Universal APK and Windows PC Installer."
-    
+    $releaseNotes = "### ShareCLIP $tag Release`n`n- 🔒 **单实例互斥锁与防多开**: 强化主进程唯一性锁机制，杜绝桌面多开与后台端口/数据库冲突，二次启动自动激活并置顶既有主窗口。`n- 🛠️ **底层运行库检测修复**: 修复 Windows MSVC C++ Redist (x64) 运行库误报缺失问题，扩展全路径检测覆盖 System32、安装根目录及解压资源目录。`n- 🎨 **全新 macOS 图标规范与视觉重构**: 严格适配 Apple HIG 连续圆角（Squircle）与标准透明边距栅格，彻底解决 macOS 桌面/访达/程序坞中图标超大过大的问题，全平台同步部署全新高清图标套件。`n- 📦 **双端产物支持**: Android 通用 APK 与 Windows PC 安装包。"
+    $notesFile = "$PSScriptRoot\release_notes_temp.md"
+    [System.IO.File]::WriteAllText($notesFile, $releaseNotes, [System.Text.Encoding]::UTF8)
+
     Write-Host "Creating GitHub Release with assets:" -ForegroundColor Gray
     foreach ($a in $assets) {
         Write-Host "  - $a" -ForegroundColor Gray
     }
 
-    & $ghCmd release create $tag $assets --title "ShareCLIP $tag" --notes $releaseNotes --repo $Repo
+    & $ghCmd release create $tag $assets --title "ShareCLIP $tag" --notes-file $notesFile --repo $Repo
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Release $tag may already exist, uploading/overwriting assets with --clobber..." -ForegroundColor Yellow
         & $ghCmd release upload $tag $assets --repo $Repo --clobber
-        & $ghCmd release edit $tag --title "ShareCLIP $tag" --notes $releaseNotes --repo $Repo
+        & $ghCmd release edit $tag --title "ShareCLIP $tag" --notes-file $notesFile --repo $Repo
     }
+    if (Test-Path $notesFile) { Remove-Item $notesFile -Force }
     if ($LASTEXITCODE -eq 0) {
         Write-Host "`n🎉 Successfully published $tag to https://github.com/$Repo/releases/tag/$tag" -ForegroundColor Green
     } else {
