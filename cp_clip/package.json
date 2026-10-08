@@ -18,6 +18,7 @@
     "preview": "vite preview",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
+    "dist:store": "electron-builder --win appx",
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "dist:all": "electron-builder -mwl",
@@ -142,6 +143,21 @@
       "installerHeaderIcon": "build/icon.ico",
       "include": "build/installer.nsh",
       "differentialPackage": true
+    },
+    "appx": {
+      "identityName": "NovaMindLab.ShareCLIP",
+      "publisher": "CN=00000000-0000-0000-0000-000000000000",
+      "publisherDisplayName": "NovaMindLab",
+      "applicationId": "ShareCLIP",
+      "displayName": "ShareCLIP",
+      "artifactName": "${productName}-Store-${version}.${ext}",
+      "languages": [
+        "zh-CN",
+        "en-US"
+      ],
+      "addAutoUpdateCapabilities": false,
+      "showNameOnTiles": true,
+      "setBuildNumber": true
     },
     "mac": {
       "category": "public.app-category.photography",
