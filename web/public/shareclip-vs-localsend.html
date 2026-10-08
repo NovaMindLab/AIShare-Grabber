@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  
+  <title>ShareCLIP vs LocalSend 对比：不只是 P2P 局域网传输，更是内置本地 AI 语义搜图与人脸相册聚类的智能图库</title>
+  <meta name="title" content="ShareCLIP vs LocalSend 对比：P2P 局域网传输之上，独家本地 AI 搜图与人脸智能相册" />
+  <meta name="description" content="LocalSend 只能传文件？深入对比 ShareCLIP 与 LocalSend。ShareCLIP 在具备同样高速 P2P 局域网传输的同时，独家具备端侧 MobileCLIP 离线自然语言搜图、RetinaFace+ArcFace 本地人脸聚类及 4K 视频下载工坊，打造下一代个人智能媒体中心。" />
+  <meta name="keywords" content="ShareCLIP, LocalSend 对比, LocalSend 替代, LocalSend 缺点, 局域网传输工具, 本地AI相册, 离线人脸识别, P2P快传, MobileCLIP, 局域网相册管理" />
+  <meta name="author" content="NovaMindLab" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-localsend.html" />
+  <meta name="theme-color" content="#060913" />
+
+  <!-- Open Graph / Facebook / WeChat -->
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-localsend.html" />
+  <meta property="og:title" content="ShareCLIP vs LocalSend 对比：不只是 P2P 局域网传输，更是内置本地 AI 语义搜图与人脸相册聚类的智能图库" />
+  <meta property="og:description" content="LocalSend 只能传文件？深入对比 ShareCLIP 与 LocalSend。ShareCLIP 在具备同样高速 P2P 局域网传输的同时，独家具备端侧 MobileCLIP 离线自然语言搜图、RetinaFace+ArcFace 本地人脸聚类及 4K 视频下载工坊，打造下一代个人智能媒体中心。" />
+  <meta property="og:image" content="https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="ShareCLIP" />
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-localsend.html" />
+  <meta name="twitter:title" content="ShareCLIP vs LocalSend 对比：P2P 局域网传输之上，独家本地 AI 搜图与人脸智能相册" />
+  <meta name="twitter:description" content="LocalSend 只能传文件？深入对比 ShareCLIP 与 LocalSend。ShareCLIP 在具备同样高速 P2P 局域网传输的同时，独家具备端侧 MobileCLIP 离线自然语言搜图、RetinaFace+ArcFace 本地人脸聚类及 4K 视频下载工坊，打造下一代个人智能媒体中心。" />
+  <meta name="twitter:image" content="https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📸</text></svg>" />
+
+  <!-- Mixpanel Analytics -->
+  <script type="text/javascript">
+    (function(f,b){if(!b.__SV){var e,g,i,h;window.mixpanel=b;b._i=[];b.init=function(e,f,c){function g(a,d){var b=d.split(".");2==b.length&&(a=a[b[0]],d=b[1]);a[d]=function(){a.push([d].concat(Array.prototype.slice.call(arguments,0)))}}var a=b;"undefined"!==typeof c?a=b[c]=[]:c="mixpanel";a.people=a.people||[];a.toString=function(a){var d="mixpanel";"mixpanel"!==c&&(d+="."+c);a||(d+=" (stub)");return d};a.people.toString=function(){return a.toString(1)+".people (stub)"};i="disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset opt_in_tracking opt_out_tracking has_opted_in_tracking has_opted_out_tracking clear_opt_in_out_tracking start_batch_senders people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split(" ");
+    for(h=0;h<i.length;h++)g(a,i[h]);var j="set_config match_media reset register register_once unregister opt_in_tracking opt_out_tracking has_opted_in_tracking has_opted_out_tracking clear_opt_in_out_tracking".split(" ");for(h=0;h<j.length;h++)g(a,j[h]);b._i.push([e,f,c])};b.__SV=1.2;e=f.createElement("script");e.type="text/javascript";e.async=!0;e.src="undefined"!==typeof MIXPANEL_CUSTOM_LIB_URL?MIXPANEL_CUSTOM_LIB_URL:"file:"===f.location.protocol&&"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//)?"https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js":"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";g=f.getElementsByTagName("script")[0];g.parentNode.insertBefore(e,g)}})(document,window.mixpanel||[]);
+    mixpanel.init('0cd6d7d8447105fe062f27dafa4a527d', {
+      autocapture: true,
+      track_pageview: true,
+      persistence: 'localStorage'
+    });
+    mixpanel.track('pSEO Page Viewed', {
+      page: 'shareclip-vs-localsend',
+      competitor: 'LocalSend'
+    });
+  </script>
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "ShareCLIP",
+      "url": "https://novamindlab.github.io/AIShare-Grabber",
+      "image": "https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg",
+      "operatingSystem": "Windows 10, Windows 11, Android, macOS, Web",
+      "applicationCategory": "MultimediaApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "218",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "description": "100% on-device AI photo gallery and high-speed local P2P sync across Windows, Android, macOS, and Web. Zero cloud, zero subscription, 80+ MB/s Wi-Fi speed."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "首页",
+          "item": "https://novamindlab.github.io/AIShare-Grabber/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "竞品对比",
+          "item": "https://novamindlab.github.io/AIShare-Grabber/#comparison"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "ShareCLIP vs LocalSend",
+          "item": "https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-localsend.html"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "如果我已经是 LocalSend 用户，迁移到 ShareCLIP 会有学习成本吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "几乎零学习成本！ShareCLIP 的传输流程同样直观：同一 Wi-Fi 下设备自动出现，点击即可发送。在此基础上，你将立刻获得全新的相册瀑布流、AI 自然语言搜索和人脸分类能力，无需任何额外配置。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "ShareCLIP 的传输速度和 LocalSend 相比如何？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "两者在传输底层均采用局域网原生 TCP/P2P 直连通道，速度表现完全处于同一顶级梯队。在千兆 Wi-Fi 6 网络下，实际传输吞吐量均可稳定在 80~120 MB/s。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "开启 AI 语义搜索和人脸识别会让电脑卡顿吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "完全不会。ShareCLIP 的 AI 特征提取工作在后台低优先级线程运行，支持智能感知系统负载与电量。如果检测到正在玩大型游戏或高负荷渲染，AI 索引会自动暂停避让；同时针对现代 GPU 做了 DirectML 硬件加速，计算极快。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "ShareCLIP 支持 iOS 苹果手机吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "支持！ShareCLIP PC 端提供开箱即用的 WebShare 网页服务。iOS 用户无需安装额外 App，只需用 Safari 扫描二维码，即可在网页中直接与 PC 双向互传，速度同样达到局域网满速。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "ShareCLIP 软件收费吗？有广告或商业推广吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "ShareCLIP 100% 开源免费（采用 MIT 宽松开源协议），承诺无弹窗广告、无高级版内购锁死、无订阅制套路，代码完全公开在 GitHub 上供全球开发者审计。"
+          }
+        }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-localsend.html",
+      "url": "https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-localsend.html",
+      "name": "ShareCLIP vs LocalSend 对比：不只是 P2P 局域网传输，更是内置本地 AI 语义搜图与人脸相册聚类的智能图库",
+      "description": "LocalSend 只能传文件？深入对比 ShareCLIP 与 LocalSend。ShareCLIP 在具备同样高速 P2P 局域网传输的同时，独家具备端侧 MobileCLIP 离线自然语言搜图、RetinaFace+ArcFace 本地人脸聚类及 4K 视频下载工坊，打造下一代个人智能媒体中心。",
+      "inLanguage": "zh-CN",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "ShareCLIP Official",
+        "url": "https://novamindlab.github.io/AIShare-Grabber"
+      }
+    }
+  ]
+}
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* CSS Reset & Design Tokens */
+    :root {
+      --bg-main: #060913;
+      --bg-card: rgba(15, 23, 42, 0.72);
+      --bg-card-hover: rgba(30, 41, 59, 0.85);
+      --primary: #a855f7;
+      --primary-glow: rgba(168, 85, 247, 0.35);
+      --secondary: #10b981;
+      --secondary-glow: rgba(16, 185, 129, 0.25);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --danger: #f43f5e;
+      --warning: #f59e0b;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(168, 85, 247, 0.45);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --font-sans: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.65;
+      overflow-x: hidden;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient Background Glows */
+    .bg-ambient {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .ambient-spot {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(140px);
+      opacity: 0.22;
+    }
+    .spot-1 { width: 650px; height: 650px; background: radial-gradient(circle, #7c3aed 0%, transparent 70%); top: -150px; left: 15%; }
+    .spot-2 { width: 550px; height: 550px; background: radial-gradient(circle, #0284c7 0%, transparent 70%); top: 40%; right: -120px; }
+    .spot-3 { width: 600px; height: 600px; background: radial-gradient(circle, #059669 0%, transparent 70%); bottom: 5%; left: -100px; }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Sticky Navbar */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(6, 9, 19, 0.75);
+      border-bottom: 1px solid var(--border-subtle);
+      transition: all 0.3s ease;
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 70px;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-main);
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: -0.02em;
+    }
+    .nav-brand .brand-logo { font-size: 24px; }
+    .nav-brand .brand-accent { color: var(--primary); }
+    .nav-version {
+      font-size: 11px;
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+    .nav-link:hover { color: var(--text-main); }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 10px;
+      padding: 9px 18px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 26px rgba(168, 85, 247, 0.55);
+      filter: brightness(1.1);
+    }
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+    }
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .btn-webshare {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #7dd3fc;
+    }
+    .btn-webshare:hover {
+      background: rgba(56, 189, 248, 0.22);
+      color: #bae6fd;
+    }
+
+    /* Comparison Quick Bar */
+    .switch-pills-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0 0 0;
+      padding: 6px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-subtle);
+      border-radius: 30px;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .switch-pill {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .switch-pill:hover { color: var(--text-main); }
+    .switch-pill.active {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(99, 102, 241, 0.3));
+      color: #fff;
+      border: 1px solid rgba(168, 85, 247, 0.5);
+    }
+
+    /* Breadcrumbs */
+    .breadcrumb-nav {
+      padding: 24px 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .breadcrumb-nav a { color: var(--text-muted); text-decoration: none; }
+    .breadcrumb-nav a:hover { color: var(--primary); }
+    .breadcrumb-sep { color: var(--text-dim); }
+
+    /* Hero Section */
+    .hero-sec {
+      padding: 30px 0 50px 0;
+      text-align: center;
+    }
+    .hero-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #c084fc;
+      background: rgba(168, 85, 247, 0.12);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      padding: 6px 16px;
+      border-radius: 30px;
+      margin-bottom: 24px;
+    }
+    .hero-title {
+      font-size: 42px;
+      line-height: 1.22;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+      max-width: 960px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #ffffff 15%, #c084fc 60%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-lead {
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--text-muted);
+      max-width: 820px;
+      margin: 0 auto 36px auto;
+    }
+    .hero-cta-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .btn-hero-lg {
+      padding: 13px 28px;
+      font-size: 16px;
+      border-radius: 12px;
+    }
+
+    /* Quick Stats Grid */
+    .stats-card-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin: 40px 0;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 22px 18px;
+      text-align: left;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: transform 0.25s ease, border-color 0.25s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-focus);
+      background: var(--bg-card-hover);
+    }
+    .stat-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+    .stat-sc {
+      font-size: 16px;
+      font-weight: 800;
+      color: #34d399;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stat-comp {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    /* Section Styling */
+    .content-section {
+      padding: 50px 0;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .sec-tag {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 10px;
+      display: block;
+    }
+    .sec-title {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
+    .sec-desc {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 28px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: all 0.25s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-focus);
+      box-shadow: 0 16px 36px -10px rgba(0,0,0,0.5);
+    }
+    .feature-icon-box {
+      font-size: 32px;
+      margin-bottom: 18px;
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .feature-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* Detailed Comparison Table */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    }
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    .comp-table th {
+      padding: 20px 24px;
+      font-size: 15px;
+      font-weight: 800;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(15, 23, 42, 0.85);
+    }
+    .comp-table th.col-sc {
+      background: rgba(168, 85, 247, 0.14);
+      color: #e9d5ff;
+      border-left: 1px solid rgba(168, 85, 247, 0.3);
+      border-right: 1px solid rgba(168, 85, 247, 0.3);
+    }
+    .comp-table td {
+      padding: 18px 24px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+    .comp-table td.col-sc {
+      background: rgba(168, 85, 247, 0.05);
+      border-left: 1px solid rgba(168, 85, 247, 0.2);
+      border-right: 1px solid rgba(168, 85, 247, 0.2);
+      font-weight: 600;
+    }
+    .comp-table tr.category-row td {
+      background: rgba(30, 41, 59, 0.6);
+      font-weight: 800;
+      font-size: 13px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 12px 24px;
+    }
+    .badge-win {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      margin-bottom: 4px;
+    }
+    .badge-lose {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(244, 63, 94, 0.16);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      margin-bottom: 4px;
+    }
+    .badge-equal {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(148, 163, 184, 0.16);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      margin-bottom: 4px;
+    }
+
+    /* Deep Dive Articles */
+    .deep-dive-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 36px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .deep-dive-card h3 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+    .deep-dive-card p {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.8;
+      white-space: pre-line;
+    }
+
+    /* FAQ Accordion */
+    .faq-wrapper {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+    .faq-item[open] {
+      border-color: var(--border-focus);
+      background: var(--bg-card-hover);
+    }
+    .faq-question {
+      padding: 20px 24px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .faq-question::-webkit-details-marker { display: none; }
+    .faq-chevron {
+      font-size: 14px;
+      color: var(--primary);
+      transition: transform 0.25s ease;
+    }
+    .faq-item[open] .faq-chevron {
+      transform: rotate(180deg);
+    }
+    .faq-answer {
+      padding: 0 24px 22px 24px;
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* All Platforms Download Banner */
+    .download-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-top: 36px;
+    }
+    .download-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 28px 22px;
+      text-align: center;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .download-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-focus);
+    }
+    .download-card.highlight {
+      border-color: rgba(168, 85, 247, 0.4);
+      background: linear-gradient(180deg, rgba(168, 85, 247, 0.12) 0%, rgba(15, 23, 42, 0.8) 100%);
+    }
+    .dl-icon { font-size: 38px; margin-bottom: 12px; }
+    .dl-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .dl-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 20px; }
+    .dl-btn { width: 100%; font-size: 14px; }
+
+    /* Other Comparisons Switcher */
+    .other-comp-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .other-comp-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 22px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .other-comp-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--border-focus);
+      background: var(--bg-card-hover);
+    }
+    .occ-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .occ-title { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+    .occ-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 60px 0 40px 0;
+      margin-top: 80px;
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .footer-links a { color: var(--text-muted); text-decoration: none; }
+    .footer-links a:hover { color: var(--text-main); }
+
+    /* Mobile Responsive */
+    @media (max-width: 992px) {
+      .hero-title { font-size: 34px; }
+      .stats-card-grid { grid-template-columns: repeat(2, 1fr); }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .download-grid { grid-template-columns: repeat(2, 1fr); }
+      .other-comp-grid { grid-template-columns: 1fr; }
+      .nav-menu { display: none; }
+    }
+    @media (max-width: 680px) {
+      .hero-title { font-size: 28px; }
+      .hero-lead { font-size: 15px; }
+      .stats-card-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .download-grid { grid-template-columns: 1fr; }
+      .table-container { overflow-x: auto; }
+      .comp-table th, .comp-table td { padding: 14px 16px; font-size: 13px; }
+      .deep-dive-card { padding: 24px; }
+      .switch-pills-bar { border-radius: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Light -->
+  <div class="bg-ambient">
+    <div class="ambient-spot spot-1"></div>
+    <div class="ambient-spot spot-2"></div>
+    <div class="ambient-spot spot-3"></div>
+  </div>
+
+  <!-- Sticky Navbar -->
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a href="https://novamindlab.github.io/AIShare-Grabber/" class="nav-brand" title="ShareCLIP 官网">
+        <span class="brand-logo">📸</span>
+        <span>Share<span class="brand-accent">CLIP</span></span>
+        <span class="nav-version">v4.5.8</span>
+      </a>
+
+      <nav class="nav-menu">
+        <a href="#comparison" class="nav-link">参数对比</a>
+        <a href="#features" class="nav-link">核心优势</a>
+        <a href="#deep-dive" class="nav-link">深度评测</a>
+        <a href="#faq" class="nav-link">常见问答</a>
+        <a href="./webshare/" class="btn btn-webshare" target="_blank">🌐 WebShare 网页版</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="#download" class="btn btn-primary" onclick="if(window.mixpanel) mixpanel.track('CTA Click', { label: 'Nav Download', page: 'shareclip-vs-localsend' });">
+          <span>🚀 免费下载</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Breadcrumb Navigation -->
+    <div class="breadcrumb-nav">
+      <a href="https://novamindlab.github.io/AIShare-Grabber/">首页</a>
+      <span class="breadcrumb-sep">/</span>
+      <a href="https://novamindlab.github.io/AIShare-Grabber/#comparison">竞品对比</a>
+      <span class="breadcrumb-sep">/</span>
+      <span style="color: var(--text-main);">ShareCLIP vs LocalSend</span>
+    </div>
+
+    <!-- Quick Switcher Bar -->
+    <div class="switch-pills-bar">
+      <span style="font-size: 12px; color: var(--text-dim); margin-right: 6px;">切换对比：</span>
+      <a href="./shareclip-vs-airdrop.html" class="switch-pill ">vs AirDrop</a>
+      <a href="./shareclip-vs-localsend.html" class="switch-pill active">vs LocalSend</a>
+      <a href="./shareclip-vs-google-photos.html" class="switch-pill ">vs Google Photos</a>
+      <a href="./shareclip-vs-immich.html" class="switch-pill ">vs Immich</a>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero-sec">
+      <div class="hero-badge-pill">
+        <span>✨</span> 新一代智能局域网媒体中心 • 2026 最新横评
+      </div>
+      <h1 class="hero-title">
+        <span class="gradient-text">超越纯文件传输：融合局域网闪传与端侧 AI 智能相册</span>
+      </h1>
+      <p class="hero-lead">
+        LocalSend 是一款优秀的 P2P 文件传输工具，但它仅止步于文件收发。ShareCLIP 在保持极致传输性能的同时，内置 MobileCLIP 本地大模型语义搜图、人脸聚类与 4K 媒体工坊，让传输后的每一张照片都能被智能组织与瞬时检索。
+      </p>
+
+      <div class="hero-cta-box">
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe" class="btn btn-primary btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'Hero_shareclip-vs-localsend' });">
+          <span>🖥️ Windows 下载 (.exe)</span>
+        </a>
+        <a href="./app-release.apk" class="btn btn-outline btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Android', source: 'Hero_shareclip-vs-localsend' });">
+          <span>📱 Android 安装包 (.apk)</span>
+        </a>
+        <a href="./webshare/" class="btn btn-webshare btn-hero-lg" target="_blank" onclick="if(window.mixpanel) mixpanel.track('WebShare Click', { source: 'Hero_shareclip-vs-localsend' });">
+          <span>🌐 免安装 Web 网页版直连</span>
+        </a>
+      </div>
+
+      <!-- Quick Metrics Summary Grid -->
+      <div class="stats-card-grid">
+        
+        <div class="stat-card">
+          <div class="stat-label">核心定位</div>
+          <div class="stat-sc">⚡ P2P传输 + AI智能相册资产管理</div>
+          <div class="stat-comp">LocalSend: 纯文件传输工具 (无相册视图)</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-label">本地 AI 搜图</div>
+          <div class="stat-sc">⚡ ✅ MobileCLIP 端侧自然语言搜图</div>
+          <div class="stat-comp">LocalSend: ❌ 完全无 AI 识别与图搜</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-label">人脸识别与聚类</div>
+          <div class="stat-sc">⚡ ✅ RetinaFace+ArcFace 本地离线聚类</div>
+          <div class="stat-comp">LocalSend: ❌ 无图像特征分析能力</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-label">媒体浏览体验</div>
+          <div class="stat-sc">⚡ 4K 瀑布流图库、EXIF 时间线</div>
+          <div class="stat-comp">LocalSend: 仅显示普通文件列表</div>
+        </div>
+        
+      </div>
+    </section>
+
+    <!-- Why Switch Section -->
+    <section class="content-section" style="border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle);">
+      <div class="section-header">
+        <span class="sec-tag">痛点解决</span>
+        <h2 class="sec-title">为什么从 LocalSend 升级为 ShareCLIP？</h2>
+        <p class="sec-desc">当你把手机里的上千张家庭照片、旅行视频传到电脑后，LocalSend 的使命就结束了——你只能面对资源管理器里冰冷的文件列表。而 ShareCLIP 重新定义了工作流：传输即整理，落盘即索引。端侧 AI 自动解析图片内容与人脸特征，无论是做自媒体、设计师查找素材，还是家庭记录生活，ShareCLIP 都是更强大、更高效的完整解决方案。</p>
+      </div>
+    </section>
+
+    <!-- Detailed Feature Comparison Table Section -->
+    <section class="content-section" id="comparison">
+      <div class="section-header">
+        <span class="sec-tag">全景参数对比</span>
+        <h2 class="sec-title">ShareCLIP 与 LocalSend 全维度深度横评</h2>
+        <p class="sec-desc">从跨平台兼容性、传输吞吐量、本地 AI 搜图引擎到隐私成本，看清每一处真实差异。</p>
+      </div>
+
+      <div class="table-container">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th style="width: 28%;">功能特性与评估维度</th>
+              <th class="col-sc" style="width: 38%;">📸 ShareCLIP (端侧 AI 闪传)</th>
+              <th style="width: 34%;">LocalSend</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+            <tr class="category-row">
+              <td colspan="3">📌 传输基础能力</td>
+            </tr>
+            
+              <tr>
+                <td><strong>P2P 局域网高速传输</strong></td>
+                <td class="col-sc">
+                  <span class="badge-equal">基本相当</span><br />
+                  ✅ 支持 (80~120 MB/s 极速)
+                </td>
+                <td>
+                  <span class="badge-equal">支持</span><br />
+                  ✅ 支持 (同等局域网 P2P)
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>零云端离线运行</strong></td>
+                <td class="col-sc">
+                  <span class="badge-equal">基本相当</span><br />
+                  ✅ 100% 局域网物理直连
+                </td>
+                <td>
+                  <span class="badge-equal">支持</span><br />
+                  ✅ 100% 局域网物理直连
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>免安装 WebShare 互传</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 任意浏览器扫码即用
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ⚠️ 需双方设备均安装客户端
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>断点续传与完整性校验</strong></td>
+                <td class="col-sc">
+                  <span class="badge-equal">基本相当</span><br />
+                  ✅ 原生支持流式校验
+                </td>
+                <td>
+                  <span class="badge-equal">支持</span><br />
+                  ✅ 支持
+                </td>
+              </tr>
+              
+            
+            <tr class="category-row">
+              <td colspan="3">📌 AI 智能与相册管理 (核心差异)</td>
+            </tr>
+            
+              <tr>
+                <td><strong>自然语言语义搜图 (CLIP)</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 独家内置 MobileCLIP 端侧大模型
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ❌ 完全不支持 (纯文件工具)
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>人脸识别与自动人物相册</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 内置 RetinaFace + ArcFace 本地聚类
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ❌ 完全不支持
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>沉浸式瀑布流相册视图</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 原生 4K 瀑布流图库与缩略图引擎
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ❌ 仅显示文件名列表
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>EXIF 元数据与拍摄时间轴</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 自动解析相机光圈、ISO、GPS与日期
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ❌ 不解析任何相册元数据
+                </td>
+              </tr>
+              
+            
+            <tr class="category-row">
+              <td colspan="3">📌 多媒体生产力工具箱</td>
+            </tr>
+            
+              <tr>
+                <td><strong>4K 网页视频解析与下载</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 内置视频工坊，一键嗅探下载
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ❌ 无视频下载功能
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>双向实时剪贴板同步</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 文本与图片后台无感同步
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ⚠️ 仅支持手动发送剪贴板内容
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>开源协议与安全性</strong></td>
+                <td class="col-sc">
+                  <span class="badge-equal">基本相当</span><br />
+                  🎉 100% 开源 (MIT License)
+                </td>
+                <td>
+                  <span class="badge-equal">支持</span><br />
+                  🎉 100% 开源 (MIT / Apache)
+                </td>
+              </tr>
+              
+            
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Key Strengths Cards Grid -->
+    <section class="content-section" id="features">
+      <div class="section-header">
+        <span class="sec-tag">独特杀手级功能</span>
+        <h2 class="sec-title">选择 ShareCLIP 的 6 大不可替代理由</h2>
+        <p class="sec-desc">不仅速度飞快，更让您的媒体资产管理彻底迈入端侧智能时代。</p>
+      </div>
+
+      <div class="features-grid">
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">🔍</div>
+          <h3>MobileCLIP 本地自然语言图搜</h3>
+          <p>不需要给照片手动打标签。只要输入「红酒杯与烛光」、「带眼镜的短发女孩」、「发票账单报销」，ShareCLIP 即可通过端侧多模态模型秒级检索，彻底颠覆找图体验。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">👤</div>
+          <h3>离线人脸识别与人物自动聚类</h3>
+          <p>内置工业级 RetinaFace + ArcFace 端侧人脸检测引擎，自动从海量相片中提取人脸特征并智能聚类。每一位家庭成员或朋友都有专属相册，全程本地计算无隐私外泄。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">🖼️</div>
+          <h3>专业级 4K 瀑布流视觉相册</h3>
+          <p>告别 LocalSend 枯燥的文件名列表。ShareCLIP 拥有高度优化的虚拟滚动 4K 瀑布流图库，毫秒级缩略图加载，支持 EXIF 参数解析、拍摄时间轴与全屏幻灯片。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">⚡</div>
+          <h3>媲美 LocalSend 的顶级 P2P 传输</h3>
+          <p>同样基于局域网点对点直连，零云端中转，千兆内网速率轻松达到 80~120 MB/s。支持断点续传、文件校验，传输安全可靠。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">📥</div>
+          <h3>4K 网页视频嗅探与下载工坊</h3>
+          <p>额外集成强大的视频媒体下载引擎，支持解析国内外主流主流视频平台的 4K/1080P 超清流媒体并一键保存到本地相册，省去繁琐插件。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">📋</div>
+          <h3>双向跨设备剪贴板毫秒级同步</h3>
+          <p>在手机上复制一段验证码或文字，电脑瞬间可粘贴；在电脑上复制图片，手机立即同步。让多设备协同如同在一台电脑上操作般顺畅。</p>
+        </div>
+        
+      </div>
+    </section>
+
+    <!-- Deep Dive Articles Section -->
+    <section class="content-section" id="deep-dive">
+      <div class="section-header">
+        <span class="sec-tag">技术深度剖析</span>
+        <h2 class="sec-title">场景还原与架构底层深度实测</h2>
+        <p class="sec-desc">真实测试数据与架构原理，解答极客用户关心的底层疑问。</p>
+      </div>
+
+      
+      <div class="deep-dive-card">
+        <h3>1. 为什么纯传输工具正在被「智能媒体资产管理」所取代？</h3>
+        <p>LocalSend 的诞生解决了局域网去中心化传文件的痛点，堪称开源界的标杆之作。然而在智能手机拍摄已成为日常生活主力输入的今天，用户传输的内容中 90% 以上都是照片与视频。
+
+面对每年新增的上万张照片，单纯把文件复制到硬盘只会造成「数字垃圾山」。用户需要的是一站式的工作流：手机拍完后，电脑自动同步；同步完成后，系统立即理解照片内容，按人物、场景、时间自动分类，随时可以用人类自然语言进行模糊搜索。ShareCLIP 正是完成了从「搬运工」到「智能管家」的蜕变。</p>
+      </div>
+      
+      <div class="deep-dive-card">
+        <h3>2. MobileCLIP 架构解析：如何在不消耗云端算力的情况下实现语义搜图？</h3>
+        <p>以往的高精度语义图搜大多依赖云端大模型 API（例如 Google 或 OpenAI 的云端接口），这不仅涉及持续的 API 费用，更有严重的隐私泄露隐患。
+
+ShareCLIP 引入了苹果与开源社区针对端侧优化的 MobileCLIP / ViT 模型架构，并在桌面端利用 ONNX Runtime / DirectML 充分调用集成显卡或独立显卡算力，在 Android 端利用 NPU / NNAPI 加速。每张照片只需几十毫秒即可提取 512 维高精特征向量，建立本地 SQLite-Vector 索引。即使你在断网飞行模式下，输入复杂的复合描述也能毫秒级找到心仪照片。</p>
+      </div>
+      
+      <div class="deep-dive-card">
+        <h3>3. 本地人脸聚类算法：零数据泄露的安全家庭相册</h3>
+        <p>许多相册软件的人脸识别需要将面部特征上传至第三方服务器进行分析，引发极大的隐私担忧。ShareCLIP 采用完全运行于本机的 RetinaFace 人脸检测算法与 ArcFace 512维深度特征提取器。
+
+算法自动过滤模糊、侧脸或微小误检，基于自适应余弦距离进行无监督聚类。你可以为聚类出的面孔命名为「妈妈」、「孩子」、「伴侣」，之后所有包含该人物的历史与新同步照片都会自动归入该人物相册。所有面部特征点与数据严格存放在你自己的硬盘中。</p>
+      </div>
+      
+    </section>
+
+    <!-- FAQ Accordion Section -->
+    <section class="content-section" id="faq">
+      <div class="section-header">
+        <span class="sec-tag">常见疑问解答</span>
+        <h2 class="sec-title">关于 ShareCLIP 与 LocalSend 的常见问答</h2>
+        <p class="sec-desc">解答您在实际使用、迁移、隐私保护和性能上的所有疑问。</p>
+      </div>
+
+      <div class="faq-wrapper">
+        
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>如果我已经是 LocalSend 用户，迁移到 ShareCLIP 会有学习成本吗？</span>
+            <span class="faq-chevron">▼</span>
+          </summary>
+          <div class="faq-answer">
+            几乎零学习成本！ShareCLIP 的传输流程同样直观：同一 Wi-Fi 下设备自动出现，点击即可发送。在此基础上，你将立刻获得全新的相册瀑布流、AI 自然语言搜索和人脸分类能力，无需任何额外配置。
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>ShareCLIP 的传输速度和 LocalSend 相比如何？</span>
+            <span class="faq-chevron">▼</span>
+          </summary>
+          <div class="faq-answer">
+            两者在传输底层均采用局域网原生 TCP/P2P 直连通道，速度表现完全处于同一顶级梯队。在千兆 Wi-Fi 6 网络下，实际传输吞吐量均可稳定在 80~120 MB/s。
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>开启 AI 语义搜索和人脸识别会让电脑卡顿吗？</span>
+            <span class="faq-chevron">▼</span>
+          </summary>
+          <div class="faq-answer">
+            完全不会。ShareCLIP 的 AI 特征提取工作在后台低优先级线程运行，支持智能感知系统负载与电量。如果检测到正在玩大型游戏或高负荷渲染，AI 索引会自动暂停避让；同时针对现代 GPU 做了 DirectML 硬件加速，计算极快。
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>ShareCLIP 支持 iOS 苹果手机吗？</span>
+            <span class="faq-chevron">▼</span>
+          </summary>
+          <div class="faq-answer">
+            支持！ShareCLIP PC 端提供开箱即用的 WebShare 网页服务。iOS 用户无需安装额外 App，只需用 Safari 扫描二维码，即可在网页中直接与 PC 双向互传，速度同样达到局域网满速。
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>ShareCLIP 软件收费吗？有广告或商业推广吗？</span>
+            <span class="faq-chevron">▼</span>
+          </summary>
+          <div class="faq-answer">
+            ShareCLIP 100% 开源免费（采用 MIT 宽松开源协议），承诺无弹窗广告、无高级版内购锁死、无订阅制套路，代码完全公开在 GitHub 上供全球开发者审计。
+          </div>
+        </details>
+        
+      </div>
+    </section>
+
+    <!-- All Platforms Download CTA Banner -->
+    <section class="content-section" id="download">
+      <div class="section-header">
+        <span class="sec-tag">全平台下载</span>
+        <h2 class="sec-title">立刻体验极速 P2P 互传与端侧 AI 搜图</h2>
+        <p class="sec-desc">100% 开源免费，无广告、无订阅，永久拥有您的照片主权。</p>
+      </div>
+
+      <div class="download-grid">
+        <!-- Windows -->
+        <div class="download-card highlight">
+          <div>
+            <div class="dl-icon">🖥️</div>
+            <div class="dl-title">Windows 客户端</div>
+            <div class="dl-sub">Windows 10 / 11 • 64-bit 安装包</div>
+          </div>
+          <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe" class="btn btn-primary dl-btn" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'DownloadGrid_shareclip-vs-localsend' });">
+            <span>下载 Windows 版</span>
+          </a>
+        </div>
+
+        <!-- Android -->
+        <div class="download-card">
+          <div>
+            <div class="dl-icon">📱</div>
+            <div class="dl-title">Android 安卓版</div>
+            <div class="dl-sub">支持 Android 8.0+ • APK 直链</div>
+          </div>
+          <a href="./app-release.apk" class="btn btn-outline dl-btn" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Android', source: 'DownloadGrid_shareclip-vs-localsend' });">
+            <span>下载 Android APK</span>
+          </a>
+        </div>
+
+        <!-- WebShare -->
+        <div class="download-card">
+          <div>
+            <div class="dl-icon">🌐</div>
+            <div class="dl-title">WebShare 网页版</div>
+            <div class="dl-sub">无需安装客户端 • 浏览器扫码直传</div>
+          </div>
+          <a href="./webshare/" class="btn btn-webshare dl-btn" target="_blank" onclick="if(window.mixpanel) mixpanel.track('WebShare Click', { source: 'DownloadGrid_shareclip-vs-localsend' });">
+            <span>立即在线使用</span>
+          </a>
+        </div>
+
+        <!-- macOS & GitHub -->
+        <div class="download-card">
+          <div>
+            <div class="dl-icon">🍏</div>
+            <div class="dl-title">macOS & 开源仓库</div>
+            <div class="dl-sub">Apple Silicon / Intel • GitHub 源码</div>
+          </div>
+          <a href="https://github.com/NovaMindLab/AIShare-Grabber" class="btn btn-outline dl-btn" target="_blank" onclick="if(window.mixpanel) mixpanel.track('GitHub Click', { source: 'DownloadGrid_shareclip-vs-localsend' });">
+            <span>⭐ Star on GitHub</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Other Comparisons Navigation -->
+    <section class="content-section" style="border-top: 1px solid var(--border-subtle); margin-top: 40px;">
+      <div class="section-header">
+        <span class="sec-tag">探索更多对比</span>
+        <h2 class="sec-title">查看其他热门工具对比评测</h2>
+        <p class="sec-desc">了解 ShareCLIP 与其他流行工具在架构、隐私与功能上的全方位差异。</p>
+      </div>
+
+      <div class="other-comp-grid">
+        
+        <a href="./shareclip-vs-airdrop.html" class="other-comp-card">
+          <div>
+            <div class="occ-badge">深度对比</div>
+            <div class="occ-title">ShareCLIP vs AirDrop</div>
+            <div class="occ-desc">ShareCLIP vs AirDrop 对比：跨 Windows/Android 无线快传与端侧 AI 搜图最佳替代方案</div>
+          </div>
+          <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
+        </a>
+        
+        <a href="./shareclip-vs-google-photos.html" class="other-comp-card">
+          <div>
+            <div class="occ-badge">深度对比</div>
+            <div class="occ-title">ShareCLIP vs Google Photos</div>
+            <div class="occ-desc">ShareCLIP vs Google Photos 对比：零云端泄露、零月费订阅的 100% 离线个人 AI 相册</div>
+          </div>
+          <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
+        </a>
+        
+        <a href="./shareclip-vs-immich.html" class="other-comp-card">
+          <div>
+            <div class="occ-badge">深度对比</div>
+            <div class="occ-title">ShareCLIP vs Immich</div>
+            <div class="occ-desc">ShareCLIP vs Immich 对比：免 Docker、免 NAS 服务器，双击即用的轻量级个人 AI 相册</div>
+          </div>
+          <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
+        </a>
+        
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <div>
+        <div style="font-weight: 800; font-size: 16px; color: #fff; margin-bottom: 6px;">
+          📸 ShareCLIP
+        </div>
+        <div style="font-size: 13px;">
+          基于 MIT 宽松协议开源 • 保护您的数字资产与个人隐私
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <a href="https://novamindlab.github.io/AIShare-Grabber/">官方首页</a>
+        <a href="./webshare/" target="_blank">WebShare 网页版</a>
+        <a href="https://novamindlab.github.io/AIShare-Grabber/privacy.html">隐私政策</a>
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber" target="_blank">GitHub 开源仓库</a>
+        <a href="https://github.com/sponsors/NovaMindLab" target="_blank">赞助支持</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

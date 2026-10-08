@@ -1,0 +1,25 @@
+{
+  "applicationId": "com.novamindlab.image_clip",
+  "appName": "ShareCLIP",
+  "version": "4.5.8",
+  "versionCode": 458,
+  "releaseDate": "2026-10-08",
+  "sourceCodeUrl": "https://github.com/NovaMindLab/AIShare-Grabber",
+  "issueTrackerUrl": "https://github.com/NovaMindLab/AIShare-Grabber/issues",
+  "apkAssetUrl": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Android-4.5.8.apk",
+  "apkSha256": "340993b1fa20dc4e5b0984badb2c988f389873bcb1fbfa60492233bfa2ca3ad4",
+  "license": "MIT",
+  "categories": [
+    "Connectivity",
+    "Multimedia",
+    "Security",
+    "Tools"
+  ],
+  "antiFeatures": [],
+  "minSdkVersion": 26,
+  "targetSdkVersion": 34,
+  "description": {
+    "en": "Privacy-first P2P AirDrop alternative and on-device MobileCLIP AI photo gallery with zero cloud reliance.",
+    "zh": "私有局域网极速互传 AirDrop 替代品与端侧离线 AI 语义搜图相册，零云端无限制。"
+  }
+}

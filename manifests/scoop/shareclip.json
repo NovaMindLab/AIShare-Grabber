@@ -1,12 +1,12 @@
 {
   "version": "4.5.8",
-  "description": "Cross-platform photo & clipboard sync tool",
-  "homepage": "https://github.com/NovaMindLab/AIShare-Grabber",
+  "description": "Private P2P AirDrop Alternative, Local AI Photo Search & Media Suite",
+  "homepage": "https://novamindlab.github.io/AIShare-Grabber/",
   "license": "MIT",
   "architecture": {
     "64bit": {
       "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe#/dl.7z",
-      "hash": "F72940F1C4EA479195E458E27733986970698B3146947F496E3AA9A957C5D3B7"
+      "hash": "CC8253FFD23AF73FDC87C5EDED08F7542D256CD7BA90F41D8663A19089C56698"
     }
   },
   "shortcuts": [

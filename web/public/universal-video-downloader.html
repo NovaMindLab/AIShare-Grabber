@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShareCLIP - 4K Multi-Site Video Downloader & Detached Floating Player</title>
+  <meta name="description" content="Universal 4K video downloader and media extractor with detached always-on-top player window. Download from YouTube, Bilibili, Douyin, TikTok, and 1000+ sites with instant playback.">
+  <meta name="keywords" content="4k video downloader, universal video grabber, floating detached video player, bilibili youtube downloader, range 206 streaming, local video hub">
+  <link rel="canonical" href="https://novamindlab.github.io/AIShare-Grabber/universal-video-downloader.html">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ShareCLIP - 4K Multi-Site Video Downloader & Detached Floating Player">
+  <meta property="og:description" content="Universal 4K video downloader and media extractor with detached always-on-top player window. Download from YouTube, Bilibili, Douyin, TikTok, and 1000+ sites with instant playback.">
+  <meta property="og:url" content="https://novamindlab.github.io/AIShare-Grabber/universal-video-downloader.html">
+  <meta property="og:image" content="https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ShareCLIP - 4K Multi-Site Video Downloader & Detached Floating Player">
+  <meta name="twitter:description" content="Universal 4K video downloader and media extractor with detached always-on-top player window. Download from YouTube, Bilibili, Douyin, TikTok, and 1000+ sites with instant playback.">
+  <meta name="twitter:image" content="https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg">
+
+  <!-- Structured Data JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ShareCLIP",
+    "operatingSystem": "Windows 10+, Android 8.0+, macOS 11+, Linux",
+    "applicationCategory": "UtilitiesApplication",
+    "softwareVersion": "4.5.8",
+    "downloadUrl": "https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v4.5.8",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": "Universal 4K video downloader and media extractor with detached always-on-top player window. Download from YouTube, Bilibili, Douyin, TikTok, and 1000+ sites with instant playback.",
+    "author": {
+      "@type": "Organization",
+      "name": "NovaMindLab",
+      "url": "https://github.com/NovaMindLab"
+    }
+  }
+  </script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0b0f19; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .gradient-text { background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .glass-card { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass-card border-b border-gray-800">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <a href="https://novamindlab.github.io/AIShare-Grabber/" class="flex items-center space-x-3">
+        <img src="https://novamindlab.github.io/AIShare-Grabber/favicon.svg" alt="ShareCLIP Logo" class="w-8 h-8 rounded-lg shadow-md">
+        <span class="font-bold text-xl tracking-tight text-white">Share<span class="text-indigo-400">CLIP</span></span>
+        <span class="text-xs bg-indigo-900/60 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-700/50">v4.5.8</span>
+      </a>
+      <nav class="hidden md:flex items-center space-x-6 text-sm font-medium text-gray-300">
+        <a href="https://novamindlab.github.io/AIShare-Grabber/airdrop-alternative-pc-android.html" class="hover:text-indigo-400 transition">AirDrop Alternative</a>
+        <a href="https://novamindlab.github.io/AIShare-Grabber/local-ai-photo-search.html" class="hover:text-indigo-400 transition">Local AI Search</a>
+        <a href="https://novamindlab.github.io/AIShare-Grabber/p2p-file-transfer.html" class="hover:text-indigo-400 transition">LAN P2P</a>
+        <a href="https://novamindlab.github.io/AIShare-Grabber/universal-video-downloader.html" class="hover:text-indigo-400 transition">Downloader</a>
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber" target="_blank" class="flex items-center text-gray-400 hover:text-white transition">
+          <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          GitHub
+        </a>
+      </nav>
+      <div class="flex items-center space-x-3">
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v4.5.8" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow-lg shadow-indigo-600/30">
+          Download Free
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="flex-grow">
+    <section class="py-16 md:py-24 text-center px-4 max-w-5xl mx-auto">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-950/60 border border-indigo-700/40 text-indigo-300 text-xs font-medium mb-6">
+        <span>✨</span>
+        <span>Media Extraction & Playback Suite</span>
+      </div>
+      <h1 class="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+        Universal 4K Video Downloader & Detached Floating Player
+      </h1>
+      <p class="text-base sm:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
+        Download ultra-high-definition video and audio streams from 1000+ platforms with hardware-accelerated playback and picture-in-picture float window.
+      </p>
+
+      <!-- CTA Buttons -->
+      <div class="flex flex-wrap justify-center items-center gap-4">
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe" class="inline-flex items-center px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-medium shadow-xl shadow-indigo-600/25 transition">
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.802"/></svg>
+          Windows 64-bit (.exe)
+        </a>
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Android-4.5.8.apk" class="inline-flex items-center px-6 py-3.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-medium border border-gray-700 transition">
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-1.0002s.4482-.9993 1.0002-.9993c.5511 0 .9993.4478.9993.9993s-.4482 1.0002-.9993 1.0002m-11.046 0c-.5511 0-.9993-.4486-.9993-1.0002s.4482-.9993 1.0002-.9993c.5511 0 .9993.4478.9993.9993s-.4482 1.0002-.9993 1.0002m11.4045-6.02l1.996-3.4565a.4162.4162 0 00-.152-.5684.417.417 0 00-.5684.152l-2.0223 3.503C15.5898 8.4116 13.8491 8.09 12 8.09c-1.8491 0-3.5898.3216-5.1308.8515L4.8469 5.4385a.417.417 0 00-.5684-.152.4162.4162 0 00-.152.5684l1.996 3.4565C2.688 11.0494 0 14.773 0 19.166h24c0-4.393-2.688-8.1166-6.1185-9.8446"/></svg>
+          Android APK (.apk)
+        </a>
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Mac-4.5.8-arm64.dmg" class="inline-flex items-center px-6 py-3.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-medium border border-gray-700 transition">
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 7.07c.6-1.08 1.01-2.59.8-4.07-1.12.05-2.48.75-3.28 1.69-.7.82-1.32 2.37-1.16 3.84 1.25.1 2.53-.66 3.64-1.46z"/></svg>
+          macOS (.dmg)
+        </a>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+        <div class="glass-card p-4 rounded-xl">
+          <div class="text-2xl font-bold text-indigo-400">80+ MB/s</div>
+          <div class="text-xs text-gray-400">LAN Wi-Fi P2P Speed</div>
+        </div>
+        <div class="glass-card p-4 rounded-xl">
+          <div class="text-2xl font-bold text-purple-400">0% Cloud</div>
+          <div class="text-xs text-gray-400">Pure Local Privacy</div>
+        </div>
+        <div class="glass-card p-4 rounded-xl">
+          <div class="text-2xl font-bold text-pink-400">512-D</div>
+          <div class="text-xs text-gray-400">MobileCLIP Vector Search</div>
+        </div>
+        <div class="glass-card p-4 rounded-xl">
+          <div class="text-2xl font-bold text-emerald-400">100% Free</div>
+          <div class="text-xs text-gray-400">MIT Open Source</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparison Table Section -->
+    <section class="py-12 px-4 max-w-5xl mx-auto">
+      <h2 class="text-2xl sm:text-3xl font-bold text-white text-center mb-8">
+        ShareCLIP Video Downloader vs. Ad-Filled Online Downloaders
+      </h2>
+      <div class="glass-card rounded-2xl overflow-x-auto shadow-2xl border border-gray-800">
+        <table class="w-full text-left text-sm text-gray-300">
+          <thead class="bg-gray-800/80 text-xs uppercase text-gray-400 border-b border-gray-700">
+            <tr>
+              <th scope="col" class="py-3.5 px-4">Feature / Metric</th>
+              <th scope="col" class="py-3.5 px-4 text-indigo-400 font-bold">ShareCLIP</th>
+              <th scope="col" class="py-3.5 px-4">AirDrop</th>
+              <th scope="col" class="py-3.5 px-4">Cloud Drive</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+    <tr class="border-b border-gray-800 hover:bg-gray-800/50 transition">
+      <td class="py-3 px-4 font-medium text-gray-200">Resolution & Quality</td>
+      <td class="py-3 px-4 font-semibold text-indigo-400 bg-indigo-950/20">🎬 4K 60fps / 1080p HDR / Lossless Audio</td>
+      <td class="py-3 px-4 text-gray-400">N/A</td>
+      <td class="py-3 px-4 text-gray-500">❌ Often capped at 720p with watermarks</td>
+    </tr>
+  
+    <tr class="border-b border-gray-800 hover:bg-gray-800/50 transition">
+      <td class="py-3 px-4 font-medium text-gray-200">Advertisements & Malware Risk</td>
+      <td class="py-3 px-4 font-semibold text-indigo-400 bg-indigo-950/20">🛡️ 100% Clean & Open Source (No Ads)</td>
+      <td class="py-3 px-4 text-gray-400">N/A</td>
+      <td class="py-3 px-4 text-gray-500">⚠️ Riddled with redirect ads and malware</td>
+    </tr>
+  
+    <tr class="border-b border-gray-800 hover:bg-gray-800/50 transition">
+      <td class="py-3 px-4 font-medium text-gray-200">Integrated Player</td>
+      <td class="py-3 px-4 font-semibold text-indigo-400 bg-indigo-950/20">🪟 Frameless Always-On-Top Detached Window</td>
+      <td class="py-3 px-4 text-gray-400">N/A</td>
+      <td class="py-3 px-4 text-gray-500">❌ External player required</td>
+    </tr>
+  
+    <tr class="border-b border-gray-800 hover:bg-gray-800/50 transition">
+      <td class="py-3 px-4 font-medium text-gray-200">Batch & Playlist Downloads</td>
+      <td class="py-3 px-4 font-semibold text-indigo-400 bg-indigo-950/20">⚡ Native queue with multi-thread resume</td>
+      <td class="py-3 px-4 text-gray-400">N/A</td>
+      <td class="py-3 px-4 text-gray-500">❌ Single download limits</td>
+    </tr>
+  
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="py-16 px-4 max-w-3xl mx-auto">
+      <h2 class="text-2xl sm:text-3xl font-bold text-white text-center mb-8">
+        Frequently Asked Questions
+      </h2>
+      <div>
+        
+    <div class="border border-gray-800 rounded-xl p-5 bg-gray-900/60 mb-4">
+      <h3 class="text-lg font-semibold text-white mb-2 flex items-center">
+        <span class="text-indigo-400 mr-2">Q1:</span> Which platforms are supported by the downloader?
+      </h3>
+      <p class="text-gray-300 text-sm leading-relaxed">ShareCLIP supports over 1000 video platforms including YouTube, Bilibili, Douyin, TikTok, X (Twitter), Instagram, Vimeo, and more.</p>
+    </div>
+  
+    <div class="border border-gray-800 rounded-xl p-5 bg-gray-900/60 mb-4">
+      <h3 class="text-lg font-semibold text-white mb-2 flex items-center">
+        <span class="text-indigo-400 mr-2">Q2:</span> Can I watch downloaded videos in a picture-in-picture floating window?
+      </h3>
+      <p class="text-gray-300 text-sm leading-relaxed">Yes! ShareCLIP features a dedicated detached player window that stays on top while you browse or work, supporting smooth Range 206 local streaming.</p>
+    </div>
+  
+      </div>
+    </section>
+
+    <!-- Final Call to Action -->
+    <section class="py-16 px-4 text-center bg-gradient-to-b from-transparent to-indigo-950/30">
+      <div class="max-w-3xl mx-auto glass-card p-8 sm:p-12 rounded-3xl border border-indigo-900/50 shadow-2xl">
+        <h2 class="text-3xl font-extrabold text-white mb-4">Start Sharing at Light Speed Today</h2>
+        <p class="text-gray-300 mb-8 max-w-xl mx-auto">
+          No sign-ups, no monthly fees, and zero data leaves your local network.
+        </p>
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v4.5.8" class="inline-flex items-center px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/40 transition">
+          Download ShareCLIP v4.5.8
+          <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-800 py-10 text-center text-xs text-gray-500 bg-gray-950">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center space-x-2">
+        <img src="https://novamindlab.github.io/AIShare-Grabber/favicon.svg" alt="ShareCLIP" class="w-5 h-5">
+        <span class="font-medium text-gray-400">ShareCLIP Open Source Project</span>
+      </div>
+      <div class="flex space-x-6 text-gray-400">
+        <a href="https://novamindlab.github.io/AIShare-Grabber/privacy.html" class="hover:text-white transition">Privacy Policy</a>
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber" target="_blank" class="hover:text-white transition">GitHub Repo</a>
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases" target="_blank" class="hover:text-white transition">All Releases</a>
+        <a href="https://novamindlab.github.io/AIShare-Grabber/sitemap.xml" target="_blank" class="hover:text-white transition">Sitemap</a>
+      </div>
+      <div>
+        Released under MIT License. Copyright © 2026 NovaMindLab.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

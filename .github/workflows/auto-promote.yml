@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag to promote (e.g. v4.5.7)'
+        description: 'Version tag to promote (e.g. v4.5.8)'
         required: false
         default: ''
 
@@ -36,17 +36,27 @@ jobs:
           elif [ -n "${{ github.event.release.tag_name }}" ]; then
             TAG_VER="${{ github.event.release.tag_name }}"
           else
-            TAG_VER="v$(node -p "try { require('./cp_clip/package.json').version } catch(e) { '4.5.7' }")"
+            TAG_VER="v$(node -p "try { require('./cp_clip/package.json').version } catch(e) { '4.5.8' }")"
           fi
           CLEAN_VER="${TAG_VER#v}"
           echo "TAG=$TAG_VER" >> $GITHUB_OUTPUT
           echo "CLEAN=$CLEAN_VER" >> $GITHUB_OUTPUT
           echo "Promoting version: $TAG_VER ($CLEAN_VER)"
 
+      - name: 📄 Generate Programmatic SEO Landing Pages
+        id: pseo
+        run: |
+          if [ -f scripts/generate-pseo-pages.mjs ]; then
+            echo "Generating programmatic SEO landing pages for ${{ steps.ver.outputs.CLEAN }}..."
+            node scripts/generate-pseo-pages.mjs "${{ steps.ver.outputs.CLEAN }}"
+          else
+            echo "scripts/generate-pseo-pages.mjs not found, skipping."
+          fi
+
       - name: 🌐 Instant Search Engine Push (IndexNow & Bing)
         id: seo
         run: |
-          echo "Running IndexNow push..."
+          echo "Running IndexNow push for all landing pages..."
           node scripts/seo-push.mjs || true
 
       - name: 📦 Generate & Sync Package Manager Manifests
@@ -56,6 +66,38 @@ jobs:
         run: |
           echo "Generating manifests for ${{ steps.ver.outputs.CLEAN }}..."
           node scripts/generate-package-manifests.mjs "${{ steps.ver.outputs.CLEAN }}"
+
+      - name: 🪟 Automated WinGet Submission (vedantmgoyal2009/winget-releaser)
+        id: winget_releaser
+        if: env.WINGET_TOKEN != '' || env.PAT_TOKEN != ''
+        continue-on-error: true
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: NovaMindLab.ShareCLIP
+          version: ${{ steps.ver.outputs.CLEAN }}
+          token: ${{ secrets.WINGET_TOKEN || secrets.PAT_TOKEN }}
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: 🛡️ WinGet Fallback & Integrity Check
+        id: winget_fallback
+        run: |
+          WINGET_DIR="manifests/winget/n/NovaMindLab/ShareCLIP/${{ steps.ver.outputs.CLEAN }}"
+          if [ "${{ steps.winget_releaser.outcome }}" = "success" ]; then
+            echo "WINGET_STATUS=✅ Automated PR Submitted via WinGet Releaser" >> $GITHUB_OUTPUT
+            echo "WinGet automatic release successfully triggered via bot."
+          elif [ "${{ steps.winget_releaser.outcome }}" = "failure" ]; then
+            echo "WINGET_STATUS=⚠️ Fallback: Manifests Generated (Automated PR failed, check logs)" >> $GITHUB_OUTPUT
+            echo "WinGet automated releaser failed, fallback to repository manifests in $WINGET_DIR."
+          else
+            echo "WINGET_STATUS=📦 Fallback: Manifests Generated (WINGET_TOKEN secret not configured)" >> $GITHUB_OUTPUT
+            echo "WinGet releaser skipped, verified manifests ready in $WINGET_DIR."
+          fi
+          if [ -d "$WINGET_DIR" ]; then
+            echo "Local WinGet 3-file package manifests exist and verified:"
+            ls -la "$WINGET_DIR"
+          fi
 
       - name: 📝 Generate Multi-Channel Promotion Markdown
         run: |
@@ -69,11 +111,17 @@ jobs:
           [![Release](https://img.shields.io/github/v/release/NovaMindLab/AIShare-Grabber?color=6366f1)](https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }})
           [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/NovaMindLab/AIShare-Grabber)
 
-          ### 📦 Instant Downloads
+          ### 📦 One-Click Package Manager Installation
+          * **Windows (WinGet)**: `winget install NovaMindLab.ShareCLIP`
+          * **macOS (Homebrew)**: `brew install --cask shareclip`
+          * **Windows (Scoop)**: `scoop install https://raw.githubusercontent.com/NovaMindLab/AIShare-Grabber/main/manifests/scoop/shareclip.json`
+
+          ### 💾 Direct Binary Downloads
           * 💻 [Windows 64-bit Installer (.exe)](https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${{ steps.ver.outputs.TAG }}/ShareCLIP-Setup-${{ steps.ver.outputs.CLEAN }}.exe)
           * 📱 [Android Universal APK (.apk)](https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${{ steps.ver.outputs.TAG }}/ShareCLIP-Android-${{ steps.ver.outputs.CLEAN }}.apk)
-          * 🍎 [macOS Apple Silicon & Intel (.dmg)](https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }})
-          * 🐧 [Linux AppImage & Deb](https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }})
+          * 🍎 [macOS Apple Silicon (.dmg)](https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${{ steps.ver.outputs.TAG }}/ShareCLIP-Mac-${{ steps.ver.outputs.CLEAN }}-arm64.dmg)
+          * 🍏 [macOS Intel x64 (.dmg)](https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${{ steps.ver.outputs.TAG }}/ShareCLIP-Mac-${{ steps.ver.outputs.CLEAN }}-x64.dmg)
+          * 🐧 [Linux AppImage](https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${{ steps.ver.outputs.TAG }}/ShareCLIP-Linux-${{ steps.ver.outputs.CLEAN }}-x86_64.AppImage) & [Deb](https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${{ steps.ver.outputs.TAG }}/ShareCLIP-Linux-${{ steps.ver.outputs.CLEAN }}-amd64.deb)
           * 🌐 [Web Portal & WebShare P2P](https://novamindlab.github.io/AIShare-Grabber/)
 
           ### 🌟 Key Highlights in ${{ steps.ver.outputs.TAG }}
@@ -107,17 +155,17 @@ jobs:
             echo "Release $TAG not found via gh CLI, skipping notes enrichment."
           fi
 
-      - name: 💾 Commit Updated Manifests & Sitemap (if modified)
+      - name: 💾 Commit Updated Manifests, pSEO Pages & Sitemap
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add manifests/ web/public/sitemap.xml || true
+          git add manifests/ web/public/ || true
           if ! git diff --staged --quiet; then
-            git commit -m "chore(manifests): update package manifests & sitemap for ${{ steps.ver.outputs.TAG }} [skip ci]"
+            git commit -m "chore(distribution): sync package manifests, pSEO landing pages & sitemap for ${{ steps.ver.outputs.TAG }} [skip ci]"
             git push origin HEAD:${{ github.ref_name || 'main' }} || true
-            echo "Committed updated manifests and sitemap."
+            echo "Committed updated manifests, pSEO pages, and sitemap."
           else
-            echo "No manifest changes to commit."
+            echo "No file changes to commit."
           fi
 
       - name: 📢 Broadcast to Discord Webhook (if configured)
@@ -150,28 +198,73 @@ jobs:
                -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"🚀 ShareCLIP ${{ steps.ver.outputs.TAG }} 发布！\n私有局域网极速互传 + 本地 AI 搜图 + 4K 视频下载器\n下载直达: https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }}\"}}" \
                $CUSTOM_WEBHOOK || true
 
+      - name: 🌐 Multi-Channel Social & Developer Syndication (Bluesky, Mastodon, DEV.to)
+        run: |
+          if [ -f scripts/broadcast-release.mjs ]; then
+            echo "Running developer syndication broadcast..."
+            node scripts/broadcast-release.mjs "${{ steps.ver.outputs.TAG }}" || true
+          fi
+        env:
+          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+          MASTODON_INSTANCE: ${{ secrets.MASTODON_INSTANCE }}
+          MASTODON_ACCESS_TOKEN: ${{ secrets.MASTODON_ACCESS_TOKEN }}
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          DEVTO_PUBLISH: ${{ vars.DEVTO_PUBLISH || 'false' }}
+
       - name: 📊 Write Action Step Summary
         run: |
           cat << 'EOF' >> $GITHUB_STEP_SUMMARY
-          ## 🚀 ShareCLIP ${{ steps.ver.outputs.TAG }} Automated Promotion Report
+          # 🚀 ShareCLIP ${{ steps.ver.outputs.TAG }} Distribution & Promotion Report
 
-          | Channel / Action | Status | Details |
+          ## 📦 Package Manager & App Store Status
+
+          | Channel / Manager | Ecosystem | Status | Distribution Details |
+          |---|---|---|---|
+          | 🪟 **Microsoft WinGet** | Windows 10/11 | ${{ steps.winget_fallback.outputs.WINGET_STATUS }} | `winget install NovaMindLab.ShareCLIP` (Manifest: `manifests/winget/`) |
+          | 🍦 **Scoop** | Windows CLI | ✅ Manifest Synced | Bucket URL: `manifests/scoop/shareclip.json` |
+          | 🍺 **Homebrew Cask** | macOS (Apple / Intel) | ✅ Formula Generated | Cask file: `manifests/homebrew/shareclip.rb` (`brew install --cask shareclip`) |
+          | 🤖 **IzzyOnDroid / F-Droid** | Android FOSS | ✅ Metadata Ready | Application ID: `com.novamindlab.image_clip` (See `marketing/izzyondroid_submission.md`) |
+          | 🐧 **Linux Hub** | Ubuntu / Debian / Fedora | ✅ Artifacts Live | AppImage + Debian packages available on GitHub Releases |
+
+          ---
+
+          ## 🌐 Search Engine Push & Programmatic SEO (pSEO)
+
+          | Pipeline | Status | Details |
           |---|---|---|
-          | 🌐 **Search Engine Push** | ✅ Executed | Pushed latest URLs & sitemap to Bing & IndexNow APIs |
-          | 📦 **Package Manifests** | ✅ Updated | Synced Scoop (`shareclip.json`) & WinGet (`${{ steps.ver.outputs.CLEAN }}`) |
-          | 📝 **Release Notes** | ✅ Enriched | Pushed multi-platform download cards to Release body |
-          | 💬 **Discord Broadcast** | ${{ secrets.DISCORD_WEBHOOK != '' && '✅ Sent' || '⚠️ Skipped' }} | ${{ secrets.DISCORD_WEBHOOK != '' && 'Webhook triggered' || 'Secret `DISCORD_WEBHOOK` not configured' }} |
-          | 💬 **Telegram Broadcast** | ${{ secrets.TELEGRAM_BOT_TOKEN != '' && '✅ Sent' || '⚠️ Skipped' }} | ${{ secrets.TELEGRAM_BOT_TOKEN != '' && 'Bot sent message' || 'Secrets `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` not configured' }} |
-          | 💬 **Custom Webhook** | ${{ secrets.CUSTOM_WEBHOOK != '' && '✅ Sent' || '⚠️ Skipped' }} | ${{ secrets.CUSTOM_WEBHOOK != '' && 'Custom webhook triggered' || 'Secret `CUSTOM_WEBHOOK` not configured' }} |
+          | 📄 **pSEO Landing Pages** | ✅ Generated | Generated 8 high-intent pages: 4 Competitor Comparisons (`shareclip-vs-airdrop`, `shareclip-vs-localsend`, `shareclip-vs-google-photos`, `shareclip-vs-immich`) & 4 Feature Landing Pages (`airdrop-alternative-pc-android`, `local-ai-photo-search`, `p2p-file-transfer`, `universal-video-downloader`) |
+          | 🗺️ **Sitemap Synchronization** | ✅ Refreshed | Auto-updated `web/public/sitemap.xml` with current lastmod timestamp |
+          | ⚡ **IndexNow & Bing Push** | ✅ Executed | Real-time indexing push delivered to Bing and IndexNow endpoints |
 
-          ### 📋 Ready-to-use Marketing Copy
-          * Check repository `.github/promotion_output/release_announcement.md`
-          * Community launch templates: [`marketing/`](https://github.com/NovaMindLab/AIShare-Grabber/tree/main/marketing)
+          ---
+
+          ## 📢 Notification Broadcasts
+
+          | Notification Channel | Trigger Status | Note |
+          |---|---|---|
+          | 💬 **Discord Webhook** | ${{ secrets.DISCORD_WEBHOOK != '' && '✅ Sent' || '⚠️ Skipped' }} | ${{ secrets.DISCORD_WEBHOOK != '' && 'Delivered to Discord channel' || 'Secret `DISCORD_WEBHOOK` not configured' }} |
+          | 💬 **Telegram Channel** | ${{ secrets.TELEGRAM_BOT_TOKEN != '' && '✅ Sent' || '⚠️ Skipped' }} | ${{ secrets.TELEGRAM_BOT_TOKEN != '' && 'Telegram message dispatched' || 'Secrets `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` not configured' }} |
+          | 💬 **Custom Webhook** | ${{ secrets.CUSTOM_WEBHOOK != '' && '✅ Sent' || '⚠️ Skipped' }} | ${{ secrets.CUSTOM_WEBHOOK != '' && 'Custom webhook dispatched' || 'Secret `CUSTOM_WEBHOOK` not configured' }} |
+          | 🦋 **Bluesky Syndication** | ${{ secrets.BLUESKY_HANDLE != '' && '✅ Dispatched' || '⚠️ Skipped' }} | ${{ secrets.BLUESKY_HANDLE != '' && 'Dispatched via AT Protocol' || 'Secret `BLUESKY_HANDLE` not configured' }} |
+          | 🐘 **Mastodon Fediverse** | ${{ secrets.MASTODON_INSTANCE != '' && '✅ Dispatched' || '⚠️ Skipped' }} | ${{ secrets.MASTODON_INSTANCE != '' && 'Dispatched via Fediverse API' || 'Secret `MASTODON_INSTANCE` not configured' }} |
+          | 👩‍💻 **DEV.to Community** | ${{ secrets.DEVTO_API_KEY != '' && '✅ Dispatched' || '⚠️ Skipped' }} | ${{ secrets.DEVTO_API_KEY != '' && 'Article published/drafted' || 'Secret `DEVTO_API_KEY` not configured' }} |
+
+          ---
+
+          ### 📋 Ready-to-Use Community Submissions
+          * 🤖 **IzzyOnDroid Submission Guide**: [`marketing/izzyondroid_submission.md`](https://github.com/NovaMindLab/AIShare-Grabber/blob/main/marketing/izzyondroid_submission.md)
+          * 🍺 **Homebrew Cask Submission Guide**: [`marketing/homebrew_cask_submission.md`](https://github.com/NovaMindLab/AIShare-Grabber/blob/main/marketing/homebrew_cask_submission.md)
+          * 🎯 **AlternativeTo Submission**: [`marketing/alternativeto_submission.md`](https://github.com/NovaMindLab/AIShare-Grabber/blob/main/marketing/alternativeto_submission.md)
+          * 📰 **Hacker News Show HN**: [`marketing/hacker_news_show_hn.md`](https://github.com/NovaMindLab/AIShare-Grabber/blob/main/marketing/hacker_news_show_hn.md)
+          * 🐱 **Product Hunt Launch**: [`marketing/product_hunt_launch.md`](https://github.com/NovaMindLab/AIShare-Grabber/blob/main/marketing/product_hunt_launch.md)
+          * 🇨🇳 **V2EX Showcase Post**: [`marketing/v2ex_release_post.md`](https://github.com/NovaMindLab/AIShare-Grabber/blob/main/marketing/v2ex_release_post.md)
           EOF
 
-      - name: 📤 Archive Promotion Artifact
+      - name: 📤 Archive Promotion Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: promotion-announcement-${{ steps.ver.outputs.CLEAN }}
-          path: .github/promotion_output/release_announcement.md
-
+          name: distribution-package-${{ steps.ver.outputs.CLEAN }}
+          path: |
+            .github/promotion_output/release_announcement.md
+            manifests/

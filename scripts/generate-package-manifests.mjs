@@ -10,7 +10,7 @@ if (!version) {
     const pkg = JSON.parse(fs.readFileSync(path.resolve('cp_clip/package.json'), 'utf8'));
     version = pkg.version;
   } catch (_) {
-    version = '4.5.7';
+    version = '4.5.8';
   }
 }
 const cleanVer = version.replace(/^v/, '');
@@ -43,8 +43,9 @@ function getLocalFileSha256(filePath) {
   return crypto.createHash('sha256').update(buffer).digest('hex').toUpperCase();
 }
 
-async function fetchDigestFromGitHubApi(targetRepo, tag, assetName) {
+async function fetchReleaseAssetDigests(targetRepo, tag) {
   const apiUrl = `https://api.github.com/repos/${targetRepo}/releases/tags/${tag}`;
+  const digests = new Map();
   try {
     const res = await fetch(apiUrl, {
       headers: {
@@ -53,24 +54,29 @@ async function fetchDigestFromGitHubApi(targetRepo, tag, assetName) {
         ...(process.env.GITHUB_TOKEN ? { 'Authorization': `token ${process.env.GITHUB_TOKEN}` } : {})
       }
     });
-    if (!res.ok) return null;
+    if (!res.ok) return digests;
     const release = await res.json();
-    const asset = release.assets?.find(a => a.name === assetName);
-    if (asset?.digest && asset.digest.startsWith('sha256:')) {
-      return asset.digest.replace('sha256:', '').toUpperCase();
+    if (Array.isArray(release.assets)) {
+      for (const asset of release.assets) {
+        if (asset.digest && asset.digest.startsWith('sha256:')) {
+          digests.set(asset.name, asset.digest.replace('sha256:', '').toUpperCase());
+        }
+      }
     }
   } catch (err) {
     console.warn(`[Manifest Generator] GitHub API lookup warning: ${err.message}`);
   }
-  return null;
+  return digests;
 }
 
 async function main() {
-  let sha256 = process.argv[3] || process.env.INSTALLER_SHA256 || '';
+  const remoteDigests = await fetchReleaseAssetDigests(repo, `v${cleanVer}`);
 
-  // 1. Check local build artifacts first
-  if (!sha256) {
+  // 1. Resolve Windows SHA256
+  let winSha256 = process.argv[3] || process.env.INSTALLER_SHA256 || '';
+  if (!winSha256) {
     const localCandidates = [
+      path.resolve(`cp_clip/dist_electron/ShareCLIP-Setup-${cleanVer}.exe`),
       path.resolve(`cp_clip/dist/ShareCLIP-Setup-${cleanVer}.exe`),
       path.resolve(`release-files/ShareCLIP-Setup-${cleanVer}.exe`),
       path.resolve(`all-dist-artifacts/release-windows/ShareCLIP-Setup-${cleanVer}.exe`)
@@ -78,66 +84,117 @@ async function main() {
     for (const cand of localCandidates) {
       const localHash = getLocalFileSha256(cand);
       if (localHash) {
-        sha256 = localHash;
-        console.log(`[Manifest Generator] Found local installer SHA256: ${sha256} from ${cand}`);
+        winSha256 = localHash;
+        console.log(`[Manifest Generator] Found local installer SHA256: ${winSha256} from ${cand}`);
         break;
       }
     }
   }
 
-  // 2. Check GitHub Release Asset digest (Instant, 0 MB download)
-  if (!sha256) {
-    const targetAsset = `ShareCLIP-Setup-${cleanVer}.exe`;
-    const apiSha = await fetchDigestFromGitHubApi(repo, `v${cleanVer}`, targetAsset);
+  if (!winSha256) {
+    const apiSha = remoteDigests.get(`ShareCLIP-Setup-${cleanVer}.exe`);
     if (apiSha) {
-      sha256 = apiSha;
-      console.log(`[Manifest Generator] Retrieved remote asset SHA256 via GitHub API: ${sha256}`);
+      winSha256 = apiSha;
+      console.log(`[Manifest Generator] Retrieved Windows installer SHA256 via GitHub API: ${winSha256}`);
     }
   }
 
-  // 3. Fallback to streaming download if API did not return digest
-  if (!sha256) {
+  if (!winSha256) {
     try {
-      sha256 = await getSha256(installerUrl);
-      console.log(`[Manifest Generator] Streamed Remote SHA256: ${sha256}`);
+      winSha256 = await getSha256(installerUrl);
+      console.log(`[Manifest Generator] Streamed Remote Windows SHA256: ${winSha256}`);
     } catch (e) {
       console.warn(`[Manifest Generator] Could not fetch remote file (${e.message}).`);
     }
   }
 
-  if (!sha256) {
-    sha256 = '0000000000000000000000000000000000000000000000000000000000000000';
-    console.warn('[Manifest Generator] Using placeholder SHA256.');
+  if (!winSha256) {
+    winSha256 = '0000000000000000000000000000000000000000000000000000000000000000';
+    console.warn('[Manifest Generator] Using placeholder Windows SHA256.');
   }
 
-  // 1. Update Scoop Manifest
-  const scoopPath = path.resolve('manifests/scoop/shareclip.json');
-  if (fs.existsSync(scoopPath)) {
-    const scoopContent = JSON.parse(fs.readFileSync(scoopPath, 'utf8'));
-    scoopContent.version = cleanVer;
-    scoopContent.architecture['64bit'].url = `https://github.com/${repo}/releases/download/v${cleanVer}/ShareCLIP-Setup-${cleanVer}.exe#/dl.7z`;
-    if (sha256 !== '0000000000000000000000000000000000000000000000000000000000000000') {
-      scoopContent.architecture['64bit'].hash = sha256;
+  // 2. Resolve macOS SHA256 (arm64 & x64)
+  const macArmSha = remoteDigests.get(`ShareCLIP-Mac-${cleanVer}-arm64.dmg`) ||
+    getLocalFileSha256(path.resolve(`cp_clip/dist_electron/ShareCLIP-Mac-${cleanVer}-arm64.dmg`)) ||
+    '0000000000000000000000000000000000000000000000000000000000000000';
+
+  const macX64Sha = remoteDigests.get(`ShareCLIP-Mac-${cleanVer}-x64.dmg`) ||
+    getLocalFileSha256(path.resolve(`cp_clip/dist_electron/ShareCLIP-Mac-${cleanVer}-x64.dmg`)) ||
+    '0000000000000000000000000000000000000000000000000000000000000000';
+
+  // 3. Resolve Android APK SHA256
+  const androidSha = remoteDigests.get(`ShareCLIP-Android-${cleanVer}.apk`) ||
+    getLocalFileSha256(path.resolve(`app/build/outputs/apk/release/app-release.apk`)) ||
+    getLocalFileSha256(path.resolve(`web/public/app-release.apk`)) ||
+    '0000000000000000000000000000000000000000000000000000000000000000';
+
+  // ---------------------------------------------------------------------
+  // Output 1: Update Scoop Manifest
+  // ---------------------------------------------------------------------
+  const scoopDir = path.resolve('manifests/scoop');
+  fs.mkdirSync(scoopDir, { recursive: true });
+  const scoopPath = path.join(scoopDir, 'shareclip.json');
+  let scoopContent = {
+    version: cleanVer,
+    description: "Private P2P AirDrop Alternative, Local AI Photo Search & Media Suite",
+    homepage: "https://novamindlab.github.io/AIShare-Grabber/",
+    license: "MIT",
+    architecture: {
+      "64bit": {
+        url: `https://github.com/${repo}/releases/download/v${cleanVer}/ShareCLIP-Setup-${cleanVer}.exe#/dl.7z`,
+        hash: winSha256
+      }
+    },
+    shortcuts: [
+      ["ShareCLIP.exe", "ShareCLIP"]
+    ],
+    checkver: {
+      github: `https://github.com/${repo}`
+    },
+    autoupdate: {
+      architecture: {
+        "64bit": {
+          url: `https://github.com/${repo}/releases/download/v$version/ShareCLIP-Setup-$version.exe#/dl.7z`
+        }
+      }
     }
-    fs.writeFileSync(scoopPath, JSON.stringify(scoopContent, null, 2), 'utf8');
-    console.log(`[Manifest Generator] Updated Scoop manifest: ${scoopPath}`);
-  }
+  };
 
-  // 2. Update WinGet Single-file Manifest
-  const wingetSingletonPath = path.resolve('manifests/winget/NovaMindLab.ShareCLIP.yaml');
+  if (fs.existsSync(scoopPath)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(scoopPath, 'utf8'));
+      scoopContent = { ...existing, ...scoopContent };
+      scoopContent.version = cleanVer;
+      scoopContent.architecture['64bit'].url = `https://github.com/${repo}/releases/download/v${cleanVer}/ShareCLIP-Setup-${cleanVer}.exe#/dl.7z`;
+      if (winSha256 !== '0000000000000000000000000000000000000000000000000000000000000000') {
+        scoopContent.architecture['64bit'].hash = winSha256;
+      }
+    } catch (_) {}
+  }
+  fs.writeFileSync(scoopPath, JSON.stringify(scoopContent, null, 2), 'utf8');
+  console.log(`[Manifest Generator] Updated Scoop manifest: ${scoopPath}`);
+
+  // ---------------------------------------------------------------------
+  // Output 2: Update WinGet Single-file Manifest
+  // ---------------------------------------------------------------------
+  const wingetDir = path.resolve('manifests/winget');
+  fs.mkdirSync(wingetDir, { recursive: true });
+  const wingetSingletonPath = path.join(wingetDir, 'NovaMindLab.ShareCLIP.yaml');
   if (fs.existsSync(wingetSingletonPath)) {
     let wingetContent = fs.readFileSync(wingetSingletonPath, 'utf8');
     wingetContent = wingetContent.replace(/PackageVersion:\s*[0-9\.]+/g, `PackageVersion: ${cleanVer}`);
     wingetContent = wingetContent.replace(/v[0-9\.]+\/ShareCLIP-Setup-[0-9\.]+\.exe/g, `v${cleanVer}/ShareCLIP-Setup-${cleanVer}.exe`);
     wingetContent = wingetContent.replace(/releases\/tag\/v[0-9\.]+/g, `releases/tag/v${cleanVer}`);
-    if (sha256 !== '0000000000000000000000000000000000000000000000000000000000000000') {
-      wingetContent = wingetContent.replace(/InstallerSha256:\s*[0-9A-Fa-f]+/g, `InstallerSha256: ${sha256}`);
+    if (winSha256 !== '0000000000000000000000000000000000000000000000000000000000000000') {
+      wingetContent = wingetContent.replace(/InstallerSha256:\s*[0-9A-Fa-f]+/g, `InstallerSha256: ${winSha256}`);
     }
     fs.writeFileSync(wingetSingletonPath, wingetContent, 'utf8');
     console.log(`[Manifest Generator] Updated WinGet singleton manifest: ${wingetSingletonPath}`);
   }
 
-  // 3. Generate Official winget-pkgs 3-file Structured Directory
+  // ---------------------------------------------------------------------
+  // Output 3: Generate Official winget-pkgs 3-file Structured Directory
+  // ---------------------------------------------------------------------
   const wingetPkgDir = path.resolve(`manifests/winget/n/NovaMindLab/ShareCLIP/${cleanVer}`);
   fs.mkdirSync(wingetPkgDir, { recursive: true });
 
@@ -160,7 +217,7 @@ InstallModes:
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/${repo}/releases/download/v${cleanVer}/ShareCLIP-Setup-${cleanVer}.exe
-    InstallerSha256: ${sha256}
+    InstallerSha256: ${winSha256}
     Scope: user
 ManifestType: installer
 ManifestVersion: 1.6.0
@@ -205,7 +262,80 @@ ManifestVersion: 1.6.0
   fs.writeFileSync(path.join(wingetPkgDir, 'NovaMindLab.ShareCLIP.locale.en-US.yaml'), localeYaml, 'utf8');
   console.log(`[Manifest Generator] Generated winget-pkgs official manifests in: ${wingetPkgDir}`);
 
-  console.log('[Manifest Generator] Package manager manifests generated successfully!');
+  // ---------------------------------------------------------------------
+  // Output 4: Generate Homebrew Cask Formula (shareclip.rb)
+  // ---------------------------------------------------------------------
+  const homebrewDir = path.resolve('manifests/homebrew');
+  fs.mkdirSync(homebrewDir, { recursive: true });
+
+  const homebrewCask = `cask "shareclip" do
+  arch arm: "arm64", intel: "x64"
+
+  version "${cleanVer}"
+  sha256 arm:   "${macArmSha.toLowerCase()}",
+         intel: "${macX64Sha.toLowerCase()}"
+
+  url "https://github.com/${repo}/releases/download/v#{version}/ShareCLIP-Mac-#{version}-#{arch}.dmg",
+      verified: "github.com/${repo}/"
+  name "ShareCLIP"
+  desc "Local-first P2P file transfer and on-device AI photo gallery"
+  homepage "https://novamindlab.github.io/AIShare-Grabber/"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  auto_updates true
+  depends_on macos: ">= :catalina"
+
+  app "ShareCLIP.app"
+
+  zap trash: [
+    "~/Library/Application Support/ShareCLIP",
+    "~/Library/Preferences/com.shareclip.album.sync.plist",
+    "~/Library/Saved Application State/com.shareclip.album.sync.savedState",
+    "~/Library/Logs/ShareCLIP",
+  ]
+end
+`;
+
+  const brewFormulaPath = path.join(homebrewDir, 'shareclip.rb');
+  fs.writeFileSync(brewFormulaPath, homebrewCask, 'utf8');
+  console.log(`[Manifest Generator] Generated Homebrew Cask formula: ${brewFormulaPath}`);
+
+  // ---------------------------------------------------------------------
+  // Output 5: Generate IzzyOnDroid Metadata & Release Snapshot
+  // ---------------------------------------------------------------------
+  const izzyDir = path.resolve('manifests/izzyondroid');
+  fs.mkdirSync(izzyDir, { recursive: true });
+
+  const izzyMetadata = {
+    applicationId: "com.novamindlab.image_clip",
+    appName: "ShareCLIP",
+    version: cleanVer,
+    versionCode: 458,
+    releaseDate: new Date().toISOString().split('T')[0],
+    sourceCodeUrl: `https://github.com/${repo}`,
+    issueTrackerUrl: `https://github.com/${repo}/issues`,
+    apkAssetUrl: `https://github.com/${repo}/releases/download/v${cleanVer}/ShareCLIP-Android-${cleanVer}.apk`,
+    apkSha256: androidSha.toLowerCase(),
+    license: "MIT",
+    categories: ["Connectivity", "Multimedia", "Security", "Tools"],
+    antiFeatures: [],
+    minSdkVersion: 26,
+    targetSdkVersion: 34,
+    description: {
+      en: "Privacy-first P2P AirDrop alternative and on-device MobileCLIP AI photo gallery with zero cloud reliance.",
+      zh: "私有局域网极速互传 AirDrop 替代品与端侧离线 AI 语义搜图相册，零云端无限制。"
+    }
+  };
+
+  const izzyMetaPath = path.join(izzyDir, 'metadata.json');
+  fs.writeFileSync(izzyMetaPath, JSON.stringify(izzyMetadata, null, 2), 'utf8');
+  console.log(`[Manifest Generator] Generated IzzyOnDroid metadata: ${izzyMetaPath}`);
+
+  console.log('\n[Manifest Generator] All package manager manifests generated successfully!');
 }
 
 main();

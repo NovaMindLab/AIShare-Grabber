@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  
+  <title>ShareCLIP vs Immich 对比：免 Docker 容器与自建 Linux 服务器，双击即用的极简个人 AI 相册与闪传工具</title>
+  <meta name="title" content="ShareCLIP vs Immich 对比：免 Docker、免 NAS 服务器，双击即用的轻量级个人 AI 相册" />
+  <meta name="description" content="厌倦了折腾复杂的 Immich Docker Compose、PostgreSQL 数据库和微服务集群？ShareCLIP 提供双击即用的轻量级个人 AI 相册。Windows 绿色免安装，Android 一键运行，内置 MobileCLIP 与人脸聚类，无需任何服务器或 NAS 硬件，极简零运维。" />
+  <meta name="keywords" content="ShareCLIP, Immich 对比, Immich 替代, Immich 太复杂, 免Docker相册, 本地AI相册免服务器, Immich vs ShareCLIP, 个人私有相册, Windows相册管理, 局域网传输" />
+  <meta name="author" content="NovaMindLab" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-immich.html" />
+  <meta name="theme-color" content="#060913" />
+
+  <!-- Open Graph / Facebook / WeChat -->
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-immich.html" />
+  <meta property="og:title" content="ShareCLIP vs Immich 对比：免 Docker 容器与自建 Linux 服务器，双击即用的极简个人 AI 相册与闪传工具" />
+  <meta property="og:description" content="厌倦了折腾复杂的 Immich Docker Compose、PostgreSQL 数据库和微服务集群？ShareCLIP 提供双击即用的轻量级个人 AI 相册。Windows 绿色免安装，Android 一键运行，内置 MobileCLIP 与人脸聚类，无需任何服务器或 NAS 硬件，极简零运维。" />
+  <meta property="og:image" content="https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="ShareCLIP" />
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-immich.html" />
+  <meta name="twitter:title" content="ShareCLIP vs Immich 对比：免 Docker、免 NAS 服务器，双击即用的轻量级个人 AI 相册" />
+  <meta name="twitter:description" content="厌倦了折腾复杂的 Immich Docker Compose、PostgreSQL 数据库和微服务集群？ShareCLIP 提供双击即用的轻量级个人 AI 相册。Windows 绿色免安装，Android 一键运行，内置 MobileCLIP 与人脸聚类，无需任何服务器或 NAS 硬件，极简零运维。" />
+  <meta name="twitter:image" content="https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📸</text></svg>" />
+
+  <!-- Mixpanel Analytics -->
+  <script type="text/javascript">
+    (function(f,b){if(!b.__SV){var e,g,i,h;window.mixpanel=b;b._i=[];b.init=function(e,f,c){function g(a,d){var b=d.split(".");2==b.length&&(a=a[b[0]],d=b[1]);a[d]=function(){a.push([d].concat(Array.prototype.slice.call(arguments,0)))}}var a=b;"undefined"!==typeof c?a=b[c]=[]:c="mixpanel";a.people=a.people||[];a.toString=function(a){var d="mixpanel";"mixpanel"!==c&&(d+="."+c);a||(d+=" (stub)");return d};a.people.toString=function(){return a.toString(1)+".people (stub)"};i="disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset opt_in_tracking opt_out_tracking has_opted_in_tracking has_opted_out_tracking clear_opt_in_out_tracking start_batch_senders people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split(" ");
+    for(h=0;h<i.length;h++)g(a,i[h]);var j="set_config match_media reset register register_once unregister opt_in_tracking opt_out_tracking has_opted_in_tracking has_opted_out_tracking clear_opt_in_out_tracking".split(" ");for(h=0;h<j.length;h++)g(a,j[h]);b._i.push([e,f,c])};b.__SV=1.2;e=f.createElement("script");e.type="text/javascript";e.async=!0;e.src="undefined"!==typeof MIXPANEL_CUSTOM_LIB_URL?MIXPANEL_CUSTOM_LIB_URL:"file:"===f.location.protocol&&"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//)?"https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js":"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";g=f.getElementsByTagName("script")[0];g.parentNode.insertBefore(e,g)}})(document,window.mixpanel||[]);
+    mixpanel.init('0cd6d7d8447105fe062f27dafa4a527d', {
+      autocapture: true,
+      track_pageview: true,
+      persistence: 'localStorage'
+    });
+    mixpanel.track('pSEO Page Viewed', {
+      page: 'shareclip-vs-immich',
+      competitor: 'Immich'
+    });
+  </script>
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "ShareCLIP",
+      "url": "https://novamindlab.github.io/AIShare-Grabber",
+      "image": "https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg",
+      "operatingSystem": "Windows 10, Windows 11, Android, macOS, Web",
+      "applicationCategory": "MultimediaApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "218",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "description": "100% on-device AI photo gallery and high-speed local P2P sync across Windows, Android, macOS, and Web. Zero cloud, zero subscription, 80+ MB/s Wi-Fi speed."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "首页",
+          "item": "https://novamindlab.github.io/AIShare-Grabber/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "竞品对比",
+          "item": "https://novamindlab.github.io/AIShare-Grabber/#comparison"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "ShareCLIP vs Immich",
+          "item": "https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-immich.html"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "我已经有一台 NAS，还可以用 ShareCLIP 吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "当然可以！你可以把 NAS 挂载为电脑的本地磁盘或 SMB 共享目录，将 ShareCLIP 的相册存储路径直接指向 NAS 文件夹。这样你既享受到了 NAS 的大容量与磁盘阵列冗余，又无需在 NAS 上折腾复杂的 Docker 容器和调试，一举两得。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "如果未来我想换电脑，ShareCLIP 的数据和索引好迁移吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "极其简单。ShareCLIP 所有的照片均以最原始的文件格式保存在你的指定文件夹中，本地索引文件也是纯绿色的单文件数据库。迁移时只需把照片文件夹复制到新电脑，在新电脑上重新双击打开 ShareCLIP 即可，绝不会出现数据库格式绑定或权限锁死。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "ShareCLIP 会像 Docker 容器那样一直吃满 CPU 吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "绝对不会。ShareCLIP 采用事件驱动与增量索引机制。只有在收到新照片时才会轻量唤起后台 AI 线程进行向量化，处理完毕后 CPU 立即归零进入休眠状态，闲置时系统占用几乎为 0%。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "手机与电脑不在同一个 Wi-Fi 时怎么传？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "如果身处户外没有 Wi-Fi 路由器，手机只需开启个人热点，电脑连接手机热点，ShareCLIP 即可立刻实现免流量的高速无线 P2P 互传；也可以配合 Tailscale 等轻量虚拟局域网工具跨网连接。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "相比 Immich，ShareCLIP 缺少哪些功能？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Immich 偏向多用户权限管理、公网相册分享外链等企业级中央功能；而 ShareCLIP 更加专注于「个人与家庭的极速互传、端侧绝对隐私、无需服务器、双击即用的极简 AI 资产管理」。如果你不需要复杂的服务器协作，ShareCLIP 将提供轻巧十倍的使用体验。"
+          }
+        }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-immich.html",
+      "url": "https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-immich.html",
+      "name": "ShareCLIP vs Immich 对比：免 Docker 容器与自建 Linux 服务器，双击即用的极简个人 AI 相册与闪传工具",
+      "description": "厌倦了折腾复杂的 Immich Docker Compose、PostgreSQL 数据库和微服务集群？ShareCLIP 提供双击即用的轻量级个人 AI 相册。Windows 绿色免安装，Android 一键运行，内置 MobileCLIP 与人脸聚类，无需任何服务器或 NAS 硬件，极简零运维。",
+      "inLanguage": "zh-CN",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "ShareCLIP Official",
+        "url": "https://novamindlab.github.io/AIShare-Grabber"
+      }
+    }
+  ]
+}
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* CSS Reset & Design Tokens */
+    :root {
+      --bg-main: #060913;
+      --bg-card: rgba(15, 23, 42, 0.72);
+      --bg-card-hover: rgba(30, 41, 59, 0.85);
+      --primary: #a855f7;
+      --primary-glow: rgba(168, 85, 247, 0.35);
+      --secondary: #10b981;
+      --secondary-glow: rgba(16, 185, 129, 0.25);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --danger: #f43f5e;
+      --warning: #f59e0b;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(168, 85, 247, 0.45);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --font-sans: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.65;
+      overflow-x: hidden;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient Background Glows */
+    .bg-ambient {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .ambient-spot {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(140px);
+      opacity: 0.22;
+    }
+    .spot-1 { width: 650px; height: 650px; background: radial-gradient(circle, #7c3aed 0%, transparent 70%); top: -150px; left: 15%; }
+    .spot-2 { width: 550px; height: 550px; background: radial-gradient(circle, #0284c7 0%, transparent 70%); top: 40%; right: -120px; }
+    .spot-3 { width: 600px; height: 600px; background: radial-gradient(circle, #059669 0%, transparent 70%); bottom: 5%; left: -100px; }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Sticky Navbar */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(6, 9, 19, 0.75);
+      border-bottom: 1px solid var(--border-subtle);
+      transition: all 0.3s ease;
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 70px;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-main);
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: -0.02em;
+    }
+    .nav-brand .brand-logo { font-size: 24px; }
+    .nav-brand .brand-accent { color: var(--primary); }
+    .nav-version {
+      font-size: 11px;
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+    .nav-link:hover { color: var(--text-main); }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 10px;
+      padding: 9px 18px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 26px rgba(168, 85, 247, 0.55);
+      filter: brightness(1.1);
+    }
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+    }
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .btn-webshare {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #7dd3fc;
+    }
+    .btn-webshare:hover {
+      background: rgba(56, 189, 248, 0.22);
+      color: #bae6fd;
+    }
+
+    /* Comparison Quick Bar */
+    .switch-pills-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0 0 0;
+      padding: 6px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-subtle);
+      border-radius: 30px;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .switch-pill {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .switch-pill:hover { color: var(--text-main); }
+    .switch-pill.active {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(99, 102, 241, 0.3));
+      color: #fff;
+      border: 1px solid rgba(168, 85, 247, 0.5);
+    }
+
+    /* Breadcrumbs */
+    .breadcrumb-nav {
+      padding: 24px 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .breadcrumb-nav a { color: var(--text-muted); text-decoration: none; }
+    .breadcrumb-nav a:hover { color: var(--primary); }
+    .breadcrumb-sep { color: var(--text-dim); }
+
+    /* Hero Section */
+    .hero-sec {
+      padding: 30px 0 50px 0;
+      text-align: center;
+    }
+    .hero-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #c084fc;
+      background: rgba(168, 85, 247, 0.12);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      padding: 6px 16px;
+      border-radius: 30px;
+      margin-bottom: 24px;
+    }
+    .hero-title {
+      font-size: 42px;
+      line-height: 1.22;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+      max-width: 960px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #ffffff 15%, #c084fc 60%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-lead {
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--text-muted);
+      max-width: 820px;
+      margin: 0 auto 36px auto;
+    }
+    .hero-cta-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .btn-hero-lg {
+      padding: 13px 28px;
+      font-size: 16px;
+      border-radius: 12px;
+    }
+
+    /* Quick Stats Grid */
+    .stats-card-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin: 40px 0;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 22px 18px;
+      text-align: left;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: transform 0.25s ease, border-color 0.25s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-focus);
+      background: var(--bg-card-hover);
+    }
+    .stat-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+    .stat-sc {
+      font-size: 16px;
+      font-weight: 800;
+      color: #34d399;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stat-comp {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    /* Section Styling */
+    .content-section {
+      padding: 50px 0;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .sec-tag {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 10px;
+      display: block;
+    }
+    .sec-title {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
+    .sec-desc {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 28px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: all 0.25s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-focus);
+      box-shadow: 0 16px 36px -10px rgba(0,0,0,0.5);
+    }
+    .feature-icon-box {
+      font-size: 32px;
+      margin-bottom: 18px;
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .feature-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* Detailed Comparison Table */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    }
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    .comp-table th {
+      padding: 20px 24px;
+      font-size: 15px;
+      font-weight: 800;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(15, 23, 42, 0.85);
+    }
+    .comp-table th.col-sc {
+      background: rgba(168, 85, 247, 0.14);
+      color: #e9d5ff;
+      border-left: 1px solid rgba(168, 85, 247, 0.3);
+      border-right: 1px solid rgba(168, 85, 247, 0.3);
+    }
+    .comp-table td {
+      padding: 18px 24px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+    .comp-table td.col-sc {
+      background: rgba(168, 85, 247, 0.05);
+      border-left: 1px solid rgba(168, 85, 247, 0.2);
+      border-right: 1px solid rgba(168, 85, 247, 0.2);
+      font-weight: 600;
+    }
+    .comp-table tr.category-row td {
+      background: rgba(30, 41, 59, 0.6);
+      font-weight: 800;
+      font-size: 13px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 12px 24px;
+    }
+    .badge-win {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      margin-bottom: 4px;
+    }
+    .badge-lose {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(244, 63, 94, 0.16);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      margin-bottom: 4px;
+    }
+    .badge-equal {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(148, 163, 184, 0.16);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      margin-bottom: 4px;
+    }
+
+    /* Deep Dive Articles */
+    .deep-dive-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 36px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .deep-dive-card h3 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+    .deep-dive-card p {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.8;
+      white-space: pre-line;
+    }
+
+    /* FAQ Accordion */
+    .faq-wrapper {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+    .faq-item[open] {
+      border-color: var(--border-focus);
+      background: var(--bg-card-hover);
+    }
+    .faq-question {
+      padding: 20px 24px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .faq-question::-webkit-details-marker { display: none; }
+    .faq-chevron {
+      font-size: 14px;
+      color: var(--primary);
+      transition: transform 0.25s ease;
+    }
+    .faq-item[open] .faq-chevron {
+      transform: rotate(180deg);
+    }
+    .faq-answer {
+      padding: 0 24px 22px 24px;
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* All Platforms Download Banner */
+    .download-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-top: 36px;
+    }
+    .download-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 28px 22px;
+      text-align: center;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .download-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-focus);
+    }
+    .download-card.highlight {
+      border-color: rgba(168, 85, 247, 0.4);
+      background: linear-gradient(180deg, rgba(168, 85, 247, 0.12) 0%, rgba(15, 23, 42, 0.8) 100%);
+    }
+    .dl-icon { font-size: 38px; margin-bottom: 12px; }
+    .dl-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .dl-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 20px; }
+    .dl-btn { width: 100%; font-size: 14px; }
+
+    /* Other Comparisons Switcher */
+    .other-comp-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .other-comp-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 22px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .other-comp-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--border-focus);
+      background: var(--bg-card-hover);
+    }
+    .occ-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .occ-title { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+    .occ-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 60px 0 40px 0;
+      margin-top: 80px;
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .footer-links a { color: var(--text-muted); text-decoration: none; }
+    .footer-links a:hover { color: var(--text-main); }
+
+    /* Mobile Responsive */
+    @media (max-width: 992px) {
+      .hero-title { font-size: 34px; }
+      .stats-card-grid { grid-template-columns: repeat(2, 1fr); }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .download-grid { grid-template-columns: repeat(2, 1fr); }
+      .other-comp-grid { grid-template-columns: 1fr; }
+      .nav-menu { display: none; }
+    }
+    @media (max-width: 680px) {
+      .hero-title { font-size: 28px; }
+      .hero-lead { font-size: 15px; }
+      .stats-card-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .download-grid { grid-template-columns: 1fr; }
+      .table-container { overflow-x: auto; }
+      .comp-table th, .comp-table td { padding: 14px 16px; font-size: 13px; }
+      .deep-dive-card { padding: 24px; }
+      .switch-pills-bar { border-radius: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Light -->
+  <div class="bg-ambient">
+    <div class="ambient-spot spot-1"></div>
+    <div class="ambient-spot spot-2"></div>
+    <div class="ambient-spot spot-3"></div>
+  </div>
+
+  <!-- Sticky Navbar -->
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a href="https://novamindlab.github.io/AIShare-Grabber/" class="nav-brand" title="ShareCLIP 官网">
+        <span class="brand-logo">📸</span>
+        <span>Share<span class="brand-accent">CLIP</span></span>
+        <span class="nav-version">v4.5.8</span>
+      </a>
+
+      <nav class="nav-menu">
+        <a href="#comparison" class="nav-link">参数对比</a>
+        <a href="#features" class="nav-link">核心优势</a>
+        <a href="#deep-dive" class="nav-link">深度评测</a>
+        <a href="#faq" class="nav-link">常见问答</a>
+        <a href="./webshare/" class="btn btn-webshare" target="_blank">🌐 WebShare 网页版</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="#download" class="btn btn-primary" onclick="if(window.mixpanel) mixpanel.track('CTA Click', { label: 'Nav Download', page: 'shareclip-vs-immich' });">
+          <span>🚀 免费下载</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Breadcrumb Navigation -->
+    <div class="breadcrumb-nav">
+      <a href="https://novamindlab.github.io/AIShare-Grabber/">首页</a>
+      <span class="breadcrumb-sep">/</span>
+      <a href="https://novamindlab.github.io/AIShare-Grabber/#comparison">竞品对比</a>
+      <span class="breadcrumb-sep">/</span>
+      <span style="color: var(--text-main);">ShareCLIP vs Immich</span>
+    </div>
+
+    <!-- Quick Switcher Bar -->
+    <div class="switch-pills-bar">
+      <span style="font-size: 12px; color: var(--text-dim); margin-right: 6px;">切换对比：</span>
+      <a href="./shareclip-vs-airdrop.html" class="switch-pill ">vs AirDrop</a>
+      <a href="./shareclip-vs-localsend.html" class="switch-pill ">vs LocalSend</a>
+      <a href="./shareclip-vs-google-photos.html" class="switch-pill ">vs Google Photos</a>
+      <a href="./shareclip-vs-immich.html" class="switch-pill active">vs Immich</a>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero-sec">
+      <div class="hero-badge-pill">
+        <span>✨</span> 极简开箱即用体验 • 2026 最新横评
+      </div>
+      <h1 class="hero-title">
+        <span class="gradient-text">告别复杂的 Docker 运维：无需服务器，双击即用的 AI 相册</span>
+      </h1>
+      <p class="hero-lead">
+        Immich 是一款令人尊敬的开源自建相册，但它需要专业的 Linux 知识、Docker Compose、PostgreSQL 与数 GB 常驻内存。ShareCLIP 带来极致的「免安装、免服务器、双击即用」，让普通电脑用户无需折腾即可享受端侧 AI 搜图与局域网闪传。
+      </p>
+
+      <div class="hero-cta-box">
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe" class="btn btn-primary btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'Hero_shareclip-vs-immich' });">
+          <span>🖥️ Windows 下载 (.exe)</span>
+        </a>
+        <a href="./app-release.apk" class="btn btn-outline btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Android', source: 'Hero_shareclip-vs-immich' });">
+          <span>📱 Android 安装包 (.apk)</span>
+        </a>
+        <a href="./webshare/" class="btn btn-webshare btn-hero-lg" target="_blank" onclick="if(window.mixpanel) mixpanel.track('WebShare Click', { source: 'Hero_shareclip-vs-immich' });">
+          <span>🌐 免安装 Web 网页版直连</span>
+        </a>
+      </div>
+
+      <!-- Quick Metrics Summary Grid -->
+      <div class="stats-card-grid">
+        
+        <div class="stat-card">
+          <div class="stat-label">部署与运行门槛</div>
+          <div class="stat-sc">⚡ 0 配置：下载双击 .exe 即开即用</div>
+          <div class="stat-comp">Immich: 高门槛：需 Docker / Compose / 命令行</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-label">硬件与服务器需求</div>
+          <div class="stat-sc">⚡ 无需专有服务器 / NAS，普通PC即可</div>
+          <div class="stat-comp">Immich: 需 7x24 小时开机的 Linux 服务器或高端NAS</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-label">系统闲置内存占用</div>
+          <div class="stat-sc">⚡ 约 50~80 MB (轻量纯粹)</div>
+          <div class="stat-comp">Immich: 通常 4GB ~ 8GB+ (多容器常驻)</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-label">移动端独立离线搜图</div>
+          <div class="stat-sc">⚡ ✅ 手机脱机独立支持 MobileCLIP</div>
+          <div class="stat-comp">Immich: ❌ 强依赖与远程服务端的在线连接</div>
+        </div>
+        
+      </div>
+    </section>
+
+    <!-- Why Switch Section -->
+    <section class="content-section" style="border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle);">
+      <div class="section-header">
+        <span class="sec-tag">痛点解决</span>
+        <h2 class="sec-title">为什么许多自建玩家最终转向轻量级的 ShareCLIP？</h2>
+        <p class="sec-desc">折腾 Immich 的初期充满乐趣，但随之而来的是无穷无尽的运维噩梦：数据库升级迁移报错、机器学习容器内存溢出崩溃、NAS 硬件发热耗电、公网反向代理证书过期……相册的本质是记录美好生活，而不是成为你的第二份无薪运维工作。ShareCLIP 秉持极简主义哲学：没有容器，没有复杂服务，双击即可开始传输与检索。</p>
+      </div>
+    </section>
+
+    <!-- Detailed Feature Comparison Table Section -->
+    <section class="content-section" id="comparison">
+      <div class="section-header">
+        <span class="sec-tag">全景参数对比</span>
+        <h2 class="sec-title">ShareCLIP 与 Immich 全维度深度横评</h2>
+        <p class="sec-desc">从跨平台兼容性、传输吞吐量、本地 AI 搜图引擎到隐私成本，看清每一处真实差异。</p>
+      </div>
+
+      <div class="table-container">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th style="width: 28%;">功能特性与评估维度</th>
+              <th class="col-sc" style="width: 38%;">📸 ShareCLIP (端侧 AI 闪传)</th>
+              <th style="width: 34%;">Immich 自建相册</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+            <tr class="category-row">
+              <td colspan="3">📌 部署安装与硬件门槛</td>
+            </tr>
+            
+              <tr>
+                <td><strong>运行部署方式</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ⚡ 绿色免安装，双击单个 .exe 启动
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ⚠️ Docker / Docker Compose / 命令行安装
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>专有服务器 / NAS 依赖</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 零依赖 (普通家用台式机/笔记本即可)
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ❌ 强烈依赖 24 小时开机的 NAS/Linux 主机
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>数据库依赖组件</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 内嵌轻量数据库，零外部依赖
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ⚠️ 需维护 PostgreSQL + PGVector + Redis
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>部署耗时与技术要求</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ⏱️ 30 秒开箱即用 (零技术基础)
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ⏱️ 数小时至数天 (需掌握网络与容器运维)
+                </td>
+              </tr>
+              
+            
+            <tr class="category-row">
+              <td colspan="3">📌 系统资源与性能开销</td>
+            </tr>
+            
+              <tr>
+                <td><strong>常驻系统内存占用</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  🍃 闲置仅约 50~80 MB
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  🔥 通常占用 4GB ~ 8GB+ (多容器并发)
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>传输协议效率</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ⚡ 局域网 P2P 直达 (80~120 MB/s)
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ⚠️ 需经由服务端 API 转存落盘
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>老旧电脑 / 笔记本适配度</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 极佳 (轻量低功耗，不卡顿)
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ❌ 较吃配置，轻薄本发热严重
+                </td>
+              </tr>
+              
+            
+            <tr class="category-row">
+              <td colspan="3">📌 核心功能与使用体验</td>
+            </tr>
+            
+              <tr>
+                <td><strong>本地 AI 自然语言搜图</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 原生内置 MobileCLIP 语义引擎
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ✅ 需下载单独机器学习容器运行
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>人脸识别与人物聚类</strong></td>
+                <td class="col-sc">
+                  <span class="badge-equal">基本相当</span><br />
+                  ✅ 内置 RetinaFace + ArcFace
+                </td>
+                <td>
+                  <span class="badge-equal">支持</span><br />
+                  ✅ 需启动人脸识别容器模块
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>手机脱网独立离线搜图</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 手机本地独立支持
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ❌ 必须实时连通自建 Immich 服务端
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>多端免客户端 Web 互传</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 内置 WebShare，浏览器扫码即用
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ⚠️ 需通过 Web 登录账号访问
+                </td>
+              </tr>
+              
+            
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Key Strengths Cards Grid -->
+    <section class="content-section" id="features">
+      <div class="section-header">
+        <span class="sec-tag">独特杀手级功能</span>
+        <h2 class="sec-title">选择 ShareCLIP 的 6 大不可替代理由</h2>
+        <p class="sec-desc">不仅速度飞快，更让您的媒体资产管理彻底迈入端侧智能时代。</p>
+      </div>
+
+      <div class="features-grid">
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">⚡</div>
+          <h3>免 Docker 免服务器，30 秒极速上手</h3>
+          <p>无需购买数千元的 NAS，无需学习 Linux 命令行或 Docker 配置文件。Windows 下载即可双击启动，绿色免安装；手机安装 APK 即可自动连通。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">🪶</div>
+          <h3>极致轻量，闲置内存仅需几十兆</h3>
+          <p>拒绝沉重的多微服务架构。ShareCLIP 没有常驻的 PostgreSQL 或 Redis 守护进程，闲置时几乎不消耗系统 CPU 与电量，轻薄笔记本也能全天无感开启。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">🤝</div>
+          <h3>点对点极速直传，无需中心中转</h3>
+          <p>与 Immich 偏向服务端中央存储不同，ShareCLIP 拥有强悍的点对点闪传能力。手机与 PC 之间无需中转机器，随时随地直连，千兆局域网满速 80~120 MB/s。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">📱</div>
+          <h3>移动端脱机独立 AI 检索</h3>
+          <p>ShareCLIP Android 端独立打包了端侧移动模型。即使电脑关机或离开家中的局域网，手机在高铁或户外依然可以离线进行自然语言语义图搜。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">👥</div>
+          <h3>开箱即用的人脸识别与相册聚类</h3>
+          <p>无需配置复杂的外部机器学习容器镜像。内置针对桌面端优化的 RetinaFace 与 ArcFace 算法，全自动检测聚类面孔，简单清晰。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">🔄</div>
+          <h3>零破坏性升级，告别数据库迁移故障</h3>
+          <p>所有的本地索引使用健壮耐用的轻量嵌入式存储，软件版本升级即替换单个执行文件，绝不会出现自建数据库版本锁死或容器启动崩溃的烦恼。</p>
+        </div>
+        
+      </div>
+    </section>
+
+    <!-- Deep Dive Articles Section -->
+    <section class="content-section" id="deep-dive">
+      <div class="section-header">
+        <span class="sec-tag">技术深度剖析</span>
+        <h2 class="sec-title">场景还原与架构底层深度实测</h2>
+        <p class="sec-desc">真实测试数据与架构原理，解答极客用户关心的底层疑问。</p>
+      </div>
+
+      
+      <div class="deep-dive-card">
+        <h3>1. 运维陷阱反思：为什么「自建相册」成了许多用户的无形负担？</h3>
+        <p>Immich 无疑是近年来开源界最杰出的自建项目之一，功能强大且界面精致。但很多用户在跟风购入高配置 NAS 并搭建 Immich 后，很快遭遇了残酷的现实：
+
+每次官方发布新大版本，Docker Compose 配置就要根据更新日志小心翼翼修改；PostgreSQL 数据库主版本升级时常面临数据兼容性挑战；机器学习容器在并发处理大量照片时容易引发 OOM（内存溢出）导致整机卡死。如果你的目标只是简简单单把手机照片传回电脑，并能随心所欲搜图，你真的需要一套复杂的微服务架构吗？ShareCLIP 重新回到软件设计的初衷：双击运行，即刻解决问题。</p>
+      </div>
+      
+      <div class="deep-dive-card">
+        <h3>2. 架构设计哲学差异：单机便携绿色版 vs 重型企业级微服务</h3>
+        <p>Immich 采用的是类似大型企业后端的技术栈：Nginx 反向代理、Node.js API 网关、Microservices 后台队列、PostgreSQL 关系库、Redis 缓存队列，再加上 Python 驱动的 Machine Learning 独立容器。这套架构在多用户企业环境中扩展性好，但对单人或家庭而言极其沉重。
+
+ShareCLIP 采用现代桌面极简架构。传输模块用高性能异步网络栈构建，前端采用现代化响应式视图，AI 模块直接内嵌原生 DirectML 与 ONNX Runtime。所有的代码被编译为一个自包含的独立可执行文件。没有后台僵尸进程，没有日志疯狂啃噬磁盘，关闭即停止，干净利落。</p>
+      </div>
+      
+      <div class="deep-dive-card">
+        <h3>3. 离线随身性对比：脱机环境下谁能真正做到随时随地？</h3>
+        <p>自建 Immich 最大的软肋在于「强连接依赖」。当你出差在高铁上、在无信号的露营地，或者因为家中断电、NAS 意外死机，手机上的 Immich App 瞬间陷入不可用状态，不仅无法同步，连利用 AI 搜索本地照片都彻底瘫痪。
+
+ShareCLIP 的 Android 客户端具有完全自主的端侧感知大脑。在手机端，MobileCLIP 深度模型与离线向量检索直接嵌在 App 内部。无论你身处世界的哪一个角落，哪怕完全拔掉 SIM 卡处于飞行模式，本地相册依旧能够流畅进行复杂自然语言搜索。这种完全去中心化的架构赋予了数据真正的自由。</p>
+      </div>
+      
+    </section>
+
+    <!-- FAQ Accordion Section -->
+    <section class="content-section" id="faq">
+      <div class="section-header">
+        <span class="sec-tag">常见疑问解答</span>
+        <h2 class="sec-title">关于 ShareCLIP 与 Immich 的常见问答</h2>
+        <p class="sec-desc">解答您在实际使用、迁移、隐私保护和性能上的所有疑问。</p>
+      </div>
+
+      <div class="faq-wrapper">
+        
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>我已经有一台 NAS，还可以用 ShareCLIP 吗？</span>
+            <span class="faq-chevron">▼</span>
+          </summary>
+          <div class="faq-answer">
+            当然可以！你可以把 NAS 挂载为电脑的本地磁盘或 SMB 共享目录，将 ShareCLIP 的相册存储路径直接指向 NAS 文件夹。这样你既享受到了 NAS 的大容量与磁盘阵列冗余，又无需在 NAS 上折腾复杂的 Docker 容器和调试，一举两得。
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>如果未来我想换电脑，ShareCLIP 的数据和索引好迁移吗？</span>
+            <span class="faq-chevron">▼</span>
+          </summary>
+          <div class="faq-answer">
+            极其简单。ShareCLIP 所有的照片均以最原始的文件格式保存在你的指定文件夹中，本地索引文件也是纯绿色的单文件数据库。迁移时只需把照片文件夹复制到新电脑，在新电脑上重新双击打开 ShareCLIP 即可，绝不会出现数据库格式绑定或权限锁死。
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>ShareCLIP 会像 Docker 容器那样一直吃满 CPU 吗？</span>
+            <span class="faq-chevron">▼</span>
+          </summary>
+          <div class="faq-answer">
+            绝对不会。ShareCLIP 采用事件驱动与增量索引机制。只有在收到新照片时才会轻量唤起后台 AI 线程进行向量化，处理完毕后 CPU 立即归零进入休眠状态，闲置时系统占用几乎为 0%。
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>手机与电脑不在同一个 Wi-Fi 时怎么传？</span>
+            <span class="faq-chevron">▼</span>
+          </summary>
+          <div class="faq-answer">
+            如果身处户外没有 Wi-Fi 路由器，手机只需开启个人热点，电脑连接手机热点，ShareCLIP 即可立刻实现免流量的高速无线 P2P 互传；也可以配合 Tailscale 等轻量虚拟局域网工具跨网连接。
+          </div>
+        </details>
+        
+        <details class="faq-item">
+          <summary class="faq-question">
+            <span>相比 Immich，ShareCLIP 缺少哪些功能？</span>
+            <span class="faq-chevron">▼</span>
+          </summary>
+          <div class="faq-answer">
+            Immich 偏向多用户权限管理、公网相册分享外链等企业级中央功能；而 ShareCLIP 更加专注于「个人与家庭的极速互传、端侧绝对隐私、无需服务器、双击即用的极简 AI 资产管理」。如果你不需要复杂的服务器协作，ShareCLIP 将提供轻巧十倍的使用体验。
+          </div>
+        </details>
+        
+      </div>
+    </section>
+
+    <!-- All Platforms Download CTA Banner -->
+    <section class="content-section" id="download">
+      <div class="section-header">
+        <span class="sec-tag">全平台下载</span>
+        <h2 class="sec-title">立刻体验极速 P2P 互传与端侧 AI 搜图</h2>
+        <p class="sec-desc">100% 开源免费，无广告、无订阅，永久拥有您的照片主权。</p>
+      </div>
+
+      <div class="download-grid">
+        <!-- Windows -->
+        <div class="download-card highlight">
+          <div>
+            <div class="dl-icon">🖥️</div>
+            <div class="dl-title">Windows 客户端</div>
+            <div class="dl-sub">Windows 10 / 11 • 64-bit 安装包</div>
+          </div>
+          <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe" class="btn btn-primary dl-btn" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'DownloadGrid_shareclip-vs-immich' });">
+            <span>下载 Windows 版</span>
+          </a>
+        </div>
+
+        <!-- Android -->
+        <div class="download-card">
+          <div>
+            <div class="dl-icon">📱</div>
+            <div class="dl-title">Android 安卓版</div>
+            <div class="dl-sub">支持 Android 8.0+ • APK 直链</div>
+          </div>
+          <a href="./app-release.apk" class="btn btn-outline dl-btn" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Android', source: 'DownloadGrid_shareclip-vs-immich' });">
+            <span>下载 Android APK</span>
+          </a>
+        </div>
+
+        <!-- WebShare -->
+        <div class="download-card">
+          <div>
+            <div class="dl-icon">🌐</div>
+            <div class="dl-title">WebShare 网页版</div>
+            <div class="dl-sub">无需安装客户端 • 浏览器扫码直传</div>
+          </div>
+          <a href="./webshare/" class="btn btn-webshare dl-btn" target="_blank" onclick="if(window.mixpanel) mixpanel.track('WebShare Click', { source: 'DownloadGrid_shareclip-vs-immich' });">
+            <span>立即在线使用</span>
+          </a>
+        </div>
+
+        <!-- macOS & GitHub -->
+        <div class="download-card">
+          <div>
+            <div class="dl-icon">🍏</div>
+            <div class="dl-title">macOS & 开源仓库</div>
+            <div class="dl-sub">Apple Silicon / Intel • GitHub 源码</div>
+          </div>
+          <a href="https://github.com/NovaMindLab/AIShare-Grabber" class="btn btn-outline dl-btn" target="_blank" onclick="if(window.mixpanel) mixpanel.track('GitHub Click', { source: 'DownloadGrid_shareclip-vs-immich' });">
+            <span>⭐ Star on GitHub</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Other Comparisons Navigation -->
+    <section class="content-section" style="border-top: 1px solid var(--border-subtle); margin-top: 40px;">
+      <div class="section-header">
+        <span class="sec-tag">探索更多对比</span>
+        <h2 class="sec-title">查看其他热门工具对比评测</h2>
+        <p class="sec-desc">了解 ShareCLIP 与其他流行工具在架构、隐私与功能上的全方位差异。</p>
+      </div>
+
+      <div class="other-comp-grid">
+        
+        <a href="./shareclip-vs-airdrop.html" class="other-comp-card">
+          <div>
+            <div class="occ-badge">深度对比</div>
+            <div class="occ-title">ShareCLIP vs AirDrop</div>
+            <div class="occ-desc">ShareCLIP vs AirDrop 对比：跨 Windows/Android 无线快传与端侧 AI 搜图最佳替代方案</div>
+          </div>
+          <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
+        </a>
+        
+        <a href="./shareclip-vs-localsend.html" class="other-comp-card">
+          <div>
+            <div class="occ-badge">深度对比</div>
+            <div class="occ-title">ShareCLIP vs LocalSend</div>
+            <div class="occ-desc">ShareCLIP vs LocalSend 对比：P2P 局域网传输之上，独家本地 AI 搜图与人脸智能相册</div>
+          </div>
+          <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
+        </a>
+        
+        <a href="./shareclip-vs-google-photos.html" class="other-comp-card">
+          <div>
+            <div class="occ-badge">深度对比</div>
+            <div class="occ-title">ShareCLIP vs Google Photos</div>
+            <div class="occ-desc">ShareCLIP vs Google Photos 对比：零云端泄露、零月费订阅的 100% 离线个人 AI 相册</div>
+          </div>
+          <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
+        </a>
+        
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <div>
+        <div style="font-weight: 800; font-size: 16px; color: #fff; margin-bottom: 6px;">
+          📸 ShareCLIP
+        </div>
+        <div style="font-size: 13px;">
+          基于 MIT 宽松协议开源 • 保护您的数字资产与个人隐私
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <a href="https://novamindlab.github.io/AIShare-Grabber/">官方首页</a>
+        <a href="./webshare/" target="_blank">WebShare 网页版</a>
+        <a href="https://novamindlab.github.io/AIShare-Grabber/privacy.html">隐私政策</a>
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber" target="_blank">GitHub 开源仓库</a>
+        <a href="https://github.com/sponsors/NovaMindLab" target="_blank">赞助支持</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
