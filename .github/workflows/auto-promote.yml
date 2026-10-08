@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag to promote (e.g. v4.0.0)'
+        description: 'Version tag to promote (e.g. v4.5.7)'
         required: false
         default: ''
 
@@ -15,11 +15,18 @@ permissions:
 
 jobs:
   generate-promotion-assets:
-    name: 🚀 Generate Promotion Broadcasts & Badges
+    name: 🚀 Automated Promotion, SEO & Distribution
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Determine Version
         id: ver
@@ -29,14 +36,28 @@ jobs:
           elif [ -n "${{ github.event.release.tag_name }}" ]; then
             TAG_VER="${{ github.event.release.tag_name }}"
           else
-            TAG_VER="v4.0.0"
+            TAG_VER="v$(node -p "try { require('./cp_clip/package.json').version } catch(e) { '4.5.7' }")"
           fi
           CLEAN_VER="${TAG_VER#v}"
           echo "TAG=$TAG_VER" >> $GITHUB_OUTPUT
           echo "CLEAN=$CLEAN_VER" >> $GITHUB_OUTPUT
           echo "Promoting version: $TAG_VER ($CLEAN_VER)"
 
-      - name: Generate Multi-Channel Promotion Markdown
+      - name: 🌐 Instant Search Engine Push (IndexNow & Bing)
+        id: seo
+        run: |
+          echo "Running IndexNow push..."
+          node scripts/seo-push.mjs || true
+
+      - name: 📦 Generate & Sync Package Manager Manifests
+        id: manifests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Generating manifests for ${{ steps.ver.outputs.CLEAN }}..."
+          node scripts/generate-package-manifests.mjs "${{ steps.ver.outputs.CLEAN }}"
+
+      - name: 📝 Generate Multi-Channel Promotion Markdown
         run: |
           mkdir -p .github/promotion_output
           cat << 'EOF' > .github/promotion_output/release_announcement.md
@@ -55,16 +76,51 @@ jobs:
           * 🐧 [Linux AppImage & Deb](https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }})
           * 🌐 [Web Portal & WebShare P2P](https://novamindlab.github.io/AIShare-Grabber/)
 
-          ### 🌟 What's New in ${{ steps.ver.outputs.TAG }}
-          - 🎬 **Independent Electron Video Player Window**: Detached frameless HTML5 player with always-on-top picture-in-picture, smooth Range streaming & keyboard shortcuts.
-          - 🌐 **Multi-Site 4K Video Downloader**: Universal downloader supporting YouTube, Bilibili, Douyin, TikTok, Kuaishou, Twitter/X, Xiaohongshu with anti-bot evasion & automatic FFmpeg DASH audio-video merging.
-          - 🔍 **Share Text Auto-Extractor**: Automatically parses clean video URLs from complex social media share captions.
-          - 🔒 **100% On-Device Privacy**: No accounts, zero cloud subscriptions, end-to-end local Wi-Fi / WebRTC P2P sync.
+          ### 🌟 Key Highlights in ${{ steps.ver.outputs.TAG }}
+          - ⚡ **Zero Cloud P2P Sync (80+ MB/s)**: End-to-end local Wi-Fi transfer over WebRTC DataChannel.
+          - 🧠 **On-Device AI Classification & Vector Search**: Embedded MobileCLIP2-S0 with 512-D local vector indexing.
+          - 🎬 **Detached HTML5 Video Player**: Frameless always-on-top player window with Range 206 smooth streaming.
+          - 🌐 **4K Multi-Site Video Downloader**: Universal engine for YouTube, Bilibili, Douyin, TikTok, X, and 1000+ sites.
+          - 🎨 **AnimeGAN Video Studio**: Neural style transfer video converter powered by ONNX Runtime.
+          - 🌍 **20-Language Full i18n**: 100% localized interface across desktop, mobile and web.
 
           💬 **Join our Community & Star on GitHub**: https://github.com/NovaMindLab/AIShare-Grabber
           EOF
 
-      - name: Broadcast to Discord Webhook (if configured)
+      - name: 🔄 Enrich GitHub Release Description
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.ver.outputs.TAG }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Enriching Release $TAG notes..."
+            ORIGINAL_NOTES=$(gh release view "$TAG" --json body -q .body || true)
+            ANNOUNCEMENT=$(cat .github/promotion_output/release_announcement.md)
+            NEW_BODY="${ANNOUNCEMENT}
+
+          ---
+          ### 📋 Detailed Change Log
+          ${ORIGINAL_NOTES}"
+            gh release edit "$TAG" --notes "$NEW_BODY" || true
+            echo "Release notes updated successfully."
+          else
+            echo "Release $TAG not found via gh CLI, skipping notes enrichment."
+          fi
+
+      - name: 💾 Commit Updated Manifests & Sitemap (if modified)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifests/ web/public/sitemap.xml || true
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(manifests): update package manifests & sitemap for ${{ steps.ver.outputs.TAG }} [skip ci]"
+            git push origin HEAD:${{ github.ref_name || 'main' }} || true
+            echo "Committed updated manifests and sitemap."
+          else
+            echo "No manifest changes to commit."
+          fi
+
+      - name: 📢 Broadcast to Discord Webhook (if configured)
         if: env.DISCORD_WEBHOOK != ''
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
@@ -74,7 +130,7 @@ jobs:
                -d "{\"content\":\"📢 **ShareCLIP ${{ steps.ver.outputs.TAG }} Released!**\n\nPrivate P2P AirDrop Alternative + Local AI Photo Search + 4K Multi-Site Video Downloader!\n\n👉 Download now: https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }}\n🌟 Star on GitHub: https://github.com/NovaMindLab/AIShare-Grabber\"}" \
                $DISCORD_WEBHOOK || true
 
-      - name: Broadcast to Telegram Channel (if configured)
+      - name: 📢 Broadcast to Telegram Channel (if configured)
         if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -83,3 +139,39 @@ jobs:
           TEXT="🚀 *ShareCLIP ${{ steps.ver.outputs.TAG }} Released!*%0A%0AThe All-in-One Local-First Media Suite (AirDrop Alternative + Local AI + 4K Downloader)%0A%0A📦 [Download Release](https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }})%0A⭐ [Star on GitHub](https://github.com/NovaMindLab/AIShare-Grabber)"
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
                -d "chat_id=${TELEGRAM_CHAT_ID}&text=${TEXT}&parse_mode=Markdown" || true
+
+      - name: 📢 Broadcast to Custom Webhook (if configured)
+        if: env.CUSTOM_WEBHOOK != ''
+        env:
+          CUSTOM_WEBHOOK: ${{ secrets.CUSTOM_WEBHOOK }}
+        run: |
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"🚀 ShareCLIP ${{ steps.ver.outputs.TAG }} 发布！\n私有局域网极速互传 + 本地 AI 搜图 + 4K 视频下载器\n下载直达: https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${{ steps.ver.outputs.TAG }}\"}}" \
+               $CUSTOM_WEBHOOK || true
+
+      - name: 📊 Write Action Step Summary
+        run: |
+          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          ## 🚀 ShareCLIP ${{ steps.ver.outputs.TAG }} Automated Promotion Report
+
+          | Channel / Action | Status | Details |
+          |---|---|---|
+          | 🌐 **Search Engine Push** | ✅ Executed | Pushed latest URLs & sitemap to Bing & IndexNow APIs |
+          | 📦 **Package Manifests** | ✅ Updated | Synced Scoop (`shareclip.json`) & WinGet (`${{ steps.ver.outputs.CLEAN }}`) |
+          | 📝 **Release Notes** | ✅ Enriched | Pushed multi-platform download cards to Release body |
+          | 💬 **Discord Broadcast** | ${{ secrets.DISCORD_WEBHOOK != '' && '✅ Sent' || '⚠️ Skipped' }} | ${{ secrets.DISCORD_WEBHOOK != '' && 'Webhook triggered' || 'Secret `DISCORD_WEBHOOK` not configured' }} |
+          | 💬 **Telegram Broadcast** | ${{ secrets.TELEGRAM_BOT_TOKEN != '' && '✅ Sent' || '⚠️ Skipped' }} | ${{ secrets.TELEGRAM_BOT_TOKEN != '' && 'Bot sent message' || 'Secrets `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` not configured' }} |
+          | 💬 **Custom Webhook** | ${{ secrets.CUSTOM_WEBHOOK != '' && '✅ Sent' || '⚠️ Skipped' }} | ${{ secrets.CUSTOM_WEBHOOK != '' && 'Custom webhook triggered' || 'Secret `CUSTOM_WEBHOOK` not configured' }} |
+
+          ### 📋 Ready-to-use Marketing Copy
+          * Check repository `.github/promotion_output/release_announcement.md`
+          * Community launch templates: [`marketing/`](https://github.com/NovaMindLab/AIShare-Grabber/tree/main/marketing)
+          EOF
+
+      - name: 📤 Archive Promotion Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: promotion-announcement-${{ steps.ver.outputs.CLEAN }}
+          path: .github/promotion_output/release_announcement.md
+

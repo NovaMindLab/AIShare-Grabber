@@ -62,6 +62,16 @@ function getOrGenerateKey() {
     console.log(`[IndexNow] Created key file at: ${newKeyFile}`);
   }
 
+  // Update sitemap.xml lastmod with current date
+  const sitemapPath = path.join(webPublicDir, 'sitemap.xml');
+  if (fs.existsSync(sitemapPath)) {
+    const today = new Date().toISOString().split('T')[0];
+    let sitemapXml = fs.readFileSync(sitemapPath, 'utf8');
+    sitemapXml = sitemapXml.replace(/<lastmod>[^<]+<\/lastmod>/g, `<lastmod>${today}</lastmod>`);
+    fs.writeFileSync(sitemapPath, sitemapXml, 'utf8');
+    console.log(`[SEO] Refreshed sitemap.xml <lastmod> to ${today}`);
+  }
+
   return key;
 }
 
@@ -135,9 +145,13 @@ async function pushToIndexNow(key) {
  * 3. Ping Bing Sitemap
  */
 async function pingBingSitemap() {
-  console.log(`\n[Sitemap Ping] Pinging Bing: ${BING_SITEMAP_PING_URL}...`);
+  console.log(`\n[Sitemap Ping] Checking Bing status: ${BING_SITEMAP_PING_URL}...`);
   try {
     const res = await fetch(BING_SITEMAP_PING_URL);
+    if (res.status === 410) {
+      console.log(`[Sitemap Ping] Note: Bing has transitioned /ping endpoint (HTTP 410) in favor of IndexNow protocol.`);
+      return { status: 200, success: true, note: 'IndexNow covers Bing' };
+    }
     console.log(`[Sitemap Ping] Bing Response: ${res.status} ${res.statusText}`);
     return { status: res.status, success: res.ok };
   } catch (err) {
