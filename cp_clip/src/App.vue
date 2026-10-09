@@ -1836,167 +1836,18 @@
               </button>
             </div>
 
-            <!-- Right Controls: Cookie Sync Dropdown + Engine Version + Context Actions -->
+            <!-- Right Controls: Sniffer Browser & Settings Shortcut -->
             <div style="display: flex; gap: 10px; align-items: center;">
-              <!-- ⚡ yt-dlp Engine Version & Auto-Update Button -->
+              <!-- Settings Shortcut Button -->
               <button 
-                class="yt-engine-version-btn" 
-                :class="{ 'updating': ytUpdating }"
-                @click="checkYtDlpUpdate(true)"
-                :title="ytUpdating ? (ytUpdateStatusText || t.ytDlp?.engineUpdating || '正在自动拉取并更新 yt-dlp 引擎...') : (t.ytDlp?.engineTooltip ? t.ytDlp.engineTooltip.replace('{ver}', ytVersion || '2026.08.19') : `yt-dlp Engine: v${ytVersion || '2026.08.19'}`)"
-                :disabled="ytUpdating"
+                class="yt-mode-btn" 
+                @click="openYtDlpSettings" 
+                :title="t.settings?.ytDlpEngineTitle || '下载引擎与 Cookie 设置'"
+                style="display: flex; align-items: center; gap: 5px; padding: 6px 12px; font-size: 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #cbd5e1; cursor: pointer; transition: all 0.2s;"
               >
-                <span v-if="ytUpdating" class="yt-cookie-spinner"></span>
-                <span v-else class="yt-engine-icon">⚡</span>
-                <span>{{ ytUpdating ? (ytUpdateStatusText || t.ytDlp?.updating || '更新中...') : `yt-dlp v${ytVersion || '2026.08.19'}` }}</span>
-                <span v-if="!ytUpdating" class="yt-auto-tag" :title="t.ytDlp?.autoTracking || '全自动跟踪更新中'">AUTO</span>
+                <span>⚙️</span>
+                <span>{{ t.settings?.title || '设置' }}</span>
               </button>
-
-              <!-- 🔐 YouTube Cookie & Login Sync Dropdown -->
-              <div class="yt-cookie-sync-wrapper" ref="ytCookieWrapperRef">
-                <button 
-                  class="yt-cookie-btn" 
-                  :class="{ 'yt-cookie-active': ytCookieConfig.mode !== 'none' }"
-                  @click.stop="showYtCookieMenu = !showYtCookieMenu"
-                  :title="t.videoDownloader?.cookieMenuTitle || 'YouTube 登录同步设置'"
-                  :disabled="ytCookieSyncing"
-                >
-                  <span v-if="ytCookieSyncing" class="yt-cookie-spinner"></span>
-                  <span v-else class="yt-cookie-dot" :class="ytCookieConfig.mode !== 'none' ? 'dot-active' : 'dot-inactive'"></span>
-                  <span>🔐 {{ ytCookieSyncing ? (ytSyncStatusText || (t.ytDlp?.syncingFrom || '同步中...')) : ytCookieSummaryLabel }}</span>
-                  <span class="yt-cookie-arrow">▼</span>
-                </button>
-
-                <!-- Dropdown Popup -->
-                <div v-if="showYtCookieMenu" class="yt-cookie-menu" @click.stop>
-                  <div class="yt-cookie-menu-header">
-                    <div class="yt-cookie-menu-title">
-                      <span>🔐</span>
-                      <span>{{ t.videoDownloader?.cookieMenuTitle || 'YouTube 登录同步' }}</span>
-                    </div>
-                    <div class="yt-cookie-menu-desc">
-                      {{ t.videoDownloader?.cookieMenuDesc || '同步浏览器或内嵌登录态，解锁 18+ 年龄受限视频、高码率与会员专享视频。' }}
-                    </div>
-                  </div>
-
-                  <!-- Loading Banner -->
-                  <div v-if="ytCookieSyncing" class="yt-sync-loading-banner">
-                    <span class="yt-cookie-spinner"></span>
-                    <span>{{ ytSyncStatusText || (t.ytDlp?.syncingFrom || '正在同步浏览器登录凭据...') }}</span>
-                  </div>
-
-                  <div class="yt-cookie-options">
-                    <!-- Option 1: None (Disabled) -->
-                    <div 
-                      class="yt-cookie-option" 
-                      :class="{ selected: ytCookieConfig.mode === 'none' }"
-                      @click="changeYtCookieMode('none')"
-                    >
-                      <span class="option-icon">🚫</span>
-                      <div class="option-info">
-                        <span>{{ t.videoDownloader?.syncNone || '未开启 (匿名解析)' }}</span>
-                      </div>
-                      <span v-if="ytCookieConfig.mode === 'none'" class="option-check">✓</span>
-                    </div>
-
-                    <!-- Option 2: Microsoft Edge (Recommended) -->
-                    <div 
-                      class="yt-cookie-option" 
-                      :class="{ selected: ytCookieConfig.mode === 'edge' }"
-                      @click="changeYtCookieMode('edge')"
-                    >
-                      <span class="option-icon">🌊</span>
-                      <div class="option-info">
-                        <span>{{ t.videoDownloader?.syncEdge || 'Microsoft Edge' }}</span>
-                        <span class="option-badge">{{ t.videoDownloader?.fastSyncBadge || '免密秒同步 · 推荐' }}</span>
-                      </div>
-                      <span v-if="ytCookieConfig.mode === 'edge'" class="option-check">✓</span>
-                    </div>
-
-                    <!-- Option 3: Google Chrome -->
-                    <div 
-                      class="yt-cookie-option" 
-                      :class="{ selected: ytCookieConfig.mode === 'chrome' }"
-                      @click="changeYtCookieMode('chrome')"
-                    >
-                      <span class="option-icon">🌐</span>
-                      <div class="option-info">
-                        <span>{{ t.videoDownloader?.syncChrome || 'Google Chrome' }}</span>
-                      </div>
-                      <span v-if="ytCookieConfig.mode === 'chrome'" class="option-check">✓</span>
-                    </div>
-
-                    <!-- Option 4: Firefox -->
-                    <div 
-                      class="yt-cookie-option" 
-                      :class="{ selected: ytCookieConfig.mode === 'firefox' }"
-                      @click="changeYtCookieMode('firefox')"
-                    >
-                      <span class="option-icon">🦊</span>
-                      <div class="option-info">
-                        <span>{{ t.videoDownloader?.syncFirefox || 'Mozilla Firefox' }}</span>
-                      </div>
-                      <span v-if="ytCookieConfig.mode === 'firefox'" class="option-check">✓</span>
-                    </div>
-
-                    <!-- Option 5: Brave -->
-                    <div 
-                      class="yt-cookie-option" 
-                      :class="{ selected: ytCookieConfig.mode === 'brave' }"
-                      @click="changeYtCookieMode('brave')"
-                    >
-                      <span class="option-icon">🦁</span>
-                      <div class="option-info">
-                        <span>{{ t.videoDownloader?.syncBrave || 'Brave Browser' }}</span>
-                      </div>
-                      <span v-if="ytCookieConfig.mode === 'brave'" class="option-check">✓</span>
-                    </div>
-
-                    <!-- Option 6: In-App Embedded Account -->
-                    <div 
-                      class="yt-cookie-option" 
-                      :class="{ selected: ytCookieConfig.mode === 'embedded' }"
-                      @click="changeYtCookieMode('embedded')"
-                    >
-                      <span class="option-icon">🔑</span>
-                      <div class="option-info">
-                        <span>{{ t.videoDownloader?.syncEmbedded || '内嵌独立登录' }}</span>
-                        <span v-if="ytCookieConfig.hasEmbeddedCookies" class="option-badge option-badge-success">{{ t.videoDownloader?.savedBadge || '已保存' }}</span>
-                      </div>
-                      <span v-if="ytCookieConfig.mode === 'embedded'" class="option-check">✓</span>
-                    </div>
-
-                    <!-- Option 7: Import cookies.txt -->
-                    <div 
-                      class="yt-cookie-option" 
-                      @click="importYtCookiesFile"
-                    >
-                      <span class="option-icon">📁</span>
-                      <div class="option-info">
-                        <span>{{ t.videoDownloader?.syncFile || '导入 cookies.txt 文件' }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4; padding: 4px 6px; background: rgba(255, 255, 255, 0.03); border-radius: 6px;">
-                    💡 {{ t.videoDownloader?.cookieLockedTip || 'Chrome 运行中锁定了数据库？推荐一键选择【Microsoft Edge】免密秒同步！' }}
-                  </div>
-
-                  <div class="yt-cookie-menu-divider"></div>
-
-                  <!-- Actions: Open login window or clear cookies -->
-                  <div class="yt-cookie-actions">
-                    <button class="btn btn-primary yt-action-btn" @click="openYtLoginWindow" :disabled="ytCookieSyncing">
-                      <span>🔑</span>
-                      <span>{{ ytCookieConfig.hasEmbeddedCookies ? (t.videoDownloader?.reloginBtn || '重新登录 YouTube') : (t.videoDownloader?.embeddedLoginBtn || '内嵌一键登录') }}</span>
-                    </button>
-                    <button v-if="ytCookieConfig.hasEmbeddedCookies || ytCookieConfig.mode !== 'none'" class="btn btn-secondary yt-action-btn yt-action-logout" @click="clearYtCookies" :disabled="ytCookieSyncing">
-                      <span>🚪</span>
-                      <span>{{ t.videoDownloader?.clearLoginBtn || '退出登录 / 清除凭据' }}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
 
               <!-- If Parse Tab: Direct Trigger Button for Sniffer Window -->
               <div v-if="ytSubTab === 'parse'" style="display: flex; align-items: center; gap: 8px;">
@@ -3044,6 +2895,89 @@
                         <span class="update-badge-text error" v-else-if="updateStatus === 'failed'">
                           {{ t.settings.updateFailed.replace('{error}', updateError) }}
                         </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card: Video Downloader Engine & Cookie Sync -->
+              <div class="settings-card full-width" id="settings-ytdlp-card">
+                <div class="settings-card-header">
+                  <span class="settings-card-icon">⚡</span>
+                  <div>
+                    <h3 class="settings-card-title">{{ t.settings?.ytDlpEngineTitle || '视频下载引擎与 Cookie 登录同步 (yt-dlp)' }}</h3>
+                    <p class="settings-card-desc">{{ t.settings?.ytDlpEngineDesc || '管理底层 yt-dlp 视频解析引擎版本，以及配置浏览器 Cookie 登录态同步（用于下载高清或年龄受限视频）。' }}</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <!-- Row 1: Engine Version & Auto Update -->
+                  <div class="download-path-row" style="margin-bottom: 16px;">
+                    <div class="download-path-display">
+                      <span class="download-path-icon">⚡</span>
+                      <span class="download-path-text">
+                        yt-dlp 引擎内核: <strong>v{{ ytVersion || '2026.08.19' }}</strong>
+                        <span class="yt-auto-tag" style="margin-left: 8px;">AUTO 自动跟踪更新</span>
+                      </span>
+                    </div>
+                    <div class="download-path-actions">
+                      <button 
+                        class="dp-btn dp-browse" 
+                        :class="{ 'updating': ytUpdating }"
+                        :disabled="ytUpdating"
+                        @click="checkYtDlpUpdate(true)"
+                      >
+                        <span v-if="ytUpdating">⏳ {{ ytUpdateStatusText || '检查中...' }}</span>
+                        <span v-else>🔄 {{ t.settings?.checkEngineBtn || '检查引擎更新' }}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Row 2: Browser Cookie Sync -->
+                  <div class="download-path-row" style="align-items: flex-start;">
+                    <div style="flex: 1;">
+                      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">🔐 浏览器 Cookie / 登录态同步</span>
+                        <span class="yt-cookie-dot" :class="ytCookieConfig.mode !== 'none' ? 'dot-active' : 'dot-inactive'"></span>
+                        <span style="font-size: 12px; color: var(--text-secondary);">当前状态: {{ ytCookieSummaryLabel }}</span>
+                      </div>
+                      <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 12px 0; line-height: 1.5;">
+                        {{ t.videoDownloader?.cookieMenuDesc || '同步浏览器或内嵌登录态，解锁 18+ 年龄受限视频、高码率与会员专享视频。' }}
+                      </p>
+                      
+                      <!-- Cookie 快速切换按钮组 -->
+                      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px;">
+                        <button 
+                          v-for="opt in [
+                            { mode: 'none', label: '🚫 未开启 (匿名解析)' },
+                            { mode: 'edge', label: '🌊 Microsoft Edge (推荐)' },
+                            { mode: 'chrome', label: '🌐 Google Chrome' },
+                            { mode: 'firefox', label: '🦊 Mozilla Firefox' },
+                            { mode: 'brave', label: '🦁 Brave Browser' },
+                            { mode: 'embedded', label: '🔑 内嵌独立登录' }
+                          ]"
+                          :key="opt.mode"
+                          class="dp-btn"
+                          :class="ytCookieConfig.mode === opt.mode ? 'dp-browse' : 'dp-reset'"
+                          style="font-size: 12px; padding: 5px 12px;"
+                          @click="changeYtCookieMode(opt.mode)"
+                        >
+                          {{ opt.label }}
+                        </button>
+                        <button class="dp-btn dp-reset" style="font-size: 12px; padding: 5px 12px;" @click="importYtCookiesFile">
+                          📁 导入 cookies.txt 文件
+                        </button>
+                      </div>
+
+                      <!-- 辅助操作栏 -->
+                      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-primary" style="padding: 6px 14px; font-size: 12px; border-radius: 7px;" @click="openYtLoginWindow" :disabled="ytCookieSyncing">
+                          🔑 {{ ytCookieConfig.hasEmbeddedCookies ? (t.videoDownloader?.reloginBtn || '重新登录 YouTube') : (t.videoDownloader?.embeddedLoginBtn || '内嵌一键登录') }}
+                        </button>
+                        <button v-if="ytCookieConfig.hasEmbeddedCookies || ytCookieConfig.mode !== 'none'" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; border-radius: 7px; color: #ef4444;" @click="clearYtCookies" :disabled="ytCookieSyncing">
+                          🚪 {{ t.videoDownloader?.clearLoginBtn || '退出登录 / 清除凭据' }}
+                        </button>
+                        <span v-if="ytCookieSyncing" style="font-size: 12px; color: #38bdf8;">⏳ {{ ytSyncStatusText || '正在同步中...' }}</span>
                       </div>
                     </div>
                   </div>
@@ -4364,6 +4298,10 @@ watch(currentTab, (newTab) => {
     loadPersonClusters();
   } else if (newTab === 'yt-dlp') {
     loadYtVersionInfo();
+    // 切换到 ytb 启动时自动检查一遍 yt-dlp 引擎更新
+    if (typeof checkYtDlpUpdate === 'function') {
+      checkYtDlpUpdate(false);
+    }
   }
 });
 
@@ -8161,6 +8099,16 @@ const checkYtDlpUpdate = async (manual = false) => {
   }
 };
 
+const openYtDlpSettings = () => {
+  currentTab.value = 'settings';
+  nextTick(() => {
+    const el = document.getElementById('settings-ytdlp-card');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+};
+
 const openYtFile = async (filePath) => {
   if (!filePath) return;
   if (hasApi && window.api?.openVideoWindow) {
@@ -8615,9 +8563,10 @@ onMounted(() => {
     // Check for updates in the background on startup
     checkAppUpdates();
 
-    // Load YT-DLP history and version info
+    // Load YT-DLP history, version info & auto check for engine updates on startup
     loadYtHistory();
     loadYtVersionInfo();
+    checkYtDlpUpdate(false);
 
     if (window.api?.onYtUpdateStatus) {
       window.api.onYtUpdateStatus((data) => {
