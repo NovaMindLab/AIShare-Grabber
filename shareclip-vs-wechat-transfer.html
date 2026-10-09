@@ -4,20 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   
-  <title>ShareCLIP vs LocalSend 对比：不只是 P2P 局域网传输，更是内置本地 AI 语义搜图与人脸相册聚类的智能图库</title>
-  <meta name="title" content="ShareCLIP vs LocalSend 对比：P2P 局域网传输之上，独家本地 AI 搜图与人脸智能相册" />
-  <meta name="description" content="LocalSend 只能传文件？深入对比 ShareCLIP 与 LocalSend。ShareCLIP 在具备同样高速 P2P 局域网传输的同时，独家具备端侧 MobileCLIP 离线自然语言搜图、RetinaFace+ArcFace 本地人脸聚类及 4K 视频下载工坊，打造下一代个人智能媒体中心。" />
-  <meta name="keywords" content="ShareCLIP, LocalSend 对比, LocalSend 替代, LocalSend 缺点, 局域网传输工具, 本地AI相册, 离线人脸识别, P2P快传, MobileCLIP, 局域网相册管理" />
+  <title>ShareCLIP vs 微信文件传输助手对比：局域网 80MB/s 满速狂飙、原图 RAW/4K 零压缩与单文件 100GB 免限速</title>
+  <meta name="title" content="ShareCLIP vs 微信传输助手对比：局域网 80MB/s 极速互传与照片无损不压缩" />
+  <meta name="description" content="告别微信文件传输助手的画质有损压缩、1GB 大小限制与频繁文件过期失效。ShareCLIP 采用千兆局域网 P2P 点对点直连，80+ MB/s 满速狂飙，100% 原始字节传输，更独家集成端侧 MobileCLIP AI 语义搜图。" />
+  <meta name="keywords" content="微信文件传输助手替代, 微信传照片压缩画质, 局域网大文件传输, 电脑传手机不限速, 微信传输助手 慢, ShareCLIP, AirDrop Windows, 本地AI相册" />
   <meta name="author" content="NovaMindLab" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-  <link rel="canonical" href="https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-localsend.html" />
+  <link rel="canonical" href="https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-wechat-transfer.html" />
   <meta name="theme-color" content="#060913" />
 
   <!-- Open Graph / Facebook / WeChat -->
   <meta property="og:type" content="article" />
-  <meta property="og:url" content="https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-localsend.html" />
-  <meta property="og:title" content="ShareCLIP vs LocalSend 对比：不只是 P2P 局域网传输，更是内置本地 AI 语义搜图与人脸相册聚类的智能图库" />
-  <meta property="og:description" content="LocalSend 只能传文件？深入对比 ShareCLIP 与 LocalSend。ShareCLIP 在具备同样高速 P2P 局域网传输的同时，独家具备端侧 MobileCLIP 离线自然语言搜图、RetinaFace+ArcFace 本地人脸聚类及 4K 视频下载工坊，打造下一代个人智能媒体中心。" />
+  <meta property="og:url" content="https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-wechat-transfer.html" />
+  <meta property="og:title" content="ShareCLIP vs 微信文件传输助手对比：局域网 80MB/s 满速狂飙、原图 RAW/4K 零压缩与单文件 100GB 免限速" />
+  <meta property="og:description" content="告别微信文件传输助手的画质有损压缩、1GB 大小限制与频繁文件过期失效。ShareCLIP 采用千兆局域网 P2P 点对点直连，80+ MB/s 满速狂飙，100% 原始字节传输，更独家集成端侧 MobileCLIP AI 语义搜图。" />
   <meta property="og:image" content="https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -25,9 +25,9 @@
 
   <!-- Twitter Cards -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-localsend.html" />
-  <meta name="twitter:title" content="ShareCLIP vs LocalSend 对比：P2P 局域网传输之上，独家本地 AI 搜图与人脸智能相册" />
-  <meta name="twitter:description" content="LocalSend 只能传文件？深入对比 ShareCLIP 与 LocalSend。ShareCLIP 在具备同样高速 P2P 局域网传输的同时，独家具备端侧 MobileCLIP 离线自然语言搜图、RetinaFace+ArcFace 本地人脸聚类及 4K 视频下载工坊，打造下一代个人智能媒体中心。" />
+  <meta name="twitter:url" content="https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-wechat-transfer.html" />
+  <meta name="twitter:title" content="ShareCLIP vs 微信传输助手对比：局域网 80MB/s 极速互传与照片无损不压缩" />
+  <meta name="twitter:description" content="告别微信文件传输助手的画质有损压缩、1GB 大小限制与频繁文件过期失效。ShareCLIP 采用千兆局域网 P2P 点对点直连，80+ MB/s 满速狂飙，100% 原始字节传输，更独家集成端侧 MobileCLIP AI 语义搜图。" />
   <meta name="twitter:image" content="https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg" />
 
   <!-- Favicon -->
@@ -43,8 +43,8 @@
       persistence: 'localStorage'
     });
     mixpanel.track('pSEO Page Viewed', {
-      page: 'shareclip-vs-localsend',
-      competitor: 'LocalSend'
+      page: 'shareclip-vs-wechat-transfer',
+      competitor: '微信传输助手'
     });
   </script>
 
@@ -92,8 +92,8 @@
         {
           "@type": "ListItem",
           "position": 3,
-          "name": "ShareCLIP vs LocalSend",
-          "item": "https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-localsend.html"
+          "name": "ShareCLIP vs 微信传输助手",
+          "item": "https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-wechat-transfer.html"
         }
       ]
     },
@@ -102,52 +102,36 @@
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "如果我已经是 LocalSend 用户，迁移到 ShareCLIP 会有学习成本吗？",
+          "name": "电脑和手机没有外网（宽带欠费或停网）能用 ShareCLIP 吗？",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "几乎零学习成本！ShareCLIP 的传输流程同样直观：同一 Wi-Fi 下设备自动出现，点击即可发送。在此基础上，你将立刻获得全新的相册瀑布流、AI 自然语言搜索和人脸分类能力，无需任何额外配置。"
+            "text": "完全可以！ShareCLIP 只依赖局域网通信。只要手机和电脑连接同一个没有外网的路由器，或者手机直接开启热点让电脑连接，就能以 80MB/s 的极速自由互传。"
           }
         },
         {
           "@type": "Question",
-          "name": "ShareCLIP 的传输速度和 LocalSend 相比如何？",
+          "name": "传大文件容易断连吗？支持断点续传吗？",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "两者在传输底层均采用局域网原生 TCP/P2P 直连通道，速度表现完全处于同一顶级梯队。在千兆 Wi-Fi 6 网络下，实际传输吞吐量均可稳定在 80~120 MB/s。"
+            "text": "ShareCLIP 针对大文件传输设计了分块校验与自愈重试机制。在传输 50GB 以上的蓝光原盘或压缩包时，即使网络发生微小抖动，底层协议也会自动毫秒级重传，保证文件 100% 完整。"
           }
         },
         {
           "@type": "Question",
-          "name": "开启 AI 语义搜索和人脸识别会让电脑卡顿吗？",
+          "name": "既然电脑已经装了客户端，手机怎么传？",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "完全不会。ShareCLIP 的 AI 特征提取工作在后台低优先级线程运行，支持智能感知系统负载与电量。如果检测到正在玩大型游戏或高负荷渲染，AI 索引会自动暂停避让；同时针对现代 GPU 做了 DirectML 硬件加速，计算极快。"
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "ShareCLIP 支持 iOS 苹果手机吗？",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "支持！ShareCLIP PC 端提供开箱即用的 WebShare 网页服务。iOS 用户无需安装额外 App，只需用 Safari 扫描二维码，即可在网页中直接与 PC 双向互传，速度同样达到局域网满速。"
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "ShareCLIP 软件收费吗？有广告或商业推广吗？",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "ShareCLIP 100% 开源免费（采用 MIT 宽松开源协议），承诺无弹窗广告、无高级版内购锁死、无订阅制套路，代码完全公开在 GitHub 上供全球开发者审计。"
+            "text": "安卓手机可直接安装 ShareCLIP 原生 App，体验极佳的设备自动发现；如果是苹果 iPhone，只需用 Safari 扫电脑屏幕上的 WebShare 二维码，无需安装任何 App 即可在网页端极速收发。"
           }
         }
       ]
     },
     {
       "@type": "WebPage",
-      "@id": "https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-localsend.html",
-      "url": "https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-localsend.html",
-      "name": "ShareCLIP vs LocalSend 对比：不只是 P2P 局域网传输，更是内置本地 AI 语义搜图与人脸相册聚类的智能图库",
-      "description": "LocalSend 只能传文件？深入对比 ShareCLIP 与 LocalSend。ShareCLIP 在具备同样高速 P2P 局域网传输的同时，独家具备端侧 MobileCLIP 离线自然语言搜图、RetinaFace+ArcFace 本地人脸聚类及 4K 视频下载工坊，打造下一代个人智能媒体中心。",
+      "@id": "https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-wechat-transfer.html",
+      "url": "https://novamindlab.github.io/AIShare-Grabber/shareclip-vs-wechat-transfer.html",
+      "name": "ShareCLIP vs 微信文件传输助手对比：局域网 80MB/s 满速狂飙、原图 RAW/4K 零压缩与单文件 100GB 免限速",
+      "description": "告别微信文件传输助手的画质有损压缩、1GB 大小限制与频繁文件过期失效。ShareCLIP 采用千兆局域网 P2P 点对点直连，80+ MB/s 满速狂飙，100% 原始字节传输，更独家集成端侧 MobileCLIP AI 语义搜图。",
       "inLanguage": "zh-CN",
       "isPartOf": {
         "@type": "WebSite",
@@ -847,7 +831,7 @@
       </nav>
 
       <div class="nav-actions">
-        <a href="#download" class="btn btn-primary" onclick="if(window.mixpanel) mixpanel.track('CTA Click', { label: 'Nav Download', page: 'shareclip-vs-localsend' });">
+        <a href="#download" class="btn btn-primary" onclick="if(window.mixpanel) mixpanel.track('CTA Click', { label: 'Nav Download', page: 'shareclip-vs-wechat-transfer' });">
           <span>🚀 免费下载</span>
         </a>
       </div>
@@ -861,14 +845,14 @@
       <span class="breadcrumb-sep">/</span>
       <a href="https://novamindlab.github.io/AIShare-Grabber/#comparison">竞品对比</a>
       <span class="breadcrumb-sep">/</span>
-      <span style="color: var(--text-main);">ShareCLIP vs LocalSend</span>
+      <span style="color: var(--text-main);">ShareCLIP vs 微信传输助手</span>
     </div>
 
     <!-- Quick Switcher Bar -->
     <div class="switch-pills-bar">
       <span style="font-size: 12px; color: var(--text-dim); margin-right: 6px;">切换对比：</span>
       <a href="./shareclip-vs-airdrop.html" class="switch-pill ">vs AirDrop</a>
-      <a href="./shareclip-vs-localsend.html" class="switch-pill active">vs LocalSend</a>
+      <a href="./shareclip-vs-localsend.html" class="switch-pill ">vs LocalSend</a>
       <a href="./shareclip-vs-google-photos.html" class="switch-pill ">vs Google Photos</a>
       <a href="./shareclip-vs-immich.html" class="switch-pill ">vs Immich</a>
     </div>
@@ -876,26 +860,26 @@
     <!-- Hero Section -->
     <section class="hero-sec">
       <div class="hero-badge-pill">
-        <span>✨</span> 新一代智能局域网媒体中心 • 2026 最新横评
+        <span>✨</span> 告别画质压缩与慢速等待 • 2026 最新横评
       </div>
       <h1 class="hero-title">
-        <span class="gradient-text">超越纯文件传输：融合局域网闪传与端侧 AI 智能相册</span>
+        <span class="gradient-text">告别画质压缩与慢速等待：重构手机与电脑的真正局域网快传</span>
       </h1>
       <p class="hero-lead">
-        LocalSend 是一款优秀的 P2P 文件传输工具，但它仅止步于文件收发。ShareCLIP 在保持极致传输性能的同时，内置 MobileCLIP 本地大模型语义搜图、人脸聚类与 4K 媒体工坊，让传输后的每一张照片都能被智能组织与瞬时检索。
+        受够了微信文件传输助手的二次有损压缩、1GB 大小限制与“文件已过期或已被清理”？ShareCLIP 采用千兆局域网点对点直连，80+ MB/s 满速传输，100% 原始字节无损直达，更内置端侧 AI 语义搜图。
       </p>
 
       <div class="hero-cta-box">
-        <a href="ms-windows-store://search/?query=ShareCLIP" class="btn btn-store btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Store Click', { platform: 'Windows', source: 'Hero_shareclip-vs-localsend' });">
+        <a href="ms-windows-store://search/?query=ShareCLIP" class="btn btn-store btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Store Click', { platform: 'Windows', source: 'Hero_shareclip-vs-wechat-transfer' });">
           <span>🏪 微软商店官方获取</span>
         </a>
-        <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe" class="btn btn-primary btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'Hero_shareclip-vs-localsend' });">
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe" class="btn btn-primary btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'Hero_shareclip-vs-wechat-transfer' });">
           <span>🖥️ Windows 下载 (.exe)</span>
         </a>
-        <a href="./app-release.apk" class="btn btn-outline btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Android', source: 'Hero_shareclip-vs-localsend' });">
+        <a href="./app-release.apk" class="btn btn-outline btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Android', source: 'Hero_shareclip-vs-wechat-transfer' });">
           <span>📱 Android 安装包 (.apk)</span>
         </a>
-        <a href="./webshare/" class="btn btn-webshare btn-hero-lg" target="_blank" onclick="if(window.mixpanel) mixpanel.track('WebShare Click', { source: 'Hero_shareclip-vs-localsend' });">
+        <a href="./webshare/" class="btn btn-webshare btn-hero-lg" target="_blank" onclick="if(window.mixpanel) mixpanel.track('WebShare Click', { source: 'Hero_shareclip-vs-wechat-transfer' });">
           <span>🌐 免安装 Web 网页版直连</span>
         </a>
       </div>
@@ -904,27 +888,27 @@
       <div class="stats-card-grid">
         
         <div class="stat-card">
-          <div class="stat-label">核心定位</div>
-          <div class="stat-sc">⚡ P2P传输 + AI智能相册资产管理</div>
-          <div class="stat-comp">LocalSend: 纯文件传输工具 (无相册视图)</div>
+          <div class="stat-label">传输速率</div>
+          <div class="stat-sc">⚡ 80~120 MB/s (千兆局域网)</div>
+          <div class="stat-comp">微信传输助手: 1~5 MB/s (公网服务器限速)</div>
         </div>
         
         <div class="stat-card">
-          <div class="stat-label">本地 AI 搜图</div>
-          <div class="stat-sc">⚡ ✅ MobileCLIP 端侧自然语言搜图</div>
-          <div class="stat-comp">LocalSend: ❌ 完全无 AI 识别与图搜</div>
+          <div class="stat-label">画质压缩</div>
+          <div class="stat-sc">⚡ 100% 原始字节 (RAW/EXIF无损)</div>
+          <div class="stat-comp">微信传输助手: 强制二次有损压缩</div>
         </div>
         
         <div class="stat-card">
-          <div class="stat-label">人脸识别与聚类</div>
-          <div class="stat-sc">⚡ ✅ RetinaFace+ArcFace 本地离线聚类</div>
-          <div class="stat-comp">LocalSend: ❌ 无图像特征分析能力</div>
+          <div class="stat-label">文件大小限制</div>
+          <div class="stat-sc">⚡ 无限制 (支持 100GB+ 单文件)</div>
+          <div class="stat-comp">微信传输助手: 严格限制 1GB / 视频受限</div>
         </div>
         
         <div class="stat-card">
-          <div class="stat-label">媒体浏览体验</div>
-          <div class="stat-sc">⚡ 4K 瀑布流图库、EXIF 时间线</div>
-          <div class="stat-comp">LocalSend: 仅显示普通文件列表</div>
+          <div class="stat-label">文件留存期</div>
+          <div class="stat-sc">⚡ 永久保存在本地电脑硬盘</div>
+          <div class="stat-comp">微信传输助手: 7天后提示“文件已过期”</div>
         </div>
         
       </div>
@@ -934,8 +918,8 @@
     <section class="content-section" style="border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle);">
       <div class="section-header">
         <span class="sec-tag">痛点解决</span>
-        <h2 class="sec-title">为什么从 LocalSend 升级为 ShareCLIP？</h2>
-        <p class="sec-desc">当你把手机里的上千张家庭照片、旅行视频传到电脑后，LocalSend 的使命就结束了——你只能面对资源管理器里冰冷的文件列表。而 ShareCLIP 重新定义了工作流：传输即整理，落盘即索引。端侧 AI 自动解析图片内容与人脸特征，无论是做自媒体、设计师查找素材，还是家庭记录生活，ShareCLIP 都是更强大、更高效的完整解决方案。</p>
+        <h2 class="sec-title">为什么越来越多人停止用微信给自己传文件？</h2>
+        <p class="sec-desc">微信文件传输助手是为了聊天设计的，而不是为了高效生产力。当你传大视频时，漫长的上传云端再下载等待让人崩溃；当你需要原图时，被压缩抹平的细节破坏了珍贵回忆；更致命的是过段时间想找回文件，往往只剩下一句无情的“文件已过期”。ShareCLIP 彻底改变这一切：直连传输、永久落盘、AI 秒搜。</p>
       </div>
     </section>
 
@@ -943,7 +927,7 @@
     <section class="content-section" id="comparison">
       <div class="section-header">
         <span class="sec-tag">全景参数对比</span>
-        <h2 class="sec-title">ShareCLIP 与 LocalSend 全维度深度横评</h2>
+        <h2 class="sec-title">ShareCLIP 与 微信传输助手 全维度深度横评</h2>
         <p class="sec-desc">从跨平台兼容性、传输吞吐量、本地 AI 搜图引擎到隐私成本，看清每一处真实差异。</p>
       </div>
 
@@ -953,154 +937,130 @@
             <tr>
               <th style="width: 28%;">功能特性与评估维度</th>
               <th class="col-sc" style="width: 38%;">📸 ShareCLIP (端侧 AI 闪传)</th>
-              <th style="width: 34%;">LocalSend</th>
+              <th style="width: 34%;">微信「文件传输助手」</th>
             </tr>
           </thead>
           <tbody>
             
             <tr class="category-row">
-              <td colspan="3">📌 传输基础能力</td>
+              <td colspan="3">📌 传输速度与体量</td>
             </tr>
             
               <tr>
-                <td><strong>P2P 局域网高速传输</strong></td>
-                <td class="col-sc">
-                  <span class="badge-equal">基本相当</span><br />
-                  ✅ 支持 (80~120 MB/s 极速)
-                </td>
-                <td>
-                  <span class="badge-equal">支持</span><br />
-                  ✅ 支持 (同等局域网 P2P)
-                </td>
-              </tr>
-              
-              <tr>
-                <td><strong>零云端离线运行</strong></td>
-                <td class="col-sc">
-                  <span class="badge-equal">基本相当</span><br />
-                  ✅ 100% 局域网物理直连
-                </td>
-                <td>
-                  <span class="badge-equal">支持</span><br />
-                  ✅ 100% 局域网物理直连
-                </td>
-              </tr>
-              
-              <tr>
-                <td><strong>免安装 WebShare 互传</strong></td>
+                <td><strong>局域网传输吞吐</strong></td>
                 <td class="col-sc">
                   <span class="badge-win">领先优势</span><br />
-                  ✅ 任意浏览器扫码即用
+                  ⚡ 80~120 MB/s (千兆满速直传)
                 </td>
                 <td>
                   <span class="badge-lose">受限/劣势</span><br />
-                  ⚠️ 需双方设备均安装客户端
+                  ⚠️ 1~5 MB/s (公网服务器上传下载)
                 </td>
               </tr>
               
               <tr>
-                <td><strong>断点续传与完整性校验</strong></td>
+                <td><strong>单文件最大体积</strong></td>
                 <td class="col-sc">
-                  <span class="badge-equal">基本相当</span><br />
-                  ✅ 原生支持流式校验
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 无限制 (实测 100GB+ 畅通)
                 </td>
                 <td>
-                  <span class="badge-equal">支持</span><br />
-                  ✅ 支持
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ❌ 严格限制 1GB (大视频无法发送)
+                </td>
+              </tr>
+              
+              <tr>
+                <td><strong>外网流量消耗</strong></td>
+                <td class="col-sc">
+                  <span class="badge-win">领先优势</span><br />
+                  🎉 0 流量 (离线无公网也可互传)
+                </td>
+                <td>
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ⚠️ 消耗手机双倍公网流量
                 </td>
               </tr>
               
             
             <tr class="category-row">
-              <td colspan="3">📌 AI 智能与相册管理 (核心差异)</td>
+              <td colspan="3">📌 数据完整性与保留</td>
             </tr>
             
               <tr>
-                <td><strong>自然语言语义搜图 (CLIP)</strong></td>
+                <td><strong>图片与视频画质</strong></td>
                 <td class="col-sc">
                   <span class="badge-win">领先优势</span><br />
-                  ✅ 独家内置 MobileCLIP 端侧大模型
+                  ✅ 100% 原始比特流，保留全部 EXIF
                 </td>
                 <td>
                   <span class="badge-lose">受限/劣势</span><br />
-                  ❌ 完全不支持 (纯文件工具)
+                  ❌ 强制重新编码压缩，破坏元数据
                 </td>
               </tr>
               
               <tr>
-                <td><strong>人脸识别与自动人物相册</strong></td>
+                <td><strong>文件有效保存期</strong></td>
                 <td class="col-sc">
                   <span class="badge-win">领先优势</span><br />
-                  ✅ 内置 RetinaFace + ArcFace 本地聚类
+                  ✅ 永久存储于电脑本地硬盘
                 </td>
                 <td>
                   <span class="badge-lose">受限/劣势</span><br />
-                  ❌ 完全不支持
+                  ❌ 7~14天未下载即提示过期清理
                 </td>
               </tr>
               
               <tr>
-                <td><strong>沉浸式瀑布流相册视图</strong></td>
+                <td><strong>隐私与数据中转</strong></td>
                 <td class="col-sc">
                   <span class="badge-win">领先优势</span><br />
-                  ✅ 原生 4K 瀑布流图库与缩略图引擎
+                  🛡️ 纯点对点，零云端中转
                 </td>
                 <td>
                   <span class="badge-lose">受限/劣势</span><br />
-                  ❌ 仅显示文件名列表
-                </td>
-              </tr>
-              
-              <tr>
-                <td><strong>EXIF 元数据与拍摄时间轴</strong></td>
-                <td class="col-sc">
-                  <span class="badge-win">领先优势</span><br />
-                  ✅ 自动解析相机光圈、ISO、GPS与日期
-                </td>
-                <td>
-                  <span class="badge-lose">受限/劣势</span><br />
-                  ❌ 不解析任何相册元数据
+                  ⚠️ 全部流经云端服务器进行安全审计
                 </td>
               </tr>
               
             
             <tr class="category-row">
-              <td colspan="3">📌 多媒体生产力工具箱</td>
+              <td colspan="3">📌 智能资产与生产力</td>
             </tr>
             
               <tr>
-                <td><strong>4K 网页视频解析与下载</strong></td>
+                <td><strong>本地 AI 智能搜图</strong></td>
                 <td class="col-sc">
                   <span class="badge-win">领先优势</span><br />
-                  ✅ 内置视频工坊，一键嗅探下载
+                  ✅ 内置 MobileCLIP 自然语言搜图
                 </td>
                 <td>
                   <span class="badge-lose">受限/劣势</span><br />
-                  ❌ 无视频下载功能
+                  ❌ 无
                 </td>
               </tr>
               
               <tr>
-                <td><strong>双向实时剪贴板同步</strong></td>
+                <td><strong>人脸识别与相册聚类</strong></td>
                 <td class="col-sc">
                   <span class="badge-win">领先优势</span><br />
-                  ✅ 文本与图片后台无感同步
+                  ✅ 本地人脸自动归类
                 </td>
                 <td>
                   <span class="badge-lose">受限/劣势</span><br />
-                  ⚠️ 仅支持手动发送剪贴板内容
+                  ❌ 无
                 </td>
               </tr>
               
               <tr>
-                <td><strong>开源协议与安全性</strong></td>
+                <td><strong>免装客户端临时接收</strong></td>
                 <td class="col-sc">
-                  <span class="badge-equal">基本相当</span><br />
-                  🎉 100% 开源 (MIT License)
+                  <span class="badge-win">领先优势</span><br />
+                  ✅ 内置 WebShare，扫码即下
                 </td>
                 <td>
-                  <span class="badge-equal">支持</span><br />
-                  🎉 100% 开源 (MIT / Apache)
+                  <span class="badge-lose">受限/劣势</span><br />
+                  ⚠️ 对方必须登录微信账号
                 </td>
               </tr>
               
@@ -1121,39 +1081,39 @@
       <div class="features-grid">
         
         <div class="feature-card">
-          <div class="feature-icon-box">🔍</div>
-          <h3>MobileCLIP 本地自然语言图搜</h3>
-          <p>不需要给照片手动打标签。只要输入「红酒杯与烛光」、「带眼镜的短发女孩」、「发票账单报销」，ShareCLIP 即可通过端侧多模态模型秒级检索，彻底颠覆找图体验。</p>
-        </div>
-        
-        <div class="feature-card">
-          <div class="feature-icon-box">👤</div>
-          <h3>离线人脸识别与人物自动聚类</h3>
-          <p>内置工业级 RetinaFace + ArcFace 端侧人脸检测引擎，自动从海量相片中提取人脸特征并智能聚类。每一位家庭成员或朋友都有专属相册，全程本地计算无隐私外泄。</p>
-        </div>
-        
-        <div class="feature-card">
-          <div class="feature-icon-box">🖼️</div>
-          <h3>专业级 4K 瀑布流视觉相册</h3>
-          <p>告别 LocalSend 枯燥的文件名列表。ShareCLIP 拥有高度优化的虚拟滚动 4K 瀑布流图库，毫秒级缩略图加载，支持 EXIF 参数解析、拍摄时间轴与全屏幻灯片。</p>
-        </div>
-        
-        <div class="feature-card">
           <div class="feature-icon-box">⚡</div>
-          <h3>媲美 LocalSend 的顶级 P2P 传输</h3>
-          <p>同样基于局域网点对点直连，零云端中转，千兆内网速率轻松达到 80~120 MB/s。支持断点续传、文件校验，传输安全可靠。</p>
+          <h3>内网千兆直连，速度快 20 倍</h3>
+          <p>不同于微信需要把文件先传到腾讯云服务器再下载到电脑，ShareCLIP 直接走本地路由器高速通道，实测 80~120 MB/s，数 GB 视频数十秒传完。</p>
         </div>
         
         <div class="feature-card">
-          <div class="feature-icon-box">📥</div>
-          <h3>4K 网页视频嗅探与下载工坊</h3>
-          <p>额外集成强大的视频媒体下载引擎，支持解析国内外主流主流视频平台的 4K/1080P 超清流媒体并一键保存到本地相册，省去繁琐插件。</p>
+          <div class="feature-icon-box">📷</div>
+          <h3>100% 原始字节无损保留</h3>
+          <p>完整保留照片的 RAW 格式、HDR 高动态、相机 EXIF 拍摄参数以及 4K 60fps 高码率视频，不抹除任何像素细节，摄影师与设计师首选。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">📦</div>
+          <h3>单文件 100GB+ 随意拖拽</h3>
+          <p>彻底摆脱微信的 1GB 上传壁垒。系统镜像、工程工程包、影视蓝光原盘均可随意批量投送，不中断、不报错。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">🔒</div>
+          <h3>永不过期，100% 物理级隐私</h3>
+          <p>文件直接保存在您指定的本地电脑硬盘文件夹中，不经任何第三方服务器，不用担心公司机密或私人家庭照片泄露。</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon-box">🧠</div>
+          <h3>内置端侧 AI 语义搜图</h3>
+          <p>微信传完只能在文件列表大海捞针。ShareCLIP 传完后自动建立本地语义向量，输入「蓝天白云」、「工作发票」即刻毫秒级找到照片。</p>
         </div>
         
         <div class="feature-card">
           <div class="feature-icon-box">📋</div>
-          <h3>双向跨设备剪贴板毫秒级同步</h3>
-          <p>在手机上复制一段验证码或文字，电脑瞬间可粘贴；在电脑上复制图片，手机立即同步。让多设备协同如同在一台电脑上操作般顺畅。</p>
+          <h3>电脑与手机剪贴板双向同步</h3>
+          <p>手机复制验证码、网址，电脑即刻可按 Ctrl+V 粘贴；电脑文字与截图一键同步到手机通知栏，协同效率拉满。</p>
         </div>
         
       </div>
@@ -1169,24 +1129,17 @@
 
       
       <div class="deep-dive-card">
-        <h3>1. 为什么纯传输工具正在被「智能媒体资产管理」所取代？</h3>
-        <p>LocalSend 的诞生解决了局域网去中心化传文件的痛点，堪称开源界的标杆之作。然而在智能手机拍摄已成为日常生活主力输入的今天，用户传输的内容中 90% 以上都是照片与视频。
+        <h3>1. 为什么用即时通讯软件传文件是低效的架构设计？</h3>
+        <p>微信本质是一款以社交为核心的 IM 软件。当你向「文件传输助手」发送一个文件时，数据先通过你的家庭宽带或 5G 上行带宽上传到腾讯数据中心，服务器完成安全合规扫描后，再通过下行带宽推送到电脑端微信。
 
-面对每年新增的上万张照片，单纯把文件复制到硬盘只会造成「数字垃圾山」。用户需要的是一站式的工作流：手机拍完后，电脑自动同步；同步完成后，系统立即理解照片内容，按人物、场景、时间自动分类，随时可以用人类自然语言进行模糊搜索。ShareCLIP 正是完成了从「搬运工」到「智能管家」的蜕变。</p>
+这种设计在两台设备明明就在同一个房间、连着同一个路由器的情况下，白白浪费了大量宝贵的公网带宽，且受到腾讯云端严格的带宽限制。ShareCLIP 采用现代局域网 P2P 架构，手机和电脑直接通过无线路由器建立点对点通信，不仅速度提升数十倍，而且在断网或无外网环境下照常飞速传输。</p>
       </div>
       
       <div class="deep-dive-card">
-        <h3>2. MobileCLIP 架构解析：如何在不消耗云端算力的情况下实现语义搜图？</h3>
-        <p>以往的高精度语义图搜大多依赖云端大模型 API（例如 Google 或 OpenAI 的云端接口），这不仅涉及持续的 API 费用，更有严重的隐私泄露隐患。
+        <h3>2. 原始画质与 EXIF 元数据的不可逆价值</h3>
+        <p>现代手机拍摄的单张照片动辄 20MB~50MB（如 iPhone ProRAW 或高像素相机），内含色深、光圈、快门、GPS 经纬度及 HDR 增益图。微信传输时为了节省服务器存储空间，会对图片进行剧烈的色彩二次量化与分辨率降级。
 
-ShareCLIP 引入了苹果与开源社区针对端侧优化的 MobileCLIP / ViT 模型架构，并在桌面端利用 ONNX Runtime / DirectML 充分调用集成显卡或独立显卡算力，在 Android 端利用 NPU / NNAPI 加速。每张照片只需几十毫秒即可提取 512 维高精特征向量，建立本地 SQLite-Vector 索引。即使你在断网飞行模式下，输入复杂的复合描述也能毫秒级找到心仪照片。</p>
-      </div>
-      
-      <div class="deep-dive-card">
-        <h3>3. 本地人脸聚类算法：零数据泄露的安全家庭相册</h3>
-        <p>许多相册软件的人脸识别需要将面部特征上传至第三方服务器进行分析，引发极大的隐私担忧。ShareCLIP 采用完全运行于本机的 RetinaFace 人脸检测算法与 ArcFace 512维深度特征提取器。
-
-算法自动过滤模糊、侧脸或微小误检，基于自适应余弦距离进行无监督聚类。你可以为聚类出的面孔命名为「妈妈」、「孩子」、「伴侣」，之后所有包含该人物的历史与新同步照片都会自动归入该人物相册。所有面部特征点与数据严格存放在你自己的硬盘中。</p>
+在手机小屏幕上看或许不明显，但一旦在电脑 4K 显示器上放大或用于二次修图，细节早已糊成一片。ShareCLIP 坚持「原始无损字节流」准则，传输前哈希校验，传输后哈希比对，原原本本将每一次快门的全部光学信息完整封存到你的个人电脑中。</p>
       </div>
       
     </section>
@@ -1195,7 +1148,7 @@ ShareCLIP 引入了苹果与开源社区针对端侧优化的 MobileCLIP / ViT �
     <section class="content-section" id="faq">
       <div class="section-header">
         <span class="sec-tag">常见疑问解答</span>
-        <h2 class="sec-title">关于 ShareCLIP 与 LocalSend 的常见问答</h2>
+        <h2 class="sec-title">关于 ShareCLIP 与 微信传输助手 的常见问答</h2>
         <p class="sec-desc">解答您在实际使用、迁移、隐私保护和性能上的所有疑问。</p>
       </div>
 
@@ -1203,51 +1156,31 @@ ShareCLIP 引入了苹果与开源社区针对端侧优化的 MobileCLIP / ViT �
         
         <details class="faq-item">
           <summary class="faq-question">
-            <span>如果我已经是 LocalSend 用户，迁移到 ShareCLIP 会有学习成本吗？</span>
+            <span>电脑和手机没有外网（宽带欠费或停网）能用 ShareCLIP 吗？</span>
             <span class="faq-chevron">▼</span>
           </summary>
           <div class="faq-answer">
-            几乎零学习成本！ShareCLIP 的传输流程同样直观：同一 Wi-Fi 下设备自动出现，点击即可发送。在此基础上，你将立刻获得全新的相册瀑布流、AI 自然语言搜索和人脸分类能力，无需任何额外配置。
+            完全可以！ShareCLIP 只依赖局域网通信。只要手机和电脑连接同一个没有外网的路由器，或者手机直接开启热点让电脑连接，就能以 80MB/s 的极速自由互传。
           </div>
         </details>
         
         <details class="faq-item">
           <summary class="faq-question">
-            <span>ShareCLIP 的传输速度和 LocalSend 相比如何？</span>
+            <span>传大文件容易断连吗？支持断点续传吗？</span>
             <span class="faq-chevron">▼</span>
           </summary>
           <div class="faq-answer">
-            两者在传输底层均采用局域网原生 TCP/P2P 直连通道，速度表现完全处于同一顶级梯队。在千兆 Wi-Fi 6 网络下，实际传输吞吐量均可稳定在 80~120 MB/s。
+            ShareCLIP 针对大文件传输设计了分块校验与自愈重试机制。在传输 50GB 以上的蓝光原盘或压缩包时，即使网络发生微小抖动，底层协议也会自动毫秒级重传，保证文件 100% 完整。
           </div>
         </details>
         
         <details class="faq-item">
           <summary class="faq-question">
-            <span>开启 AI 语义搜索和人脸识别会让电脑卡顿吗？</span>
+            <span>既然电脑已经装了客户端，手机怎么传？</span>
             <span class="faq-chevron">▼</span>
           </summary>
           <div class="faq-answer">
-            完全不会。ShareCLIP 的 AI 特征提取工作在后台低优先级线程运行，支持智能感知系统负载与电量。如果检测到正在玩大型游戏或高负荷渲染，AI 索引会自动暂停避让；同时针对现代 GPU 做了 DirectML 硬件加速，计算极快。
-          </div>
-        </details>
-        
-        <details class="faq-item">
-          <summary class="faq-question">
-            <span>ShareCLIP 支持 iOS 苹果手机吗？</span>
-            <span class="faq-chevron">▼</span>
-          </summary>
-          <div class="faq-answer">
-            支持！ShareCLIP PC 端提供开箱即用的 WebShare 网页服务。iOS 用户无需安装额外 App，只需用 Safari 扫描二维码，即可在网页中直接与 PC 双向互传，速度同样达到局域网满速。
-          </div>
-        </details>
-        
-        <details class="faq-item">
-          <summary class="faq-question">
-            <span>ShareCLIP 软件收费吗？有广告或商业推广吗？</span>
-            <span class="faq-chevron">▼</span>
-          </summary>
-          <div class="faq-answer">
-            ShareCLIP 100% 开源免费（采用 MIT 宽松开源协议），承诺无弹窗广告、无高级版内购锁死、无订阅制套路，代码完全公开在 GitHub 上供全球开发者审计。
+            安卓手机可直接安装 ShareCLIP 原生 App，体验极佳的设备自动发现；如果是苹果 iPhone，只需用 Safari 扫电脑屏幕上的 WebShare 二维码，无需安装任何 App 即可在网页端极速收发。
           </div>
         </details>
         
@@ -1270,10 +1203,10 @@ ShareCLIP 引入了苹果与开源社区针对端侧优化的 MobileCLIP / ViT �
             <div class="dl-title">Windows 客户端</div>
             <div class="dl-sub">Windows 10 / 11 • 微软认证免风险</div>
           </div>
-          <a href="ms-windows-store://search/?query=ShareCLIP" class="btn btn-store dl-btn" style="margin-bottom: 8px;" onclick="if(window.mixpanel) mixpanel.track('Store Click', { platform: 'Windows', source: 'DownloadGrid_shareclip-vs-localsend' });">
+          <a href="ms-windows-store://search/?query=ShareCLIP" class="btn btn-store dl-btn" style="margin-bottom: 8px;" onclick="if(window.mixpanel) mixpanel.track('Store Click', { platform: 'Windows', source: 'DownloadGrid_shareclip-vs-wechat-transfer' });">
             <span>🏪 微软商店获取 (推荐)</span>
           </a>
-          <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe" class="btn btn-primary dl-btn" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'DownloadGrid_shareclip-vs-localsend' });">
+          <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe" class="btn btn-primary dl-btn" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'DownloadGrid_shareclip-vs-wechat-transfer' });">
             <span>⚡ 下载 .exe 离线安装包</span>
           </a>
           <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px; font-family: monospace;">
@@ -1288,7 +1221,7 @@ ShareCLIP 引入了苹果与开源社区针对端侧优化的 MobileCLIP / ViT �
             <div class="dl-title">Android 安卓版</div>
             <div class="dl-sub">支持 Android 8.0+ • APK 直链</div>
           </div>
-          <a href="./app-release.apk" class="btn btn-outline dl-btn" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Android', source: 'DownloadGrid_shareclip-vs-localsend' });">
+          <a href="./app-release.apk" class="btn btn-outline dl-btn" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Android', source: 'DownloadGrid_shareclip-vs-wechat-transfer' });">
             <span>下载 Android APK</span>
           </a>
         </div>
@@ -1300,7 +1233,7 @@ ShareCLIP 引入了苹果与开源社区针对端侧优化的 MobileCLIP / ViT �
             <div class="dl-title">WebShare 网页版</div>
             <div class="dl-sub">无需安装客户端 • 浏览器扫码直传</div>
           </div>
-          <a href="./webshare/" class="btn btn-webshare dl-btn" target="_blank" onclick="if(window.mixpanel) mixpanel.track('WebShare Click', { source: 'DownloadGrid_shareclip-vs-localsend' });">
+          <a href="./webshare/" class="btn btn-webshare dl-btn" target="_blank" onclick="if(window.mixpanel) mixpanel.track('WebShare Click', { source: 'DownloadGrid_shareclip-vs-wechat-transfer' });">
             <span>立即在线使用</span>
           </a>
         </div>
@@ -1312,7 +1245,7 @@ ShareCLIP 引入了苹果与开源社区针对端侧优化的 MobileCLIP / ViT �
             <div class="dl-title">macOS & 开源仓库</div>
             <div class="dl-sub">Apple Silicon / Intel • GitHub 源码</div>
           </div>
-          <a href="https://github.com/NovaMindLab/AIShare-Grabber" class="btn btn-outline dl-btn" target="_blank" onclick="if(window.mixpanel) mixpanel.track('GitHub Click', { source: 'DownloadGrid_shareclip-vs-localsend' });">
+          <a href="https://github.com/NovaMindLab/AIShare-Grabber" class="btn btn-outline dl-btn" target="_blank" onclick="if(window.mixpanel) mixpanel.track('GitHub Click', { source: 'DownloadGrid_shareclip-vs-wechat-transfer' });">
             <span>⭐ Star on GitHub</span>
           </a>
         </div>
@@ -1338,6 +1271,15 @@ ShareCLIP 引入了苹果与开源社区针对端侧优化的 MobileCLIP / ViT �
           <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
         </a>
         
+        <a href="./shareclip-vs-localsend.html" class="other-comp-card">
+          <div>
+            <div class="occ-badge">深度对比</div>
+            <div class="occ-title">ShareCLIP vs LocalSend</div>
+            <div class="occ-desc">ShareCLIP vs LocalSend 对比：P2P 局域网传输之上，独家本地 AI 搜图与人脸智能相册</div>
+          </div>
+          <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
+        </a>
+        
         <a href="./shareclip-vs-google-photos.html" class="other-comp-card">
           <div>
             <div class="occ-badge">深度对比</div>
@@ -1352,15 +1294,6 @@ ShareCLIP 引入了苹果与开源社区针对端侧优化的 MobileCLIP / ViT �
             <div class="occ-badge">深度对比</div>
             <div class="occ-title">ShareCLIP vs Immich</div>
             <div class="occ-desc">ShareCLIP vs Immich 对比：免 Docker、免 NAS 服务器，双击即用的轻量级个人 AI 相册</div>
-          </div>
-          <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
-        </a>
-        
-        <a href="./shareclip-vs-wechat-transfer.html" class="other-comp-card">
-          <div>
-            <div class="occ-badge">深度对比</div>
-            <div class="occ-title">ShareCLIP vs 微信传输助手</div>
-            <div class="occ-desc">ShareCLIP vs 微信传输助手对比：局域网 80MB/s 极速互传与照片无损不压缩</div>
           </div>
           <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
         </a>
