@@ -155,7 +155,6 @@
         "zh-CN",
         "en-US"
       ],
-      "addAutoUpdateCapabilities": false,
       "showNameOnTiles": true,
       "setBuildNumber": true
     },
