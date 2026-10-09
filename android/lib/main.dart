@@ -12,6 +12,7 @@ import 'views/connecting_view.dart';
 import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 import 'services/analytics_service.dart';
+import 'models/qr_payload.dart';
 
 const String appVersion = '4.5.8';
 
@@ -54,12 +55,51 @@ class MainRouterScreen extends StatefulWidget {
 }
 
 class _MainRouterScreenState extends State<MainRouterScreen> {
+  static const _systemChannel = MethodChannel('com.shareclip/system_info');
+
   @override
   void initState() {
     super.initState();
+    _initDeepLinkHandler();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndRequestPermissions();
     });
+  }
+
+  void _initDeepLinkHandler() {
+    _systemChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onDeepLink') {
+        final link = call.arguments as String?;
+        if (link != null && link.isNotEmpty) {
+          _handleDeepLink(link);
+        }
+      }
+    });
+
+    // 检查冷启动是否有 Deep Link 传入
+    _checkInitialDeepLink();
+  }
+
+  Future<void> _checkInitialDeepLink() async {
+    try {
+      final initialLink = await _systemChannel.invokeMethod<String>('getInitialDeepLink');
+      if (initialLink != null && initialLink.isNotEmpty) {
+        _handleDeepLink(initialLink);
+      }
+    } catch (e) {
+      debugPrint('[DeepLink] Error reading initial link: $e');
+    }
+  }
+
+  void _handleDeepLink(String link) {
+    debugPrint('[DeepLink] Handling deep link: $link');
+    try {
+      final payload = QrPayload.parse(link);
+      final viewModel = Provider.of<SyncViewModel>(context, listen: false);
+      viewModel.connectToTarget(payload);
+    } catch (e) {
+      debugPrint('[DeepLink] Failed to parse payload from deep link: $e');
+    }
   }
 
   Future<void> _checkAndRequestPermissions() async {

@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ShareCLIP 移动端专属互联与下载中心 | 极速局域网点对点传输神器</title>
+  <meta name="description" content="ShareCLIP 移动端互联落地中心。本地已安装自动调起连接，未安装提供官方高速 APK 直链下载与纯网页版体验。局域网千兆秒传，端到端隐私安全。">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <style>
+    :root {
+      --bg-dark: #070a12;
+      --card-bg: rgba(18, 24, 38, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --accent: #a855f7;
+      --success: #10b981;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.22) 0%, transparent 60%),
+        radial-gradient(circle at 100% 60%, rgba(168, 85, 247, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 0% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* 微信/QQ 提示遮罩 */
+    #wechatGuide {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 10, 18, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 9999;
+      color: white;
+      padding: 24px;
+      text-align: right;
+    }
+    .wechat-arrow {
+      font-size: 40px;
+      margin-bottom: 8px;
+      display: inline-block;
+      animation: bounceArrow 1.2s infinite ease-in-out;
+    }
+    @keyframes bounceArrow {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    .wechat-box {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: left;
+      margin-top: 10px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+    }
+    .wechat-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .wechat-desc {
+      font-size: 14px;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+    .wechat-steps {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    /* 容器布局 */
+    .container {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px 18px 40px 18px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 顶部导航 */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+    }
+    .brand-logo svg {
+      width: 22px;
+      height: 22px;
+      fill: white;
+    }
+    .brand-name {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .version-pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-radius: 20px;
+      color: #a5b4fc;
+      font-weight: 600;
+    }
+
+    /* 状态通知条 */
+    .status-banner {
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.28);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #c7d2fe;
+      animation: pulseGlow 2.5s infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { border-color: rgba(99, 102, 241, 0.28); box-shadow: 0 0 0 rgba(99, 102, 241, 0); }
+      50% { border-color: rgba(99, 102, 241, 0.6); box-shadow: 0 0 16px rgba(99, 102, 241, 0.25); }
+    }
+    .status-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(165, 180, 252, 0.3);
+      border-top-color: #818cf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 主卡片 */
+    .main-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 24px 20px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .main-card::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 140px;
+      height: 140px;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-title {
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.3;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #ffffff 60%, #c7d2fe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.5;
+      margin-bottom: 22px;
+    }
+
+    /* 调起重试区 */
+    .wakeup-area {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .wakeup-tip {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .wakeup-btn {
+      background: rgba(99, 102, 241, 0.25);
+      border: 1px solid rgba(99, 102, 241, 0.5);
+      color: #c7d2fe;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .wakeup-btn:active {
+      transform: scale(0.96);
+      background: rgba(99, 102, 241, 0.4);
+    }
+
+    /* 操作主按钮 */
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+      color: #ffffff;
+      padding: 15px 20px;
+      border-radius: var(--radius-md);
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 10px 24px rgba(99, 102, 241, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .btn-primary:active {
+      transform: translateY(2px) scale(0.98);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    .btn-primary svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    .btn-secondary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+      padding: 13px 20px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-secondary:active {
+      background: rgba(255, 255, 255, 0.1);
+      transform: scale(0.98);
+    }
+
+    .download-meta-tags {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 14px;
+      font-size: 12px;
+      color: #64748b;
+    }
+    .meta-tag {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* 镜像源切换 */
+    .mirror-select-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 14px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .mirror-select {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+    }
+
+    /* 特性展示卡片 */
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .feature-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .feature-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 18px;
+    }
+    .feature-text h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 3px;
+    }
+    .feature-text p {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.45;
+    }
+
+    /* 上手步骤 */
+    .steps-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 20px 18px;
+      margin-bottom: 24px;
+    }
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .step-item:last-child {
+      margin-bottom: 0;
+    }
+    .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: #818cf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .step-content h5 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 2px;
+    }
+    .step-content p {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+
+    /* FAQ */
+    .faq-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+    .faq-q {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .faq-a {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    /* 底部 */
+    .footer {
+      text-align: center;
+      margin-top: auto;
+      padding-top: 20px;
+      font-size: 12px;
+      color: #64748b;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .footer-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .footer-links a {
+      color: #94a3b8;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover {
+      color: #c7d2fe;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 微信/QQ 提示遮罩 -->
+  <div id="wechatGuide">
+    <div class="wechat-arrow">↗</div>
+    <div class="wechat-box">
+      <div class="wechat-title">
+        <span>🌐</span> 请使用系统浏览器打开
+      </div>
+      <p class="wechat-desc">
+        微信/QQ 内置环境限制了直接调起应用与下载 APK 安装包。
+      </p>
+      <div class="wechat-steps">
+        👉 请点击右上角 <strong>「···」</strong><br>
+        👉 选择 <strong>「在浏览器中打开」</strong> 即可极速调起或下载！
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <a href="./index.html" class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+        </div>
+        <span class="brand-name">ShareCLIP</span>
+      </a>
+      <span class="version-pill" id="versionBadge">v4.5.8 稳定版</span>
+    </header>
+
+    <!-- 动态状态提示条 -->
+    <div class="status-banner" id="statusBanner">
+      <div class="status-spinner" id="statusSpinner"></div>
+      <span id="statusText">正在智能探测本地 ShareCLIP 并尝试调起...</span>
+    </div>
+
+    <!-- 主展示下载卡片 -->
+    <div class="main-card">
+      <h1 class="hero-title">手机与电脑 跨端秒连</h1>
+      <p class="hero-subtitle">
+        剪贴板瞬时同步 · 局域网极速直传 · 端到端本地私密安全
+      </p>
+
+      <!-- 调起重试区 -->
+      <div class="wakeup-area">
+        <span class="wakeup-tip" id="wakeupTip">已安装应用？点此立即唤醒</span>
+        <button class="wakeup-btn" id="manualWakeupBtn" onclick="triggerWakeup(true)">
+          🚀 立即调起连接
+        </button>
+      </div>
+
+      <!-- 核心行动按钮 -->
+      <div class="btn-group">
+        <a id="downloadApkBtn" href="./app-release.apk" class="btn-primary" download="ShareCLIP-Android-4.5.8.apk">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+          <span>立即下载 Android 安装包 (APK)</span>
+        </a>
+
+        <a href="./index.html#webshare" class="btn-secondary" id="webShareBtn">
+          <span>🌐 免安装 纯网页极速互传版</span>
+        </a>
+      </div>
+
+      <div class="download-meta-tags">
+        <span class="meta-tag"><span>✓</span> 约 98MB</span>
+        <span class="meta-tag"><span>✓</span> Android 8.0+</span>
+        <span class="meta-tag"><span>✓</span> 无广告·零上传</span>
+      </div>
+
+      <!-- 国内加速节点选择 -->
+      <div class="mirror-select-wrap">
+        <span>下载节点：</span>
+        <select id="mirrorSelect" class="mirror-select" onchange="updateDownloadMirror()">
+          <option value="direct">官网高速直接下载 (推荐)</option>
+          <option value="github">GitHub 官方 Releases 直链</option>
+          <option value="ghproxy">国内镜像加速 (Ghproxy)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 核心特性卡片 -->
+    <h3 class="section-title">⚡ 为什么选择 ShareCLIP？</h3>
+    <div class="features-grid">
+      <div class="feature-item">
+        <div class="feature-icon" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">🚀</div>
+        <div class="feature-text">
+          <h4>千兆局域网 P2P 直传</h4>
+          <p>同一 Wi-Fi 或热点下设备点对点传输，跑满千兆带宽，不走第三方云端，大视频秒级送达。</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📋</div>
+        <div class="feature-text">
+          <h4>无感剪贴板双向同步</h4>
+          <p>电脑复制文字、图片，手机即刻自动粘贴；手机拍照截图，电脑端毫秒级同步呈现。</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">🔒</div>
+        <div class="feature-text">
+          <h4>端到端隐私安全透明</h4>
+          <p>无需注册账号，无需手机号码，无后台暗中收集。全代码开源，本地数据绝对安全。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 上手步骤 -->
+    <div class="steps-card">
+      <h3 class="section-title" style="margin-bottom: 16px;">📲 扫码互连三步法</h3>
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h5>下载并安装客户端</h5>
+          <p>点击上方「立即下载」安装 ShareCLIP APK，首次打开授予本地存储及局域网权限。</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h5>手机与电脑连接同一网络</h5>
+          <p>确保手机与电脑连接到同一个路由器 Wi-Fi（或使用电脑开启移动热点，手机连接）。</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h5>扫码瞬间配对</h5>
+          <p>点击手机端「扫码连接」，对准电脑端屏幕上的二维码，0.1 秒内自动建立 P2P 握手！</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 常见问题 -->
+    <h3 class="section-title">❓ 常见问题解答</h3>
+    <div class="faq-card">
+      <div class="faq-q"><span>💡</span> 安装提示“未知来源应用”？</div>
+      <div class="faq-a">ShareCLIP 属于纯开源绿色软件，直接下载 APK 会触发系统安全提醒，点击“允许来自此来源的应用”或“继续安装”即可，绝无任何恶意插件。</div>
+    </div>
+    <div class="faq-card">
+      <div class="faq-q"><span>💡</span> 无法搜索或配对电脑？</div>
+      <div class="faq-a">请检查电脑防火墙是否放行了 ShareCLIP，或者尝试在电脑端点击“开启热点”，手机连接该热点即可实现 100% 直连互通。</div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="./index.html">返回官网主页</a>
+        <span>·</span>
+        <a href="https://github.com/NovaMindLab/AIShare-Grabber" target="_blank" rel="noopener">GitHub 仓库</a>
+        <span>·</span>
+        <a href="./privacy.html">隐私政策</a>
+      </div>
+      <p>© 2026 ShareCLIP Open Source Project. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <script>
+    const APP_VERSION = "4.5.8";
+    const GITHUB_DOWNLOAD_URL = "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Android-4.5.8.apk";
+    const DIRECT_DOWNLOAD_URL = "./app-release.apk";
+    const GHPROXY_URL = "https://ghproxy.net/" + GITHUB_DOWNLOAD_URL;
+
+    // 1. 微信 / QQ 浏览器检测
+    const ua = navigator.userAgent.toLowerCase();
+    const isWeChat = /micromessenger/i.test(ua);
+    const isQQ = /qq\//i.test(ua);
+
+    if (isWeChat || isQQ) {
+      document.getElementById('wechatGuide').style.display = 'block';
+    }
+
+    // 2. 提取配对参数并构造 Scheme / Intent
+    const searchParams = window.location.search;
+    const queryStr = searchParams ? searchParams.substring(1) : "";
+
+    // 自定义 Scheme
+    const customSchemeUrl = `shareclip://open${queryStr ? '?' + queryStr : ''}`;
+    // Android 原生 Intent
+    const intentUrl = `intent://open${queryStr ? '?' + queryStr : ''}#Intent;scheme=shareclip;package=com.example.image_clip;end`;
+
+    let appOpened = false;
+    let wakeTimer = null;
+
+    function handlePageHidden() {
+      appOpened = true;
+      if (wakeTimer) clearTimeout(wakeTimer);
+      const banner = document.getElementById('statusBanner');
+      const text = document.getElementById('statusText');
+      const spinner = document.getElementById('statusSpinner');
+      if (spinner) spinner.style.display = 'none';
+      if (text) text.innerText = '🎉 已成功调起 ShareCLIP 客户端！';
+      if (banner) {
+        banner.style.background = 'rgba(16, 185, 129, 0.15)';
+        banner.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        banner.style.color = '#6ee7b7';
+      }
+    }
+
+    window.addEventListener('pagehide', handlePageHidden);
+    window.addEventListener('blur', handlePageHidden);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden || document.webkitHidden) {
+        handlePageHidden();
+      }
+    });
+
+    // 3. 执行唤醒逻辑
+    function triggerWakeup(isManual = false) {
+      if (isWeChat || isQQ) {
+        // 在微信内提示使用外部浏览器
+        document.getElementById('wechatGuide').style.display = 'block';
+        return;
+      }
+
+      const text = document.getElementById('statusText');
+      const spinner = document.getElementById('statusSpinner');
+      if (text) text.innerText = isManual ? '正在再次尝试唤起 ShareCLIP...' : '正在智能探测本地 ShareCLIP 并尝试调起...';
+      if (spinner) spinner.style.display = 'block';
+
+      // 尝试 Android Intent 与 Scheme
+      const isAndroid = /android/i.test(ua);
+      const targetUrl = isAndroid ? intentUrl : customSchemeUrl;
+
+      // 创建隐藏 iframe 或直接跳转
+      try {
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = targetUrl;
+        document.body.appendChild(iframe);
+        setTimeout(() => {
+          try { document.body.removeChild(iframe); } catch(_) {}
+        }, 3000);
+      } catch (e) {
+        window.location.href = targetUrl;
+      }
+
+      // 看门狗计时器：1800ms 内未调起则认定未安装
+      if (wakeTimer) clearTimeout(wakeTimer);
+      wakeTimer = setTimeout(() => {
+        if (!appOpened) {
+          const banner = document.getElementById('statusBanner');
+          const statusText = document.getElementById('statusText');
+          const spinner = document.getElementById('statusSpinner');
+          if (spinner) spinner.style.display = 'none';
+          if (statusText) statusText.innerText = '📦 未检测到客户端，推荐直接下载下方安装包体验极速互联';
+          if (banner) {
+            banner.style.background = 'rgba(234, 179, 8, 0.12)';
+            banner.style.borderColor = 'rgba(234, 179, 8, 0.35)';
+            banner.style.color = '#fde047';
+          }
+        }
+      }, 1800);
+    }
+
+    // 4. 镜像源切换逻辑
+    function updateDownloadMirror() {
+      const select = document.getElementById('mirrorSelect');
+      const dlBtn = document.getElementById('downloadApkBtn');
+      const val = select.value;
+      if (val === 'direct') {
+        dlBtn.href = DIRECT_DOWNLOAD_URL;
+      } else if (val === 'github') {
+        dlBtn.href = GITHUB_DOWNLOAD_URL;
+      } else if (val === 'ghproxy') {
+        dlBtn.href = GHPROXY_URL;
+      }
+    }
+
+    // 页面加载完成后自动尝试一次唤起
+    window.addEventListener('DOMContentLoaded', () => {
+      // 检查版本标签
+      const badge = document.getElementById('versionBadge');
+      if (badge) badge.innerText = `v${APP_VERSION} 稳定版`;
+
+      // 仅在移动端自动尝试唤醒
+      const isMobile = /android|iphone|ipad|ipod/i.test(ua);
+      if (isMobile) {
+        triggerWakeup(false);
+      } else {
+        const statusBanner = document.getElementById('statusBanner');
+        const statusText = document.getElementById('statusText');
+        const statusSpinner = document.getElementById('statusSpinner');
+        if (statusSpinner) statusSpinner.style.display = 'none';
+        if (statusText) statusText.innerText = '💡 当前在桌面端访问，您可直接下载 Android APK 并发送至手机';
+      }
+    });
+  </script>
+</body>
+</html>

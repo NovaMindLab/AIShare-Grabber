@@ -517,6 +517,200 @@ const PAGES_CONFIG = [
         a: 'Immich 偏向多用户权限管理、公网相册分享外链等企业级中央功能；而 ShareCLIP 更加专注于「个人与家庭的极速互传、端侧绝对隐私、无需服务器、双击即用的极简 AI 资产管理」。如果你不需要复杂的服务器协作，ShareCLIP 将提供轻巧十倍的使用体验。'
       }
     ]
+  },
+  {
+    id: 'wechat',
+    slug: 'shareclip-vs-wechat-transfer',
+    filename: 'shareclip-vs-wechat-transfer.html',
+    title: 'ShareCLIP vs 微信文件传输助手对比：局域网 80MB/s 满速狂飙、原图 RAW/4K 零压缩与单文件 100GB 免限速',
+    metaTitle: 'ShareCLIP vs 微信传输助手对比：局域网 80MB/s 极速互传与照片无损不压缩',
+    metaDescription: '告别微信文件传输助手的画质有损压缩、1GB 大小限制与频繁文件过期失效。ShareCLIP 采用千兆局域网 P2P 点对点直连，80+ MB/s 满速狂飙，100% 原始字节传输，更独家集成端侧 MobileCLIP AI 语义搜图。',
+    keywords: '微信文件传输助手替代, 微信传照片压缩画质, 局域网大文件传输, 电脑传手机不限速, 微信传输助手 慢, ShareCLIP, AirDrop Windows, 本地AI相册',
+    badgeText: '告别画质压缩与慢速等待',
+    competitorName: '微信「文件传输助手」',
+    competitorShort: '微信传输助手',
+    competitorTagline: '依赖公网云端中转且严格限制大小画质的即时通讯管道',
+    heroHeadline: '告别画质压缩与慢速等待：重构手机与电脑的真正局域网快传',
+    heroSubheadline: '受够了微信文件传输助手的二次有损压缩、1GB 大小限制与“文件已过期或已被清理”？ShareCLIP 采用千兆局域网点对点直连，80+ MB/s 满速传输，100% 原始字节无损直达，更内置端侧 AI 语义搜图。',
+    quickStats: [
+      { label: '传输速率', shareclip: '80~120 MB/s (千兆局域网)', competitor: '1~5 MB/s (公网服务器限速)', highlight: true },
+      { label: '画质压缩', shareclip: '100% 原始字节 (RAW/EXIF无损)', competitor: '强制二次有损压缩', highlight: true },
+      { label: '文件大小限制', shareclip: '无限制 (支持 100GB+ 单文件)', competitor: '严格限制 1GB / 视频受限', highlight: true },
+      { label: '文件留存期', shareclip: '永久保存在本地电脑硬盘', competitor: '7天后提示“文件已过期”', highlight: true }
+    ],
+    whySwitch: '为什么越来越多人停止用微信给自己传文件？',
+    whySwitchDesc: '微信文件传输助手是为了聊天设计的，而不是为了高效生产力。当你传大视频时，漫长的上传云端再下载等待让人崩溃；当你需要原图时，被压缩抹平的细节破坏了珍贵回忆；更致命的是过段时间想找回文件，往往只剩下一句无情的“文件已过期”。ShareCLIP 彻底改变这一切：直连传输、永久落盘、AI 秒搜。',
+    featuresGrid: [
+      {
+        icon: '⚡',
+        title: '内网千兆直连，速度快 20 倍',
+        desc: '不同于微信需要把文件先传到腾讯云服务器再下载到电脑，ShareCLIP 直接走本地路由器高速通道，实测 80~120 MB/s，数 GB 视频数十秒传完。'
+      },
+      {
+        icon: '📷',
+        title: '100% 原始字节无损保留',
+        desc: '完整保留照片的 RAW 格式、HDR 高动态、相机 EXIF 拍摄参数以及 4K 60fps 高码率视频，不抹除任何像素细节，摄影师与设计师首选。'
+      },
+      {
+        icon: '📦',
+        title: '单文件 100GB+ 随意拖拽',
+        desc: '彻底摆脱微信的 1GB 上传壁垒。系统镜像、工程工程包、影视蓝光原盘均可随意批量投送，不中断、不报错。'
+      },
+      {
+        icon: '🔒',
+        title: '永不过期，100% 物理级隐私',
+        desc: '文件直接保存在您指定的本地电脑硬盘文件夹中，不经任何第三方服务器，不用担心公司机密或私人家庭照片泄露。'
+      },
+      {
+        icon: '🧠',
+        title: '内置端侧 AI 语义搜图',
+        desc: '微信传完只能在文件列表大海捞针。ShareCLIP 传完后自动建立本地语义向量，输入「蓝天白云」、「工作发票」即刻毫秒级找到照片。'
+      },
+      {
+        icon: '📋',
+        title: '电脑与手机剪贴板双向同步',
+        desc: '手机复制验证码、网址，电脑即刻可按 Ctrl+V 粘贴；电脑文字与截图一键同步到手机通知栏，协同效率拉满。'
+      }
+    ],
+    comparisonTable: [
+      {
+        category: '传输速度与体量',
+        items: [
+          { feature: '局域网传输吞吐', shareclip: '⚡ 80~120 MB/s (千兆满速直传)', competitor: '⚠️ 1~5 MB/s (公网服务器上传下载)', status: 'win' },
+          { feature: '单文件最大体积', shareclip: '✅ 无限制 (实测 100GB+ 畅通)', competitor: '❌ 严格限制 1GB (大视频无法发送)', status: 'win' },
+          { feature: '外网流量消耗', shareclip: '🎉 0 流量 (离线无公网也可互传)', competitor: '⚠️ 消耗手机双倍公网流量', status: 'win' }
+        ]
+      },
+      {
+        category: '数据完整性与保留',
+        items: [
+          { feature: '图片与视频画质', shareclip: '✅ 100% 原始比特流，保留全部 EXIF', competitor: '❌ 强制重新编码压缩，破坏元数据', status: 'win' },
+          { feature: '文件有效保存期', shareclip: '✅ 永久存储于电脑本地硬盘', competitor: '❌ 7~14天未下载即提示过期清理', status: 'win' },
+          { feature: '隐私与数据中转', shareclip: '🛡️ 纯点对点，零云端中转', competitor: '⚠️ 全部流经云端服务器进行安全审计', status: 'win' }
+        ]
+      },
+      {
+        category: '智能资产与生产力',
+        items: [
+          { feature: '本地 AI 智能搜图', shareclip: '✅ 内置 MobileCLIP 自然语言搜图', competitor: '❌ 无', status: 'win' },
+          { feature: '人脸识别与相册聚类', shareclip: '✅ 本地人脸自动归类', competitor: '❌ 无', status: 'win' },
+          { feature: '免装客户端临时接收', shareclip: '✅ 内置 WebShare，扫码即下', competitor: '⚠️ 对方必须登录微信账号', status: 'win' }
+        ]
+      }
+    ],
+    deepDives: [
+      {
+        title: '1. 为什么用即时通讯软件传文件是低效的架构设计？',
+        content: '微信本质是一款以社交为核心的 IM 软件。当你向「文件传输助手」发送一个文件时，数据先通过你的家庭宽带或 5G 上行带宽上传到腾讯数据中心，服务器完成安全合规扫描后，再通过下行带宽推送到电脑端微信。\n\n这种设计在两台设备明明就在同一个房间、连着同一个路由器的情况下，白白浪费了大量宝贵的公网带宽，且受到腾讯云端严格的带宽限制。ShareCLIP 采用现代局域网 P2P 架构，手机和电脑直接通过无线路由器建立点对点通信，不仅速度提升数十倍，而且在断网或无外网环境下照常飞速传输。'
+      },
+      {
+        title: '2. 原始画质与 EXIF 元数据的不可逆价值',
+        content: '现代手机拍摄的单张照片动辄 20MB~50MB（如 iPhone ProRAW 或高像素相机），内含色深、光圈、快门、GPS 经纬度及 HDR 增益图。微信传输时为了节省服务器存储空间，会对图片进行剧烈的色彩二次量化与分辨率降级。\n\n在手机小屏幕上看或许不明显，但一旦在电脑 4K 显示器上放大或用于二次修图，细节早已糊成一片。ShareCLIP 坚持「原始无损字节流」准则，传输前哈希校验，传输后哈希比对，原原本本将每一次快门的全部光学信息完整封存到你的个人电脑中。'
+      }
+    ],
+    faqs: [
+      {
+        q: '电脑和手机没有外网（宽带欠费或停网）能用 ShareCLIP 吗？',
+        a: '完全可以！ShareCLIP 只依赖局域网通信。只要手机和电脑连接同一个没有外网的路由器，或者手机直接开启热点让电脑连接，就能以 80MB/s 的极速自由互传。'
+      },
+      {
+        q: '传大文件容易断连吗？支持断点续传吗？',
+        a: 'ShareCLIP 针对大文件传输设计了分块校验与自愈重试机制。在传输 50GB 以上的蓝光原盘或压缩包时，即使网络发生微小抖动，底层协议也会自动毫秒级重传，保证文件 100% 完整。'
+      },
+      {
+        q: '既然电脑已经装了客户端，手机怎么传？',
+        a: '安卓手机可直接安装 ShareCLIP 原生 App，体验极佳的设备自动发现；如果是苹果 iPhone，只需用 Safari 扫电脑屏幕上的 WebShare 二维码，无需安装任何 App 即可在网页端极速收发。'
+      }
+    ]
+  },
+  {
+    id: 'iphone-windows',
+    slug: 'windows-to-iphone-file-transfer',
+    filename: 'windows-to-iphone-file-transfer.html',
+    title: 'Windows 电脑如何与 iPhone / iPad 无线互传原图与大文件？2026 免 iTunes 与数据线最佳跨端方案',
+    metaTitle: 'Windows 与 iPhone 怎么无线传文件？无需 iTunes 数据线与 iCloud 的隔空互传方案',
+    metaDescription: '打破苹果与微软生态割裂！全面解决 Windows 电脑与 iPhone / iPad 互传文件的世纪难题。无需安装卡顿庞大的 iTunes，不用插数据线，不用花钱开通 iCloud，使用 ShareCLIP 体验跨端隔空秒传。',
+    keywords: 'iPhone 传文件到 Windows, Windows 给 iPhone 传照片, iPhone 隔空投送到电脑, Windows AirDrop 方案, iPhone 传大视频到电脑, 免 iTunes 互传, ShareCLIP',
+    badgeText: '跨越苹果与微软生态鸿沟',
+    competitorName: '传统 iTunes / 闪电数据线 / iCloud',
+    competitorShort: '传统方式',
+    competitorTagline: '繁琐绑定的数据线驱动与容量受限的收费云盘',
+    heroHeadline: '跨越苹果与微软鸿沟：Windows 与 iPhone 的无线隔空秒传',
+    heroSubheadline: '无需安装庞大卡顿的 iTunes，无需随身携带数据线，更无需购买昂贵的 iCloud 空间扩容。ShareCLIP 结合局域网高速通道与免安装 WebShare 扫码传输，让 iPhone 原图与 4K 视频秒级飞入 Windows 电脑。',
+    quickStats: [
+      { label: '使用门槛', shareclip: '免装驱动 / iPhone免装App扫码即传', competitor: '需安装巨型 iTunes / 依赖数据线', highlight: true },
+      { label: '传输速度', shareclip: '80~120 MB/s (Wi-Fi 局域网直连)', competitor: 'USB 2.0 龟速 (约 30MB/s) 或云端中转', highlight: true },
+      { label: '费用成本', shareclip: '100% 免费开源，零订阅费用', competitor: 'iCloud 2TB 每年数百元月租', highlight: true },
+      { label: '相册智能管理', shareclip: '电脑端内置 MobileCLIP AI 离线搜图', competitor: '仅简单导出为 DCIM 散落文件', highlight: true }
+    ],
+    whySwitch: '为什么用传统方式连接 iPhone 与 Windows 如此痛苦？',
+    whySwitchDesc: '苹果对 Windows 生态长期采取封闭策略：官方 iTunes 体验臃肿、插上数据线经常提示“设备未响应”或文件锁死；而用 iCloud 同步不仅速度缓慢，免费的 5GB 空间几分钟就会被撑爆，面临无休止的付费升级提醒。ShareCLIP 用最现代化的 WebRTC 与本地局域网技术，一招解决 Windows 用户手持 iPhone 的跨端噩梦。',
+    featuresGrid: [
+      {
+        icon: '🍎',
+        title: 'iPhone 零门槛免安装，扫码即连',
+        desc: '无需在 iPhone 上费力去 App Store 找客户端。打开电脑上的 ShareCLIP，用 iPhone 自带的相机或微信扫一扫屏幕二维码，立刻在 Safari 中打开 WebShare 高速互传门户。'
+      },
+      {
+        icon: '🚀',
+        title: '告别 USB 2.0 龟速，跑满 5GHz Wi-Fi',
+        desc: '很多 iPhone 即使到了 15/16 标准版，接口依然是上个时代的 USB 2.0 速率（30MB/s）。ShareCLIP 直接利用无线内网跑出 80~120 MB/s，甚至比插线更快！'
+      },
+      {
+        icon: '🖼️',
+        title: '解决 HEIC 与 Live Photo 兼容烦恼',
+        desc: '支持无损保留苹果专属的 HEIC 原始高压缩格式与原图 EXIF，在电脑端自由选择导出方式，让高画质资产安全备份到电脑大硬盘。'
+      },
+      {
+        icon: '🧠',
+        title: '把 iPhone 抓拍变成可语义搜索的本地图库',
+        desc: '照片传回 Windows 电脑后，ShareCLIP 的端侧 MobileCLIP 引擎自动为每张照片建立本地 AI 神经索引。想找照片，在电脑上搜“海边日落”即可秒级呈现。'
+      },
+      {
+        icon: '🏪',
+        title: 'Windows 微软官方商店直接获取',
+        desc: 'ShareCLIP 已正式上线 Microsoft Store，无需经过第三方下载，商店一键安装，通过微软官方沙盒安全认证，远离流氓软件。'
+      },
+      {
+        icon: '🔒',
+        title: '100% 私有离线，绝无云端泄露',
+        desc: '传输数据全程限定在家庭或办公室的局域网内部，不经过任何外部服务器中转，彻底杜绝个人私密照片与商业资料的云端风险。'
+      }
+    ],
+    comparisonTable: [
+      {
+        category: '操作便利性',
+        items: [
+          { feature: 'iPhone 端要求', shareclip: '🎉 零安装 (Safari 扫码即传)', competitor: '❌ 需开启 iCloud 或插线解锁授权', status: 'win' },
+          { feature: 'Windows 端要求', shareclip: '✅ 微软商店一键安装 (轻量自包含)', competitor: '❌ 需安装臃肿的 iTunes 与 Apple 移动设备驱动', status: 'win' },
+          { feature: '是否依赖数据线', shareclip: '✅ 100% 无线隔空投送', competitor: '❌ 必须随身携带苹果数据线', status: 'win' }
+        ]
+      },
+      {
+        category: '传输体验与速率',
+        items: [
+          { feature: '传输速度', shareclip: '⚡ 80~120 MB/s (千兆内网)', competitor: '⚠️ USB 2.0 约 30MB/s 或 iCloud 龟速同步', status: 'win' },
+          { feature: '原图无损保留', shareclip: '✅ 100% 原始字节与元数据', competitor: '⚠️ 经常被 Windows 驱动转换报错', status: 'win' },
+          { feature: '超大 4K 视频传输', shareclip: '✅ 支持数十 GB 连续流式传输', competitor: '⚠️ 插线传输大视频频繁卡死断开', status: 'win' }
+        ]
+      }
+    ],
+    deepDives: [
+      {
+        title: '1. 技术解密：iPhone 免安装 App 如何实现电脑极速互传？',
+        content: '传统的跨平台工具通常强制要求双方都安装专用客户端，这给 iPhone 用户带来了极高的门槛。ShareCLIP PC 端启动后，会在本地建立一个轻量级 Web 服务器与 WebRTC 信令服务。\n\n当 iPhone 扫描电脑上的二维码时，Safari 浏览器会直接与 PC 建立 WebSocket 与高速 HTTP 数据流。整个过程无需经过任何第三方云端中转，完全是 iPhone 与 PC 在本地 Wi-Fi 内部的直接对话，实现了类似“隔空投送”般顺滑的跨系统传输体验。'
+      }
+    ],
+    faqs: [
+      {
+        q: '用 iPhone 怎么把照片批量传到电脑？',
+        a: '在 Windows 电脑上打开 ShareCLIP 点击「网页互传」，用 iPhone 相机扫描屏幕二维码，在 Safari 打开的页面中点击「选择照片」，勾选你想要传输的照片或视频，点击发送，电脑端即可秒级接收并自动保存至指定相册文件夹。'
+      },
+      {
+        q: 'iPhone 传过去的 HEIC 格式照片电脑打不开怎么办？',
+        a: 'ShareCLIP 电脑端不仅原生支持直接预览高画质 HEIC，还可以一键批量转换为通用 JPG/PNG 格式，完美解决 Windows 平台下的图片格式兼容问题。'
+      }
+    ]
   }
 ];
 
@@ -816,6 +1010,17 @@ ${JSON.stringify(jsonLd, null, 2)}
       transform: translateY(-2px);
       box-shadow: 0 6px 26px rgba(168, 85, 247, 0.55);
       filter: brightness(1.1);
+    }
+    .btn-store {
+      background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+      color: #fff;
+      border: 1px solid rgba(0, 120, 212, 0.5);
+      box-shadow: 0 4px 20px rgba(0, 120, 212, 0.4);
+    }
+    .btn-store:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 26px rgba(0, 120, 212, 0.6);
+      background: linear-gradient(135deg, #1084e3 0%, #0066b3 100%);
     }
     .btn-outline {
       background: rgba(255, 255, 255, 0.04);
@@ -1385,6 +1590,9 @@ ${JSON.stringify(jsonLd, null, 2)}
       </p>
 
       <div class="hero-cta-box">
+        <a href="ms-windows-store://search/?query=ShareCLIP" class="btn btn-store btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Store Click', { platform: 'Windows', source: 'Hero_${cfg.slug}' });">
+          <span>🏪 微软商店官方获取</span>
+        </a>
         <a href="${WINDOWS_EXE_URL}" class="btn btn-primary btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'Hero_${cfg.slug}' });">
           <span>🖥️ Windows 下载 (.exe)</span>
         </a>
@@ -1538,11 +1746,17 @@ ${JSON.stringify(jsonLd, null, 2)}
           <div>
             <div class="dl-icon">🖥️</div>
             <div class="dl-title">Windows 客户端</div>
-            <div class="dl-sub">Windows 10 / 11 • 64-bit 安装包</div>
+            <div class="dl-sub">Windows 10 / 11 • 微软认证免风险</div>
           </div>
-          <a href="${WINDOWS_EXE_URL}" class="btn btn-primary dl-btn" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'DownloadGrid_${cfg.slug}' });">
-            <span>下载 Windows 版</span>
+          <a href="ms-windows-store://search/?query=ShareCLIP" class="btn btn-store dl-btn" style="margin-bottom: 8px;" onclick="if(window.mixpanel) mixpanel.track('Store Click', { platform: 'Windows', source: 'DownloadGrid_${cfg.slug}' });">
+            <span>🏪 微软商店获取 (推荐)</span>
           </a>
+          <a href="${WINDOWS_EXE_URL}" class="btn btn-primary dl-btn" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'DownloadGrid_${cfg.slug}' });">
+            <span>⚡ 下载 .exe 离线安装包</span>
+          </a>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px; font-family: monospace;">
+            winget install NovaMindLab.ShareCLIP
+          </div>
         </div>
 
         <!-- Android -->

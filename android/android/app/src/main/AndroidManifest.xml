@@ -46,6 +46,25 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- Deep Link: Custom Scheme shareclip://open -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="shareclip" android:host="open" />
+            </intent-filter>
+
+            <!-- App Link: https://novamindlab.github.io/AIShare-Grabber/share -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="novamindlab.github.io"
+                    android:pathPrefix="/AIShare-Grabber/share" />
+            </intent-filter>
         </activity>
         <meta-data
             android:name="flutterEmbedding"

@@ -114,7 +114,7 @@
                     {{ t.hero.btnMac }}
                     <span class="arch-indicator-badge">M / Intel</span>
                   </div>
-                  <div class="btn-label-sub">macOS 12+ • 点击选择芯片架构 ▾</div>
+                  <div class="btn-label-sub">{{ t.hero.macChipSelect || 'macOS 12+ • 点击选择芯片架构 ▾' }}</div>
                 </div>
               </a>
 
@@ -145,6 +145,16 @@
 
             <!-- Row 2: Secondary Quick Actions -->
             <div class="hero-secondary-actions">
+              <a 
+                href="ms-windows-store://search/?query=ShareCLIP" 
+                class="btn btn-outline-hero" 
+                style="border-color: rgba(0, 120, 212, 0.6); background: rgba(0, 120, 212, 0.15); color: #93c5fd;"
+                target="_blank"
+                @click="showDownloadToast(t.download.msStoreToast || '🏪 正在唤起微软官方应用商店一键安装...')"
+              >
+                <span>🏪</span> {{ t.download.msStoreBtn || '微软官方商店获取 (推荐)' }}
+              </a>
+
               <a href="#simulator" class="btn btn-outline-hero">
                 <span>⚡</span> {{ t.hero.btnSimulate }}
               </a>
@@ -802,12 +812,25 @@
               <p class="download-desc">{{ t.download.pc_desc }}</p>
               <div class="btn-dl-group">
                 <a 
-                  :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Setup-${cleanVer}.exe`" 
+                  href="ms-windows-store://search/?query=ShareCLIP" 
                   class="btn btn-primary btn-dl-block"
-                  @click="showDownloadToast(`🚀 ${t.download.pc_btn}...`)"
+                  style="background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%); border-color: rgba(0, 120, 212, 0.5); box-shadow: 0 8px 24px rgba(0, 120, 212, 0.4);"
+                  target="_blank"
+                  @click="showDownloadToast(t.download.msStoreToast || '🏪 正在唤起微软官方应用商店一键安装...')"
                 >
-                  <span>⚡</span> {{ t.download.pc_btn }}
+                  <span>🏪</span> {{ t.download.msStoreBtn || '微软官方商店获取 (推荐)' }}
                 </a>
+                <a 
+                  :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Setup-${cleanVer}.exe`" 
+                  class="btn btn-secondary btn-dl-block"
+                  style="margin-top: 8px;"
+                  @click="showDownloadToast(t.download.pc_btn)"
+                >
+                  <span>⚡</span> {{ t.download.directExeBtn || '直接下载 .exe 离线安装包' }}
+                </a>
+                <div class="sub-links-row" style="margin-top: 10px; justify-content: center; font-size: 11px; opacity: 0.85;">
+                  <code>winget install NovaMindLab.ShareCLIP</code>
+                </div>
               </div>
             </div>
 
@@ -822,7 +845,7 @@
                 <a 
                   :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-arm64.dmg`" 
                   class="btn btn-secondary btn-dl-block"
-                  @click="showDownloadToast(`🍏 下载 Apple Silicon DMG...`)"
+                  @click="showDownloadToast(t.download.mac_btn_arm)"
                 >
                   {{ t.download.mac_btn_arm }}
                 </a>
@@ -830,7 +853,7 @@
                   :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-x64.dmg`"
                   class="btn btn-secondary btn-dl-block"
                   style="margin-top: 8px; background: rgba(147, 51, 234, 0.18); border-color: rgba(168, 85, 247, 0.4);"
-                  @click="showDownloadToast(`🖥️ 下载 Intel Mac DMG...`)"
+                  @click="showDownloadToast(t.download.mac_btn_intel)"
                 >
                   {{ t.download.mac_btn_intel }}
                 </a>
@@ -838,7 +861,7 @@
                   <a 
                     :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-arm64.zip`"
                     class="sub-dl-link"
-                    @click="showDownloadToast(`📦 下载 Apple Silicon ZIP...`)"
+                    @click="showDownloadToast('Apple Silicon ZIP')"
                   >
                     📦 ZIP (M系列)
                   </a>
@@ -846,7 +869,7 @@
                   <a 
                     :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-x64.zip`"
                     class="sub-dl-link"
-                    @click="showDownloadToast(`📦 下载 Intel Mac ZIP...`)"
+                    @click="showDownloadToast('Intel Mac ZIP')"
                   >
                     📦 ZIP (Intel)
                   </a>
@@ -866,7 +889,7 @@
                   :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Linux-${cleanVer}-x64.AppImage`" 
                   class="btn btn-secondary btn-dl-block"
                   style="border-color: rgba(234, 179, 8, 0.4);"
-                  @click="showDownloadToast(`🚀 下载 Linux AppImage...`)"
+                  @click="showDownloadToast(t.download.linux_btn_appimage)"
                 >
                   {{ t.download.linux_btn_appimage }}
                 </a>
@@ -874,7 +897,7 @@
                   <a 
                     :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Linux-${cleanVer}-x64.deb`"
                     class="sub-dl-link"
-                    @click="showDownloadToast(`📦 下载 Linux DEB 安装包...`)"
+                    @click="showDownloadToast(t.download.linux_btn_deb)"
                   >
                     {{ t.download.linux_btn_deb }}
                   </a>
@@ -896,6 +919,13 @@
                   @click="showDownloadToast(`📱 ${t.download.android_btn}...`)"
                 >
                   <span>⚡</span> {{ t.download.android_btn }}
+                </a>
+                <a 
+                  href="./share.html" 
+                  class="btn btn-secondary btn-dl-block" 
+                  style="margin-top: 8px; font-size: 13px; opacity: 0.85; border-color: rgba(99, 102, 241, 0.4);"
+                >
+                  <span>📲</span> 移动端扫码互连与下载页
                 </a>
               </div>
             </div>
@@ -1038,7 +1068,7 @@
                 <a 
                   :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-arm64.dmg`"
                   class="btn-primary-arch"
-                  @click="showDownloadToast(`🍏 下载 Apple Silicon DMG...`); showMacModal = false;"
+                  @click="showDownloadToast(t.macModal.armBtnDmg); showMacModal = false;"
                 >
                   <span>🍏</span> {{ t.macModal.armBtnDmg }}
                   <span class="file-size-tag">158 MB</span>
@@ -1046,7 +1076,7 @@
                 <a 
                   :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-arm64.zip`"
                   class="sub-arch-link"
-                  @click="showDownloadToast(`📦 下载 Apple Silicon ZIP...`); showMacModal = false;"
+                  @click="showDownloadToast(t.macModal.armBtnZip); showMacModal = false;"
                 >
                   📦 {{ t.macModal.armBtnZip }}
                 </a>
@@ -1074,7 +1104,7 @@
                 <a 
                   :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-x64.dmg`"
                   class="btn-primary-arch btn-intel-arch"
-                  @click="showDownloadToast(`🖥️ 下载 Intel Mac DMG...`); showMacModal = false;"
+                  @click="showDownloadToast(t.macModal.intelBtnDmg); showMacModal = false;"
                 >
                   <span>🖥️</span> {{ t.macModal.intelBtnDmg }}
                   <span class="file-size-tag">164 MB</span>
@@ -1082,7 +1112,7 @@
                 <a 
                   :href="`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/${appVersion}/ShareCLIP-Mac-${cleanVer}-x64.zip`"
                   class="sub-arch-link"
-                  @click="showDownloadToast(`📦 下载 Intel ZIP...`); showMacModal = false;"
+                  @click="showDownloadToast(t.macModal.intelBtnZip); showMacModal = false;"
                 >
                   📦 {{ t.macModal.intelBtnZip }}
                 </a>

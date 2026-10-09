@@ -17,6 +17,7 @@ import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
+import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -26,6 +27,28 @@ import java.io.File
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.shareclip/system_info"
+    private var initialDeepLink: String? = null
+    private var deepLinkChannel: MethodChannel? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        handleIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        val data = intent?.dataString
+        if (data != null && (data.startsWith("shareclip://") || data.contains("/AIShare-Grabber/share"))) {
+            initialDeepLink = data
+            runOnUiThread {
+                deepLinkChannel?.invokeMethod("onDeepLink", data)
+            }
+        }
+    }
 
     private fun installApkAtPath(filePath: String): Boolean {
         return try {
@@ -60,8 +83,14 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method == "getSystemInfo") {
+        val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        deepLinkChannel = channel
+        channel.setMethodCallHandler { call, result ->
+            if (call.method == "getInitialDeepLink") {
+                val link = initialDeepLink
+                initialDeepLink = null
+                result.success(link)
+            } else if (call.method == "getSystemInfo") {
                 val path = Environment.getDataDirectory()
                 val stat = StatFs(path.path)
                 val blockSize = stat.blockSizeLong

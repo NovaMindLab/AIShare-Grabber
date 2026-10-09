@@ -307,6 +307,17 @@
       box-shadow: 0 6px 26px rgba(168, 85, 247, 0.55);
       filter: brightness(1.1);
     }
+    .btn-store {
+      background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+      color: #fff;
+      border: 1px solid rgba(0, 120, 212, 0.5);
+      box-shadow: 0 4px 20px rgba(0, 120, 212, 0.4);
+    }
+    .btn-store:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 26px rgba(0, 120, 212, 0.6);
+      background: linear-gradient(135deg, #1084e3 0%, #0066b3 100%);
+    }
     .btn-outline {
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--border-subtle);
@@ -875,6 +886,9 @@
       </p>
 
       <div class="hero-cta-box">
+        <a href="ms-windows-store://search/?query=ShareCLIP" class="btn btn-store btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Store Click', { platform: 'Windows', source: 'Hero_shareclip-vs-google-photos' });">
+          <span>🏪 微软商店官方获取</span>
+        </a>
         <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe" class="btn btn-primary btn-hero-lg" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'Hero_shareclip-vs-google-photos' });">
           <span>🖥️ Windows 下载 (.exe)</span>
         </a>
@@ -1254,11 +1268,17 @@ ShareCLIP 运行于纯内网局域网。手机与电脑之间直接通过 Wi-Fi 
           <div>
             <div class="dl-icon">🖥️</div>
             <div class="dl-title">Windows 客户端</div>
-            <div class="dl-sub">Windows 10 / 11 • 64-bit 安装包</div>
+            <div class="dl-sub">Windows 10 / 11 • 微软认证免风险</div>
           </div>
-          <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe" class="btn btn-primary dl-btn" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'DownloadGrid_shareclip-vs-google-photos' });">
-            <span>下载 Windows 版</span>
+          <a href="ms-windows-store://search/?query=ShareCLIP" class="btn btn-store dl-btn" style="margin-bottom: 8px;" onclick="if(window.mixpanel) mixpanel.track('Store Click', { platform: 'Windows', source: 'DownloadGrid_shareclip-vs-google-photos' });">
+            <span>🏪 微软商店获取 (推荐)</span>
           </a>
+          <a href="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe" class="btn btn-primary dl-btn" onclick="if(window.mixpanel) mixpanel.track('Download Click', { platform: 'Windows', source: 'DownloadGrid_shareclip-vs-google-photos' });">
+            <span>⚡ 下载 .exe 离线安装包</span>
+          </a>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px; font-family: monospace;">
+            winget install NovaMindLab.ShareCLIP
+          </div>
         </div>
 
         <!-- Android -->
@@ -1332,6 +1352,24 @@ ShareCLIP 运行于纯内网局域网。手机与电脑之间直接通过 Wi-Fi 
             <div class="occ-badge">深度对比</div>
             <div class="occ-title">ShareCLIP vs Immich</div>
             <div class="occ-desc">ShareCLIP vs Immich 对比：免 Docker、免 NAS 服务器，双击即用的轻量级个人 AI 相册</div>
+          </div>
+          <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
+        </a>
+        
+        <a href="./shareclip-vs-wechat-transfer.html" class="other-comp-card">
+          <div>
+            <div class="occ-badge">深度对比</div>
+            <div class="occ-title">ShareCLIP vs 微信传输助手</div>
+            <div class="occ-desc">ShareCLIP vs 微信传输助手对比：局域网 80MB/s 极速互传与照片无损不压缩</div>
+          </div>
+          <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
+        </a>
+        
+        <a href="./windows-to-iphone-file-transfer.html" class="other-comp-card">
+          <div>
+            <div class="occ-badge">深度对比</div>
+            <div class="occ-title">ShareCLIP vs 传统方式</div>
+            <div class="occ-desc">Windows 与 iPhone 怎么无线传文件？无需 iTunes 数据线与 iCloud 的隔空互传方案</div>
           </div>
           <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--primary);">阅读完整测评 →</div>
         </a>

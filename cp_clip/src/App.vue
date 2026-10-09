@@ -1336,7 +1336,7 @@
                   <span class="playlist-calendar-icon">📅</span>
                   <span class="playlist-date-title">{{ group.dateKey }}</span>
                   <span class="playlist-meta-dot">·</span>
-                  <span class="playlist-meta-pill">{{ group.filteredCount }} {{ currentLocale === 'zh' || currentLocale === 'zh-TW' ? '首' : 'tracks' }}</span>
+                  <span class="playlist-meta-pill">{{ group.filteredCount }} {{ t.audios?.tracks || (currentLocale === 'zh' || currentLocale === 'zh-TW' ? '首' : 'tracks') }}</span>
                   <span class="playlist-meta-dot">·</span>
                   <span class="playlist-meta-pill">{{ formatBytes(group.filteredBytes) }}</span>
                 </div>
@@ -1470,7 +1470,7 @@
                           <span class="icon-playing">🔊</span> {{ t.audios?.playing || '播放中' }}
                         </span>
                         <span v-else>
-                          <span>▶</span> {{ currentLocale === 'zh' || currentLocale === 'zh-TW' ? '播放' : 'Play' }}
+                          <span>▶</span> {{ t.audios?.play || (currentLocale === 'zh' || currentLocale === 'zh-TW' ? '播放' : 'Play') }}
                         </span>
                       </button>
                     </template>
@@ -1518,7 +1518,7 @@
                   :disabled="isAudioSyncing"
                 >
                   <span>⬇️</span>
-                  <span>{{ isAudioSyncing ? '正在下载...' : (t.audios?.floatingDownload ? t.audios.floatingDownload.replace('{count}', selectedAudiosCount) : `立即下载 (${selectedAudiosCount})`) }}</span>
+                  <span>{{ isAudioSyncing ? (t.audios?.downloading || '正在下载...') : (t.audios?.floatingDownload ? t.audios.floatingDownload.replace('{count}', selectedAudiosCount) : `立即下载 (${selectedAudiosCount})`) }}</span>
                 </button>
               </div>
             </div>
@@ -1543,7 +1543,7 @@
                   class="audio-mini-vinyl" 
                   :class="{ spinning: isNativeAudioPlaying }"
                   @click.stop="toggleAudioPlayPause"
-                  :title="isNativeAudioPlaying ? '点击暂停' : '点击播放'"
+                  :title="isNativeAudioPlaying ? (t.audios?.clickToPause || '点击暂停') : (t.audios?.clickToPlay || '点击播放')"
                 >
                   <div class="audio-mini-vinyl-inner">
                     <span>{{ isNativeAudioPlaying ? '🎵' : '⏸️' }}</span>
@@ -1712,7 +1712,7 @@
                   >
                     <span v-if="isClusteringPeople" class="spinner" style="width: 12px; height: 12px;"></span>
                     <span v-else>🔄</span>
-                    <span>{{ isClusteringPeople ? (faceScanProgress.total > 0 && faceScanProgress.done < faceScanProgress.total ? '提取人脸中 (' + faceScanProgress.done + '/' + faceScanProgress.total + ')' : '计算聚类中...') : (t.people?.reclusterBtn || '刷新聚类') }}</span>
+                    <span>{{ isClusteringPeople ? (faceScanProgress.total > 0 && faceScanProgress.done < faceScanProgress.total ? ((t.people?.extractingFacesBtn || '提取人脸中') + ' (' + faceScanProgress.done + '/' + faceScanProgress.total + ')') : (t.people?.clusteringFacesBtn || '计算聚类中...')) : (t.people?.reclusterBtn || '刷新聚类') }}</span>
                   </button>
                 </div>
               </div>
@@ -1843,13 +1843,13 @@
                 class="yt-engine-version-btn" 
                 :class="{ 'updating': ytUpdating }"
                 @click="checkYtDlpUpdate(true)"
-                :title="ytUpdating ? (ytUpdateStatusText || '正在自动拉取并更新 yt-dlp 引擎...') : `yt-dlp 解析引擎: v${ytVersion || '2026.08.19'} (点击手动检查更新，全自动跟踪更新已开启)`"
+                :title="ytUpdating ? (ytUpdateStatusText || t.ytDlp?.engineUpdating || '正在自动拉取并更新 yt-dlp 引擎...') : (t.ytDlp?.engineTooltip ? t.ytDlp.engineTooltip.replace('{ver}', ytVersion || '2026.08.19') : `yt-dlp Engine: v${ytVersion || '2026.08.19'}`)"
                 :disabled="ytUpdating"
               >
                 <span v-if="ytUpdating" class="yt-cookie-spinner"></span>
                 <span v-else class="yt-engine-icon">⚡</span>
-                <span>{{ ytUpdating ? (ytUpdateStatusText || '更新中...') : `yt-dlp v${ytVersion || '2026.08.19'}` }}</span>
-                <span v-if="!ytUpdating" class="yt-auto-tag" title="全自动跟踪更新中">AUTO</span>
+                <span>{{ ytUpdating ? (ytUpdateStatusText || t.ytDlp?.updating || '更新中...') : `yt-dlp v${ytVersion || '2026.08.19'}` }}</span>
+                <span v-if="!ytUpdating" class="yt-auto-tag" :title="t.ytDlp?.autoTracking || '全自动跟踪更新中'">AUTO</span>
               </button>
 
               <!-- 🔐 YouTube Cookie & Login Sync Dropdown -->
@@ -1988,7 +1988,7 @@
                   <div class="yt-cookie-actions">
                     <button class="btn btn-primary yt-action-btn" @click="openYtLoginWindow" :disabled="ytCookieSyncing">
                       <span>🔑</span>
-                      <span>{{ ytCookieConfig.hasEmbeddedCookies ? '重新登录 YouTube' : (t.videoDownloader?.embeddedLoginBtn || '内嵌一键登录') }}</span>
+                      <span>{{ ytCookieConfig.hasEmbeddedCookies ? (t.videoDownloader?.reloginBtn || '重新登录 YouTube') : (t.videoDownloader?.embeddedLoginBtn || '内嵌一键登录') }}</span>
                     </button>
                     <button v-if="ytCookieConfig.hasEmbeddedCookies || ytCookieConfig.mode !== 'none'" class="btn btn-secondary yt-action-btn yt-action-logout" @click="clearYtCookies" :disabled="ytCookieSyncing">
                       <span>🚪</span>
@@ -3060,7 +3060,7 @@
                         <h3 class="settings-card-title">{{ t.settings.sysInfoTitle || '系统环境信息' }}</h3>
                         <span class="sysinfo-status-pill" :class="{ ok: systemInfo?.ok, loading: systemInfoLoading }">
                           <span class="status-pulse-dot"></span>
-                          {{ systemInfoLoading ? (t.settings.sysInfoRefreshing || '检测中...') : (systemInfo?.ok ? '运行正常' : '异常') }}
+                          {{ systemInfoLoading ? (t.settings.sysInfoRefreshing || '检测中...') : (systemInfo?.ok ? (t.settings.sysInfoNormal || '运行正常') : (t.settings.sysInfoAbnormal || '异常')) }}
                         </span>
                       </div>
                       <p class="settings-card-desc">{{ t.settings.sysInfoDesc || '当前运行环境的硬件与软件配置，可用于排查兼容性问题。' }}</p>
@@ -3109,7 +3109,7 @@
                         <div class="sysinfo-prop-group">
                           <div class="prop-label-row">
                             <span class="prop-label">{{ t.settings.sysInfoCpu || '中央处理器' }}</span>
-                            <span class="prop-badge-chip">{{ systemInfo.system.cpuCores }} 逻辑核心</span>
+                            <span class="prop-badge-chip">{{ systemInfo.system.cpuCores }} {{ t.settings.sysInfoCores || '逻辑核心' }}</span>
                           </div>
                           <div class="prop-cpu-name" :title="systemInfo.system.cpu">{{ systemInfo.system.cpu }}</div>
                         </div>
@@ -3131,8 +3131,8 @@
                             ></div>
                           </div>
                           <div class="prop-mem-hint">
-                            <span>空闲可用: {{ systemInfo.system.freeMemGB }} GB</span>
-                            <span>物理总计: {{ systemInfo.system.totalMemGB }} GB</span>
+                            <span>{{ t.settings.sysInfoFreeMem || '空闲可用' }}: {{ systemInfo.system.freeMemGB }} GB</span>
+                            <span>{{ t.settings.sysInfoTotalMem || '物理总计' }}: {{ systemInfo.system.totalMemGB }} GB</span>
                           </div>
                         </div>
 
@@ -3152,7 +3152,7 @@
                           <span>{{ t.settings.sysInfoAi || 'AI 推理计算引擎' }}</span>
                         </div>
                         <span class="panel-tag tier-tag" :class="systemInfo.ai.tier?.toLowerCase()">
-                          {{ systemInfo.ai.tier === 'High' ? '🚀 High 旗舰' : (systemInfo.ai.tier === 'Mid' ? '⚡ Mid 主流' : systemInfo.ai.tier) }}
+                          {{ systemInfo.ai.tier === 'High' ? (t.settings.tierHigh || '🚀 High 旗舰') : (systemInfo.ai.tier === 'Mid' ? (t.settings.tierMid || '⚡ Mid 主流') : systemInfo.ai.tier) }}
                         </span>
                       </div>
 
@@ -3165,7 +3165,7 @@
                               {{ systemInfo.ai.available ? (t.settings.sysInfoAiOk || 'MobileCLIP 引擎就绪') : (t.settings.sysInfoAiFail || '引擎初始化未就绪') }}
                             </div>
                             <div class="ai-hero-desc">
-                              {{ systemInfo.ai.available ? '交互式语义检索已启用 · SIMD 加速支持' : (systemInfo.ai.initError || '底层环境异常') }}
+                              {{ systemInfo.ai.available ? (t.settings.aiDesc || '交互式语义检索已启用 · SIMD 加速支持') : (systemInfo.ai.initError || (t.settings.aiEnvError || '底层环境异常')) }}
                             </div>
                           </div>
                         </div>
@@ -3174,38 +3174,38 @@
                         <div class="sysinfo-prop-group">
                           <div class="prop-label-row">
                             <span class="prop-label">{{ t.settings.sysInfoAiWorkers || '工作线程架构' }}</span>
-                            <span class="prop-badge-chip accent-chip">独立双通道</span>
+                            <span class="prop-badge-chip accent-chip">{{ t.settings.dualChannel || '独立双通道' }}</span>
                           </div>
                           <div class="ai-worker-chips-row">
                             <div class="ai-chip-item">
                               <span class="chip-num mono">{{ systemInfo.ai.maxWorkers }}</span>
-                              <span class="chip-desc">进程池 (Workers)</span>
+                              <span class="chip-desc">{{ t.settings.workers || '进程池 (Workers)' }}</span>
                             </div>
                             <div class="ai-chip-divider">×</div>
                             <div class="ai-chip-item">
                               <span class="chip-num mono">{{ systemInfo.ai.intraThreads }}</span>
-                              <span class="chip-desc">线程/核 (Threads)</span>
+                              <span class="chip-desc">{{ t.settings.threads || '线程/核 (Threads)' }}</span>
                             </div>
                           </div>
-                          <div class="ai-arch-hint">前台搜索与后台聚类物理隔离，零卡顿响应</div>
+                          <div class="ai-arch-hint">{{ t.settings.aiArchHint || '前台搜索与后台聚类物理隔离，零卡顿响应' }}</div>
                         </div>
 
                         <!-- Native DLL Checks -->
                         <div class="sysinfo-prop-group dll-group" v-if="systemInfo.ai.redistExists !== null || systemInfo.ai.ortDllFound !== null">
                           <div class="prop-label-row" style="margin-bottom: 6px;">
-                            <span class="prop-label">底层运行库状态</span>
+                            <span class="prop-label">{{ t.settings.runtimeLibStatus || '底层运行库状态' }}</span>
                           </div>
                           <div class="dll-status-items">
                             <div class="dll-item" v-if="systemInfo.ai.redistExists !== null">
                               <span class="dll-name">MSVC C++ Redist (x64)</span>
                               <span class="dll-pill" :class="systemInfo.ai.redistExists ? 'ok' : 'err'">
-                                {{ systemInfo.ai.redistExists ? '✓ 已就绪' : '✗ 缺失' }}
+                                {{ systemInfo.ai.redistExists ? (t.settings.ready || '✓ 已就绪') : (t.settings.missing || '✗ 缺失') }}
                               </span>
                             </div>
                             <div class="dll-item" v-if="systemInfo.ai.ortDllFound !== null">
                               <span class="dll-name">ONNX Runtime Native</span>
                               <span class="dll-pill" :class="systemInfo.ai.ortDllFound ? 'ok' : 'warn'">
-                                {{ systemInfo.ai.ortDllFound ? '✓ 已挂载' : '⚠ 未找到' }}
+                                {{ systemInfo.ai.ortDllFound ? (t.settings.mounted || '✓ 已挂载') : (t.settings.notFound || '⚠ 未找到') }}
                               </span>
                             </div>
                           </div>
@@ -3227,7 +3227,7 @@
                         <!-- Runtime Core Grid -->
                         <div class="sysinfo-prop-group">
                           <div class="prop-label-row" style="margin-bottom: 6px;">
-                            <span class="prop-label">核心内核组件</span>
+                            <span class="prop-label">{{ t.settings.coreKernel || '核心内核组件' }}</span>
                           </div>
                           <div class="runtime-matrix-grid">
                             <div class="matrix-tile">
@@ -3254,18 +3254,18 @@
                           <div class="prop-label-row">
                             <span class="prop-label">{{ t.settings.sysInfoUserData || '数据存储目录' }}</span>
                             <div class="storage-action-btns">
-                              <button class="action-btn-sm" @click="copyUserDataPath" :title="'复制目录绝对路径'">
-                                {{ copiedUserData ? '✓ 已复制' : '📋 复制' }}
+                              <button class="action-btn-sm" @click="copyUserDataPath" :title="t.settings.copyPath || '复制目录绝对路径'">
+                                {{ copiedUserData ? (t.settings.copied || '✓ 已复制') : (t.settings.copy || '📋 复制') }}
                               </button>
-                              <button class="action-btn-sm primary-sm" @click="openUserDataFolder" :title="'在资源管理器中打开'">
-                                📂 打开
+                              <button class="action-btn-sm primary-sm" @click="openUserDataFolder" :title="t.settings.openInExplorer || '在资源管理器中打开'">
+                                📂 {{ t.settings.open || '打开' }}
                               </button>
                             </div>
                           </div>
                           <div class="storage-path-display" :title="systemInfo.runtime.userData">
                             <span class="path-text mono">{{ systemInfo.runtime.userData }}</span>
                           </div>
-                          <div class="storage-hint">保存了相册数据库、人脸聚类缓存与客户端配置</div>
+                          <div class="storage-hint">{{ t.settings.storageHint || '保存了相册数据库、人脸聚类缓存与客户端配置' }}</div>
                         </div>
                       </div>
                     </div>
@@ -3821,19 +3821,19 @@
       <div class="modal-backdrop" v-if="ytPlaylistModalOpen && ytPlaylistData" @click.self="ytPlaylistModalOpen = false">
         <div class="modal-content yt-playlist-modal" style="max-width: 960px; width: 92%; max-height: 88vh; padding: 24px; border-radius: 20px; display: flex; flex-direction: column; text-align: left; background: var(--bg-surface, #0f172a); border: 1px solid var(--glass-border); box-shadow: 0 24px 60px rgba(0,0,0,0.6); position: relative;">
           <!-- Close button -->
-          <button class="modal-close" @click="ytPlaylistModalOpen = false" title="关闭">✕</button>
+          <button class="modal-close" @click="ytPlaylistModalOpen = false" :title="t.confirm?.cancel || '关闭'">✕</button>
 
           <!-- Modal Header -->
           <div style="display: flex; gap: 18px; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--glass-border); flex-shrink: 0;">
             <div style="position: relative; width: 110px; height: 65px; border-radius: 8px; overflow: hidden; background: var(--bg-tertiary); flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1);">
               <img v-if="ytPlaylistData.thumbnail" :src="getYtMediaSrc(ytPlaylistData.thumbnail)" style="width: 100%; height: 100%; object-fit: cover;" />
               <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); font-size: 10px; color: #fff; text-align: center; padding: 2px 4px; font-weight: 600;">
-                📑 {{ ytPlaylistData.playlistCount || ytPlaylistData.entries?.length || 0 }} 视频
+                📑 {{ ytPlaylistData.playlistCount || ytPlaylistData.entries?.length || 0 }} {{ t.ytDlp?.playlistVideosCount ? t.ytDlp.playlistVideosCount.replace('{count}', '').trim() : (currentLocale === 'zh' ? '视频' : 'Videos') }}
               </div>
             </div>
             <div style="flex: 1; min-width: 0; padding-right: 32px;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <span class="yt-playlist-badge">YouTube 播放列表</span>
+                <span class="yt-playlist-badge">{{ t.ytDlp?.playlistModalTitle || 'YouTube 播放列表' }}</span>
                 <span v-if="ytPlaylistData.uploader" style="font-size: 12px; color: var(--text-secondary);">
                   👤 {{ ytPlaylistData.uploader }}
                 </span>
@@ -3853,20 +3853,20 @@
                 style="padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 8px;"
                 @click="selectAllPlaylistEntries"
               >
-                ✓ 全选 ({{ ytPlaylistData.entries?.length || 0 }})
+                ✓ {{ t.ytDlp?.selectAll || '全选' }} ({{ ytPlaylistData.entries?.length || 0 }})
               </button>
               <button 
                 class="btn btn-secondary" 
                 style="padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 8px;"
                 @click="deselectAllPlaylistEntries"
               >
-                ✕ 清空
+                ✕ {{ t.ytDlp?.clearAll || '清空' }}
               </button>
               <div class="yt-playlist-search-box" style="flex: 1; min-width: 140px; position: relative;">
                 <input 
                   v-model="ytPlaylistSearchQuery" 
                   type="text" 
-                  placeholder="🔍 搜索视频标题..." 
+                  :placeholder="t.ytDlp?.searchPlaceholder || '🔍 搜索视频标题...'" 
                   class="yt-playlist-search-input"
                 />
                 <button 
@@ -3879,7 +3879,7 @@
 
             <!-- Right: Quality Preset Selector -->
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">下载画质:</span>
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">{{ t.ytDlp?.downloadQuality || '下载画质:' }}</span>
               <div style="display: flex; gap: 6px; background: var(--bg-tertiary); padding: 3px; border-radius: 8px; border: 1px solid var(--glass-border);">
                 <button
                   v-for="opt in ytPlaylistQualityOptions"
@@ -3935,16 +3935,14 @@
 
             <!-- Empty filtered state -->
             <div v-if="filteredPlaylistEntries.length === 0" style="text-align: center; padding: 36px 0; color: var(--text-muted); font-size: 13px;">
-              🔍 未找到匹配 "{{ ytPlaylistSearchQuery }}" 的视频条目
+              🔍 {{ t.ytDlp?.noMatchingVideos ? t.ytDlp.noMatchingVideos.replace('{query}', ytPlaylistSearchQuery) : `未找到匹配 "${ytPlaylistSearchQuery}" 的视频条目` }}
             </div>
           </div>
 
           <!-- Footer Actions -->
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--glass-border); padding-top: 14px; flex-shrink: 0; flex-wrap: wrap; gap: 10px;">
             <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
-              <span>已选中:</span>
-              <strong style="color: var(--accent-primary); font-size: 15px;">{{ ytPlaylistSelectedIds.size }}</strong>
-              <span>/ {{ ytPlaylistData.entries?.length || 0 }} 个视频</span>
+              <span>{{ t.ytDlp?.selectedCount ? t.ytDlp.selectedCount.replace('{count}', ytPlaylistSelectedIds.size).replace('{total}', ytPlaylistData.entries?.length || 0) : `已选中: ${ytPlaylistSelectedIds.size} / ${ytPlaylistData.entries?.length || 0} 个视频` }}</span>
             </div>
 
             <div style="display: flex; gap: 10px; align-items: center;">
@@ -3954,9 +3952,9 @@
                 class="btn btn-secondary" 
                 style="padding: 9px 16px; font-size: 12px; font-weight: 600; border-radius: 8px;"
                 @click="parseSingleVideoFromPlaylist"
-                title="放弃整列表，仅解析当前链接对应的这一个单视频"
+                :title="t.ytDlp?.downloadSingleTooltip || '放弃整列表，仅解析当前链接对应的这一个单视频'"
               >
-                🎬 仅下载当前单视频
+                🎬 {{ t.ytDlp?.downloadSingleOnly || '仅下载当前单视频' }}
               </button>
 
               <button 
@@ -3964,7 +3962,7 @@
                 style="padding: 9px 18px; font-size: 12px; font-weight: 600; border-radius: 8px;"
                 @click="ytPlaylistModalOpen = false"
               >
-                取消
+                {{ t.confirm?.cancel || '取消' }}
               </button>
 
               <button 
@@ -3973,7 +3971,7 @@
                 :disabled="ytPlaylistSelectedIds.size === 0"
                 @click="startPlaylistBatchDownload"
               >
-                <span>📥 开始批量排队下载</span>
+                <span>📥 {{ t.ytDlp?.startBatchDownload ? t.ytDlp.startBatchDownload.replace('{count}', ytPlaylistSelectedIds.size) : '开始批量排队下载' }}</span>
                 <span v-if="ytPlaylistSelectedIds.size > 0" style="background: rgba(255,255,255,0.25); padding: 1px 7px; border-radius: 10px; font-size: 12px;">
                   {{ ytPlaylistSelectedIds.size }}
                 </span>
@@ -5355,7 +5353,22 @@ function formatQrPayload(payload) {
   const pwd = obj.hotspotPassword || obj.hp;
   if (pwd) compact.hp = pwd;
 
-  return JSON.stringify(compact);
+  // 构造官网落地分享与调起链接：
+  // 1. 手机端浏览器/微信扫码 -> 打开官网 share.html
+  // 2. 本地已安装 Android -> 网页自动检测并唤醒调起 App 连接
+  // 3. 本地未安装 Android -> 自动停留在官网落地页提供最新 APK 高速下载
+  const baseShareUrl = 'https://novamindlab.github.io/AIShare-Grabber/share.html';
+  const params = new URLSearchParams();
+  if (compact.s) params.set('s', compact.s);
+  if (compact.m) params.set('m', compact.m);
+  if (compact.ip) {
+    params.set('ip', Array.isArray(compact.ip) ? compact.ip.join(',') : compact.ip);
+  }
+  if (compact.p) params.set('port', compact.p);
+  if (compact.hs) params.set('hs', compact.hs);
+  if (compact.hp) params.set('hp', compact.hp);
+
+  return `${baseShareUrl}?${params.toString()}`;
 }
 
 function renderQrCode(payload) {
@@ -8327,7 +8340,8 @@ const getPlatformBadge = (itemOrUrl) => {
   } else if (target.includes('facebook.com') || target.includes('fb.watch')) {
     badge = { name: 'Facebook', icon: '🌐', color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)', border: 'rgba(96, 165, 250, 0.35)' };
   } else if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-    badge = { name: '网络视频', icon: '🌐', color: '#a5b4fc', bg: 'rgba(99, 102, 241, 0.15)', border: 'rgba(99, 102, 241, 0.35)' };
+    const webVideoName = t.value?.ytDlp?.webVideo || (currentLocale.value === 'zh' || currentLocale.value === 'zh-TW' ? '网络视频' : 'Web Video');
+    badge = { name: webVideoName, icon: '🌐', color: '#a5b4fc', bg: 'rgba(99, 102, 241, 0.15)', border: 'rgba(99, 102, 241, 0.35)' };
   }
   
   if (badge) {
@@ -8404,29 +8418,30 @@ const formatDayGroupName = (dayKey) => {
     
     const diffDays = Math.round((today - targetDate) / (1000 * 3600 * 24));
     
+    const isZh = currentLocale.value === 'zh' || currentLocale.value === 'zh-TW';
     if (diffDays === 0) {
-      const todayText = t.value?.ytDlp?.timeToday || '今天';
+      const todayText = t.value?.ytDlp?.timeToday || (isZh ? '今天' : 'Today');
       return { 
-        name: `${todayText} · ${itemMonth}月${itemDay}日`, 
+        name: isZh ? `${todayText} · ${itemMonth}月${itemDay}日` : `${todayText} · ${itemMonth}/${itemDay}`, 
         pillName: `${todayText} (${itemMonth}/${itemDay})`, 
         icon: '📅' 
       };
     } else if (diffDays === 1) {
-      const yesterdayText = t.value?.ytDlp?.timeYesterday || '昨天';
+      const yesterdayText = t.value?.ytDlp?.timeYesterday || (isZh ? '昨天' : 'Yesterday');
       return { 
-        name: `${yesterdayText} · ${itemMonth}月${itemDay}日`, 
+        name: isZh ? `${yesterdayText} · ${itemMonth}月${itemDay}日` : `${yesterdayText} · ${itemMonth}/${itemDay}`, 
         pillName: `${yesterdayText} (${itemMonth}/${itemDay})`, 
         icon: '🕒' 
       };
     } else if (itemYear === now.getFullYear()) {
       return { 
-        name: `${itemMonth}月${itemDay}日`, 
-        pillName: `${itemMonth}月${itemDay}日`, 
+        name: isZh ? `${itemMonth}月${itemDay}日` : `${itemMonth}/${itemDay}`, 
+        pillName: isZh ? `${itemMonth}月${itemDay}日` : `${itemMonth}/${itemDay}`, 
         icon: '📅' 
       };
     } else {
       return { 
-        name: `${itemYear}年${itemMonth}月${itemDay}日`, 
+        name: isZh ? `${itemYear}年${itemMonth}月${itemDay}日` : `${itemYear}/${itemMonth}/${itemDay}`, 
         pillName: `${itemYear}/${itemMonth}/${itemDay}`, 
         icon: '📅' 
       };
@@ -8475,7 +8490,7 @@ const sourceCategoryGroups = computed(() => {
   const map = new Map();
   for (const item of (ytHistory.value || [])) {
     const badge = getPlatformBadge(item);
-    const key = badge?.name || '其他网页';
+    const key = badge?.name || t.value?.ytDlp?.otherWebsites || (currentLocale.value === 'zh' || currentLocale.value === 'zh-TW' ? '其他网页' : 'Other Websites');
     const icon = badge?.icon || '🌐';
     if (!map.has(key)) {
       map.set(key, { key, name: key, icon, items: [] });

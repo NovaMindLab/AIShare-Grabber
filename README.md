@@ -27,6 +27,15 @@
   <p align="center">
     👉 <b>官方门户与全平台下载直达：<a href="https://novamindlab.github.io/AIShare-Grabber/">https://novamindlab.github.io/AIShare-Grabber/</a></b> 👈<br/>
     <small>（支持全平台客户端一键下载、Mac 芯片架构智能检测与免安装 WebShare 在线体验）</small>
+  <!-- 🏪 Official Microsoft Store Callout -->
+  <p align="center">
+    <a href="ms-windows-store://search/?query=ShareCLIP" title="在 Windows 应用商店中打开并一键安装">
+      <img src="https://img.shields.io/badge/🏪_Microsoft_Store-官方认证一键安装-0078D4?style=for-the-badge&logo=microsoft&logoColor=white" alt="Get it from Microsoft Store" height="40" />
+    </a>
+  </p>
+
+  <p align="center">
+    <code>winget install NovaMindLab.ShareCLIP</code> &nbsp;•&nbsp; <code>brew install --cask shareclip</code>
   </p>
 
   <p align="center">
