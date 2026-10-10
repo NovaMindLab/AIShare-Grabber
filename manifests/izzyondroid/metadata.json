@@ -1,13 +1,13 @@
 {
   "applicationId": "com.novamindlab.image_clip",
   "appName": "ShareCLIP",
-  "version": "4.5.8",
+  "version": "4.5.9",
   "versionCode": 458,
-  "releaseDate": "2026-10-08",
+  "releaseDate": "2026-10-10",
   "sourceCodeUrl": "https://github.com/NovaMindLab/AIShare-Grabber",
   "issueTrackerUrl": "https://github.com/NovaMindLab/AIShare-Grabber/issues",
-  "apkAssetUrl": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Android-4.5.8.apk",
-  "apkSha256": "340993b1fa20dc4e5b0984badb2c988f389873bcb1fbfa60492233bfa2ca3ad4",
+  "apkAssetUrl": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.9/ShareCLIP-Android-4.5.9.apk",
+  "apkSha256": "a3409249e2cdbe0e1368f216b793375bf279813ebf32b63b9e993c7238a3546f",
   "license": "MIT",
   "categories": [
     "Connectivity",
