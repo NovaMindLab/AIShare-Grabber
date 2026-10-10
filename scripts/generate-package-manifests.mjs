@@ -335,6 +335,19 @@ end
   fs.writeFileSync(izzyMetaPath, JSON.stringify(izzyMetadata, null, 2), 'utf8');
   console.log(`[Manifest Generator] Generated IzzyOnDroid metadata: ${izzyMetaPath}`);
 
+  // Output 6: Copy Scoop bucket README
+  const scoopReadmeSrc = path.resolve('manifests/scoop/README.md');
+  if (fs.existsSync(scoopReadmeSrc)) {
+    // README is already in the right place; no copy needed for CI
+    console.log('[Manifest Generator] Scoop README.md present at manifests/scoop/README.md');
+  }
+
+  // Output 7: Copy Homebrew tap README
+  const brewReadmeSrc = path.resolve('manifests/homebrew/README.md');
+  if (fs.existsSync(brewReadmeSrc)) {
+    console.log('[Manifest Generator] Homebrew README.md present at manifests/homebrew/README.md');
+  }
+
   console.log('\n[Manifest Generator] All package manager manifests generated successfully!');
 }
 

@@ -99,6 +99,135 @@ jobs:
             ls -la "$WINGET_DIR"
           fi
 
+      # ─────────────────────────────────────────────────────────────
+      # 🍦 Scoop Bucket Auto-Push
+      # Pushes the updated shareclip.json to NovaMindLab/scoop-bucket.
+      # Requires: PAT_TOKEN secret with repo scope on NovaMindLab/scoop-bucket.
+      # One-time setup: create https://github.com/NovaMindLab/scoop-bucket repo
+      # ─────────────────────────────────────────────────────────────
+      - name: 🍦 Scoop Bucket Auto-Push
+        id: scoop_push
+        continue-on-error: true
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          if [ -z "$PAT_TOKEN" ]; then
+            echo "SCOOP_STATUS=⚠️ Skipped (PAT_TOKEN not configured)" >> $GITHUB_OUTPUT
+            echo "PAT_TOKEN not set, skipping Scoop bucket push."
+            exit 0
+          fi
+
+          VER="${{ steps.ver.outputs.CLEAN }}"
+          SCOOP_MANIFEST="manifests/scoop/shareclip.json"
+
+          if [ ! -f "$SCOOP_MANIFEST" ]; then
+            echo "SCOOP_STATUS=⚠️ Skipped (manifest not found)" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "==== Pushing Scoop manifest v${VER} to NovaMindLab/scoop-bucket ===="
+          git clone "https://x-access-token:${PAT_TOKEN}@github.com/NovaMindLab/scoop-bucket.git" /tmp/scoop-bucket
+          mkdir -p /tmp/scoop-bucket/bucket
+          cp "$SCOOP_MANIFEST" /tmp/scoop-bucket/bucket/shareclip.json
+
+          cd /tmp/scoop-bucket
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/shareclip.json
+
+          if git diff --staged --quiet; then
+            echo "SCOOP_STATUS=✅ Already up-to-date" >> $GITHUB_OUTPUT
+          else
+            git commit -m "Update shareclip to ${VER}"
+            git push origin HEAD:main
+            echo "SCOOP_STATUS=✅ Pushed v${VER} to NovaMindLab/scoop-bucket" >> $GITHUB_OUTPUT
+            echo "Scoop bucket updated to v${VER}."
+          fi
+
+      # ─────────────────────────────────────────────────────────────
+      # 🍺 Homebrew Tap Auto-Push
+      # Pushes shareclip.rb to NovaMindLab/homebrew-tap (your own tap repo).
+      # Requires: PAT_TOKEN secret; one-time repo creation needed.
+      # Install: brew install --cask NovaMindLab/homebrew-tap/shareclip
+      # ─────────────────────────────────────────────────────────────
+      - name: 🍺 Homebrew Tap Auto-Push
+        id: homebrew_tap_push
+        continue-on-error: true
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          if [ -z "$PAT_TOKEN" ]; then
+            echo "HOMEBREW_STATUS=⚠️ Skipped (PAT_TOKEN not configured)" >> $GITHUB_OUTPUT
+            echo "PAT_TOKEN not set, skipping Homebrew tap push."
+            exit 0
+          fi
+
+          VER="${{ steps.ver.outputs.CLEAN }}"
+          CASK_FILE="manifests/homebrew/shareclip.rb"
+
+          if [ ! -f "$CASK_FILE" ]; then
+            echo "HOMEBREW_STATUS=⚠️ Skipped (cask formula not found)" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "==== Pushing Homebrew Cask v${VER} to NovaMindLab/homebrew-tap ===="
+          git clone "https://x-access-token:${PAT_TOKEN}@github.com/NovaMindLab/homebrew-tap.git" /tmp/homebrew-tap
+          mkdir -p /tmp/homebrew-tap/Casks
+          cp "$CASK_FILE" /tmp/homebrew-tap/Casks/shareclip.rb
+
+          cd /tmp/homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/shareclip.rb
+
+          if git diff --staged --quiet; then
+            echo "HOMEBREW_STATUS=✅ Already up-to-date" >> $GITHUB_OUTPUT
+          else
+            git commit -m "shareclip ${VER}"
+            git push origin HEAD:main
+            echo "HOMEBREW_STATUS=✅ Pushed v${VER} to NovaMindLab/homebrew-tap" >> $GITHUB_OUTPUT
+            echo "Homebrew tap updated to v${VER}."
+          fi
+
+      # ─────────────────────────────────────────────────────────────
+      # 🤖 IzzyOnDroid APK Availability Check
+      # After initial one-time issue submission, IzzyOnDroid's bot
+      # auto-polls GitHub Releases. This step verifies APK is reachable.
+      # ─────────────────────────────────────────────────────────────
+      - name: 🤖 IzzyOnDroid APK Release Verification
+        id: izzy_check
+        continue-on-error: true
+        run: |
+          VER="${{ steps.ver.outputs.CLEAN }}"
+          APK_URL="https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v${VER}/ShareCLIP-Android-${VER}.apk"
+
+          echo "==== Verifying APK availability for IzzyOnDroid bot ===="
+          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" -L --head "$APK_URL")
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "IZZY_STATUS=✅ APK reachable — IzzyOnDroid bot will auto-pick up v${VER}" >> $GITHUB_OUTPUT
+            echo "APK publicly available: $APK_URL"
+          else
+            echo "IZZY_STATUS=⚠️ APK HTTP ${HTTP_STATUS} — release may still be processing" >> $GITHUB_OUTPUT
+            echo "WARNING: APK returned HTTP $HTTP_STATUS"
+          fi
+
+          # Sync versionCode in metadata.json
+          IZZY_META="manifests/izzyondroid/metadata.json"
+          if [ -f "$IZZY_META" ]; then
+            VERSION_CODE=$(echo "$VER" | tr -d '.' | sed 's/^0*//')
+            node -e "
+              const fs = require('fs');
+              const meta = JSON.parse(fs.readFileSync('$IZZY_META', 'utf8'));
+              meta.version = '$VER';
+              meta.versionCode = parseInt('$VERSION_CODE') || meta.versionCode;
+              meta.releaseDate = new Date().toISOString().split('T')[0];
+              meta.apkAssetUrl = 'https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v$VER/ShareCLIP-Android-$VER.apk';
+              fs.writeFileSync('$IZZY_META', JSON.stringify(meta, null, 2), 'utf8');
+              console.log('IzzyOnDroid metadata synced to v$VER');
+            "
+          fi
+
       - name: 📝 Generate Multi-Channel Promotion Markdown
         run: |
           mkdir -p .github/promotion_output
@@ -221,11 +350,11 @@ jobs:
 
           | Channel / Manager | Ecosystem | Status | Distribution Details |
           |---|---|---|---|
-          | 🪟 **Microsoft WinGet** | Windows 10/11 | ${{ steps.winget_fallback.outputs.WINGET_STATUS }} | `winget install NovaMindLab.ShareCLIP` (Manifest: `manifests/winget/`) |
-          | 🍦 **Scoop** | Windows CLI | ✅ Manifest Synced | Bucket URL: `manifests/scoop/shareclip.json` |
-          | 🍺 **Homebrew Cask** | macOS (Apple / Intel) | ✅ Formula Generated | Cask file: `manifests/homebrew/shareclip.rb` (`brew install --cask shareclip`) |
-          | 🤖 **IzzyOnDroid / F-Droid** | Android FOSS | ✅ Metadata Ready | Application ID: `com.novamindlab.image_clip` (See `marketing/izzyondroid_submission.md`) |
-          | 🐧 **Linux Hub** | Ubuntu / Debian / Fedora | ✅ Artifacts Live | AppImage + Debian packages available on GitHub Releases |
+          | 🪟 **Microsoft WinGet** | Windows 10/11 | ${{ steps.winget_fallback.outputs.WINGET_STATUS }} | `winget install NovaMindLab.ShareCLIP` (\`manifests/winget/\`) |
+          | 🍦 **Scoop** | Windows CLI | ${{ steps.scoop_push.outputs.SCOOP_STATUS }} | `scoop install https://raw.githubusercontent.com/NovaMindLab/scoop-bucket/main/bucket/shareclip.json` |
+          | 🍺 **Homebrew Tap** | macOS (Apple / Intel) | ${{ steps.homebrew_tap_push.outputs.HOMEBREW_STATUS }} | `brew install --cask NovaMindLab/homebrew-tap/shareclip` |
+          | 🤖 **IzzyOnDroid** | Android FOSS | ${{ steps.izzy_check.outputs.IZZY_STATUS }} | APK auto-detected by IzzyOnDroid bot · App ID: `com.novamindlab.image_clip` |
+          | 🐧 **Linux AppImage / .deb** | Ubuntu / Debian / Fedora | ✅ Artifacts Live | AppImage + Debian packages available on GitHub Releases |
 
           ---
 
