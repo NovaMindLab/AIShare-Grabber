@@ -1,9 +1,9 @@
 cask "shareclip" do
   arch arm: "arm64", intel: "x64"
 
-  version "4.5.9"
-  sha256 arm:   "92228d3e8d89ac941f1d7563b1b1eb254ae03d2bb2b376ed3fd35ee79f686b32",
-         intel: "fbc8ceef8014bbc535a4179a09c68e92d2cd8479acccf7622be4e11c2dc3076d"
+  version "4.5.10"
+  sha256 arm:   "168b808cb7afed1f7cfd6ad287c54a6f1316a4b788ae2501aee954bb611f666c",
+         intel: "9b49af4f2c1a1cf7360e1ba7b2f1b4e5f68fbcb1fb5c070cfaef041ec3c9ebe8"
 
   url "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v#{version}/ShareCLIP-Mac-#{version}-#{arch}.dmg",
       verified: "github.com/NovaMindLab/AIShare-Grabber/"
