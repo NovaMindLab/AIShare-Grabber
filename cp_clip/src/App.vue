@@ -1226,94 +1226,7 @@
             </div>
           </transition>
 
-          <!-- Video Fullscreen Player Lightbox Modal (Clean, No Top Name, No Locate Button) -->
-          <transition name="modal-fade">
-            <div v-if="activePlayingVideo" class="video-player-overlay" @click.self="closeVideoPlayer">
-              <div class="video-player-modal glass-panel">
-                <!-- Floating Controls & Streaming Status -->
-                <div 
-                  v-if="activePlayingVideo.isStreaming"
-                  class="vp-streaming-tag"
-                  style="position: absolute; top: 14px; left: 18px; z-index: 20; background: rgba(99, 102, 241, 0.85); backdrop-filter: blur(10px); padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 4px 14px rgba(0,0,0,0.4);"
-                >
-                  <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8; animation: pulse-glow 1.5s infinite;"></span>
-                  {{ t.videos?.streamingBadge || '⚡ 手机在线秒播 (0 磁盘占用)' }}
-                </div>
-
-                <button 
-                  v-if="activePlayingVideo.isStreaming" 
-                  class="vp-floating-save-btn" 
-                  style="position: absolute; top: 14px; right: 104px; z-index: 20; background: rgba(16, 185, 129, 0.85); backdrop-filter: blur(10px); border: 1.5px solid rgba(255, 255, 255, 0.3); color: #fff; height: 36px; padding: 0 14px; border-radius: 18px; display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 4px 14px rgba(0,0,0,0.4);" 
-                  @click="downloadCurrentStreamingVideo" 
-                  :disabled="isStreamingDirectSaveLoading"
-                  :title="t.videos?.saveToPc || '备份到本地'"
-                >
-                  <span>{{ isStreamingDirectSaveLoading ? '⏳' : '⬇️' }}</span>
-                  <span>{{ isStreamingDirectSaveLoading ? (t.videos?.savingToPc || '正在备份...') : (t.videos?.saveToPc || '备份到本地') }}</span>
-                </button>
-
-                <button 
-                  v-if="hasApi && window.api?.openVideoWindow && !isVideoPreviewLoading && !activePlayingVideo.isStreaming" 
-                  class="vp-floating-close-btn" 
-                  style="right: 56px; font-size: 14px;" 
-                  @click="popOutVideoPlayer" 
-                  :title="t.lightbox?.detachedPlay || '在独立窗口中播放'"
-                >
-                  🗗
-                </button>
-                <button class="vp-floating-close-btn" @click="closeVideoPlayer" :title="t.lightbox?.closeApp || '关闭视频 (ESC)'">✕</button>
-
-                <!-- Video Viewport -->
-                <div class="video-player-body">
-                  <!-- 1. Phone Video Live Preview Loading State -->
-                  <div v-if="isVideoPreviewLoading" class="video-preview-loading-card">
-                    <div 
-                      class="preview-bg-blur"
-                      :style="{ backgroundImage: (activePlayingVideo.thumb || activePlayingVideo.poster) ? `url(${activePlayingVideo.thumb || activePlayingVideo.poster})` : 'none' }"
-                    ></div>
-                    <div class="preview-loading-content">
-                      <div class="preview-radar-container">
-                        <div class="preview-radar-spinner"></div>
-                        <span class="preview-radar-icon">📡</span>
-                      </div>
-                      <h3 class="preview-title">{{ t.videos?.previewingTitle ? t.videos.previewingTitle.replace('{name}', activePlayingVideo.name) : `正在拉取手机端视频: ${activePlayingVideo.name}` }}</h3>
-                      <p class="preview-subtitle">
-                        {{ t.videos?.previewHint || '正在通过 WebRTC P2P 高速直连通道从手机传输视频文件至电脑，完成后自动开启播放...' }}
-                      </p>
-                      <div class="preview-progress-box">
-                        <div class="preview-progress-bar-bg">
-                          <div 
-                            class="preview-progress-bar-fill" 
-                            :style="{ width: `${videoPreviewProgressPercent}%` }"
-                          ></div>
-                        </div>
-                        <div class="preview-meta-row">
-                          <span class="preview-meta-pct">{{ videoPreviewProgressPercent }}%</span>
-                          <span class="preview-meta-info">
-                            <span v-if="activePlayingVideo.size">{{ formatFileSize(activePlayingVideo.size) }}</span>
-                            <span v-if="activePlayingVideo.duration"> · ⏱️ {{ formatVideoDuration(activePlayingVideo.duration) }}</span>
-                          </span>
-                        </div>
-                      </div>
-                      <button class="preview-cancel-btn" @click="cancelVideoPreview">
-                        ✕ {{ t.videos?.cancelPreview || '取消预览' }}
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- 2. Video Player Native Element (Streaming or Synced) -->
-                  <video 
-                    v-else
-                    :src="activePlayingVideo.src || `local:///${activePlayingVideo.path.replace(/\\/g, '/')}`" 
-                    controls 
-                    autoplay 
-                    @error="handleVideoPlayerError"
-                    class="video-native-element"
-                  ></video>
-                </div>
-              </div>
-            </div>
-          </transition>
+          <!-- Note: Video Fullscreen Player Lightbox Modal moved to app root for global z-index visibility -->
 
           <!-- Video AnimeGAN Studio Modal -->
           <VideoAnimeStudioModal 
@@ -3482,6 +3395,95 @@
       <span class="toast-msg">{{ toastMessage }}</span>
       <button class="toast-close" @click="toastVisible = false">&#x2715;</button>
     </div>
+    </transition>
+
+    <!-- ==================== GLOBAL VIDEO FULLSCREEN PLAYER LIGHTBOX MODAL ==================== -->
+    <transition name="modal-fade">
+      <div v-if="activePlayingVideo" class="video-player-overlay" @click.self="closeVideoPlayer" style="z-index: 10001;">
+        <div class="video-player-modal glass-panel">
+          <!-- Floating Controls & Streaming Status -->
+          <div 
+            v-if="activePlayingVideo.isStreaming"
+            class="vp-streaming-tag"
+            style="position: absolute; top: 14px; left: 18px; z-index: 20; background: rgba(99, 102, 241, 0.85); backdrop-filter: blur(10px); padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 4px 14px rgba(0,0,0,0.4);"
+          >
+            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8; animation: pulse-glow 1.5s infinite;"></span>
+            {{ t.videos?.streamingBadge || '⚡ 手机在线秒播 (0 磁盘占用)' }}
+          </div>
+
+          <button 
+            v-if="activePlayingVideo.isStreaming" 
+            class="vp-floating-save-btn" 
+            style="position: absolute; top: 14px; right: 104px; z-index: 20; background: rgba(16, 185, 129, 0.85); backdrop-filter: blur(10px); border: 1.5px solid rgba(255, 255, 255, 0.3); color: #fff; height: 36px; padding: 0 14px; border-radius: 18px; display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 4px 14px rgba(0,0,0,0.4);" 
+            @click="downloadCurrentStreamingVideo" 
+            :disabled="isStreamingDirectSaveLoading"
+            :title="t.videos?.saveToPc || '备份到本地'"
+          >
+            <span>{{ isStreamingDirectSaveLoading ? '⏳' : '⬇️' }}</span>
+            <span>{{ isStreamingDirectSaveLoading ? (t.videos?.savingToPc || '正在备份...') : (t.videos?.saveToPc || '备份到本地') }}</span>
+          </button>
+
+          <button 
+            v-if="hasApi && window.api?.openVideoWindow && !isVideoPreviewLoading && !activePlayingVideo.isStreaming" 
+            class="vp-floating-close-btn" 
+            style="right: 56px; font-size: 14px;" 
+            @click="popOutVideoPlayer" 
+            :title="t.lightbox?.detachedPlay || '在独立窗口中播放'"
+          >
+            🗗
+          </button>
+          <button class="vp-floating-close-btn" @click="closeVideoPlayer" :title="t.lightbox?.closeApp || '关闭视频 (ESC)'">✕</button>
+
+          <!-- Video Viewport -->
+          <div class="video-player-body">
+            <!-- 1. Phone Video Live Preview Loading State -->
+            <div v-if="isVideoPreviewLoading" class="video-preview-loading-card">
+              <div 
+                class="preview-bg-blur"
+                :style="{ backgroundImage: (activePlayingVideo.thumb || activePlayingVideo.poster) ? `url(${activePlayingVideo.thumb || activePlayingVideo.poster})` : 'none' }"
+              ></div>
+              <div class="preview-loading-content">
+                <div class="preview-radar-container">
+                  <div class="preview-radar-spinner"></div>
+                  <span class="preview-radar-icon">📡</span>
+                </div>
+                <h3 class="preview-title">{{ t.videos?.previewingTitle ? t.videos.previewingTitle.replace('{name}', activePlayingVideo.name) : `正在连接手机端视频: ${activePlayingVideo.name}` }}</h3>
+                <p class="preview-subtitle">
+                  {{ t.videos?.previewHint || '正在通过局域网流媒体建立秒播直连通道，无需下载即可在线播放...' }}
+                </p>
+                <div class="preview-progress-box">
+                  <div class="preview-progress-bar-bg">
+                    <div 
+                      class="preview-progress-bar-fill" 
+                      :style="{ width: `${videoPreviewProgressPercent}%` }"
+                    ></div>
+                  </div>
+                  <div class="preview-meta-row">
+                    <span class="preview-meta-pct">{{ videoPreviewProgressPercent }}%</span>
+                    <span class="preview-meta-info">
+                      <span v-if="activePlayingVideo.size">{{ formatFileSize(activePlayingVideo.size) }}</span>
+                      <span v-if="activePlayingVideo.duration"> · ⏱️ {{ formatVideoDuration(activePlayingVideo.duration) }}</span>
+                    </span>
+                  </div>
+                </div>
+                <button class="preview-cancel-btn" @click="cancelVideoPreview">
+                  ✕ {{ t.videos?.cancelPreview || '取消预览' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. Video Player Native Element (Streaming or Synced) -->
+            <video 
+              v-else
+              :src="activePlayingVideo.src || (activePlayingVideo.path ? `local:///${activePlayingVideo.path.replace(/\\/g, '/')}` : '')" 
+              controls 
+              autoplay 
+              @error="handleVideoPlayerError"
+              class="video-native-element"
+            ></video>
+          </div>
+        </div>
+      </div>
     </transition>
 
     <!-- ==================== IMMERSIVE FULL-SCREEN LIGHTBOX GALLERY VIEWER ==================== -->
@@ -6838,6 +6840,25 @@ function stopVideoSync() {
   isVideoSyncPaused.value = false;
 }
 
+function getResolvedPeerIp() {
+  if (activePeerIp.value) return activePeerIp.value;
+  if (connectionManager?.activePeerIp?.value) return connectionManager.activePeerIp.value;
+  if (remoteStreamIps.value && remoteStreamIps.value.length > 0) return remoteStreamIps.value[0];
+  
+  // Extract remote candidate IP from WebRTC PeerConnection
+  try {
+    const pc = peerConnection || connectionManager?.peerConnection;
+    if (pc && pc.remoteDescription && pc.remoteDescription.sdp) {
+      const sdp = pc.remoteDescription.sdp;
+      const m = sdp.match(/c=IN IP4 ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
+      if (m && m[1] && m[1] !== '0.0.0.0' && !m[1].startsWith('127.')) return m[1];
+      const candMatch = sdp.match(/a=candidate:\S+ \d+ \S+ \d+ ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
+      if (candMatch && candMatch[1] && candMatch[1] !== '0.0.0.0' && !candMatch[1].startsWith('127.')) return candMatch[1];
+    }
+  } catch (_) {}
+  return null;
+}
+
 function getVideoStreamUrl(video) {
   const v = (video && video.value) ? video.value : video;
   if (!v) return null;
@@ -6845,10 +6866,7 @@ function getVideoStreamUrl(video) {
   const token = v.stream_token || remoteStreamToken.value || '';
   if (!port) return null;
 
-  let host = activePeerIp.value;
-  if (!host && remoteStreamIps.value && remoteStreamIps.value.length > 0) {
-    host = remoteStreamIps.value[0];
-  }
+  let host = getResolvedPeerIp();
   if (!host && v.stream_ips && v.stream_ips.length > 0) {
     host = v.stream_ips[0];
   }
@@ -6860,6 +6878,8 @@ function getVideoStreamUrl(video) {
 function openVideoPlayer(video) {
   const v = (video && video.value) ? video.value : video;
   if (!v) return;
+
+  logSyncEvent(`▶️ 用户点击预览视频: "${v.name || v.id}"...`);
 
   // 1. Check if video already has a valid local file path
   let filePath = v.path || v.fullPath || (v.src && !v.src.startsWith('data:') && !v.src.startsWith('blob:') && !v.src.startsWith('http:') && !v.src.startsWith('https:') ? v.src : '');
@@ -6891,10 +6911,20 @@ function openVideoPlayer(video) {
     return;
   }
 
-  // 4. Remote phone video: Prioritize instant HTTP Range online streaming (0 disk usage, 0 download)
+  // 4. Remote phone video: Verify connection state
+  const dc = dataChannel || connectionManager?.dataChannel;
+  const isConnected = syncStatus.value === 'connected' || (dc && dc.readyState === 'open');
+
+  if (!isConnected) {
+    showAppToast(t.value?.videos?.pleaseConnect || '⚠️ 手机与电脑尚未连接，请先在左侧配对连接手机', 'warning');
+    logSyncEvent('❌ 无法预览视频：手机与电脑直连通道未就绪，请先配对连接手机');
+    return;
+  }
+
+  // 5. Try getting HTTP Range stream URL
   const streamUrl = getVideoStreamUrl(v);
   if (streamUrl) {
-    logSyncEvent(`▶️ 正在通过局域网流媒体秒播手机视频 "${v.name}" (0 磁盘占用)...`);
+    logSyncEvent(`▶️ 正在通过局域网流媒体秒播手机视频 "${v.name}" (0 磁盘占用: ${streamUrl})...`);
     isVideoPreviewLoading.value = false;
     activePlayingVideo.value = {
       ...v,
@@ -6906,20 +6936,39 @@ function openVideoPlayer(video) {
     return;
   }
 
-  // 5. Fallback: If streaming service not ready, use WebRTC DataChannel pull
-  if (!dataChannel || dataChannel.readyState !== 'open') {
-    logSyncEvent('❌ 无法预览视频：手机与电脑直连通道未就绪，请先配对连接手机');
-    return;
-  }
-
+  // 6. If stream URL is not yet ready (e.g. port not broadcast or starting up),
+  // open the preview loading modal immediately and query phone for stream port
   activePlayingVideo.value = {
     ...v,
     isSynced: false,
     isStreaming: false
   };
   isVideoPreviewLoading.value = true;
-  logSyncEvent(`▶️ 正在从手机端拉取视频 "${v.name}" 准备预览...`);
-  requestVideoSync({ targetIds: [v.id] });
+  videoPreviewProgressPercent.value = 0;
+  logSyncEvent(`▶️ 正在向手机发起视频流媒体直连协商: "${v.name}"...`);
+
+  // Query catalog again to retrieve streaming port
+  queryRemoteVideoCatalog();
+
+  // If after 1.2s streamUrl still cannot be formed, fallback to WebRTC transfer
+  setTimeout(() => {
+    if (activePlayingVideo.value && !activePlayingVideo.value.src && isVideoPreviewLoading.value) {
+      const retryUrl = getVideoStreamUrl(activePlayingVideo.value);
+      if (retryUrl) {
+        logSyncEvent(`▶️ 已获取手机流媒体端口，立即启动在线秒播: "${activePlayingVideo.value.name}"`);
+        activePlayingVideo.value = {
+          ...activePlayingVideo.value,
+          src: retryUrl,
+          streamUrl: retryUrl,
+          isStreaming: true
+        };
+        isVideoPreviewLoading.value = false;
+      } else {
+        logSyncEvent(`⚠️ 未检测到手机端 HTTP 串流服务，正在通过 WebRTC 高速通道拉取准备预览: "${activePlayingVideo.value.name}"`);
+        requestVideoSync({ targetIds: [activePlayingVideo.value.id] });
+      }
+    }
+  }, 1200);
 }
 
 function downloadCurrentStreamingVideo() {

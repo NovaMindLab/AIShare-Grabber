@@ -127,11 +127,21 @@
                 </div>
 
                 <!-- Center Hover Play Overlay for Synced Videos -->
-                <div v-if="item.isSynced" class="video-play-center-btn" :title="t?.videos?.playHint || '播放视频'">
+                <div 
+                  v-if="item.isSynced" 
+                  class="video-play-center-btn" 
+                  :title="t?.videos?.playHint || '播放视频'"
+                  @click.stop="$emit('play-video', item)"
+                >
                   <span class="play-triangle">▶</span>
                 </div>
                 <!-- Center Hover Preview Overlay for Remote Videos -->
-                <div v-else class="video-play-center-btn video-preview-center-btn" :title="t?.videos?.previewHint || '预览手机视频'">
+                <div 
+                  v-else 
+                  class="video-play-center-btn video-preview-center-btn" 
+                  :title="t?.videos?.previewHint || '预览手机视频'"
+                  @click.stop="$emit('play-video', item)"
+                >
                   <span class="play-triangle">▶</span>
                   <span class="preview-center-text">{{ t?.videos?.preview || '预览' }}</span>
                 </div>
@@ -545,6 +555,8 @@ defineExpose({
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.4);
   z-index: 4;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .video-play-center-btn.video-preview-center-btn {

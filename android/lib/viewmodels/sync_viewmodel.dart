@@ -704,6 +704,7 @@ class SyncViewModel extends ChangeNotifier {
             appState = AppState.connected;
             _setKeepScreenOn(true);
             _startHeartbeat();
+            _startVideoStreamService();
             notifyListeners();
 
             // If this wasn't the handshake ACK (-4 or chunked -5), ensure PC has our device info
@@ -777,6 +778,7 @@ class SyncViewModel extends ChangeNotifier {
                 appState = AppState.connected;
                 _setKeepScreenOn(true);
                 _startHeartbeat();
+                _startVideoStreamService();
                 notifyListeners();
               } else if (realPacketType == -15) {
                 try {
@@ -1116,8 +1118,10 @@ class SyncViewModel extends ChangeNotifier {
                 }
 
                 // Ensure video streaming service is active for zero-download online playback
-                if (!VideoStreamService.instance.isRunning && localVideos.isNotEmpty) {
+                if (!VideoStreamService.instance.isRunning || VideoStreamService.instance.port == 0) {
                   await _startVideoStreamService();
+                } else if (localVideos.isNotEmpty) {
+                  VideoStreamService.instance.updateVideos(localVideos);
                 }
                 final int streamPort = VideoStreamService.instance.port;
                 final String streamToken = VideoStreamService.instance.sessionToken;

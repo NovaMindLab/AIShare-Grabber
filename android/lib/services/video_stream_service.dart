@@ -107,6 +107,12 @@ class VideoStreamService {
           }
         }
       }
+      // Prioritize standard Wi-Fi LAN subnets (192.168.x.x > 172.x.x.x > 10.x.x.x)
+      ips.sort((a, b) {
+        int scoreA = a.startsWith('192.168.') ? 3 : (a.startsWith('172.') ? 2 : (a.startsWith('10.') ? 1 : 0));
+        int scoreB = b.startsWith('192.168.') ? 3 : (b.startsWith('172.') ? 2 : (b.startsWith('10.') ? 1 : 0));
+        return scoreB.compareTo(scoreA);
+      });
     } catch (e) {
       debugPrint('[VideoStreamService] getLocalIps error: $e');
     }

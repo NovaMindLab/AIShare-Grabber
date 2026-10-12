@@ -233,7 +233,8 @@ export const locales = {
       "saveToPc": "⬇️ Save to PC",
       "savingToPc": "Backing up in background...",
       "savedToPc": "Video backed up successfully!",
-      "streamingFallback": "Direct stream blocked by AP isolation, falling back..."
+      "streamingFallback": "Direct stream blocked by AP isolation, falling back...",
+      "pleaseConnect": "⚠️ Mobile phone not connected yet. Please connect your phone first."
     },
     "audios": {
       "title": "🎵 Music Sync & Management",
@@ -964,7 +965,8 @@ export const locales = {
       "saveToPc": "⬇️ 备份到本地",
       "savingToPc": "正在后台下载备份...",
       "savedToPc": "视频已成功备份到电脑！",
-      "streamingFallback": "局域网直接串流受阻，正在切换备用通道..."
+      "streamingFallback": "局域网直接串流受阻，正在切换备用通道...",
+      "pleaseConnect": "⚠️ 手机与电脑尚未连接，请先在左侧配对连接手机"
     },
     "audios": {
       "title": "🎵 音乐同步与管理",
