@@ -1980,7 +1980,7 @@
                   </button>
                 </div>
 
-                <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px;" @click="window.api.openDownloadFolder()">
+                <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px;" @click="openDownloadFolder">
                   <span>📁 {{ t.ytDlp?.openFolder || '打开下载文件夹' }}</span>
                 </button>
                 <button v-if="ytSubTab === 'completed' && ytHistory.length > 0" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; color: var(--text-muted);" @click="clearAllYtHistory" :title="t.ytDlp?.deleteHistory || '清空全部已完成记录'">
@@ -3289,7 +3289,7 @@
                     <button 
                       class="dp-btn" 
                       style="background: rgba(244, 63, 94, 0.16); border: 1px solid rgba(244, 63, 94, 0.35); color: #fda4af;"
-                      @click="window.open('https://github.com/sponsors/NovaMindLab', '_blank')"
+                      @click="openExternal('https://github.com/sponsors/NovaMindLab')"
                       title="Sponsor on GitHub"
                     >
                       {{ t.update?.sponsorBtn || '💖 赞助项目 (Sponsor)' }}
@@ -3297,7 +3297,7 @@
                     <button 
                       class="dp-btn" 
                       style="background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); color: #f8fafc;"
-                      @click="window.open('https://github.com/NovaMindLab/AIShare-Grabber', '_blank')"
+                      @click="openExternal('https://github.com/NovaMindLab/AIShare-Grabber')"
                       title="Star on GitHub"
                     >
                       ⭐ Star on GitHub
@@ -3424,7 +3424,7 @@
           </button>
 
           <button 
-            v-if="hasApi && window.api?.openVideoWindow && !isVideoPreviewLoading && !activePlayingVideo.isStreaming" 
+            v-if="canPopOutVideo && !isVideoPreviewLoading && !activePlayingVideo.isStreaming" 
             class="vp-floating-close-btn" 
             style="right: 56px; font-size: 14px;" 
             @click="popOutVideoPlayer" 
@@ -3479,6 +3479,7 @@
               controls 
               autoplay 
               @error="handleVideoPlayerError"
+              @loadeddata="handleVideoLoadedData"
               class="video-native-element"
             ></video>
           </div>
@@ -4114,6 +4115,17 @@ watch(currentLocale, (newLoc) => {
 
 // Define double mode: Electron or Web Demo
 const hasApi = typeof window !== 'undefined' && window.api !== undefined;
+const canPopOutVideo = computed(() => hasApi && typeof window?.api?.openVideoWindow === 'function');
+
+function openExternal(url) {
+  if (typeof window !== 'undefined') {
+    if (window.api?.openUrl) {
+      window.api.openUrl(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  }
+}
 
 // Window control handlers for custom title bar
 function minimizeWindow() {
@@ -6876,99 +6888,114 @@ function getVideoStreamUrl(video) {
 }
 
 function openVideoPlayer(video) {
-  const v = (video && video.value) ? video.value : video;
-  if (!v) return;
-
-  logSyncEvent(`▶️ 用户点击预览视频: "${v.name || v.id}"...`);
-
-  // 1. Check if video already has a valid local file path
-  let filePath = v.path || v.fullPath || (v.src && !v.src.startsWith('data:') && !v.src.startsWith('blob:') && !v.src.startsWith('http:') && !v.src.startsWith('https:') ? v.src : '');
-  
-  // 2. If no direct path, check if images list already has it downloaded
-  if (!filePath) {
-    let localMatch = null;
-    if (v.id) {
-      localMatch = images.value.find(img => img.id === v.id || img.id === `video_${v.id}`);
+  try {
+    const v = (video && video.value) ? video.value : video;
+    if (!v) {
+      console.warn('[openVideoPlayer] Called with empty video');
+      return;
     }
-    if (!localMatch && v.name) {
-      localMatch = images.value.find(img => img.name === v.name && (img.type === 'video' || /\.(mp4|mkv|mov|avi|webm)$/i.test(img.name)));
-    }
-    if (localMatch && (localMatch.path || localMatch.src)) {
-      filePath = localMatch.path || localMatch.src;
-    }
-  }
 
-  // 3. If file path is available, play directly in modal player (with popout option)
-  if (filePath) {
-    isVideoPreviewLoading.value = false;
-    activePlayingVideo.value = {
-      ...v,
-      path: filePath,
-      src: v.src && !v.src.startsWith('http') ? v.src : `local:///${filePath.replace(/\\/g, '/')}`,
-      isSynced: true,
-      isStreaming: false
-    };
-    return;
-  }
+    logSyncEvent(`▶️ 用户点击预览视频: "${v.name || v.id}" (大小: ${formatBytes(v.size || 0)})...`);
+    showAppToast(`▶️ 正在载入视频: ${v.name || '视频'}`, 'info');
 
-  // 4. Remote phone video: Verify connection state
-  const dc = dataChannel || connectionManager?.dataChannel;
-  const isConnected = syncStatus.value === 'connected' || (dc && dc.readyState === 'open');
-
-  if (!isConnected) {
-    showAppToast(t.value?.videos?.pleaseConnect || '⚠️ 手机与电脑尚未连接，请先在左侧配对连接手机', 'warning');
-    logSyncEvent('❌ 无法预览视频：手机与电脑直连通道未就绪，请先配对连接手机');
-    return;
-  }
-
-  // 5. Try getting HTTP Range stream URL
-  const streamUrl = getVideoStreamUrl(v);
-  if (streamUrl) {
-    logSyncEvent(`▶️ 正在通过局域网流媒体秒播手机视频 "${v.name}" (0 磁盘占用: ${streamUrl})...`);
-    isVideoPreviewLoading.value = false;
-    activePlayingVideo.value = {
-      ...v,
-      src: streamUrl,
-      streamUrl: streamUrl,
-      isSynced: false,
-      isStreaming: true
-    };
-    return;
-  }
-
-  // 6. If stream URL is not yet ready (e.g. port not broadcast or starting up),
-  // open the preview loading modal immediately and query phone for stream port
-  activePlayingVideo.value = {
-    ...v,
-    isSynced: false,
-    isStreaming: false
-  };
-  isVideoPreviewLoading.value = true;
-  videoPreviewProgressPercent.value = 0;
-  logSyncEvent(`▶️ 正在向手机发起视频流媒体直连协商: "${v.name}"...`);
-
-  // Query catalog again to retrieve streaming port
-  queryRemoteVideoCatalog();
-
-  // If after 1.2s streamUrl still cannot be formed, fallback to WebRTC transfer
-  setTimeout(() => {
-    if (activePlayingVideo.value && !activePlayingVideo.value.src && isVideoPreviewLoading.value) {
-      const retryUrl = getVideoStreamUrl(activePlayingVideo.value);
-      if (retryUrl) {
-        logSyncEvent(`▶️ 已获取手机流媒体端口，立即启动在线秒播: "${activePlayingVideo.value.name}"`);
-        activePlayingVideo.value = {
-          ...activePlayingVideo.value,
-          src: retryUrl,
-          streamUrl: retryUrl,
-          isStreaming: true
-        };
-        isVideoPreviewLoading.value = false;
-      } else {
-        logSyncEvent(`⚠️ 未检测到手机端 HTTP 串流服务，正在通过 WebRTC 高速通道拉取准备预览: "${activePlayingVideo.value.name}"`);
-        requestVideoSync({ targetIds: [activePlayingVideo.value.id] });
+    // 1. Check if video already has a valid local file path
+    let filePath = v.path || v.fullPath || (v.src && !v.src.startsWith('data:') && !v.src.startsWith('blob:') && !v.src.startsWith('http:') && !v.src.startsWith('https:') ? v.src : '');
+    
+    // 2. If no direct path, check if images list already has it downloaded
+    if (!filePath) {
+      let localMatch = null;
+      if (v.id) {
+        localMatch = images.value.find(img => img.id === v.id || img.id === `video_${v.id}`);
+      }
+      if (!localMatch && v.name) {
+        localMatch = images.value.find(img => img.name === v.name && (img.type === 'video' || /\.(mp4|mkv|mov|avi|webm)$/i.test(img.name)));
+      }
+      if (localMatch && (localMatch.path || localMatch.src)) {
+        filePath = localMatch.path || localMatch.src;
       }
     }
-  }, 1200);
+
+    // 3. If file path is available, play directly in modal player (with popout option)
+    if (filePath) {
+      isVideoPreviewLoading.value = false;
+      activePlayingVideo.value = {
+        ...v,
+        path: filePath,
+        src: v.src && !v.src.startsWith('http') ? v.src : `local:///${filePath.replace(/\\/g, '/')}`,
+        isSynced: true,
+        isStreaming: false
+      };
+      logSyncEvent(`▶️ 本地视频就绪，直接播放: ${filePath}`);
+      return;
+    }
+
+    // 4. Remote phone video: Verify connection state
+    const dc = dataChannel || connectionManager?.dataChannel;
+    const isConnected = syncStatus.value === 'connected' || (dc && dc.readyState === 'open');
+
+    if (!isConnected) {
+      showAppToast(t.value?.videos?.pleaseConnect || '⚠️ 手机与电脑尚未连接，请先在左侧配对连接手机', 'warning');
+      logSyncEvent('❌ 无法预览视频：手机与电脑直连通道未就绪，请先配对连接手机');
+      return;
+    }
+
+    // 5. Try getting HTTP Range stream URL
+    const streamUrl = getVideoStreamUrl(v);
+    if (streamUrl) {
+      logSyncEvent(`▶️ 正在通过局域网流媒体秒播手机视频 "${v.name}" (0 磁盘占用: ${streamUrl})...`);
+      isVideoPreviewLoading.value = false;
+      activePlayingVideo.value = {
+        ...v,
+        src: streamUrl,
+        streamUrl: streamUrl,
+        isSynced: false,
+        isStreaming: true
+      };
+      return;
+    }
+
+    // 6. If stream URL is not yet ready (e.g. port not broadcast or starting up),
+    // open the preview loading modal immediately and query phone for stream port
+    const port = v.stream_port || remoteStreamPort.value;
+    const peerIp = getResolvedPeerIp();
+    logSyncEvent(`ℹ️ 手机流媒体地址正在握手 (PeerIP: ${peerIp || '自动检测中'}, 端口: ${port || '协商中'})...`);
+
+    activePlayingVideo.value = {
+      ...v,
+      isSynced: false,
+      isStreaming: false
+    };
+    isVideoPreviewLoading.value = true;
+    videoPreviewProgressPercent.value = 0;
+    logSyncEvent(`▶️ 正在向手机发起视频流媒体直连协商: "${v.name}"...`);
+
+    // Query catalog again to retrieve streaming port
+    queryRemoteVideoCatalog();
+
+    // If after 1.2s streamUrl still cannot be formed, fallback to WebRTC transfer
+    setTimeout(() => {
+      if (activePlayingVideo.value && !activePlayingVideo.value.src && isVideoPreviewLoading.value) {
+        const retryUrl = getVideoStreamUrl(activePlayingVideo.value);
+        if (retryUrl) {
+          logSyncEvent(`▶️ 已获取手机流媒体端口，立即启动在线秒播: "${activePlayingVideo.value.name}"`);
+          activePlayingVideo.value = {
+            ...activePlayingVideo.value,
+            src: retryUrl,
+            streamUrl: retryUrl,
+            isStreaming: true
+          };
+          isVideoPreviewLoading.value = false;
+        } else {
+          logSyncEvent(`⚠️ 未检测到手机端 HTTP 串流服务，正在通过 WebRTC 高速通道拉取准备预览: "${activePlayingVideo.value.name}"`);
+          requestVideoSync({ targetIds: [activePlayingVideo.value.id] });
+        }
+      }
+    }, 1200);
+  } catch (err) {
+    console.error('[openVideoPlayer] Error opening video player:', err);
+    logSyncEvent(`❌ 打开视频播放器失败: ${err?.message || err}`);
+    showAppToast(`❌ 打开视频播放器失败: ${err?.message || err}`, 'error');
+  }
 }
 
 function downloadCurrentStreamingVideo() {
@@ -6983,6 +7010,12 @@ function downloadCurrentStreamingVideo() {
 }
 
 function handleVideoPlayerError(e) {
+  const videoEl = e?.target;
+  const errCode = videoEl?.error?.code;
+  const errMsg = videoEl?.error?.message;
+  console.error('[VideoPlayer] Playback error event:', errCode, errMsg, e);
+  logSyncEvent(`⚠️ 视频加载发生异常 (code: ${errCode || '未知'}, message: ${errMsg || '无'}): "${activePlayingVideo.value?.name || ''}"`);
+
   if (activePlayingVideo.value && activePlayingVideo.value.isStreaming) {
     logSyncEvent('⚠️ 局域网直接串流受阻（可能由于路由器开启了 AP 隔离），正在自动切换为备用下载模式...');
     activePlayingVideo.value = {
@@ -6993,6 +7026,10 @@ function handleVideoPlayerError(e) {
     isVideoPreviewLoading.value = true;
     requestVideoSync({ targetIds: [activePlayingVideo.value.id] });
   }
+}
+
+function handleVideoLoadedData() {
+  logSyncEvent(`✅ 视频数据加载完成，开始流畅播放: "${activePlayingVideo.value?.name || ''}"`);
 }
 
 function popOutVideoPlayer() {
