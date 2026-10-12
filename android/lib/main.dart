@@ -14,7 +14,7 @@ import 'services/theme_service.dart';
 import 'services/analytics_service.dart';
 import 'models/qr_payload.dart';
 
-const String appVersion = '4.5.10';
+const String appVersion = '4.5.11';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

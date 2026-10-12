@@ -42,7 +42,7 @@ enum TransferStatus {
 }
 
 class SyncViewModel extends ChangeNotifier {
-  static const String appVersion = '4.5.10';
+  static const String appVersion = '4.5.11';
   List<Map<String, dynamic>> discoveredPCs = [];
   Timer? _discoveryTimer;
   String? _mobileName;
@@ -1089,9 +1089,11 @@ class SyncViewModel extends ChangeNotifier {
             logMessage("📹 PC requested remote video catalog. Scanning...");
             Future.microtask(() async {
               try {
-                final streamer = PhotoStreamer.standalone();
-                localVideos = await streamer.loadLocalVideos();
-                notifyListeners();
+                if (localVideos.isEmpty) {
+                  final streamer = _photoStreamer ?? PhotoStreamer.standalone();
+                  localVideos = await streamer.loadLocalVideos();
+                  notifyListeners();
+                }
                 logMessage("📹 Found ${localVideos.length} videos in device MediaStore.");
 
                 if (localVideos.isEmpty) {
@@ -1111,8 +1113,9 @@ class SyncViewModel extends ChangeNotifier {
                   return;
                 }
 
-                // Process and stream video catalog in batches of 2 to ensure MTU safety (< 50KB per packet, preventing SCTP channel death)
-                const int batchSize = 2;
+                // Process and stream video catalog in batches of 4.
+                // Using 200x120 16:9 thumbnail @ quality 45 (~4KB each) keeps packet size < 25KB, safe for WebRTC MTU.
+                const int batchSize = 4;
                 final int totalChunks = (localVideos.length / batchSize).ceil();
 
                 for (int chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
@@ -1133,8 +1136,8 @@ class SyncViewModel extends ChangeNotifier {
 
                     int size = 0;
                     try {
-                      File? file = await v.file.timeout(const Duration(milliseconds: 300), onTimeout: () => null);
-                      file ??= await v.originFile.timeout(const Duration(milliseconds: 200), onTimeout: () => null);
+                      File? file = await v.file.timeout(const Duration(milliseconds: 150), onTimeout: () => null);
+                      file ??= await v.originFile.timeout(const Duration(milliseconds: 150), onTimeout: () => null);
                       if (file != null) {
                         size = await file.length();
                       }
@@ -1143,9 +1146,9 @@ class SyncViewModel extends ChangeNotifier {
                     String? thumbBase64;
                     try {
                       final Uint8List? thumbBytes = await v.thumbnailDataWithSize(
-                        const ThumbnailSize.square(240),
-                        quality: 60,
-                      ).timeout(const Duration(milliseconds: 350), onTimeout: () => null);
+                        const ThumbnailSize(200, 120),
+                        quality: 45,
+                      ).timeout(const Duration(milliseconds: 250), onTimeout: () => null);
                       if (thumbBytes != null && thumbBytes.isNotEmpty) {
                         thumbBase64 = "data:image/jpeg;base64,${base64Encode(thumbBytes)}";
                       }
@@ -1187,9 +1190,15 @@ class SyncViewModel extends ChangeNotifier {
                   final respPacket = Uint8List(16 + respBytes.length);
                   respPacket.setRange(0, 16, respHeader.buffer.asUint8List());
                   respPacket.setRange(16, respPacket.length, respBytes);
-                  await _syncEngine?.sendBinary(respPacket);
 
-                  await Future.delayed(const Duration(milliseconds: 20));
+                  while ((_syncEngine?.getBufferedAmount() ?? 0) > 64 * 1024) {
+                    await Future.delayed(const Duration(milliseconds: 20));
+                  }
+
+                  await _syncEngine?.sendBinary(respPacket);
+                  if (totalChunks > 1) {
+                    await Future.delayed(const Duration(milliseconds: 15));
+                  }
                 }
                 logMessage("✅ Sent video catalog with ${localVideos.length} videos ($totalChunks chunks) to PC.");
               } catch (e) {

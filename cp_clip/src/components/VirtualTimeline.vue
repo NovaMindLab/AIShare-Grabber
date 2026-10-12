@@ -64,7 +64,8 @@
                 'card-unsynced': item.isRemoteOnly,
                 'card-selected': isVideoSelected(item)
               }"
-              @click="item.isSynced ? $emit('play-video', item) : $emit('toggle-selection', item)"
+              @click="$emit('play-video', item)"
+              :title="item.isSynced ? (t?.videos?.playHint || '点击播放') : (t?.videos?.previewHint || '点击预览手机视频')"
             >
               <!-- 16:9 Thumbnail / Poster Area -->
               <div class="video-poster-box">
@@ -126,8 +127,13 @@
                 </div>
 
                 <!-- Center Hover Play Overlay for Synced Videos -->
-                <div v-if="item.isSynced" class="video-play-center-btn">
+                <div v-if="item.isSynced" class="video-play-center-btn" :title="t?.videos?.playHint || '播放视频'">
                   <span class="play-triangle">▶</span>
+                </div>
+                <!-- Center Hover Preview Overlay for Remote Videos -->
+                <div v-else class="video-play-center-btn video-preview-center-btn" :title="t?.videos?.previewHint || '预览手机视频'">
+                  <span class="play-triangle">▶</span>
+                  <span class="preview-center-text">{{ t?.videos?.preview || '预览' }}</span>
                 </div>
 
                 <!-- Bottom-Right Duration Badge -->
@@ -152,17 +158,26 @@
                       <span class="anime-sparkle">🎨</span>
                       <span class="anime-label">{{ t?.anime?.shortTitle || 'AI动漫' }}</span>
                     </button>
-                    <!-- Unsynced: Quick Download Pill -->
-                    <button 
-                      v-else
-                      class="btn-video-download-pill" 
-                      @click.stop="$emit('download-video', item)"
-                      :disabled="isVideoSyncing"
-                      :title="t?.videos?.quickDownload || '下载视频'"
-                    >
-                      <span>⬇️</span>
-                      <span>{{ t?.videos?.quickDownload || '下载' }}</span>
-                    </button>
+                    <!-- Unsynced: Quick Actions (Preview & Download) -->
+                    <div v-else class="video-unsynced-actions">
+                      <button 
+                        class="btn-video-preview-pill" 
+                        @click.stop="$emit('play-video', item)"
+                        :title="t?.videos?.previewVideo || '预览手机端视频'"
+                      >
+                        <span>▶</span>
+                        <span>{{ t?.videos?.preview || '预览' }}</span>
+                      </button>
+                      <button 
+                        class="btn-video-download-pill" 
+                        @click.stop="$emit('download-video', item)"
+                        :disabled="isVideoSyncing"
+                        :title="t?.videos?.quickDownload || '下载视频'"
+                      >
+                        <span>⬇️</span>
+                        <span>{{ t?.videos?.quickDownload || '下载' }}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -532,9 +547,28 @@ defineExpose({
   z-index: 4;
 }
 
+.video-play-center-btn.video-preview-center-btn {
+  width: auto;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 19px;
+  background: rgba(2, 132, 199, 0.85);
+  border: 1.5px solid rgba(56, 189, 248, 0.9);
+  box-shadow: 0 4px 18px rgba(2, 132, 199, 0.55);
+  gap: 5px;
+}
+
 .video-card:hover .video-play-center-btn {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
+}
+
+.preview-center-text {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+  line-height: 1;
 }
 
 .play-triangle {
@@ -707,6 +741,38 @@ defineExpose({
   border-color: #a855f7;
   transform: translateY(-1px);
   box-shadow: 0 3px 10px rgba(168, 85, 247, 0.4);
+}
+
+.video-unsynced-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-video-preview-pill {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  color: #38bdf8;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.btn-video-preview-pill:hover {
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  color: #fff;
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(56, 189, 248, 0.4);
 }
 
 .btn-video-download-pill {

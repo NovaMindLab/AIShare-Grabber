@@ -154,7 +154,8 @@
             @click="currentTab = 'videos'"
           >
             <span>{{ t.sidebar.tabVideos }}</span>
-            <span class="category-count" v-if="localVideos.length > 0">{{ localVideos.length }}</span>
+            <span class="category-count" v-if="totalAllVideosCount > 0">{{ totalAllVideosCount }}</span>
+            <span class="category-count" v-else-if="localVideos.length > 0">{{ localVideos.length }}</span>
           </div>
           <div 
             class="category-item" 
@@ -628,6 +629,90 @@
                       onmouseout="this.style.background='rgba(16,185,129,0.03)'"
                     >
                       <span>📂</span> {{ t.link.openFolder || '打开文件夹' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 4: Phone Video Browse & Preview Center -->
+              <div v-if="activePeerType !== 'PC'" style="padding: 14px 16px; border-radius: 16px; background: rgba(99, 102, 241, 0.03); border: 1px solid rgba(99, 102, 241, 0.18); box-shadow: 0 4px 20px rgba(99, 102, 241, 0.03); display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; backdrop-filter: blur(20px);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 13px;">🎥</span>
+                    <span style="font-size: 11px; color: #818cf8; font-weight: 700; letter-spacing: 0.5px;">{{ t.videos?.connTitle || '手机视频浏览与预览' }}</span>
+                  </div>
+                  <span style="font-size: 10px; padding: 2px 8px; border-radius: 999px; background: rgba(99, 102, 241, 0.12); color: #a5b4fc; font-weight: 600;">
+                    {{ totalAllVideosCount > 0 ? (totalAllVideosCount + ' 个视频') : '未扫描' }}
+                  </span>
+                </div>
+
+                <!-- Sync Video to PC Controls if syncing -->
+                <div v-if="isVideoSyncing" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                  <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-primary); font-weight: 600;">
+                    <span>{{ currentVideoSyncTitle || `已备份: ${videoSyncDone} / ${videoSyncTotal}` }}</span>
+                    <span style="color: #818cf8;">{{ currentVideoSyncPercent }}%</span>
+                  </div>
+
+                  <!-- Progress Bar -->
+                  <div style="width: 100%; height: 5px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
+                    <div :style="{ width: currentVideoSyncPercent + '%', height: '100%', background: 'linear-gradient(90deg, #6366f1, #a855f7)', borderRadius: '999px', transition: 'width 0.3s ease' }"></div>
+                  </div>
+
+                  <!-- Control Buttons Row -->
+                  <div style="display: flex; gap: 6px; width: 100%;">
+                    <button
+                      v-if="!isVideoSyncPaused"
+                      class="btn"
+                      @click="pauseVideoSync"
+                      style="flex: 2; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px; font-size: 11px; border-radius: 6px; font-weight: 600; cursor: pointer; border: 1px solid rgba(250,204,21,0.15); background: rgba(250,204,21,0.03); color: #facc15;"
+                    >
+                      <span>⏸️</span> {{ t.link?.pause || '暂停' }}
+                    </button>
+                    <button
+                      v-else
+                      class="btn"
+                      @click="resumeVideoSync"
+                      style="flex: 2; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px; font-size: 11px; border-radius: 6px; font-weight: 600; cursor: pointer; border: 1px solid rgba(99,102,241,0.15); background: rgba(99,102,241,0.03); color: #818cf8;"
+                    >
+                      <span>▶️</span> {{ t.link?.resume || '继续' }}
+                    </button>
+                    <button
+                      class="btn"
+                      @click="stopVideoSync"
+                      style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px; font-size: 11px; border-radius: 6px; font-weight: 600; cursor: pointer; border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.03); color: #ef4444;"
+                    >
+                      <span>⏹️</span> {{ t.link?.stop || '停止' }}
+                    </button>
+                  </div>
+                </div>
+
+                <div v-else style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                  <!-- Browse Phone Videos Button -->
+                  <button
+                    class="btn btn-primary"
+                    @click="currentTab = 'videos'; queryRemoteVideoCatalog()"
+                    style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; font-size: 12px; border-radius: 10px; font-weight: 600; width: 100%; cursor: pointer; background: linear-gradient(135deg, #6366f1, #8b5cf6);"
+                  >
+                    <span>🎬</span>
+                    <span>{{ t.videos?.browseBtn || '浏览手机视频与即时预览' }}</span>
+                  </button>
+
+                  <!-- Actions Row: Query Catalog / Batch Sync -->
+                  <div style="display: flex; gap: 6px; width: 100%;">
+                    <button
+                      class="btn btn-secondary"
+                      @click="queryRemoteVideoCatalog"
+                      style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px; font-size: 11px; border-radius: 6px; font-weight: 600; cursor: pointer; border: 1px solid rgba(99,102,241,0.2); background: rgba(99,102,241,0.05); color: #818cf8;"
+                    >
+                      <span>🔄</span> {{ t.videos?.refreshCatalog || '刷新手机目录' }}
+                    </button>
+                    <button
+                      v-if="totalUnsyncedVideosCount > 0"
+                      class="btn btn-secondary"
+                      @click="requestVideoSync({ forceFullScan: true })"
+                      style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px; font-size: 11px; border-radius: 6px; font-weight: 600; cursor: pointer; border: 1px solid rgba(16,185,129,0.2); background: rgba(16,185,129,0.05); color: #10b981;"
+                    >
+                      <span>📥</span> {{ t.videos?.syncAllBtn ? t.videos.syncAllBtn.replace('{count}', totalUnsyncedVideosCount) : `备份全部 (${totalUnsyncedVideosCount})` }}
                     </button>
                   </div>
                 </div>
@@ -1147,7 +1232,7 @@
               <div class="video-player-modal glass-panel">
                 <!-- Floating Buttons -->
                 <button 
-                  v-if="hasApi && window.api?.openVideoWindow" 
+                  v-if="hasApi && window.api?.openVideoWindow && !isVideoPreviewLoading" 
                   class="vp-floating-close-btn" 
                   style="right: 56px; font-size: 14px;" 
                   @click="popOutVideoPlayer" 
@@ -1159,7 +1244,45 @@
 
                 <!-- Video Viewport -->
                 <div class="video-player-body">
+                  <!-- 1. Phone Video Live Preview Loading State -->
+                  <div v-if="isVideoPreviewLoading" class="video-preview-loading-card">
+                    <div 
+                      class="preview-bg-blur"
+                      :style="{ backgroundImage: (activePlayingVideo.thumb || activePlayingVideo.poster) ? `url(${activePlayingVideo.thumb || activePlayingVideo.poster})` : 'none' }"
+                    ></div>
+                    <div class="preview-loading-content">
+                      <div class="preview-radar-container">
+                        <div class="preview-radar-spinner"></div>
+                        <span class="preview-radar-icon">📡</span>
+                      </div>
+                      <h3 class="preview-title">{{ t.videos?.previewingTitle ? t.videos.previewingTitle.replace('{name}', activePlayingVideo.name) : `正在拉取手机端视频: ${activePlayingVideo.name}` }}</h3>
+                      <p class="preview-subtitle">
+                        {{ t.videos?.previewHint || '正在通过 WebRTC P2P 高速直连通道从手机传输视频文件至电脑，完成后自动开启播放...' }}
+                      </p>
+                      <div class="preview-progress-box">
+                        <div class="preview-progress-bar-bg">
+                          <div 
+                            class="preview-progress-bar-fill" 
+                            :style="{ width: `${videoPreviewProgressPercent}%` }"
+                          ></div>
+                        </div>
+                        <div class="preview-meta-row">
+                          <span class="preview-meta-pct">{{ videoPreviewProgressPercent }}%</span>
+                          <span class="preview-meta-info">
+                            <span v-if="activePlayingVideo.size">{{ formatFileSize(activePlayingVideo.size) }}</span>
+                            <span v-if="activePlayingVideo.duration"> · ⏱️ {{ formatVideoDuration(activePlayingVideo.duration) }}</span>
+                          </span>
+                        </div>
+                      </div>
+                      <button class="preview-cancel-btn" @click="cancelVideoPreview">
+                        ✕ {{ t.videos?.cancelPreview || '取消预览' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 2. Video Player Native Element (Synced / Ready) -->
                   <video 
+                    v-else
                     :src="activePlayingVideo.src || `local:///${activePlayingVideo.path.replace(/\\/g, '/')}`" 
                     controls 
                     autoplay 
@@ -4591,6 +4714,15 @@ const isVideoSyncPaused = ref(false);
 const videoSyncDone = ref(0);
 const videoSyncTotal = ref(0);
 const activePlayingVideo = ref(null);
+const isVideoPreviewLoading = ref(false);
+
+const videoPreviewProgressPercent = computed(() => {
+  if (!isVideoPreviewLoading.value) return 0;
+  if (incomingTransfer.value && incomingTransfer.value.progress > 0) {
+    return Math.min(99, Math.round(incomingTransfer.value.progress * 100));
+  }
+  return 5;
+});
 
 const currentVideoSyncPercent = computed(() => {
   if (videoSyncTotal.value <= 0) return 0;
@@ -6334,6 +6466,7 @@ function cleanupWebRtc() {
   isAlbumSyncing.value = false;
   isVideoSyncing.value = false;
   isAudioSyncing.value = false;
+  isVideoPreviewLoading.value = false;
   chatMessages.value = [];
   // Retain activeDeviceUuid.value and activeDeviceName.value so offline viewing of downloaded videos,
   // audios, album photos, and person clusters continues seamlessly!
@@ -6674,29 +6807,82 @@ function stopVideoSync() {
 
 function openVideoPlayer(video) {
   const v = (video && video.value) ? video.value : video;
-  if (hasApi && window.api?.openVideoWindow && v) {
-    const filePath = v.path || v.fullPath || v.src || '';
-    const title = v.name || v.title || '视频播放';
-    const poster = v.thumbnail || v.poster || '';
-    window.api.openVideoWindow({ filePath, title, poster });
+  if (!v) return;
+
+  // 1. Check if video already has a valid local file path
+  let filePath = v.path || v.fullPath || (v.src && !v.src.startsWith('data:') && !v.src.startsWith('blob:') ? v.src : '');
+  
+  // 2. If no direct path, check if images list already has it downloaded
+  if (!filePath) {
+    let localMatch = null;
+    if (v.id) {
+      localMatch = images.value.find(img => img.id === v.id || img.id === `video_${v.id}`);
+    }
+    if (!localMatch && v.name) {
+      localMatch = images.value.find(img => img.name === v.name && (img.type === 'video' || /\.(mp4|mkv|mov|avi|webm)$/i.test(img.name)));
+    }
+    if (localMatch && (localMatch.path || localMatch.src)) {
+      filePath = localMatch.path || localMatch.src;
+    }
+  }
+
+  // 3. If file path is available, play directly in modal player (with popout option)
+  if (filePath) {
+    isVideoPreviewLoading.value = false;
+    activePlayingVideo.value = {
+      ...v,
+      path: filePath,
+      src: v.src || `local:///${filePath.replace(/\\/g, '/')}`,
+      isSynced: true
+    };
     return;
   }
-  activePlayingVideo.value = v;
+
+  // 4. Remote phone video: trigger real-time preview fetch via WebRTC DataChannel
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    logSyncEvent('❌ 无法预览视频：手机与电脑直连通道未就绪，请先配对连接手机');
+    return;
+  }
+
+  activePlayingVideo.value = {
+    ...v,
+    isSynced: false
+  };
+  isVideoPreviewLoading.value = true;
+  logSyncEvent(`▶️ 正在从手机端拉取视频 "${v.name}" 准备预览...`);
+  requestVideoSync({ targetIds: [v.id] });
 }
 
 function popOutVideoPlayer() {
   if (activePlayingVideo.value && window.api?.openVideoWindow) {
     const video = activePlayingVideo.value;
+    const filePath = video.path || video.fullPath || video.src || '';
+    if (!filePath || isVideoPreviewLoading.value) {
+      logSyncEvent('ℹ️ 视频正在从手机端拉取中，请等待传输完成后再在独立窗口中播放');
+      return;
+    }
     window.api.openVideoWindow({
-      filePath: video.path || video.fullPath || video.src || '',
+      filePath,
       title: video.name || video.title || '视频播放',
-      poster: video.thumbnail || video.poster || ''
+      poster: video.thumbnail || video.poster || video.thumb || ''
     });
     closeVideoPlayer();
   }
 }
 
+function cancelVideoPreview() {
+  if (isVideoPreviewLoading.value) {
+    logSyncEvent('⏹️ 已取消视频预览拉取');
+    stopVideoSync();
+  }
+  closeVideoPlayer();
+}
+
 function closeVideoPlayer() {
+  if (isVideoPreviewLoading.value) {
+    stopVideoSync();
+  }
+  isVideoPreviewLoading.value = false;
   activePlayingVideo.value = null;
 }
 
@@ -8908,6 +9094,27 @@ onMounted(() => {
             type: 'video'
           });
         }
+
+        // Live upgrade open video player if currently previewing this video
+        if (activePlayingVideo.value) {
+          const curId = String(activePlayingVideo.value.id || '');
+          const curName = String(activePlayingVideo.value.name || '');
+          const infoId = String(imageInfo.id || imageInfo.assetId || '');
+          const infoName = String(imageInfo.name || '');
+          const isMatch = (curId && (curId === infoId || `video_${curId}` === infoId || infoName.includes(curId))) ||
+                          (curName && (curName === infoName || infoName.endsWith(curName)));
+          if (isMatch) {
+            activePlayingVideo.value = {
+              ...activePlayingVideo.value,
+              ...imageInfo,
+              path: imageInfo.path,
+              src: imageInfo.src || `local:///${imageInfo.path.replace(/\\/g, '/')}`,
+              isSynced: true
+            };
+            isVideoPreviewLoading.value = false;
+            logSyncEvent(`▶️ 手机视频 "${imageInfo.name}" 已就绪，正在开启播放！`);
+          }
+        }
         return;
       }
 
@@ -10768,6 +10975,147 @@ function getMockClassification(url) {
   width: 100%;
   max-height: 80vh;
   outline: none;
+}
+
+/* Video Preview Loading Card */
+.video-preview-loading-card {
+  position: relative;
+  width: 100%;
+  min-height: 420px;
+  max-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #090d16;
+}
+
+.preview-bg-blur {
+  position: absolute;
+  inset: -20px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(28px) brightness(0.28);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.preview-loading-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 520px;
+  padding: 32px 24px;
+  gap: 16px;
+}
+
+.preview-radar-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-radar-spinner {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(99, 102, 241, 0.2);
+  border-top-color: #818cf8;
+  border-right-color: #a855f7;
+  animation: radar-spin 1.2s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+}
+
+@keyframes radar-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.preview-radar-icon {
+  font-size: 32px;
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+
+.preview-title {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.4;
+  word-break: break-all;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+.preview-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.preview-progress-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.preview-progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.preview-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #a855f7, #38bdf8);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.6);
+}
+
+.preview-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.preview-meta-pct {
+  color: #a5b4fc;
+}
+
+.preview-meta-info {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.preview-cancel-btn {
+  margin-top: 8px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preview-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
 }
 
 /* Audios Tab (Hi-Fi Music Station) */

@@ -219,7 +219,16 @@ export const locales = {
       "syncedVideos": "Backed Up to PC",
       "unsyncedVideos": "Phone Pending Download",
       "collapsePanel": "Collapse Panel",
-      "expandPanel": "Expand Panel"
+      "expandPanel": "Expand Panel",
+      "preview": "Preview",
+      "previewVideo": "Preview Mobile Video",
+      "previewingTitle": "Fetching video preview from mobile phone...",
+      "cancelPreview": "Cancel Preview",
+      "previewReady": "Video preview ready, playing now",
+      "previewHint": "Click to preview mobile video",
+      "connTitle": "Mobile Video Browsing & Preview",
+      "browseBtn": "Browse Mobile Videos",
+      "connSubtitle": "Discover mobile videos by date with instant preview and fast backup"
     },
     "audios": {
       "title": "🎵 Music Sync & Management",
@@ -936,7 +945,16 @@ export const locales = {
       "syncedVideos": "电脑已备份",
       "unsyncedVideos": "手机待下载",
       "collapsePanel": "收起面板",
-      "expandPanel": "展开面板"
+      "expandPanel": "展开面板",
+      "preview": "预览",
+      "previewVideo": "预览手机端视频",
+      "previewingTitle": "正在从手机端获取视频预览...",
+      "cancelPreview": "取消预览",
+      "previewReady": "视频预览就绪，已开始播放",
+      "previewHint": "点击预览手机视频",
+      "connTitle": "手机视频浏览与预览",
+      "browseBtn": "浏览手机视频",
+      "connSubtitle": "按拍摄日期发现手机视频，支持在线预览与高速备份"
     },
     "audios": {
       "title": "🎵 音乐同步与管理",
