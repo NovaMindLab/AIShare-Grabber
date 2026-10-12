@@ -228,7 +228,12 @@ export const locales = {
       "previewHint": "Click to preview mobile video",
       "connTitle": "Mobile Video Browsing & Preview",
       "browseBtn": "Browse Mobile Videos",
-      "connSubtitle": "Discover mobile videos by date with instant preview and fast backup"
+      "connSubtitle": "Discover mobile videos by date with instant preview and fast backup",
+      "streamingBadge": "⚡ Mobile Live Stream (0 Disk Usage)",
+      "saveToPc": "⬇️ Save to PC",
+      "savingToPc": "Backing up in background...",
+      "savedToPc": "Video backed up successfully!",
+      "streamingFallback": "Direct stream blocked by AP isolation, falling back..."
     },
     "audios": {
       "title": "🎵 Music Sync & Management",
@@ -954,7 +959,12 @@ export const locales = {
       "previewHint": "点击预览手机视频",
       "connTitle": "手机视频浏览与预览",
       "browseBtn": "浏览手机视频",
-      "connSubtitle": "按拍摄日期发现手机视频，支持在线预览与高速备份"
+      "connSubtitle": "按拍摄日期发现手机视频，支持在线预览与高速备份",
+      "streamingBadge": "⚡ 手机在线秒播 (0 磁盘占用)",
+      "saveToPc": "⬇️ 备份到本地",
+      "savingToPc": "正在后台下载备份...",
+      "savedToPc": "视频已成功备份到电脑！",
+      "streamingFallback": "局域网直接串流受阻，正在切换备用通道..."
     },
     "audios": {
       "title": "🎵 音乐同步与管理",

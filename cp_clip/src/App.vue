@@ -1230,9 +1230,30 @@
           <transition name="modal-fade">
             <div v-if="activePlayingVideo" class="video-player-overlay" @click.self="closeVideoPlayer">
               <div class="video-player-modal glass-panel">
-                <!-- Floating Buttons -->
+                <!-- Floating Controls & Streaming Status -->
+                <div 
+                  v-if="activePlayingVideo.isStreaming"
+                  class="vp-streaming-tag"
+                  style="position: absolute; top: 14px; left: 18px; z-index: 20; background: rgba(99, 102, 241, 0.85); backdrop-filter: blur(10px); padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 4px 14px rgba(0,0,0,0.4);"
+                >
+                  <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8; animation: pulse-glow 1.5s infinite;"></span>
+                  {{ t.videos?.streamingBadge || '⚡ 手机在线秒播 (0 磁盘占用)' }}
+                </div>
+
                 <button 
-                  v-if="hasApi && window.api?.openVideoWindow && !isVideoPreviewLoading" 
+                  v-if="activePlayingVideo.isStreaming" 
+                  class="vp-floating-save-btn" 
+                  style="position: absolute; top: 14px; right: 104px; z-index: 20; background: rgba(16, 185, 129, 0.85); backdrop-filter: blur(10px); border: 1.5px solid rgba(255, 255, 255, 0.3); color: #fff; height: 36px; padding: 0 14px; border-radius: 18px; display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 4px 14px rgba(0,0,0,0.4);" 
+                  @click="downloadCurrentStreamingVideo" 
+                  :disabled="isStreamingDirectSaveLoading"
+                  :title="t.videos?.saveToPc || '备份到本地'"
+                >
+                  <span>{{ isStreamingDirectSaveLoading ? '⏳' : '⬇️' }}</span>
+                  <span>{{ isStreamingDirectSaveLoading ? (t.videos?.savingToPc || '正在备份...') : (t.videos?.saveToPc || '备份到本地') }}</span>
+                </button>
+
+                <button 
+                  v-if="hasApi && window.api?.openVideoWindow && !isVideoPreviewLoading && !activePlayingVideo.isStreaming" 
                   class="vp-floating-close-btn" 
                   style="right: 56px; font-size: 14px;" 
                   @click="popOutVideoPlayer" 
@@ -1280,12 +1301,13 @@
                     </div>
                   </div>
 
-                  <!-- 2. Video Player Native Element (Synced / Ready) -->
+                  <!-- 2. Video Player Native Element (Streaming or Synced) -->
                   <video 
                     v-else
                     :src="activePlayingVideo.src || `local:///${activePlayingVideo.path.replace(/\\/g, '/')}`" 
                     controls 
                     autoplay 
+                    @error="handleVideoPlayerError"
                     class="video-native-element"
                   ></video>
                 </div>
@@ -4715,6 +4737,10 @@ const videoSyncDone = ref(0);
 const videoSyncTotal = ref(0);
 const activePlayingVideo = ref(null);
 const isVideoPreviewLoading = ref(false);
+const remoteStreamPort = ref(0);
+const remoteStreamToken = ref('');
+const remoteStreamIps = ref([]);
+const isStreamingDirectSaveLoading = ref(false);
 
 const videoPreviewProgressPercent = computed(() => {
   if (!isVideoPreviewLoading.value) return 0;
@@ -4812,6 +4838,9 @@ const videoGroupsByDate = computed(() => {
         duration: remote.duration,
         create_date: remote.create_date,
         thumb: remote.thumb || '',
+        stream_port: remote.stream_port || remoteStreamPort.value,
+        stream_token: remote.stream_token || remoteStreamToken.value,
+        stream_ips: remote.stream_ips || remoteStreamIps.value,
         isRemoteOnly: true,
         isSynced: false
       });
@@ -6467,6 +6496,10 @@ function cleanupWebRtc() {
   isVideoSyncing.value = false;
   isAudioSyncing.value = false;
   isVideoPreviewLoading.value = false;
+  remoteStreamPort.value = 0;
+  remoteStreamToken.value = '';
+  remoteStreamIps.value = [];
+  isStreamingDirectSaveLoading.value = false;
   chatMessages.value = [];
   // Retain activeDeviceUuid.value and activeDeviceName.value so offline viewing of downloaded videos,
   // audios, album photos, and person clusters continues seamlessly!
@@ -6805,12 +6838,31 @@ function stopVideoSync() {
   isVideoSyncPaused.value = false;
 }
 
+function getVideoStreamUrl(video) {
+  const v = (video && video.value) ? video.value : video;
+  if (!v) return null;
+  const port = v.stream_port || remoteStreamPort.value;
+  const token = v.stream_token || remoteStreamToken.value || '';
+  if (!port) return null;
+
+  let host = activePeerIp.value;
+  if (!host && remoteStreamIps.value && remoteStreamIps.value.length > 0) {
+    host = remoteStreamIps.value[0];
+  }
+  if (!host && v.stream_ips && v.stream_ips.length > 0) {
+    host = v.stream_ips[0];
+  }
+  if (!host) return null;
+
+  return `http://${host}:${port}/stream/video?id=${encodeURIComponent(v.id)}&token=${encodeURIComponent(token)}`;
+}
+
 function openVideoPlayer(video) {
   const v = (video && video.value) ? video.value : video;
   if (!v) return;
 
   // 1. Check if video already has a valid local file path
-  let filePath = v.path || v.fullPath || (v.src && !v.src.startsWith('data:') && !v.src.startsWith('blob:') ? v.src : '');
+  let filePath = v.path || v.fullPath || (v.src && !v.src.startsWith('data:') && !v.src.startsWith('blob:') && !v.src.startsWith('http:') && !v.src.startsWith('https:') ? v.src : '');
   
   // 2. If no direct path, check if images list already has it downloaded
   if (!filePath) {
@@ -6832,13 +6884,29 @@ function openVideoPlayer(video) {
     activePlayingVideo.value = {
       ...v,
       path: filePath,
-      src: v.src || `local:///${filePath.replace(/\\/g, '/')}`,
-      isSynced: true
+      src: v.src && !v.src.startsWith('http') ? v.src : `local:///${filePath.replace(/\\/g, '/')}`,
+      isSynced: true,
+      isStreaming: false
     };
     return;
   }
 
-  // 4. Remote phone video: trigger real-time preview fetch via WebRTC DataChannel
+  // 4. Remote phone video: Prioritize instant HTTP Range online streaming (0 disk usage, 0 download)
+  const streamUrl = getVideoStreamUrl(v);
+  if (streamUrl) {
+    logSyncEvent(`▶️ 正在通过局域网流媒体秒播手机视频 "${v.name}" (0 磁盘占用)...`);
+    isVideoPreviewLoading.value = false;
+    activePlayingVideo.value = {
+      ...v,
+      src: streamUrl,
+      streamUrl: streamUrl,
+      isSynced: false,
+      isStreaming: true
+    };
+    return;
+  }
+
+  // 5. Fallback: If streaming service not ready, use WebRTC DataChannel pull
   if (!dataChannel || dataChannel.readyState !== 'open') {
     logSyncEvent('❌ 无法预览视频：手机与电脑直连通道未就绪，请先配对连接手机');
     return;
@@ -6846,11 +6914,36 @@ function openVideoPlayer(video) {
 
   activePlayingVideo.value = {
     ...v,
-    isSynced: false
+    isSynced: false,
+    isStreaming: false
   };
   isVideoPreviewLoading.value = true;
   logSyncEvent(`▶️ 正在从手机端拉取视频 "${v.name}" 准备预览...`);
   requestVideoSync({ targetIds: [v.id] });
+}
+
+function downloadCurrentStreamingVideo() {
+  if (!activePlayingVideo.value) return;
+  const targetId = activePlayingVideo.value.id;
+  logSyncEvent(`📥 开始在后台将视频 "${activePlayingVideo.value.name}" 完整备份到电脑...`);
+  isStreamingDirectSaveLoading.value = true;
+  requestVideoSync({ targetIds: [targetId] });
+  setTimeout(() => {
+    isStreamingDirectSaveLoading.value = false;
+  }, 2500);
+}
+
+function handleVideoPlayerError(e) {
+  if (activePlayingVideo.value && activePlayingVideo.value.isStreaming) {
+    logSyncEvent('⚠️ 局域网直接串流受阻（可能由于路由器开启了 AP 隔离），正在自动切换为备用下载模式...');
+    activePlayingVideo.value = {
+      ...activePlayingVideo.value,
+      isStreaming: false,
+      src: ''
+    };
+    isVideoPreviewLoading.value = true;
+    requestVideoSync({ targetIds: [activePlayingVideo.value.id] });
+  }
 }
 
 function popOutVideoPlayer() {
@@ -7492,11 +7585,24 @@ function setupDataChannel(channel) {
       const payloadStr = decoder.decode(payloadBytes);
       try {
         const data = JSON.parse(payloadStr);
+        if (data.stream_port) remoteStreamPort.value = data.stream_port;
+        if (data.stream_token) remoteStreamToken.value = data.stream_token;
+        if (data.stream_ips && Array.isArray(data.stream_ips) && data.stream_ips.length > 0) {
+          remoteStreamIps.value = data.stream_ips;
+          if (!activePeerIp.value) {
+            activePeerIp.value = data.stream_ips[0];
+          }
+        }
+
         const incomingVideos = data.videos || [];
         
-        // Use Map to preserve all existing videos and merge/update properties (thumb, size, duration)
+        // Use Map to preserve all existing videos and merge/update properties (thumb, size, duration, stream params)
         const catalogMap = new Map(remoteVideoCatalog.value.map(v => [v.id, v]));
         for (const inv of incomingVideos) {
+          if (data.stream_port && !inv.stream_port) inv.stream_port = data.stream_port;
+          if (data.stream_token && !inv.stream_token) inv.stream_token = data.stream_token;
+          if (data.stream_ips && !inv.stream_ips) inv.stream_ips = data.stream_ips;
+
           if (catalogMap.has(inv.id)) {
             Object.assign(catalogMap.get(inv.id), inv);
           } else {
@@ -7504,7 +7610,7 @@ function setupDataChannel(channel) {
           }
         }
         remoteVideoCatalog.value = Array.from(catalogMap.values());
-        logSyncEvent(`📋 收到手机端视频目录 [${chunkIndex + 1}/${Math.max(totalChunks, 1)}]，共发现 ${remoteVideoCatalog.value.length} 个视频`);
+        logSyncEvent(`📋 收到手机端视频目录 [${chunkIndex + 1}/${Math.max(totalChunks, 1)}]，共发现 ${remoteVideoCatalog.value.length} 个视频${remoteStreamPort.value > 0 ? ' (在线秒播就绪: 端口 ' + remoteStreamPort.value + ')' : ''}`);
       } catch (err) {
         console.error("Failed to parse video catalog:", err);
       }

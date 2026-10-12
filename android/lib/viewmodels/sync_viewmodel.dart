@@ -16,6 +16,7 @@ import '../services/http_signaling_client.dart';
 import '../services/webrtc_sync_engine.dart';
 import '../services/photo_streamer.dart';
 import '../services/ai_classification_service.dart';
+import '../services/video_stream_service.dart';
 import 'package:wifi_iot/wifi_iot.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -895,6 +896,7 @@ class SyncViewModel extends ChangeNotifier {
             appState = AppState.connected;
             _setKeepScreenOn(true);
             _startHeartbeat();
+            _startVideoStreamService();
             notifyListeners();
             return;
           }
@@ -1113,6 +1115,14 @@ class SyncViewModel extends ChangeNotifier {
                   return;
                 }
 
+                // Ensure video streaming service is active for zero-download online playback
+                if (!VideoStreamService.instance.isRunning && localVideos.isNotEmpty) {
+                  await _startVideoStreamService();
+                }
+                final int streamPort = VideoStreamService.instance.port;
+                final String streamToken = VideoStreamService.instance.sessionToken;
+                final List<String> localIps = await VideoStreamService.getLocalIps();
+
                 // Process and stream video catalog in batches of 4.
                 // Using 200x120 16:9 thumbnail @ quality 45 (~4KB each) keeps packet size < 25KB, safe for WebRTC MTU.
                 const int batchSize = 4;
@@ -1171,6 +1181,11 @@ class SyncViewModel extends ChangeNotifier {
                     if (thumbBase64 != null) {
                       item["thumb"] = thumbBase64;
                     }
+                    if (streamPort > 0) {
+                      item["stream_port"] = streamPort;
+                      item["stream_token"] = streamToken;
+                      item["stream_ips"] = localIps;
+                    }
                     return item;
                   }));
 
@@ -1179,6 +1194,9 @@ class SyncViewModel extends ChangeNotifier {
                     "chunk_index": chunkIdx,
                     "total_chunks": totalChunks,
                     "total_count": localVideos.length,
+                    "stream_port": streamPort,
+                    "stream_token": streamToken,
+                    "stream_ips": localIps,
                   });
                   final respBytes = utf8.encode(respStr);
                   final respHeader = ByteData(16);
@@ -2885,8 +2903,27 @@ class SyncViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> _startVideoStreamService() async {
+    try {
+      if (localVideos.isEmpty) {
+        final streamer = _photoStreamer ?? PhotoStreamer.standalone();
+        localVideos = await streamer.loadLocalVideos();
+      }
+      final port = await VideoStreamService.instance.start(
+        videos: localVideos,
+        sessionToken: _lastScannedPayload?.sessionId ?? 'shareclip_stream_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      if (port > 0) {
+        logMessage("🎥 视频流媒体微服务已启动: 端口 $port (支持零下载在线秒播)");
+      }
+    } catch (e) {
+      debugPrint("Failed to start video stream service: $e");
+    }
+  }
+
   void cleanup() {
     _setKeepScreenOn(false);
+    VideoStreamService.instance.stop();
     _handshakeAckTimer?.cancel();
     _handshakeAckTimer = null;
     _handshakeRetryTimer?.cancel();
