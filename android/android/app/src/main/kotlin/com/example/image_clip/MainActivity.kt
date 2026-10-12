@@ -50,7 +50,7 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun installApkAtPath(filePath: String): Boolean {
+    private fun installApkAtPath(filePath: String): String {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (!context.packageManager.canRequestPackageInstalls()) {
@@ -58,7 +58,7 @@ class MainActivity : FlutterActivity() {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     context.startActivity(permIntent)
-                    return false
+                    return "PERMISSION_REQUIRED"
                 }
             }
 
@@ -71,13 +71,13 @@ class MainActivity : FlutterActivity() {
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 context.startActivity(installIntent)
-                true
+                "SUCCESS"
             } else {
-                false
+                "FILE_NOT_FOUND"
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            false
+            "ERROR: ${e.message}"
         }
     }
 
@@ -90,6 +90,18 @@ class MainActivity : FlutterActivity() {
                 val link = initialDeepLink
                 initialDeepLink = null
                 result.success(link)
+            } else if (call.method == "getAppVersion") {
+                try {
+                    val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        context.packageManager.getPackageInfo(context.packageName, 0)
+                    }
+                    result.success(packageInfo.versionName ?: "")
+                } catch (e: Exception) {
+                    result.success("")
+                }
             } else if (call.method == "getSystemInfo") {
                 val path = Environment.getDataDirectory()
                 val stat = StatFs(path.path)
@@ -101,11 +113,23 @@ class MainActivity : FlutterActivity() {
                 val freeBytes = availableBlocks * blockSize
                 val usedBytes = totalBytes - freeBytes
 
+                val packageInfo = try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        context.packageManager.getPackageInfo(context.packageName, 0)
+                    }
+                } catch (e: Exception) {
+                    null
+                }
+
                 val info = mapOf(
                     "os" to "Android",
                     "version" to Build.VERSION.RELEASE,
                     "model" to Build.MODEL,
                     "brand" to Build.BRAND,
+                    "app_version" to (packageInfo?.versionName ?: ""),
                     "total_storage" to totalBytes,
                     "free_storage" to freeBytes,
                     "used_storage" to usedBytes
@@ -131,24 +155,16 @@ class MainActivity : FlutterActivity() {
             } else if (call.method == "installApk") {
                 val path = call.argument<String>("path")
                 if (path != null) {
-                    val success = installApkAtPath(path)
-                    if (success) {
-                        result.success(true)
-                    } else {
-                        result.error("ERROR", "Failed to start install activity", null)
-                    }
+                    val status = installApkAtPath(path)
+                    result.success(status)
                 } else {
                     result.error("BAD_ARGS", "Missing path parameter", null)
                 }
             } else if (call.method == "installDownloadedApk") {
                 val targetDir = context.externalCacheDir ?: context.cacheDir
                 val apkFile = File(targetDir, "ShareCLIP_Update.apk")
-                val success = installApkAtPath(apkFile.absolutePath)
-                if (success) {
-                    result.success(true)
-                } else {
-                    result.error("ERROR", "Failed to start APK installation", null)
-                }
+                val status = installApkAtPath(apkFile.absolutePath)
+                result.success(status)
             } else if (call.method == "connectWifiSilent") {
                 val ssid = call.argument<String>("ssid")
                 val password = call.argument<String>("password")

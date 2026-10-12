@@ -138,7 +138,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                     ),
                   ),
                   Text(
-                    "v$appVersion Premium",
+                    "v${SyncViewModel.appVersion} Premium",
                     style: const TextStyle(
                       color: Color(0xFF94A3B8),
                       fontSize: 12,

@@ -118,9 +118,9 @@ jobs:
           ls -la android/app/debug.keystore
           flutter pub get
           if [ -n "${{ secrets.MIXPANEL_TOKEN }}" ]; then
-            flutter build apk --release --target-platform android-arm,android-arm64 --build-name "${{ steps.get_version.outputs.VERSION }}" --build-number "${{ steps.get_version.outputs.BUILD_NUMBER }}" --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=${{ secrets.MIXPANEL_TOKEN }}
+            flutter build apk --release --target-platform android-arm,android-arm64 --build-name "${{ steps.get_version.outputs.VERSION }}" --build-number "${{ steps.get_version.outputs.BUILD_NUMBER }}" --no-tree-shake-icons --dart-define=MIXPANEL_TOKEN=${{ secrets.MIXPANEL_TOKEN }} --dart-define=APP_VERSION=${{ steps.get_version.outputs.VERSION }}
           else
-            flutter build apk --release --target-platform android-arm,android-arm64 --build-name "${{ steps.get_version.outputs.VERSION }}" --build-number "${{ steps.get_version.outputs.BUILD_NUMBER }}" --no-tree-shake-icons
+            flutter build apk --release --target-platform android-arm,android-arm64 --build-name "${{ steps.get_version.outputs.VERSION }}" --build-number "${{ steps.get_version.outputs.BUILD_NUMBER }}" --no-tree-shake-icons --dart-define=APP_VERSION=${{ steps.get_version.outputs.VERSION }}
           fi
           echo "Verifying APK signing certificate..."
           keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk | grep -i -E "(SHA1|SHA256):" || true

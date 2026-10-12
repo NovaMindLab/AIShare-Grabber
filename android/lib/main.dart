@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'viewmodels/sync_viewmodel.dart';
 import 'views/qr_scanner_view.dart';
 import 'views/transfer_console_view.dart';
@@ -14,7 +15,8 @@ import 'services/theme_service.dart';
 import 'services/analytics_service.dart';
 import 'models/qr_payload.dart';
 
-const String appVersion = '4.5.12';
+const String kDefaultAppVersion = '4.5.14';
+const String appVersion = String.fromEnvironment('APP_VERSION', defaultValue: kDefaultAppVersion);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,14 +58,32 @@ class MainRouterScreen extends StatefulWidget {
 
 class _MainRouterScreenState extends State<MainRouterScreen> {
   static const _systemChannel = MethodChannel('com.shareclip/system_info');
+  String _currentVersion = appVersion;
 
   @override
   void initState() {
     super.initState();
+    _initAppVersion();
     _initDeepLinkHandler();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndRequestPermissions();
     });
+  }
+
+  Future<void> _initAppVersion() async {
+    try {
+      final nativeVer = await _systemChannel.invokeMethod<String>('getAppVersion');
+      if (nativeVer != null && nativeVer.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _currentVersion = nativeVer;
+          });
+          Provider.of<SyncViewModel>(context, listen: false).setAppVersion(nativeVer);
+        }
+      }
+    } catch (e) {
+      debugPrint('[Version] Failed to read native app version: $e');
+    }
   }
 
   void _initDeepLinkHandler() {
@@ -139,6 +159,18 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
 
   Future<void> _checkUpdate() async {
     try {
+      if (_currentVersion == appVersion) {
+        try {
+          final nativeVer = await _systemChannel.invokeMethod<String>('getAppVersion');
+          if (nativeVer != null && nativeVer.isNotEmpty) {
+            _currentVersion = nativeVer;
+            if (mounted) {
+              Provider.of<SyncViewModel>(context, listen: false).setAppVersion(nativeVer);
+            }
+          }
+        } catch (_) {}
+      }
+
       final client = HttpClient();
       client.userAgent = 'ShareCLIP-Android-App';
       final request = await client.getUrl(Uri.parse('https://api.github.com/repos/NovaMindLab/AIShare-Grabber/releases/latest'));
@@ -148,11 +180,26 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
         final Map<String, dynamic> release = json.decode(jsonString) as Map<String, dynamic>;
         final String latestTag = release['tag_name'] as String;
         
-        if (_isNewVersionAvailable(appVersion, latestTag)) {
+        debugPrint('[Update] Current version: $_currentVersion | GitHub latest: $latestTag');
+        if (_isNewVersionAvailable(_currentVersion, latestTag)) {
+          // Check 24-hour suppression if user previously chose "Later"
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            final lastIgnoredVer = prefs.getString('ignored_update_version');
+            final lastIgnoredTime = prefs.getInt('ignored_update_time') ?? 0;
+            final now = DateTime.now().millisecondsSinceEpoch;
+            const int cooldownMs = 24 * 60 * 60 * 1000;
+
+            if (lastIgnoredVer == latestTag && (now - lastIgnoredTime) < cooldownMs) {
+              debugPrint('[Update] Skipping prompt for $latestTag (suppressed by user choice within 24h)');
+              return;
+            }
+          } catch (_) {}
+
           String apkUrl = '';
           if (release['assets'] != null) {
             final assets = release['assets'] as List;
-            final cleanTag = latestTag.replaceAll('v', '').trim();
+            final cleanTag = latestTag.replaceAll(RegExp(r'^[vV]'), '').trim();
             // 1. Prefer exact version match APK
             for (var asset in assets) {
               final assetName = asset['name'].toString().toLowerCase();
@@ -184,15 +231,16 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
   }
 
   bool _isNewVersionAvailable(String current, String latest) {
-    final cleanCurrent = current.replaceAll('v', '').split('+')[0];
-    final cleanLatest = latest.replaceAll('v', '').split('+')[0];
+    final cleanCurrent = current.replaceFirst(RegExp(r'^[vV]'), '').split('+')[0].split('-')[0].trim();
+    final cleanLatest = latest.replaceFirst(RegExp(r'^[vV]'), '').split('+')[0].split('-')[0].trim();
     
-    final currentParts = cleanCurrent.split('.').map(int.tryParse).toList();
-    final latestParts = cleanLatest.split('.').map(int.tryParse).toList();
+    final currentParts = cleanCurrent.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final latestParts = cleanLatest.split('.').map((e) => int.tryParse(e) ?? 0).toList();
     
-    for (var i = 0; i < 3; i++) {
-      final currentVal = (i < currentParts.length) ? (currentParts[i] ?? 0) : 0;
-      final latestVal = (i < latestParts.length) ? (latestParts[i] ?? 0) : 0;
+    final maxLen = currentParts.length > latestParts.length ? currentParts.length : latestParts.length;
+    for (var i = 0; i < maxLen; i++) {
+      final currentVal = (i < currentParts.length) ? currentParts[i] : 0;
+      final latestVal = (i < latestParts.length) ? latestParts[i] : 0;
       if (latestVal > currentVal) return true;
       if (currentVal > latestVal) return false;
     }
@@ -286,7 +334,7 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                               ),
                             ),
                             child: Text(
-                              'v$appVersion  �? $latestVersion',
+                              'v$_currentVersion ➔ $latestVersion',
                               style: const TextStyle(
                                 color: Color(0xFFC084FC),
                                 fontSize: 11.5,
@@ -421,7 +469,14 @@ class _MainRouterScreenState extends State<MainRouterScreen> {
                 // Action 3: Later Text Button
                 Center(
                   child: TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    onPressed: () async {
+                      Navigator.of(dialogContext).pop();
+                      try {
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setString('ignored_update_version', latestVersion);
+                        await prefs.setInt('ignored_update_time', DateTime.now().millisecondsSinceEpoch);
+                      } catch (_) {}
+                    },
                     child: Text(
                       lang.get('laterBtn'),
                       style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
@@ -724,6 +779,44 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
       }
 
       final targetFile = File('$cacheDirPath/ShareCLIP_Update.apk');
+      bool isExistingValid = false;
+      if (await targetFile.exists() && (await targetFile.length()) > 5 * 1024 * 1024) {
+        try {
+          final header = await targetFile.openRead(0, 4).first;
+          if (header.length >= 4 &&
+              header[0] == 0x50 &&
+              header[1] == 0x4B &&
+              header[2] == 0x03 &&
+              header[3] == 0x04) {
+            isExistingValid = true;
+          }
+        } catch (_) {}
+      }
+
+      if (isExistingValid) {
+        if (!mounted) return;
+        setState(() {
+          _progress = 1.0;
+          _statusText = lang.get('downloadInstalling');
+        });
+        await Future.delayed(const Duration(milliseconds: 300));
+        final installRes = await platform.invokeMethod<String>('installApk', {'path': targetFile.path});
+        if (installRes == 'PERMISSION_REQUIRED') {
+          if (mounted) {
+            setState(() {
+              _isFailed = true;
+              _errorMessage = '请在系统设置中允许【安装未知应用】，开启后返回本应用点击重新安装。';
+            });
+          }
+          return;
+        } else if (installRes == 'SUCCESS') {
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+          return;
+        }
+      }
+
       if (await targetFile.exists()) {
         await targetFile.delete();
       }
@@ -814,10 +907,19 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
         });
 
         await Future.delayed(const Duration(milliseconds: 600));
+        final installRes = await platform.invokeMethod<String>('installApk', {'path': targetFile.path});
+        if (installRes == 'PERMISSION_REQUIRED') {
+          if (mounted) {
+            setState(() {
+              _isFailed = true;
+              _errorMessage = '请在系统设置中允许【安装未知应用】，开启后返回本应用点击重新安装。';
+            });
+          }
+          return;
+        }
         if (mounted) {
           Navigator.of(context).pop();
         }
-        await platform.invokeMethod('installApk', {'path': targetFile.path});
       } else {
         throw Exception(lang.get('downloadFailedTip'));
       }
@@ -1031,7 +1133,10 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
                   ),
                 ),
                 icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: Text(lang.get('retryDownload'), style: const TextStyle(fontSize: 13)),
+                label: Text(
+                  _errorMessage.contains('权限') ? '重新安装' : lang.get('retryDownload'),
+                  style: const TextStyle(fontSize: 13),
+                ),
                 onPressed: () => _startDownload(),
               ),
               const SizedBox(height: 4),
