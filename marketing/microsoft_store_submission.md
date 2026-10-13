@@ -1,60 +1,58 @@
-# 微软商店 (Microsoft Store) 官方上架提交全流程指南与物料清单
+# 微软商店 (Microsoft Store) 官方上架与版本更新指南 (v4.5.15)
 
 > **项目名称**: ShareCLIP  
-> **最新版本**: `v4.5.8`  
+> **微软商店 ID (Store ID)**: `XP8JZTVS6KRX72` (已上架通过)  
+> **最新待更新版本**: `v4.5.15`  
+> **安装包 SHA256**: `7fb6b76bac0984b05d39dfb687261c3bfc8f7be3ca526cebcc6466cf7e2bca8b`  
 > **官网地址**: [https://novamindlab.github.io/AIShare-Grabber/](https://novamindlab.github.io/AIShare-Grabber/)  
 > **隐私政策**: [https://novamindlab.github.io/AIShare-Grabber/privacy.html](https://novamindlab.github.io/AIShare-Grabber/privacy.html)  
 > **开源仓库**: [https://github.com/NovaMindLab/AIShare-Grabber](https://github.com/NovaMindLab/AIShare-Grabber)  
-> **视觉物料路径**: `marketing/microsoft_store_assets/` (已全量生成，直接拖拽上传)
+> **视觉物料路径**: `marketing/microsoft_store_assets/`
 
 ---
 
-## 一、双轨上架方案对比与选择建议
+## ⚡ 极速 2 分钟：更新已上架版本 (v4.5.15) 到微软商店
 
-微软自 Windows 11 起全面革新了 Microsoft Store 生态，允许开发者以两种方式发布应用程序：
+由于本项目已成功上架至 Microsoft Store（产品 ID: `XP8JZTVS6KRX72`，采用 Win32 EXE 直连模式），推送新版本无需重新打包或走繁琐流程：
 
-| 对比维度 | 方案 A：Win32 应用直连发布 (强烈推荐 🌟🌟🌟🌟🌟) | 方案 B：MSIX / APPX 原生打包上传 |
-|---|---|---|
-| **核心原理** | 微软商店直接索引你已构建好的官方 `.exe` 安装包，用户点击安装时商店自动调用静默安装器。 | 将 Electron 转换为 UWP/MSIX 虚拟化容器包并上传至微软 CDN 托管。 |
-| **工作量** | **零改动、零构建**！5 分钟在网页端填表即可提交。 | 需从 Partner Center 抓取证书标识并本地打包上传，耗时较长。 |
-| **底层硬件兼容性** | **100% 完美原生运行**：蓝牙后台服务 (`ble_signaling_server.exe`)、Wi-Fi AP 热点脚本 (`wifi_ap.ps1`)、局域网高并发 HTTP/WebRTC 端口监听没有任何沙盒阻碍。 | 受 AppContainer/Centennial 沙盒限制，需严格配置 `runFullTrust` 声明，原生模块易产生文件虚拟化重定向隐患。 |
-| **后续更新流** | 发新版本时，仅需在 Partner Center 更新安装包下载 URL 即可。也可直接使用客户端内置的自动更新。 | 每次发版必须重新打包数百兆的 `.msix` 并手动或通过 API 上传。 |
-| **审核速度** | 通常 **24 ~ 48 小时**（微软自动化沙盒环境运行静默安装测试 + 基础合规扫描）。 | 需过完整 MSIX 静态特征分析与沙盒行为审查。 |
+1. 打开浏览器登录 **[Microsoft Partner Center (微软合作伙伴中心)](https://partner.microsoft.com/dashboard/apps-and-games/overview)**。
+2. 在 **“应用和游戏 (Apps and games)”** 列表中点击已上架的 **`ShareCLIP`**。
+3. 点击页面中的 **“更新 (Update)”** 按钮创建新的提交（New submission）。
+4. 进入 **“程序包 / 安装程序设置 (Packages / Installer Settings)”**：
+   - 将 **“安装程序下载 URL (Download URL)”** 修改为：
+     `https://ghfast.top/https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.15/ShareCLIP-Setup-4.5.15.exe`
+     *(备选官方直链：`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.15/ShareCLIP-Setup-4.5.15.exe`)*
+   - 将 **“应用程序版本 (Application version)”** 修改为：`4.5.15`
+   - 静默安装参数确认：`/S`
+   - 静默卸载命令确认：`"%LocalAppData%\Programs\ShareCLIP\Uninstall ShareCLIP.exe" /S`
+5. 在 **“认证备注 (Notes for certification)”** 或 **“发布说明 (Release notes)”** 中填入更新说明：
+   ```text
+   ShareCLIP v4.5.15 更新内容：
+   1. 新增 HTTP 206 Range 零下载毫秒级流式视频在线预览播放器；
+   2. 修复视频播放器在部分特殊模板渲染下的崩溃问题，大幅提升播放稳定性；
+   3. 优化局域网设备发现与 IP 解析逻辑，消除跨网段连接偶发无响应；
+   4. 修复 Android 端自动更新死循环问题，支持原生版本比对；
+   5. 深度优化 ONNX Runtime 与 MobileCLIP2 内存占用，提升多任务并发流畅度。
+   ```
+6. 点击右上角 **“提交到应用商店 (Submit to the Store)”** 即可！微软沙盒将自动拉取校验并在 24 小时内更新全网商店。
 
-> 💡 **核心建议**：**优先采用【方案 A：Win32 应用直连】**！ShareCLIP 具有端侧深度硬件通信与 C++ 原生动态库（ONNX Runtime / SQLite3 / Sharp），Win32 直连方案是最稳健、最快过审、用户体验最佳的官方路径。
-
----
-
-## 二、方案 A：Win32 应用直连上架保姆级操作步骤 (5 分钟完成)
-
-### 步骤 1：登录微软合作伙伴中心
-1. 访问并登录 [Microsoft Partner Center (微软合作伙伴中心)](https://partner.microsoft.com/dashboard/apps-and-games/overview)。
-2. 在左侧菜单点击 **“应用和游戏 (Apps and games)”** -> 点击页面右上方的 **“新建应用 (New app)”**。
-3. 在弹出的类型选择中，选择 **“Win32 应用程序 (Win32 application)”**（**请勿**选通用 Windows 平台应用）。
-
----
-
-### 步骤 2：预留产品名称 (Product Name)
-- 输入想要在商店显示的名称：
-  - 推荐：`ShareCLIP`
-  - 备选（如主词已被抢占）：`ShareCLIP: Local-First Media Suite` 或 `ShareCLIP - AirDrop Alternative`
-- 点击 **“保留产品名称 (Reserve product name)”**。
+*(💡 快捷技巧：在 Partner Center 页面按 F12 打开控制台，粘贴 `marketing/store_autofill_script.js` 内容并回车，可一键读取/填写所有参数！)*
 
 ---
 
-### 步骤 3：配置安装包信息 (Package / Installer Information)
-
-在新建的应用提交中，进入 **“程序包 (Packages)”** / **“安装程序设置 (Installer Settings)”**：
+## 一、配置参数速查表 (v4.5.15)
 
 | 设置项 (Field) | 填写内容 (Value) | 说明 |
 |---|---|---|
+| **应用名称 (Product Name)** | `ShareCLIP` | Store ID: `XP8JZTVS6KRX72` |
 | **安装程序类型 (Installer type)** | `EXE` | 基于 NSIS 封装的标准 Win32 安装程序 |
 | **体系结构 (Architecture)** | `x64` | 64 位 Windows 系统 |
-| **安装程序下载 URL (Download URL)** | `https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.8/ShareCLIP-Setup-4.5.8.exe` | 官方 GitHub Release 直链，微软爬虫将自动下载测试 |
-| **静默安装参数 (Silent install parameters)** | `/S` | NSIS 标准静默参数，项目 `installer.nsh` 已保证无弹窗静默完成 |
+| **安装程序下载 URL (Download URL)** | `https://ghfast.top/https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.15/ShareCLIP-Setup-4.5.15.exe` | 推荐使用加速代理源，微软全球下载更稳更快 |
+| **安装程序 SHA256** | `7fb6b76bac0984b05d39dfb687261c3bfc8f7be3ca526cebcc6466cf7e2bca8b` | 本地已验证的二进制特征值 |
+| **静默安装参数 (Silent install parameters)** | `/S` | NSIS 标准静默参数，无弹窗静默完成 |
 | **静默卸载命令 (Silent uninstall command)** | `"%LocalAppData%\Programs\ShareCLIP\Uninstall ShareCLIP.exe" /S` | 标准 NSIS 用户态卸载静默指令 |
 | **安装程序退出代码 (Exit codes)** | `0` (Success) | 默认返回值 0 代表安装成功 |
-| **应用程序版本 (Application version)** | `4.5.8` | 当前发布的最新版本号 |
+| **应用程序版本 (Application version)** | `4.5.15` | 当前发布的最新版本号 |
 
 ---
 

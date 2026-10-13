@@ -1,12 +1,12 @@
 {
-  "version": "4.5.10",
+  "version": "4.5.15",
   "description": "Private P2P AirDrop Alternative, Local AI Photo Search & Media Suite",
   "homepage": "https://novamindlab.github.io/AIShare-Grabber/",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.10/ShareCLIP-Setup-4.5.10.exe#/dl.7z",
-      "hash": "7D42589CB1BEB11B66264462B3E3BAA167FA75037CBE8DC1A795F1BD8E180559"
+      "url": "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.15/ShareCLIP-Setup-4.5.15.exe#/dl.7z",
+      "hash": "7FB6B76BAC0984B05D39DFB687261C3BFC8F7BE3CA526CEBCC6466CF7E2BCA8B"
     }
   },
   "shortcuts": [
