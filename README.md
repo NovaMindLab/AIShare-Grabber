@@ -3,8 +3,45 @@
   <p align="center">
     <b>English</b> &nbsp;|&nbsp; 
     <a href="README.zh-CN.md"><b>简体中文</b></a> &nbsp;|&nbsp; 
-    <a href="README.zh-TW.md"><b>繁體中文</b></a>
+    <a href="README.zh-TW.md"><b>繁體中文</b></a> &nbsp;|&nbsp; 
+    <a href="README.ja.md"><b>日本語</b></a>
   </p>
+
+  <details>
+    <summary style="cursor: pointer;"><b>🌐 20 Global Languages / 更多语言切换 (Click to expand / 点击展开 ▾)</b></summary>
+    <br/>
+    <table align="center">
+      <tr>
+        <td align="center"><b>🇺🇸 English</b></td>
+        <td align="center"><a href="README.zh-CN.md">🇨🇳 简体中文</a></td>
+        <td align="center"><a href="README.zh-TW.md">🇭🇰 繁體中文</a></td>
+        <td align="center"><a href="README.ja.md">🇯🇵 日本語</a></td>
+        <td align="center"><a href="README.ko.md">🇰🇷 한국어</a></td>
+      </tr>
+      <tr>
+        <td align="center"><a href="README.es.md">🇪🇸 Español</a></td>
+        <td align="center"><a href="README.fr.md">🇫🇷 Français</a></td>
+        <td align="center"><a href="README.de.md">🇩🇪 Deutsch</a></td>
+        <td align="center"><a href="README.it.md">🇮🇹 Italiano</a></td>
+        <td align="center"><a href="README.ru.md">🇷🇺 Русский</a></td>
+      </tr>
+      <tr>
+        <td align="center"><a href="README.pt.md">🇵🇹 Português</a></td>
+        <td align="center"><a href="README.vi.md">🇻🇳 Tiếng Việt</a></td>
+        <td align="center"><a href="README.th.md">🇹🇭 ไทย</a></td>
+        <td align="center"><a href="README.id.md">🇮🇩 Bahasa Indonesia</a></td>
+        <td align="center"><a href="README.ar.md">🇸🇦 العربية</a></td>
+      </tr>
+      <tr>
+        <td align="center"><a href="README.hi.md">🇮🇳 हिन्दी</a></td>
+        <td align="center"><a href="README.tr.md">🇹🇷 Türkçe</a></td>
+        <td align="center"><a href="README.pl.md">🇵🇱 Polski</a></td>
+        <td align="center"><a href="README.nl.md">🇳🇱 Nederlands</a></td>
+        <td align="center"><a href="README.sv.md">🇸🇪 Svenska</a></td>
+      </tr>
+    </table>
+    <br/>
+  </details>
 
   <img src="./docs/images/hero_banner.jpg" width="100%" alt="ShareCLIP Hero Banner" style="border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);" />
 
