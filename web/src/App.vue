@@ -11,7 +11,7 @@
     <header class="navbar">
       <div class="container nav-container">
         <div class="nav-logo" @click="scrollToTop">
-          <span class="logo-emoji">📸</span>
+          <img src="/favicon.png" class="logo-icon-img" alt="ShareCLIP Logo" style="width: 28px; height: 28px; border-radius: 7px; object-fit: contain; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" />
           <span class="logo-text">Share<span class="gradient-text-purple">CLIP</span></span>
           <span class="version-tag">{{ appVersion }}</span>
         </div>
@@ -1144,7 +1144,7 @@
       <div class="container footer-content">
         <div class="footer-left">
           <div class="nav-logo" @click="scrollToTop">
-            <span class="logo-emoji">📸</span>
+            <img src="/favicon.png" class="logo-icon-img" alt="ShareCLIP Logo" style="width: 28px; height: 28px; border-radius: 7px; object-fit: contain; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" />
             <span class="logo-text">Share<span class="gradient-text-purple">CLIP</span></span>
           </div>
           <p class="footer-desc">
