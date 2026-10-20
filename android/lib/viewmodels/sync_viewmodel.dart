@@ -43,7 +43,7 @@ enum TransferStatus {
 }
 
 class SyncViewModel extends ChangeNotifier {
-  static String appVersion = const String.fromEnvironment('APP_VERSION', defaultValue: '4.5.18');
+  static String appVersion = const String.fromEnvironment('APP_VERSION', defaultValue: '4.5.19');
 
   void setAppVersion(String version) {
     if (version.isNotEmpty && appVersion != version) {

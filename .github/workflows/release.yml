@@ -373,6 +373,19 @@ jobs:
             lipo -info "$PACKAGED_ORT"
           fi
 
+          # 6. Generate Lightweight In-App Differential Code Patch ZIP (app.asar ~10MB)
+          echo "==== Packaging Lightweight In-App Differential Patch ZIP for macOS (${{ matrix.arch }}) ===="
+          ASAR_PATH=$(find dist_electron -name "app.asar" -path "*/Contents/Resources/*" | head -n 1)
+          if [ -n "$ASAR_PATH" ]; then
+            echo "Found app.asar at: $ASAR_PATH"
+            PATCH_ZIP="dist_electron/ShareCLIP-Mac-Patch-${{ matrix.arch }}.zip"
+            zip -j "$PATCH_ZIP" "$ASAR_PATH"
+            echo "✅ Created differential patch: $PATCH_ZIP"
+            ls -lh "$PATCH_ZIP"
+          else
+            echo "⚠️ Warning: app.asar not found in Contents/Resources"
+          fi
+
       - name: 🍎 Enforce macOS Ad-hoc Codesigning & Gatekeeper Helper
         run: |
           echo "==== Verifying / Applying Ad-hoc Codesign on Mac outputs ===="

@@ -3507,6 +3507,25 @@ function getPlatformReleaseAsset(assets, platform = process.platform, arch = pro
 
   if (platform === 'darwin') {
     const isArm = arch === 'arm64';
+    // 1. High-priority: Lightweight In-App Differential Code Patch (app.asar ~10MB)
+    const archPatchZip = assets.find(a => {
+      const name = a.name.toLowerCase();
+      return name.endsWith('.zip') && name.includes('patch') && (isArm ? (name.includes('arm64') || name.includes('aarch64')) : (name.includes('x64') || name.includes('x86_64')));
+    });
+    if (archPatchZip) {
+      archPatchZip.isDifferentialPatch = true;
+      return archPatchZip;
+    }
+    const genericPatchZip = assets.find(a => {
+      const name = a.name.toLowerCase();
+      return name.endsWith('.zip') && name.includes('patch');
+    });
+    if (genericPatchZip) {
+      genericPatchZip.isDifferentialPatch = true;
+      return genericPatchZip;
+    }
+
+    // 2. Full installer fallback (DMG/ZIP)
     if (isArm) {
       const armDmg = assets.find(a => a.name.toLowerCase().endsWith('.dmg') && (a.name.toLowerCase().includes('arm64') || a.name.toLowerCase().includes('aarch64')));
       if (armDmg) return armDmg;
@@ -3589,6 +3608,7 @@ ipcMain.handle('check-for-updates', async () => {
       
       const matchedAsset = getPlatformReleaseAsset(releaseInfo.assets, process.platform, process.arch);
       const downloadUrl = matchedAsset ? matchedAsset.browser_download_url : '';
+      const isDifferential = !!(matchedAsset && matchedAsset.isDifferentialPatch);
 
       return {
         available,
@@ -3596,6 +3616,8 @@ ipcMain.handle('check-for-updates', async () => {
         latestVersion,
         url: releaseInfo.html_url || `https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/${latestTag}`,
         downloadUrl: downloadUrl || releaseInfo.html_url,
+        isDifferential,
+        updateType: isDifferential ? 'differential' : 'full',
         body: releaseInfo.body || 'A new update is available.'
       };
     }
@@ -3702,7 +3724,12 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
     const assetFilename = path.basename(targetDownloadUrl.split('?')[0]) || defaultFilename;
     const destPath = path.join(destDir, assetFilename);
 
-    console.log(`[Update Download] Direct download from ${targetDownloadUrl} to ${destPath}`);
+    const isPatch = !!(targetDownloadUrl && (
+      targetDownloadUrl.toLowerCase().includes('patch') || 
+      targetDownloadUrl.toLowerCase().includes('delta')
+    ));
+
+    console.log(`[Update Download] Direct download from ${targetDownloadUrl} to ${destPath} (isPatch: ${isPatch})`);
     await downloadFile(targetDownloadUrl, destPath, (progress, transferred, total) => {
       const transferredMB = (transferred / (1024 * 1024)).toFixed(2);
       const totalMB = (total / (1024 * 1024)).toFixed(2);
@@ -3710,8 +3737,8 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
         percent: progress,
         transferredMB,
         totalMB,
-        isDifferential: false,
-        updateType: 'full'
+        isDifferential: isPatch,
+        updateType: isPatch ? 'differential' : 'full'
       };
       if (updateDownloadEventSender) {
         updateDownloadEventSender.send('update-download-progress', lastUpdateProgressInfo);
@@ -3723,8 +3750,8 @@ ipcMain.handle('start-update-download', async (event, customUrl) => {
     return { 
       success: true, 
       filePath: destPath,
-      isDifferential: false,
-      updateType: 'full',
+      isDifferential: isPatch,
+      updateType: isPatch ? 'differential' : 'full',
       transferredMB: lastUpdateProgressInfo.transferredMB,
       totalMB: lastUpdateProgressInfo.totalMB
     };
@@ -3841,6 +3868,43 @@ ipcMain.handle('install-update', async (event, filePath) => {
 
     if (fs.existsSync(filePath)) {
       if (process.platform === 'darwin') {
+        const isPatch = filePath.toLowerCase().includes('patch') && filePath.toLowerCase().endsWith('.zip');
+        if (isPatch) {
+          console.log('[Update Install] Applying macOS differential in-app patch:', filePath);
+          const resourcesDir = process.resourcesPath;
+          const appPath = path.resolve(resourcesDir, '..', '..');
+          const scriptPath = path.join(os.tmpdir(), `shareclip_patch_updater_${Date.now()}.sh`);
+
+          const scriptContent = [
+            '#!/bin/bash',
+            'sleep 0.8',
+            `unzip -o "${filePath}" -d "${resourcesDir}"`,
+            `codesign --force --deep -s - "${appPath}" 2>/dev/null || true`,
+            `xattr -cr "${appPath}" 2>/dev/null || true`,
+            `open "${appPath}"`,
+            'rm -f "$0"',
+            ''
+          ].join('\n');
+
+          try {
+            fs.writeFileSync(scriptPath, scriptContent, { mode: 0o755 });
+            const { spawn } = require('child_process');
+            const child = spawn('/bin/bash', [scriptPath], {
+              detached: true,
+              stdio: 'ignore'
+            });
+            child.unref();
+
+            prepareForUpdateExit();
+            setTimeout(() => {
+              app.quit();
+            }, 300);
+            return { success: true };
+          } catch (patchErr) {
+            console.error('[Update Install] Failed to apply in-app patch script, falling back to shell.openPath:', patchErr);
+          }
+        }
+
         console.log('[Update Install] Opening macOS package (DMG/ZIP):', filePath);
         shell.openPath(filePath);
         prepareForUpdateExit();
