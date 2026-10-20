@@ -10,12 +10,16 @@ for (const arg of args) {
   }
 }
 
-const ortBinDir = path.join(__dirname, '..', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6');
-
-if (!fs.existsSync(ortBinDir)) {
-  console.log(`[prune-onnxruntime] Path not found: ${ortBinDir}, skipping.`);
+const ortBaseDir = path.join(__dirname, '..', 'node_modules', 'onnxruntime-node', 'bin');
+if (!fs.existsSync(ortBaseDir)) {
+  console.log(`[prune-onnxruntime] Path not found: ${ortBaseDir}, skipping.`);
   process.exit(0);
 }
+
+// Find all napi-* directories (e.g. napi-v3, napi-v6)
+const napiDirs = fs.readdirSync(ortBaseDir)
+  .filter(name => name.startsWith('napi-'))
+  .map(name => path.join(ortBaseDir, name));
 
 function getDirSize(dir) {
   let size = 0;
@@ -45,21 +49,23 @@ function removeDir(dirPath, description) {
 
 console.log(`[prune-onnxruntime] Pruning redundant native binaries for target platform: '${targetPlatform}'...`);
 
-if (targetPlatform === 'win32') {
-  // Windows x64 build: prune macOS, Linux, and Windows ARM64/IA32
-  removeDir(path.join(ortBinDir, 'darwin'), 'macOS dylib binaries');
-  removeDir(path.join(ortBinDir, 'linux'), 'Linux .so binaries');
-  removeDir(path.join(ortBinDir, 'win32', 'arm64'), 'Windows ARM64 binaries');
-  removeDir(path.join(ortBinDir, 'win32', 'ia32'), 'Windows 32-bit binaries');
-} else if (targetPlatform === 'darwin') {
-  // macOS build: prune Windows and Linux
-  removeDir(path.join(ortBinDir, 'win32'), 'Windows DLL binaries');
-  removeDir(path.join(ortBinDir, 'linux'), 'Linux .so binaries');
-} else if (targetPlatform === 'linux') {
-  // Linux x64 build: prune Windows, macOS, and Linux ARM64
-  removeDir(path.join(ortBinDir, 'win32'), 'Windows DLL binaries');
-  removeDir(path.join(ortBinDir, 'darwin'), 'macOS dylib binaries');
-  removeDir(path.join(ortBinDir, 'linux', 'arm64'), 'Linux ARM64 binaries');
+for (const ortBinDir of napiDirs) {
+  if (targetPlatform === 'win32') {
+    // Windows x64 build: prune macOS, Linux, and Windows ARM64/IA32
+    removeDir(path.join(ortBinDir, 'darwin'), 'macOS dylib binaries');
+    removeDir(path.join(ortBinDir, 'linux'), 'Linux .so binaries');
+    removeDir(path.join(ortBinDir, 'win32', 'arm64'), 'Windows ARM64 binaries');
+    removeDir(path.join(ortBinDir, 'win32', 'ia32'), 'Windows 32-bit binaries');
+  } else if (targetPlatform === 'darwin') {
+    // macOS build: prune Windows and Linux
+    removeDir(path.join(ortBinDir, 'win32'), 'Windows DLL binaries');
+    removeDir(path.join(ortBinDir, 'linux'), 'Linux .so binaries');
+  } else if (targetPlatform === 'linux') {
+    // Linux x64 build: prune Windows, macOS, and Linux ARM64
+    removeDir(path.join(ortBinDir, 'win32'), 'Windows DLL binaries');
+    removeDir(path.join(ortBinDir, 'darwin'), 'macOS dylib binaries');
+    removeDir(path.join(ortBinDir, 'linux', 'arm64'), 'Linux ARM64 binaries');
+  }
 }
 
 const totalRemovedMB = (totalRemovedBytes / (1024 * 1024)).toFixed(2);

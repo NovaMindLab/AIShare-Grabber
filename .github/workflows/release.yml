@@ -367,10 +367,10 @@ jobs:
             echo "Found packaged libvips at: $PACKAGED_LIBVIPS"
             lipo -info "$PACKAGED_LIBVIPS"
           fi
-          PACKAGED_ORT=$(find dist_electron -name "*.node" -path "*/app.asar.unpacked/*onnxruntime*" | head -n 1)
+          PACKAGED_ORT=$(find dist_electron -name "*.node" -path "*/app.asar.unpacked/*onnxruntime*darwin*" | head -n 1)
           if [ -n "$PACKAGED_ORT" ]; then
             echo "Found packaged onnxruntime at: $PACKAGED_ORT"
-            lipo -info "$PACKAGED_ORT"
+            lipo -info "$PACKAGED_ORT" || true
           fi
 
           # 6. Generate Lightweight In-App Differential Code Patch ZIP (app.asar ~10MB)
