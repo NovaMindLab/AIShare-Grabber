@@ -46,6 +46,26 @@ if (process.platform === 'win32') {
   } catch (_) {}
 }
 
+// Ensure macOS finds native dylib libraries for onnxruntime and sharp/libvips
+if (process.platform === 'darwin') {
+  try {
+    const arch = process.arch;
+    const candidates = [
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', '@img', `sharp-libvips-darwin-${arch}`, 'lib'),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', '@img', `sharp-darwin-${arch}`, 'lib'),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'darwin', arch),
+      path.join(appRoot, 'node_modules', '@img', `sharp-libvips-darwin-${arch}`, 'lib'),
+      path.join(appRoot, 'node_modules', '@img', `sharp-darwin-${arch}`, 'lib'),
+      path.join(appRoot, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'darwin', arch),
+    ];
+    const existing = process.env.DYLD_LIBRARY_PATH || '';
+    const valid = candidates.filter(c => fs.existsSync(c) && !existing.includes(c));
+    if (valid.length > 0) {
+      process.env.DYLD_LIBRARY_PATH = `${valid.join(':')}:${existing}`.replace(/:+$/, '');
+    }
+  } catch (_) {}
+}
+
 let ort = null;
 let ortLoadError = null;
 let sharp = null;
@@ -72,20 +92,26 @@ if (!ort) {
 }
 
 // Prefer unpacked sharp in packaged app
+let sharpLoadError = null;
 if (isAsar) {
   const unpackedSharp = path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'sharp');
   if (fs.existsSync(unpackedSharp)) {
     try {
       sharp = require(unpackedSharp);
-    } catch (_) {}
+    } catch (err) {
+      sharpLoadError = err;
+      console.warn("[Inference Worker] Failed to load unpacked sharp:", err.message);
+    }
   }
 }
 
 if (!sharp) {
   try {
     sharp = require('sharp');
+    sharpLoadError = null;
   } catch (err) {
-    console.error("[Inference Worker] Critical: Failed to load sharp.", err);
+    sharpLoadError = sharpLoadError ? new Error(`${sharpLoadError.message} / standard: ${err.message}`) : err;
+    console.error("[Inference Worker] Critical: Failed to load sharp.", sharpLoadError);
   }
 }
 
@@ -279,7 +305,7 @@ parentPort.on('message', async (msg) => {
 
     try {
       if (!ortSession || !sharp) {
-        throw new Error("Model session or Sharp is not initialized.");
+        throw new Error(`Model session or Sharp is not initialized (ort: ${!!ortSession}, sharp: ${!!sharp}, sharpErr: ${sharpLoadError?.message || 'none'}).`);
       }
 
       let timings = {};

@@ -398,6 +398,9 @@ function getAiFallbackCategory(err = null) {
   if (isModelMissing) {
     return "⚠️ AI 模型文件缺失 (正在联网自动恢复或请更新客户端)";
   }
+  if (err && err.message && (err.message.includes("Sharp") || err.message.includes("sharp") || err.message.includes("vips"))) {
+    return "⚠️ 图像解析组件异常 (请更新客户端或重启)";
+  }
   return "💻 电脑配置过低 (不支持AI加速或内存不足)";
 }
 
@@ -1723,7 +1726,10 @@ async function classifyPhotoInternal(imagePath, thumbPath = null) {
       error.message.includes("WorkerPool") ||
       error.message.includes("onnxruntime") ||
       error.message.includes("not found") ||
-      error.message.includes("No such file")
+      error.message.includes("No such file") ||
+      error.message.includes("Sharp") ||
+      error.message.includes("sharp") ||
+      error.message.includes("vips")
     );
     const title = isHardwareOrModel ? getAiFallbackCategory(error) : "❌ 分类出错";
     return [

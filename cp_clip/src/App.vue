@@ -997,7 +997,7 @@
                   <span v-if="isSearchActive && img.searchScore !== undefined && getMatchPercentage(img.searchScore) > 0" class="badge badge-search-match">
                     🎯 {{ t.images.matchScore }} {{ getMatchPercentage(img.searchScore) }}%
                   </span>
-                  <span v-else-if="img.predictions && img.predictions.length > 0" class="badge badge-classified">
+                  <span v-else-if="img.predictions && img.predictions.length > 0" class="badge badge-classified" :title="img.predictions[1]?.category ? '详情: ' + img.predictions[1].category : ''">
                     {{ getShortCategory(img.predictions[0].category || img.predictions[0].label || img.predictions[0].name) }} ({{ Math.round((img.predictions[0].score || 0) * 100) }}%)
                   </span>
                   <span v-else-if="img.status === 'processing'" class="badge badge-loading">

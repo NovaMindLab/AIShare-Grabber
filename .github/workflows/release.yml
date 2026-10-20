@@ -292,14 +292,14 @@ jobs:
 
           # 1. Prepare sharp dependency for target arch with --ignore-scripts (prevents re-installing host sqlite3)
           if [ "${{ matrix.arch }}" = "x64" ]; then
-            echo "==== Preparing x86_64 sharp dependency on Apple Silicon runner ===="
-            npm install --no-save --force --ignore-scripts @img/sharp-darwin-x64
-            rm -rf node_modules/@img/sharp-darwin-arm64
+            echo "==== Preparing x86_64 sharp & libvips dependency on Apple Silicon runner ===="
+            npm install --no-save --force --ignore-scripts @img/sharp-darwin-x64 @img/sharp-libvips-darwin-x64
+            rm -rf node_modules/@img/sharp-darwin-arm64 node_modules/@img/sharp-libvips-darwin-arm64
           fi
           if [ "${{ matrix.arch }}" = "arm64" ]; then
-            echo "==== Preparing arm64 sharp dependency ===="
-            npm install --no-save --force --ignore-scripts @img/sharp-darwin-arm64
-            rm -rf node_modules/@img/sharp-darwin-x64
+            echo "==== Preparing arm64 sharp & libvips dependency ===="
+            npm install --no-save --force --ignore-scripts @img/sharp-darwin-arm64 @img/sharp-libvips-darwin-arm64
+            rm -rf node_modules/@img/sharp-darwin-x64 node_modules/@img/sharp-libvips-darwin-x64
           fi
 
           # 2. Build Vite & Worker bundles
@@ -354,6 +354,23 @@ jobs:
               fi
             fi
             echo "✅ Verified packaged sqlite3 contains target ${{ matrix.arch }} architecture!"
+          fi
+
+          echo "==== Verifying packaged sharp & onnxruntime in app.asar.unpacked ===="
+          PACKAGED_SHARP=$(find dist_electron -name "*.node" -path "*/app.asar.unpacked/*sharp*" | head -n 1)
+          if [ -n "$PACKAGED_SHARP" ]; then
+            echo "Found packaged sharp at: $PACKAGED_SHARP"
+            lipo -info "$PACKAGED_SHARP"
+          fi
+          PACKAGED_LIBVIPS=$(find dist_electron -name "*.dylib" -path "*/app.asar.unpacked/*libvips*" | head -n 1)
+          if [ -n "$PACKAGED_LIBVIPS" ]; then
+            echo "Found packaged libvips at: $PACKAGED_LIBVIPS"
+            lipo -info "$PACKAGED_LIBVIPS"
+          fi
+          PACKAGED_ORT=$(find dist_electron -name "*.node" -path "*/app.asar.unpacked/*onnxruntime*" | head -n 1)
+          if [ -n "$PACKAGED_ORT" ]; then
+            echo "Found packaged onnxruntime at: $PACKAGED_ORT"
+            lipo -info "$PACKAGED_ORT"
           fi
 
       - name: 🍎 Enforce macOS Ad-hoc Codesigning & Gatekeeper Helper
