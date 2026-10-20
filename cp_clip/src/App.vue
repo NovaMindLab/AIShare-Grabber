@@ -214,6 +214,28 @@
           </div>
         </div>
       </div>
+
+      <!-- Community & Open Source Support Footer -->
+      <div class="sidebar-footer">
+        <div class="sidebar-community-box">
+          <button 
+            class="sidebar-comm-btn star-glow" 
+            @click="openExternal('https://github.com/NovaMindLab/AIShare-Grabber')" 
+            title="Star ShareCLIP on GitHub"
+          >
+            <span class="comm-btn-icon">⭐</span>
+            <span class="comm-btn-text">Star on GitHub</span>
+          </button>
+          <button 
+            class="sidebar-comm-btn" 
+            @click="openExternal('https://github.com/NovaMindLab/AIShare-Grabber/discussions')" 
+            title="Join discussions on GitHub"
+          >
+            <span class="comm-btn-icon">💬</span>
+            <span class="comm-btn-text">{{ (currentLocale === 'zh' || currentLocale === 'zh-TW') ? '社区交流' : 'Community' }}</span>
+          </button>
+        </div>
+      </div>
     </aside>
 
     <!-- Main Content Area -->

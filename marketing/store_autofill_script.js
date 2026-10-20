@@ -1,6 +1,6 @@
 // ==============================================================================
 // ShareCLIP - Microsoft Partner Center 一键自动填表辅助脚本 (Console Auto-Fill)
-// 适配版本: v4.5.15
+// 适配版本: v4.5.16
 // 使用方法：
 // 1. 在浏览器登录 https://partner.microsoft.com/dashboard/apps-and-games/overview
 // 2. 点击已上架应用 "ShareCLIP" (Store ID: XP8JZTVS6KRX72) -> 点击“更新 (Update)”
@@ -10,17 +10,17 @@
 // ==============================================================================
 
 const SHARECLIP_DATA = {
-  version: "4.5.15",
+  version: "4.5.16",
   storeId: "XP8JZTVS6KRX72",
   installer: {
     // 推荐加速下载镜像（微软商店拉取测试更稳定）
-    downloadUrl: "https://ghfast.top/https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.15/ShareCLIP-Setup-4.5.15.exe",
+    downloadUrl: "https://ghfast.top/https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.16/ShareCLIP-Setup-4.5.16.exe",
     // 官方 GitHub 直链备选
-    downloadUrlDirect: "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.15/ShareCLIP-Setup-4.5.15.exe",
+    downloadUrlDirect: "https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.16/ShareCLIP-Setup-4.5.16.exe",
     sha256: "7fb6b76bac0984b05d39dfb687261c3bfc8f7be3ca526cebcc6466cf7e2bca8b",
     silentInstallArgs: "/S",
     silentUninstallCommand: '"%LocalAppData%\\Programs\\ShareCLIP\\Uninstall ShareCLIP.exe" /S',
-    version: "4.5.15",
+    version: "4.5.16",
     architecture: "x64"
   },
   releaseNotesZh: [
@@ -47,15 +47,15 @@ const SHARECLIP_DATA = {
   }
 };
 
-console.log("%c🚀 ShareCLIP 微软商店 v4.5.15 快捷提审参数已就绪！", "color: #4f46e5; font-size: 16px; font-weight: bold;");
+console.log("%c🚀 ShareCLIP 微软商店 v4.5.16 快捷提审参数已就绪！", "color: #4f46e5; font-size: 16px; font-weight: bold;");
 console.log("【安装包下载 URL (加速源)】:\n", SHARECLIP_DATA.installer.downloadUrl);
 console.log("【安装包下载 URL (GitHub直链)】:\n", SHARECLIP_DATA.installer.downloadUrlDirect);
 console.log("【安装包 SHA256】:\n", SHARECLIP_DATA.installer.sha256);
 console.log("【静默安装参数】:\n", SHARECLIP_DATA.installer.silentInstallArgs);
 console.log("【静默卸载命令】:\n", SHARECLIP_DATA.installer.silentUninstallCommand);
 console.log("【应用程序版本】:\n", SHARECLIP_DATA.installer.version);
-console.log("【v4.5.15 更新日志 (中文)】:\n" + SHARECLIP_DATA.releaseNotesZh);
-console.log("【v4.5.15 Release Notes (EN)】:\n" + SHARECLIP_DATA.releaseNotesEn);
+console.log("【v4.5.16 更新日志 (中文)】:\n" + SHARECLIP_DATA.releaseNotesZh);
+console.log("【v4.5.16 Release Notes (EN)】:\n" + SHARECLIP_DATA.releaseNotesEn);
 
 // 尝试自动寻找页面输入框填入
 function tryAutoFill() {

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<XML_DIZ_INFO>
+  <MASTER_PAD_VERSION_INFO>
+    <MASTER_PAD_VERSION>3.11</MASTER_PAD_VERSION>
+    <MASTER_PAD_EDITOR>ShareCLIP PAD Generator</MASTER_PAD_EDITOR>
+    <MASTER_PAD_INFO>Portable Application Description by Association of Software Professionals (ASP)</MASTER_PAD_INFO>
+  </MASTER_PAD_VERSION_INFO>
+  <Company_Info>
+    <Company_Name>NovaMindLab</Company_Name>
+    <Address_1>Online</Address_1>
+    <Country>Global</Country>
+    <Company_WebSite_URL>https://novamindlab.github.io/AIShare-Grabber/</Company_WebSite_URL>
+    <Contact_Info>
+      <Author_First_Name>ShareCLIP</Author_First_Name>
+      <Author_Last_Name>Team</Author_Last_Name>
+      <Author_Email>support@shareclip.com</Author_Email>
+      <Contact_First_Name>ShareCLIP</Contact_First_Name>
+      <Contact_Last_Name>Support</Contact_Last_Name>
+      <Contact_Email>support@shareclip.com</Contact_Email>
+    </Contact_Info>
+    <Support_Info>
+      <Support_Email>support@shareclip.com</Support_Email>
+      <Support_URL>https://github.com/NovaMindLab/AIShare-Grabber/issues</Support_URL>
+    </Support_Info>
+  </Company_Info>
+  <Program_Info>
+    <Program_Name>ShareCLIP</Program_Name>
+    <Program_Version>4.5.15</Program_Version>
+    <Program_Release_Month>10</Program_Release_Month>
+    <Program_Release_Day>16</Program_Release_Day>
+    <Program_Release_Year>2026</Program_Release_Year>
+    <Program_Cost_Dollars>0</Program_Cost_Dollars>
+    <Program_Cost_Other_Code>USD</Program_Cost_Other_Code>
+    <Program_Cost_Other_Val>0</Program_Cost_Other_Val>
+    <Program_Type>Freeware</Program_Type>
+    <Program_Release_Status>Major Update</Program_Release_Status>
+    <Program_Install_Support>Install and Uninstall</Program_Install_Support>
+    <Program_OS_Support>Win10 x64, Win11 x64, Android</Program_OS_Support>
+    <Program_Language>English, Chinese Simplified, Chinese Traditional, Japanese, Korean, Spanish, French, German, Italian, Russian, Portuguese, Vietnamese, Thai, Indonesian, Arabic, Hindi, Turkish, Polish, Dutch, Swedish</Program_Language>
+    <Program_Change_Info>Added HTTP 206 streaming preview, optimized LAN P2P pairing, enhanced on-device AI photo search performance.</Program_Change_Info>
+    <Program_Specific_Category>Communications</Program_Specific_Category>
+    <Program_Categories>Network &amp; Internet / File Sharing, Utilities / File Transfer</Program_Categories>
+    <Includes_JAVA_VM>N</Includes_JAVA_VM>
+    <Includes_VB_Runtime>N</Includes_VB_Runtime>
+    <Includes_DirectX>N</Includes_DirectX>
+    <File_Info>
+      <Filename_Versioned>ShareCLIP-Setup-4.5.15.exe</Filename_Versioned>
+      <Filename_Previous>ShareCLIP-Setup-4.5.4.exe</Filename_Previous>
+      <Filename_Generic>ShareCLIP-Setup.exe</Filename_Generic>
+      <Filename_Long>ShareCLIP-Setup-4.5.15.exe</Filename_Long>
+      <File_Size_Bytes>92274688</File_Size_Bytes>
+      <File_Size_K>90112</File_Size_K>
+      <File_Size_MB>88</File_Size_MB>
+    </File_Info>
+    <Expire_Info>
+      <Has_Expire_Info>N</Has_Expire_Info>
+    </Expire_Info>
+    <Program_Descriptions>
+      <English>
+        <Keywords>ShareCLIP, AirDrop alternative, local file transfer, offline AI photo search, P2P LAN sharing, wireless sync, Windows Android sync</Keywords>
+        <Char_Desc_45>Private P2P LAN File Sync &amp; Offline AI Photos</Char_Desc_45>
+        <Char_Desc_80>High-speed wireless P2P file transfer and 100% offline on-device AI photo album.</Char_Desc_80>
+        <Char_Desc_250>ShareCLIP is a privacy-first, high-speed local P2P file sharing utility and offline AI photo gallery for Windows, Android, and macOS. Transfer gigabytes in seconds over local Wi-Fi without cables, cloud storage, or privacy leaks.</Char_Desc_250>
+        <Char_Desc_450>ShareCLIP enables ultra-fast peer-to-peer wireless file and photo sync across Windows PC, Android, and Mac devices using local Wi-Fi. Featuring a 100% local on-device AI model for natural language semantic photo search, face clustering, and smart organization. Zero cloud reliance, zero subscription fees, zero telemetry or data leaks.</Char_Desc_450>
+        <Char_Desc_2000>ShareCLIP is an open, private, cross-platform productivity tool designed to replace cloud file transfers with instant gigabit local Wi-Fi P2P syncing.
+
+Key Features:
+- 🚀 Ultra-Fast LAN P2P Sync: Transfer high-resolution photos, 4K videos, and large archives directly between Android phones and Windows/Mac PCs at local network saturation speeds.
+- 🔒 100% Offline &amp; Privacy-First: No cloud servers, no intermediate relay nodes, and no telemetry. Your photos and personal data never leave your local devices.
+- 🧠 On-Device Local AI Photo Search: Powered by embedded lightweight vision-language models (MobileCLIP2/ONNX). Search your photo gallery using everyday natural language (e.g., "sunset over mountains", "receipts from last month", "cat playing with toy") completely offline.
+- 🎬 Zero-Download Streaming Preview: Built-in HTTP 206 Range video streaming engine allows immediate previewing of remote videos without waiting for full download completion.
+- ⚡ 100% Free &amp; Clean: No ads, no bundled software, no forced account registration, no subscription paywalls.</Char_Desc_2000>
+      </English>
+    </Program_Descriptions>
+  </Program_Info>
+  <Web_Info>
+    <Application_XML_File_URL>https://novamindlab.github.io/AIShare-Grabber/pad.xml</Application_XML_File_URL>
+    <Application_Screenshot_URL>https://novamindlab.github.io/AIShare-Grabber/hero_banner.jpg</Application_Screenshot_URL>
+    <Application_Icon_URL>https://novamindlab.github.io/AIShare-Grabber/pc_logo.png</Application_Icon_URL>
+    <Application_Info_URL>https://novamindlab.github.io/AIShare-Grabber/</Application_Info_URL>
+    <Application_Order_URL>https://novamindlab.github.io/AIShare-Grabber/</Application_Order_URL>
+    <Download_URLs>
+      <Primary_Download_URL>https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.15/ShareCLIP-Setup-4.5.15.exe</Primary_Download_URL>
+      <Secondary_Download_URL>https://ghfast.top/https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.15/ShareCLIP-Setup-4.5.15.exe</Secondary_Download_URL>
+    </Download_URLs>
+  </Web_Info>
+  <Permissions>
+    <Distribution_Permissions>Freely distributable freeware. You are permitted to mirror, redistribute, and include ShareCLIP in download repositories, magazines, and tool compilations as long as installer binaries remain unmodified.</Distribution_Permissions>
+    <EULA>MIT License / Freeware terms. Refer to repository LICENSE file for complete terms.</EULA>
+  </Permissions>
+</XML_DIZ_INFO>

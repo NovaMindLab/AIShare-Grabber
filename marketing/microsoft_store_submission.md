@@ -1,8 +1,8 @@
-# 微软商店 (Microsoft Store) 官方上架与版本更新指南 (v4.5.15)
+# 微软商店 (Microsoft Store) 官方上架与版本更新指南 (v4.5.16)
 
 > **项目名称**: ShareCLIP  
 > **微软商店 ID (Store ID)**: `XP8JZTVS6KRX72` (已上架通过)  
-> **最新待更新版本**: `v4.5.15`  
+> **最新待更新版本**: `v4.5.16`  
 > **安装包 SHA256**: `7fb6b76bac0984b05d39dfb687261c3bfc8f7be3ca526cebcc6466cf7e2bca8b`  
 > **官网地址**: [https://novamindlab.github.io/AIShare-Grabber/](https://novamindlab.github.io/AIShare-Grabber/)  
 > **隐私政策**: [https://novamindlab.github.io/AIShare-Grabber/privacy.html](https://novamindlab.github.io/AIShare-Grabber/privacy.html)  
@@ -11,7 +11,7 @@
 
 ---
 
-## ⚡ 极速 2 分钟：更新已上架版本 (v4.5.15) 到微软商店
+## ⚡ 极速 2 分钟：更新已上架版本 (v4.5.16) 到微软商店
 
 由于本项目已成功上架至 Microsoft Store（产品 ID: `XP8JZTVS6KRX72`，采用 Win32 EXE 直连模式），推送新版本无需重新打包或走繁琐流程：
 
@@ -20,14 +20,14 @@
 3. 点击页面中的 **“更新 (Update)”** 按钮创建新的提交（New submission）。
 4. 进入 **“程序包 / 安装程序设置 (Packages / Installer Settings)”**：
    - 将 **“安装程序下载 URL (Download URL)”** 修改为：
-     `https://ghfast.top/https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.15/ShareCLIP-Setup-4.5.15.exe`
-     *(备选官方直链：`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.15/ShareCLIP-Setup-4.5.15.exe`)*
-   - 将 **“应用程序版本 (Application version)”** 修改为：`4.5.15`
+     `https://ghfast.top/https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.16/ShareCLIP-Setup-4.5.16.exe`
+     *(备选官方直链：`https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.16/ShareCLIP-Setup-4.5.16.exe`)*
+   - 将 **“应用程序版本 (Application version)”** 修改为：`4.5.16`
    - 静默安装参数确认：`/S`
    - 静默卸载命令确认：`"%LocalAppData%\Programs\ShareCLIP\Uninstall ShareCLIP.exe" /S`
 5. 在 **“认证备注 (Notes for certification)”** 或 **“发布说明 (Release notes)”** 中填入更新说明：
    ```text
-   ShareCLIP v4.5.15 更新内容：
+   ShareCLIP v4.5.16 更新内容：
    1. 新增 HTTP 206 Range 零下载毫秒级流式视频在线预览播放器；
    2. 修复视频播放器在部分特殊模板渲染下的崩溃问题，大幅提升播放稳定性；
    3. 优化局域网设备发现与 IP 解析逻辑，消除跨网段连接偶发无响应；
@@ -40,19 +40,19 @@
 
 ---
 
-## 一、配置参数速查表 (v4.5.15)
+## 一、配置参数速查表 (v4.5.16)
 
 | 设置项 (Field) | 填写内容 (Value) | 说明 |
 |---|---|---|
 | **应用名称 (Product Name)** | `ShareCLIP` | Store ID: `XP8JZTVS6KRX72` |
 | **安装程序类型 (Installer type)** | `EXE` | 基于 NSIS 封装的标准 Win32 安装程序 |
 | **体系结构 (Architecture)** | `x64` | 64 位 Windows 系统 |
-| **安装程序下载 URL (Download URL)** | `https://ghfast.top/https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.15/ShareCLIP-Setup-4.5.15.exe` | 推荐使用加速代理源，微软全球下载更稳更快 |
+| **安装程序下载 URL (Download URL)** | `https://ghfast.top/https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.16/ShareCLIP-Setup-4.5.16.exe` | 推荐使用加速代理源，微软全球下载更稳更快 |
 | **安装程序 SHA256** | `7fb6b76bac0984b05d39dfb687261c3bfc8f7be3ca526cebcc6466cf7e2bca8b` | 本地已验证的二进制特征值 |
 | **静默安装参数 (Silent install parameters)** | `/S` | NSIS 标准静默参数，无弹窗静默完成 |
 | **静默卸载命令 (Silent uninstall command)** | `"%LocalAppData%\Programs\ShareCLIP\Uninstall ShareCLIP.exe" /S` | 标准 NSIS 用户态卸载静默指令 |
 | **安装程序退出代码 (Exit codes)** | `0` (Success) | 默认返回值 0 代表安装成功 |
-| **应用程序版本 (Application version)** | `4.5.15` | 当前发布的最新版本号 |
+| **应用程序版本 (Application version)** | `4.5.16` | 当前发布的最新版本号 |
 
 ---
 
