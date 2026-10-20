@@ -52,6 +52,38 @@ if (process.platform === 'win32') {
   } catch (_) {}
 }
 
+if (process.platform === 'darwin') {
+  try {
+    const isAsar = __dirname.includes('app.asar');
+    let appRoot, resourcesDir;
+    if (isAsar) {
+      const asarIndex = __dirname.indexOf('app.asar');
+      resourcesDir = path.resolve(__dirname.substring(0, asarIndex));
+      appRoot = path.resolve(resourcesDir, '..');
+    } else {
+      appRoot = __dirname;
+      resourcesDir = path.join(__dirname, 'resources');
+    }
+
+    const arch = process.arch;
+    const candidates = [
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', '@img', 'sharp-libvips-darwin-' + arch, 'lib'),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', '@img', 'sharp-darwin-' + arch, 'lib'),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'darwin', arch),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v3', 'darwin', arch),
+      path.join(appRoot, 'node_modules', '@img', 'sharp-libvips-darwin-' + arch, 'lib'),
+      path.join(appRoot, 'node_modules', '@img', 'sharp-darwin-' + arch, 'lib'),
+      path.join(appRoot, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'darwin', arch),
+      path.join(appRoot, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v3', 'darwin', arch),
+    ];
+    const existing = process.env.DYLD_LIBRARY_PATH || '';
+    const valid = candidates.filter(c => fs.existsSync(c) && !existing.includes(c));
+    if (valid.length > 0) {
+      process.env.DYLD_LIBRARY_PATH = valid.join(':') + (existing ? ':' + existing : '');
+    }
+  } catch (_) {}
+}
+
 const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, session, powerSaveBlocker } = require('electron');
 
 // 🔒 Enforce Single Instance Application
@@ -308,7 +340,12 @@ async function downloadSingleModel(filename) {
   }
 
   const finalPath = path.join(targetDir, filename);
-  if (fs.existsSync(finalPath) && fs.statSync(finalPath).size > 1000) {
+  const minExpectedSize = filename.endsWith('.data') ? 20 * 1024 * 1024 : 500 * 1024;
+    if (fs.existsSync(finalPath)) {
+      if (fs.statSync(finalPath).size >= minExpectedSize) return finalPath;
+      try { fs.unlinkSync(finalPath); } catch (_) {}
+    }
+    if (false && fs.existsSync(finalPath) && fs.statSync(finalPath).size > 1000) {
     return finalPath;
   }
 
@@ -392,6 +429,23 @@ async function ensureCoreAiModels() {
 function getAiFallbackCategory(err = null) {
   if (isDownloadingModels) {
     return "⏳ 正在准备 AI 模型 (请稍候...)";
+  }
+  const isRosetta = process.platform === 'darwin' && process.arch === 'x64' && (() => {
+    try {
+      const { execSync } = require('child_process');
+      return execSync('sysctl -in sysctl.proc_translated', { stdio: 'pipe' }).toString().trim() === '1';
+    } catch (_) { return false; }
+  })();
+  if (isRosetta) {
+    return "⚠️ 架构不匹配 (检测到Apple M芯片运行Intel版，请下载安装arm64版本)";
+  }
+  const isArchMismatch = err && err.message && (
+    err.message.includes("Illegal instruction") ||
+    err.message.includes("wrong architecture") ||
+    err.message.includes("incompatible architecture")
+  );
+  if (isArchMismatch) {
+    return "⚠️ 架构不匹配 (请下载安装对应CPU架构的客户端版本)";
   }
   const isModelMissing = (taskManager && taskManager.isModelMissing && taskManager.isModelMissing()) || 
     (err && err.message && (err.message.includes('not found') || err.message.includes('No such file')));

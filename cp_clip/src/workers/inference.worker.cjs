@@ -54,9 +54,11 @@ if (process.platform === 'darwin') {
       path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', '@img', `sharp-libvips-darwin-${arch}`, 'lib'),
       path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', '@img', `sharp-darwin-${arch}`, 'lib'),
       path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'darwin', arch),
+      path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'onnxruntime-node', 'bin', 'napi-v3', 'darwin', arch),
       path.join(appRoot, 'node_modules', '@img', `sharp-libvips-darwin-${arch}`, 'lib'),
       path.join(appRoot, 'node_modules', '@img', `sharp-darwin-${arch}`, 'lib'),
       path.join(appRoot, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', 'darwin', arch),
+      path.join(appRoot, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v3', 'darwin', arch),
     ];
     const existing = process.env.DYLD_LIBRARY_PATH || '';
     const valid = candidates.filter(c => fs.existsSync(c) && !existing.includes(c));
