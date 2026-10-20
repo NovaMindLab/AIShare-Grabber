@@ -15,7 +15,7 @@ import 'services/theme_service.dart';
 import 'services/analytics_service.dart';
 import 'models/qr_payload.dart';
 
-const String kDefaultAppVersion = '4.5.21';
+const String kDefaultAppVersion = '4.5.22';
 const String appVersion = String.fromEnvironment('APP_VERSION', defaultValue: kDefaultAppVersion);
 
 void main() async {
@@ -778,7 +778,27 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
         throw Exception('无法获取应用存储目录');
       }
 
-      final targetFile = File('$cacheDirPath/ShareCLIP_Update.apk');
+      final cleanLatest = widget.latestVersion.replaceAll(RegExp(r'^[vV]'), '').trim();
+      final safeTag = cleanLatest.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+      final targetFile = File('$cacheDirPath/ShareCLIP_Update_$safeTag.apk');
+
+      // 1. Clean up any outdated APKs from prior versions
+      try {
+        final cacheDir = Directory(cacheDirPath);
+        if (await cacheDir.exists()) {
+          final files = cacheDir.listSync();
+          for (final f in files) {
+            if (f is File) {
+              final filename = f.uri.pathSegments.last;
+              if (filename.startsWith('ShareCLIP_Update') && filename != 'ShareCLIP_Update_$safeTag.apk') {
+                try { f.deleteSync(); } catch (_) {}
+              }
+            }
+          }
+        }
+      } catch (_) {}
+
+      // 2. Check if a valid, version-matching APK is already downloaded
       bool isExistingValid = false;
       if (await targetFile.exists() && (await targetFile.length()) > 5 * 1024 * 1024) {
         try {
@@ -788,7 +808,14 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
               header[1] == 0x4B &&
               header[2] == 0x03 &&
               header[3] == 0x04) {
-            isExistingValid = true;
+            final apkVer = await platform.invokeMethod<String>('getApkVersion', {'path': targetFile.path}) ?? '';
+            final cleanTarget = cleanLatest.split('+')[0].split('-')[0].trim();
+            if (apkVer.isNotEmpty && (apkVer == cleanTarget || apkVer.startsWith(cleanTarget))) {
+              isExistingValid = true;
+            } else {
+              debugPrint('[Update] Cached APK internal version ($apkVer) != target ($cleanTarget), deleting.');
+              await targetFile.delete();
+            }
           }
         } catch (_) {}
       }
@@ -907,6 +934,8 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
         });
 
         await Future.delayed(const Duration(milliseconds: 600));
+        final installedApkVer = await platform.invokeMethod<String>('getApkVersion', {'path': targetFile.path}) ?? '';
+        debugPrint('[Update] Launching install for APK with internal version: $installedApkVer (target: $cleanLatest)');
         final installRes = await platform.invokeMethod<String>('installApk', {'path': targetFile.path});
         if (installRes == 'PERMISSION_REQUIRED') {
           if (mounted) {

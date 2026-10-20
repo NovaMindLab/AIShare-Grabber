@@ -9938,6 +9938,8 @@ async function handleSearch() {
     isSearchActive.value = true;
   } catch (err) {
     console.error("Search failed:", err);
+    logSyncEvent(`❌ AI 搜索异常: ${err.message || "模型加载失败"}`);
+    isSearchActive.value = false;
   } finally {
     isSearching.value = false;
     nextTick(() => {

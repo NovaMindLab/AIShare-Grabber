@@ -6201,7 +6201,7 @@ ipcMain.handle('search-photos', async (event, { queryText, imagePaths }) => {
     
   } catch (error) {
     console.error("Error during photo search:", error);
-    return [];
+    throw error;
   }
 });
 

@@ -152,6 +152,18 @@ class MainActivity : FlutterActivity() {
             } else if (call.method == "getAppCacheDir") {
                 val dir = context.externalCacheDir ?: context.cacheDir
                 result.success(dir.absolutePath)
+            } else if (call.method == "getApkVersion") {
+                val path = call.argument<String>("path")
+                if (path != null) {
+                    try {
+                        val packageInfo = context.packageManager.getPackageArchiveInfo(path, 0)
+                        result.success(packageInfo?.versionName ?: "")
+                    } catch (e: Exception) {
+                        result.success("")
+                    }
+                } else {
+                    result.error("BAD_ARGS", "Missing path parameter", null)
+                }
             } else if (call.method == "installApk") {
                 val path = call.argument<String>("path")
                 if (path != null) {
