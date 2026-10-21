@@ -1,7 +1,7 @@
 cask "shareclip" do
   arch arm: "arm64", intel: "x64"
 
-  version "4.5.22"
+  version "4.5.23"
   sha256 arm:   "1880c2b7db7fe0d5dbef3f49412c4b9ea0284d9fec9a7fa77377dcfad310bfed",
          intel: "1934bbd55a3fcf8a3b0c7fc72da8eb12d4520df5a6538db82d011fec954e223c"
 

@@ -68,28 +68,76 @@ if (process.platform === 'darwin') {
   } catch (_) {}
 }
 
+// Self-healing: Ensure critical unpacked dependencies (e.g. onnxruntime-common) exist in app.asar.unpacked
+function ensureUnpackedModules() {
+  try {
+    if (!isAsar) return;
+    const unpackedNodeModules = path.join(resourcesDir, 'app.asar.unpacked', 'node_modules');
+    const asarRoot = path.resolve(resourcesDir, 'app.asar');
+    const asarNodeModules = path.join(asarRoot, 'node_modules');
+
+    if (!fs.existsSync(unpackedNodeModules)) {
+      try { fs.mkdirSync(unpackedNodeModules, { recursive: true }); } catch (_) {}
+    }
+
+    function copyFromAsar(srcDir, destDir) {
+      if (!fs.existsSync(srcDir)) return;
+      try { fs.mkdirSync(destDir, { recursive: true }); } catch (_) {}
+      let entries = [];
+      try { entries = fs.readdirSync(srcDir, { withFileTypes: true }); } catch (_) { return; }
+      for (const entry of entries) {
+        const srcPath = path.join(srcDir, entry.name);
+        const destPath = path.join(destDir, entry.name);
+        if (entry.isDirectory()) {
+          copyFromAsar(srcPath, destPath);
+        } else {
+          try {
+            if (!fs.existsSync(destPath)) {
+              fs.writeFileSync(destPath, fs.readFileSync(srcPath));
+            }
+          } catch (_) {}
+        }
+      }
+    }
+
+    const targetCommon = path.join(unpackedNodeModules, 'onnxruntime-common');
+    const srcCommon = path.join(asarNodeModules, 'onnxruntime-common');
+    if (!fs.existsSync(path.join(targetCommon, 'package.json')) && fs.existsSync(path.join(srcCommon, 'package.json'))) {
+      copyFromAsar(srcCommon, targetCommon);
+    }
+
+    const unpackedOrtDir = path.join(unpackedNodeModules, 'onnxruntime-node');
+    const targetNestedCommon = path.join(unpackedOrtDir, 'node_modules', 'onnxruntime-common');
+    if (fs.existsSync(unpackedOrtDir) && !fs.existsSync(path.join(targetNestedCommon, 'package.json')) && fs.existsSync(path.join(srcCommon, 'package.json'))) {
+      copyFromAsar(srcCommon, targetNestedCommon);
+    }
+  } catch (err) {
+    console.warn('[Worker Self-Healing] Note:', err.message);
+  }
+}
+ensureUnpackedModules();
+
 let ort = null;
 let ortLoadError = null;
 let sharp = null;
 
-// Prefer unpacked onnxruntime-node in packaged app
-if (isAsar) {
+// Load onnxruntime-node: try standard require first, then unpacked
+try {
+  ort = require('onnxruntime-node');
+  ortLoadError = null;
+} catch (err) {
+  ortLoadError = err;
+}
+
+if (!ort && isAsar) {
   const unpackedOrt = path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'onnxruntime-node');
   if (fs.existsSync(unpackedOrt)) {
     try {
       ort = require(unpackedOrt);
+      ortLoadError = null;
     } catch (err) {
-      ortLoadError = err;
+      ortLoadError = ortLoadError ? new Error(`${ortLoadError.message} / unpacked: ${err.message}`) : err;
     }
-  }
-}
-
-if (!ort) {
-  try {
-    ort = require('onnxruntime-node');
-    ortLoadError = null;
-  } catch (err) {
-    ortLoadError = ortLoadError ? new Error(`${ortLoadError.message} / standard: ${err.message}`) : err;
   }
 }
 

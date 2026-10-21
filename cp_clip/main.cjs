@@ -84,6 +84,62 @@ if (process.platform === 'darwin') {
   } catch (_) {}
 }
 
+// Self-healing: Ensure critical unpacked dependencies (e.g. onnxruntime-common) exist in app.asar.unpacked
+function ensureUnpackedModules() {
+  try {
+    const isAsar = __dirname.includes('app.asar');
+    if (!isAsar) return;
+    const asarIndex = __dirname.indexOf('app.asar');
+    const resourcesDir = path.resolve(__dirname.substring(0, asarIndex));
+    const unpackedNodeModules = path.join(resourcesDir, 'app.asar.unpacked', 'node_modules');
+    const asarRoot = __dirname.substring(0, asarIndex + 'app.asar'.length);
+    const asarNodeModules = path.join(asarRoot, 'node_modules');
+
+    if (!fs.existsSync(unpackedNodeModules)) {
+      try { fs.mkdirSync(unpackedNodeModules, { recursive: true }); } catch (_) {}
+    }
+
+    function copyFromAsar(srcDir, destDir) {
+      if (!fs.existsSync(srcDir)) return;
+      try { fs.mkdirSync(destDir, { recursive: true }); } catch (_) {}
+      let entries = [];
+      try { entries = fs.readdirSync(srcDir, { withFileTypes: true }); } catch (_) { return; }
+      for (const entry of entries) {
+        const srcPath = path.join(srcDir, entry.name);
+        const destPath = path.join(destDir, entry.name);
+        if (entry.isDirectory()) {
+          copyFromAsar(srcPath, destPath);
+        } else {
+          try {
+            if (!fs.existsSync(destPath)) {
+              fs.writeFileSync(destPath, fs.readFileSync(srcPath));
+            }
+          } catch (_) {}
+        }
+      }
+    }
+
+    // 1. Ensure onnxruntime-common exists in app.asar.unpacked/node_modules
+    const targetCommon = path.join(unpackedNodeModules, 'onnxruntime-common');
+    const srcCommon = path.join(asarNodeModules, 'onnxruntime-common');
+    if (!fs.existsSync(path.join(targetCommon, 'package.json')) && fs.existsSync(path.join(srcCommon, 'package.json'))) {
+      console.log('[Self-Healing] Restoring missing onnxruntime-common to app.asar.unpacked...');
+      copyFromAsar(srcCommon, targetCommon);
+    }
+
+    // 2. Also ensure onnxruntime-node has a nested onnxruntime-common fallback if required directly
+    const unpackedOrtDir = path.join(unpackedNodeModules, 'onnxruntime-node');
+    const targetNestedCommon = path.join(unpackedOrtDir, 'node_modules', 'onnxruntime-common');
+    if (fs.existsSync(unpackedOrtDir) && !fs.existsSync(path.join(targetNestedCommon, 'package.json')) && fs.existsSync(path.join(srcCommon, 'package.json'))) {
+      console.log('[Self-Healing] Restoring nested onnxruntime-common into onnxruntime-node/node_modules...');
+      copyFromAsar(srcCommon, targetNestedCommon);
+    }
+  } catch (err) {
+    console.warn('[Self-Healing] Note during module verification:', err.message);
+  }
+}
+ensureUnpackedModules();
+
 const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, session, powerSaveBlocker } = require('electron');
 
 // 🔒 Enforce Single Instance Application
@@ -430,6 +486,9 @@ function getAiFallbackCategory(err = null) {
   if (isDownloadingModels) {
     return "⏳ 正在准备 AI 模型 (请稍候...)";
   }
+  const actualErr = err || (taskManager && taskManager.inferencePool && taskManager.inferencePool.initError);
+  const errMsg = actualErr && actualErr.message ? actualErr.message : '';
+
   const isRosetta = process.platform === 'darwin' && process.arch === 'x64' && (() => {
     try {
       const { execSync } = require('child_process');
@@ -439,23 +498,35 @@ function getAiFallbackCategory(err = null) {
   if (isRosetta) {
     return "⚠️ 架构不匹配 (检测到Apple M芯片运行Intel版，请下载安装arm64版本)";
   }
-  const isArchMismatch = err && err.message && (
-    err.message.includes("Illegal instruction") ||
-    err.message.includes("wrong architecture") ||
-    err.message.includes("incompatible architecture")
+  const isArchMismatch = errMsg && (
+    errMsg.includes("Illegal instruction") ||
+    errMsg.includes("wrong architecture") ||
+    errMsg.includes("incompatible architecture")
   );
   if (isArchMismatch) {
     return "⚠️ 架构不匹配 (请下载安装对应CPU架构的客户端版本)";
   }
   const isModelMissing = (taskManager && taskManager.isModelMissing && taskManager.isModelMissing()) || 
-    (err && err.message && (err.message.includes('not found') || err.message.includes('No such file')));
+    (errMsg.includes('not found') && (errMsg.includes('.onnx') || errMsg.includes('model'))) ||
+    (errMsg.includes('No such file') && (errMsg.includes('.onnx') || errMsg.includes('model')));
   if (isModelMissing) {
     return "⚠️ AI 模型文件缺失 (正在联网自动恢复或请更新客户端)";
   }
-  if (err && err.message && (err.message.includes("Sharp") || err.message.includes("sharp") || err.message.includes("vips"))) {
+  if (errMsg && (errMsg.includes("Sharp") || errMsg.includes("sharp") || errMsg.includes("vips"))) {
     return "⚠️ 图像解析组件异常 (请更新客户端或重启)";
   }
-  return "💻 电脑配置过低 (不支持AI加速或内存不足)";
+  if (errMsg && (errMsg.includes("onnxruntime") || errMsg.includes("Cannot find module") || errMsg.includes("Symbol not found"))) {
+    return "⚠️ AI 推理引擎加载异常 (正在自动修复组件或请更新客户端)";
+  }
+
+  try {
+    const totalMemGB = os.totalmem() / (1024 * 1024 * 1024);
+    if (totalMemGB < 3.5) {
+      return "💻 电脑内存不足 (系统物理内存低于 4GB)";
+    }
+  } catch (_) {}
+
+  return "⚠️ AI 引擎暂时不可用 (正在准备或请重试)";
 }
 
 let activeDeviceUuid = null;
@@ -1857,7 +1928,7 @@ async function processAiQueue() {
         aiDisabledLogged = true;
       }
       const fallbackPredictions = [
-        { category: getAiFallbackCategory(), score: 1.0 }
+        { category: getAiFallbackCategory(taskManager?.inferencePool?.initError), score: 1.0 }
       ];
       const fallbackStr = JSON.stringify(fallbackPredictions);
 
@@ -2395,6 +2466,9 @@ ipcMain.handle('delete-files', async (event, files) => {
 
 // BLE Signaling and WebRTC synchronization handlers
 ipcMain.handle('start-ble-server', async (event) => {
+  if (process.platform !== 'win32') {
+    return { success: false, message: 'BLE peripheral server is only supported on Windows' };
+  }
   if (bleProcess) {
     console.log("[Main] BLE process already running, killing first.");
     try { bleProcess.kill(); } catch (_) {}
