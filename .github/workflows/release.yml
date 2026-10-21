@@ -373,13 +373,21 @@ jobs:
             lipo -info "$PACKAGED_ORT" || true
           fi
 
-          # 6. Generate Lightweight In-App Differential Code Patch ZIP (app.asar ~10MB)
+          # 6. Generate Lightweight In-App Differential Code Patch ZIP (~20MB)
           echo "==== Packaging Lightweight In-App Differential Patch ZIP for macOS (${{ matrix.arch }}) ===="
           ASAR_PATH=$(find dist_electron -name "app.asar" -path "*/Contents/Resources/*" | head -n 1)
           if [ -n "$ASAR_PATH" ]; then
-            echo "Found app.asar at: $ASAR_PATH"
-            PATCH_ZIP="dist_electron/ShareCLIP-Mac-Patch-${{ matrix.arch }}.zip"
-            zip -j "$PATCH_ZIP" "$ASAR_PATH"
+            RESOURCES_DIR=$(dirname "$ASAR_PATH")
+            echo "Found Contents/Resources at: $RESOURCES_DIR"
+            PATCH_ZIP="$(pwd)/dist_electron/ShareCLIP-Mac-Patch-${{ matrix.arch }}.zip"
+            cd "$RESOURCES_DIR"
+            if [ -d "app.asar.unpacked" ]; then
+              # Bundle app.asar and unpacked native dependencies, excluding large 150MB ONNX models
+              zip -r "$PATCH_ZIP" app.asar app.asar.unpacked -x "*.onnx*" -x "*.onnx.data*"
+            else
+              zip -j "$PATCH_ZIP" app.asar
+            fi
+            cd -
             echo "✅ Created differential patch: $PATCH_ZIP"
             ls -lh "$PATCH_ZIP"
           else

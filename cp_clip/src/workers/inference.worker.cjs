@@ -68,6 +68,58 @@ if (process.platform === 'darwin') {
   } catch (_) {}
 }
 
+// Universal Module Resolver Hook for ASAR & Unpacked interop (e.g. onnxruntime-common required from unpacked onnxruntime-node)
+try {
+  const Module = require('module');
+  if (isAsar) {
+    const asarNodeModules = path.join(resourcesDir, 'app.asar', 'node_modules');
+    const unpackedNodeModules = path.join(resourcesDir, 'app.asar.unpacked', 'node_modules');
+
+    if (Module && Array.isArray(Module.globalPaths)) {
+      if (!Module.globalPaths.includes(unpackedNodeModules)) Module.globalPaths.unshift(unpackedNodeModules);
+      if (!Module.globalPaths.includes(asarNodeModules)) Module.globalPaths.unshift(asarNodeModules);
+    }
+    const existingNodePath = process.env.NODE_PATH || '';
+    const newPaths = [unpackedNodeModules, asarNodeModules].filter(p => !existingNodePath.includes(p));
+    if (newPaths.length > 0) {
+      process.env.NODE_PATH = [...newPaths, existingNodePath].filter(Boolean).join(path.delimiter);
+      if (Module && Module._initPaths) Module._initPaths();
+    }
+
+    // Intercept require resolution to guarantee onnxruntime-common can always be found
+    const originalResolveFilename = Module._resolveFilename;
+    Module._resolveFilename = function(request, parent, isMain, options) {
+      try {
+        return originalResolveFilename.call(this, request, parent, isMain, options);
+      } catch (err) {
+        if (request === 'onnxruntime-common' || request.startsWith('onnxruntime-common/')) {
+          const asarCommon = path.join(asarNodeModules, request);
+          try {
+            return originalResolveFilename.call(this, asarCommon, parent, isMain, options);
+          } catch (_) {}
+          const unpackedCommon = path.join(unpackedNodeModules, request);
+          try {
+            return originalResolveFilename.call(this, unpackedCommon, parent, isMain, options);
+          } catch (_) {}
+        }
+        if (request === 'onnxruntime-node' || request.startsWith('onnxruntime-node/')) {
+          const unpackedOrt = path.join(unpackedNodeModules, request);
+          try {
+            return originalResolveFilename.call(this, unpackedOrt, parent, isMain, options);
+          } catch (_) {}
+          const asarOrt = path.join(asarNodeModules, request);
+          try {
+            return originalResolveFilename.call(this, asarOrt, parent, isMain, options);
+          } catch (_) {}
+        }
+        throw err;
+      }
+    };
+  }
+} catch (hookErr) {
+  console.warn('[Worker Module Hook] Note during resolver setup:', hookErr.message);
+}
+
 // Self-healing: Ensure critical unpacked dependencies (e.g. onnxruntime-common) exist in app.asar.unpacked
 function ensureUnpackedModules() {
   try {
@@ -84,11 +136,16 @@ function ensureUnpackedModules() {
       if (!fs.existsSync(srcDir)) return;
       try { fs.mkdirSync(destDir, { recursive: true }); } catch (_) {}
       let entries = [];
-      try { entries = fs.readdirSync(srcDir, { withFileTypes: true }); } catch (_) { return; }
+      try {
+        entries = fs.readdirSync(srcDir, { withFileTypes: true });
+      } catch (_) {
+        try { entries = fs.readdirSync(srcDir).map(n => ({ name: n, isDirectory: () => fs.statSync(path.join(srcDir, n)).isDirectory() })); } catch (_) { return; }
+      }
       for (const entry of entries) {
         const srcPath = path.join(srcDir, entry.name);
         const destPath = path.join(destDir, entry.name);
-        if (entry.isDirectory()) {
+        const isDir = typeof entry.isDirectory === 'function' ? entry.isDirectory() : fs.statSync(srcPath).isDirectory();
+        if (isDir) {
           copyFromAsar(srcPath, destPath);
         } else {
           try {
