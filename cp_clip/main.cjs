@@ -992,7 +992,7 @@ function createWindow() {
     title: "ShareCLIP",
     icon: path.join(__dirname, fs.existsSync(path.join(__dirname, 'icon.ico')) ? 'icon.ico' : 'icon.png'),
     backgroundColor: '#0b0f19', // Dark theme background matching CSS --bg-primary
-    show: false, // Don't show immediately to prevent white/blank flicker
+    show: true,
     frame: false, // Make window frameless
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
