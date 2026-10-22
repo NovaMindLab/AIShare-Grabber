@@ -95,7 +95,47 @@
               "name": "Which operating systems and devices are supported?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "ShareCLIP natively supports Windows, macOS (Apple Silicon & Intel), Android, and any modern web browser via WebShare."
+                "text": "ShareCLIP natively supports Windows 10/11 (x64, available via WinGet and Microsoft Store), macOS (Apple Silicon M-series and Intel dual-architecture), Android 8.0+ (Universal APK), Linux (AppImage and Deb), and any modern web browser via the WebShare zero-install P2P receiver."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does ShareCLIP AI photo search work without internet?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "ShareCLIP embeds Apple's MobileCLIP2-S0 neural network (74.8M parameters) locally via ONNX Runtime. When photos are imported, the engine extracts 512-dimensional visual feature vectors entirely on-device (38.5ms per image on DirectML GPU, 76.2ms on CPU). Users can then search using natural language queries like 'red car in snow' or 'coffee receipt' — the text encoder processes queries in ~3.3ms and returns semantically matched results from the local vector index. No data ever leaves the device."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How is ShareCLIP different from LocalSend?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "LocalSend is a pure file transfer utility. ShareCLIP includes everything LocalSend does (80+ MB/s local P2P transfer via WebRTC DataChannels) plus a full on-device AI photo management suite: MobileCLIP2 semantic search, automatic face recognition and clustering albums (SCRFD + MobileFaceNet), EXIF GPS footprint mapping, a 4K universal video downloader (yt-dlp engine supporting 1000+ sites), and an AnimeGAN neural style transfer video studio — all running 100% offline."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How is ShareCLIP different from Google Photos or iCloud?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Google Photos and iCloud upload your personal photos to corporate cloud servers, require monthly storage subscriptions, compress original images, and use your data to train commercial AI models. ShareCLIP performs 100% of photo indexing, AI semantic search, and face clustering entirely on your local hardware. Your photos never leave your device. It's completely free with no subscriptions, no accounts, and no storage limits."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How fast is ShareCLIP file transfer?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "ShareCLIP achieves 50-85 MB/s real-world transfer speeds over standard Wi-Fi 6 (802.11ax) and gigabit local networks. It uses WebRTC DataChannels for direct peer-to-peer connections with zero cloud relay servers. 4K original photos and videos transfer in seconds without any compression or quality loss."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How do I install ShareCLIP?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Windows: run 'winget install NovaMindLab.ShareCLIP' or search ShareCLIP in Microsoft Store (ID: XP8JZTVS6KRX72). macOS: run 'brew install --cask shareclip'. Android: download the Universal APK from GitHub Releases. Linux: download AppImage or .deb from GitHub Releases. Web: visit the WebShare page at https://novamindlab.github.io/AIShare-Grabber/webshare/ for zero-install P2P receiving."
               }
             }
           ]
