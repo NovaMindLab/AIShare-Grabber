@@ -1174,6 +1174,45 @@ body {
   box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
 }
 
+/* Header Inspiration Pills */
+.inspiration-pill-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.inspiration-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(99, 102, 241, 0.35);
+  color: #c7d2fe;
+  transform: translateY(-1px);
+}
+
+.light-mode .inspiration-pill-btn {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #475569;
+}
+
+.light-mode .inspiration-pill-btn:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: #4f46e5;
+}
+
+@media (max-width: 950px) {
+  .search-inspiration-pills {
+    display: none !important;
+  }
+}
+
 /* 🌤️ Light Mode Tokens Override */
 .light-mode {
   --bg-primary: #f8fafc;
