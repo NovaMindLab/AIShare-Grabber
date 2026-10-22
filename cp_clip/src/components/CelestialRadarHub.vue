@@ -1076,4 +1076,94 @@ function handleSendToPeer(peer) {
   width: 16px;
   height: 16px;
 }
+
+/* Light mode adaptation */
+:global(.light-mode) .celestial-radar-hub {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.06);
+  color: #1e293b;
+}
+
+:global(.light-mode) .hub-title {
+  color: #0f172a;
+  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+:global(.light-mode) .hub-subtitle {
+  color: #64748b;
+}
+
+:global(.light-mode) .udp-badge {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: #2563eb;
+}
+
+:global(.light-mode) .ip-pill {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+:global(.light-mode) .ip-label {
+  color: #64748b;
+}
+
+:global(.light-mode) .ip-val {
+  color: #0f172a;
+}
+
+:global(.light-mode) .btn-hotspot,
+:global(.light-mode) .btn-refresh {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #334155;
+}
+
+:global(.light-mode) .btn-hotspot:hover,
+:global(.light-mode) .btn-refresh:hover {
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+:global(.light-mode) .satellite-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+:global(.light-mode) .satellite-title {
+  color: #0f172a;
+}
+
+:global(.light-mode) .feature-item {
+  color: #475569;
+}
+
+:global(.light-mode) .pin-display {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+:global(.light-mode) .pin-code {
+  color: #2563eb;
+}
+
+:global(.light-mode) .qr-tip-main {
+  color: #334155;
+}
+
+:global(.light-mode) .qr-tip-sub {
+  color: #64748b;
+}
+
+:global(.light-mode) .radar-ring {
+  border-color: rgba(59, 130, 246, 0.15);
+}
+
+:global(.light-mode) .radar-dashed-orbit {
+  border-color: rgba(15, 23, 42, 0.06);
+}
 </style>

@@ -89,9 +89,11 @@
             :class="{ active: currentTab === 'link' }"
             @click="currentTab = 'link'"
           >
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/></svg>
-              <span>{{ cleanSidebarLabel(t.sidebar.linkMobile) || '极速隔空投送' }}</span>
+            <div class="category-item-main">
+              <div class="sidebar-icon-badge badge-blue">
+                <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              </div>
+              <span class="category-item-label">{{ cleanSidebarLabel(t.sidebar.linkMobile) || '极速隔空投送' }}</span>
             </div>
             <span v-if="syncStatus === 'connected'" class="sidebar-online-dot"></span>
           </div>
@@ -107,9 +109,11 @@
             :class="{ active: currentTab === 'images' }"
             @click="currentTab = 'images'"
           >
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              <span>{{ cleanSidebarLabel(t.sidebar.tabImages) || '照片库与搜图' }}</span>
+            <div class="category-item-main">
+              <div class="sidebar-icon-badge badge-sky">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </div>
+              <span class="category-item-label">{{ cleanSidebarLabel(t.sidebar.tabImages) || '照片库与搜图' }}</span>
             </div>
             <span class="category-count" v-if="localImages.length > 0 || isReclassifying || aiQueueProgress.isProcessing" :class="{ 'ai-processing-badge': isReclassifying || aiQueueProgress.isProcessing }">{{ picturesBadgeText }}</span>
           </div>
@@ -119,9 +123,11 @@
             :class="{ active: currentTab === 'album' }"
             @click="currentTab = 'album'"
           >
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6" stroke-linecap="round"/></svg>
-              <span>{{ cleanSidebarLabel(t.sidebar.tabAlbum) || '备份相册' }}</span>
+            <div class="category-item-main">
+              <div class="sidebar-icon-badge badge-purple">
+                <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
+              <span class="category-item-label">{{ cleanSidebarLabel(t.sidebar.tabAlbum) || '备份相册' }}</span>
             </div>
             <span class="category-count" v-if="albumBackupImages.length > 0">{{ albumBackupImages.length }}</span>
           </div>
@@ -131,9 +137,11 @@
             :class="{ active: currentTab === 'people' }"
             @click="currentTab = 'people'"
           >
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-              <span>{{ cleanSidebarLabel(t.sidebar.tabPeople) || '人物相册聚类' }}</span>
+            <div class="category-item-main">
+              <div class="sidebar-icon-badge badge-amber">
+                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <span class="category-item-label">{{ cleanSidebarLabel(t.sidebar.tabPeople) || '人物相册聚类' }}</span>
             </div>
             <span class="category-count" v-if="personClusters.length > 0">{{ personClusters.length }}</span>
           </div>
@@ -143,9 +151,11 @@
             :class="{ active: currentTab === 'map' }"
             @click="currentTab = 'map'"
           >
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-              <span>{{ cleanSidebarLabel(t.sidebar.tabMap) || '足迹地图' }}</span>
+            <div class="category-item-main">
+              <div class="sidebar-icon-badge badge-emerald">
+                <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+              </div>
+              <span class="category-item-label">{{ cleanSidebarLabel(t.sidebar.tabMap) || '足迹地图' }}</span>
             </div>
             <span class="category-count" v-if="imagesWithGps.length > 0">{{ imagesWithGps.length }}</span>
           </div>
@@ -155,9 +165,11 @@
             :class="{ active: currentTab === 'similar' }"
             @click="currentTab = 'similar'"
           >
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-              <span>{{ cleanSidebarLabel(t.sidebar.tabSimilar) || '相似排重' }}</span>
+            <div class="category-item-main">
+              <div class="sidebar-icon-badge badge-rose">
+                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </div>
+              <span class="category-item-label">{{ cleanSidebarLabel(t.sidebar.tabSimilar) || '相似排重' }}</span>
             </div>
             <span class="category-count" v-if="similarGroups.length > 0">{{ similarGroups.length }}</span>
           </div>
@@ -173,9 +185,11 @@
             :class="{ active: currentTab === 'videos' }"
             @click="currentTab = 'videos'"
           >
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span>{{ cleanSidebarLabel(t.sidebar.tabVideos) || '视频库' }}</span>
+            <div class="category-item-main">
+              <div class="sidebar-icon-badge badge-indigo">
+                <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              </div>
+              <span class="category-item-label">{{ cleanSidebarLabel(t.sidebar.tabVideos) || '视频库' }}</span>
             </div>
             <span class="category-count" v-if="totalAllVideosCount > 0">{{ totalAllVideosCount }}</span>
             <span class="category-count" v-else-if="localVideos.length > 0">{{ localVideos.length }}</span>
@@ -186,9 +200,11 @@
             :class="{ active: currentTab === 'audios' }"
             @click="currentTab = 'audios'"
           >
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
-              <span>{{ cleanSidebarLabel(t.sidebar.tabAudios) || '音频库' }}</span>
+            <div class="category-item-main">
+              <div class="sidebar-icon-badge badge-cyan">
+                <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              </div>
+              <span class="category-item-label">{{ cleanSidebarLabel(t.sidebar.tabAudios) || '音频库' }}</span>
             </div>
             <span class="category-count" v-if="localAudios.length > 0">{{ localAudios.length }}</span>
           </div>
@@ -198,9 +214,11 @@
             :class="{ active: currentTab === 'files' }"
             @click="currentTab = 'files'"
           >
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-              <span>{{ cleanSidebarLabel(t.sidebar.tabFiles) || '文档与文件' }}</span>
+            <div class="category-item-main">
+              <div class="sidebar-icon-badge badge-slate">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              <span class="category-item-label">{{ cleanSidebarLabel(t.sidebar.tabFiles) || '文档与文件' }}</span>
             </div>
             <span class="category-count" v-if="localDocs.length > 0">{{ localDocs.length }}</span>
           </div>
@@ -216,11 +234,13 @@
             :class="{ active: currentTab === 'yt-dlp' }"
             @click="currentTab = 'yt-dlp'"
           >
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-              <span>{{ cleanSidebarLabel(t.sidebar.tabYtDlp) || '4K 视频下载' }}</span>
+            <div class="category-item-main">
+              <div class="sidebar-icon-badge badge-red">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </div>
+              <span class="category-item-label">{{ cleanSidebarLabel(t.sidebar.tabYtDlp) || '4K 视频下载' }}</span>
             </div>
-            <span class="category-count" style="font-family: monospace; font-size: 10px; color: #60a5fa;">yt-dlp</span>
+            <span class="category-count" style="font-family: monospace; font-size: 10px; color: #f87171;">yt-dlp</span>
           </div>
         </div>
       </div>
@@ -4126,7 +4146,7 @@ const t = computed(() => locales[currentLocale.value] || locales.en);
 
 function cleanSidebarLabel(str) {
   if (!str) return '';
-  return str.replace(/^[\p{Emoji}\u200d\s?？]+/u, '').trim();
+  return str.replace(/^[\p{Emoji}\u200d\ufe00-\ufe0f\s?*•·-？]+/u, '').trim();
 }
 
 watch(currentLocale, (newLoc) => {
