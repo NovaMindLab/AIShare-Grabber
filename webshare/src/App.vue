@@ -665,8 +665,8 @@
             >
               <span class="btn-icon">🚀</span>
               <span class="btn-label">
-                <strong>体验 ShareCLIP 桌面版</strong>
-                <small>支持 80MB/s 局域网全量秒传 · 4K 视频下载 · 离线 AI 搜图</small>
+                <strong>下载 ShareCLIP 桌面版 — 解锁完整本地 AI 搜图</strong>
+                <small>输入"海边日落"秒搜照片 · 人脸自动聚类 · 4K 视频下载 · 100% 离线免费</small>
               </span>
             </a>
 
@@ -675,14 +675,14 @@
               @click="shareToFriends"
             >
               <span class="btn-icon">🎁</span>
-              <span>分享给好友 (复制极速直传安利)</span>
+              <span>推荐给朋友 — 告别数据线与微信压缩画质</span>
             </button>
           </div>
 
           <!-- Viral Community Links -->
           <div class="achievement-footer-meta">
             <a href="https://github.com/NovaMindLab/AIShare-Grabber" target="_blank" class="github-star-pill">
-              ⭐ 在 GitHub 上给 ShareCLIP 点个 Star
+              ⭐ 开源项目求 Star — 你的支持是我们持续迭代的动力
             </a>
           </div>
         </div>
