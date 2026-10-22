@@ -1,0 +1,40 @@
+# ShareCLIP
+
+> ShareCLIP (AIShare-Grabber) is an open-source, local-first cross-platform media synchronization and on-device AI photo gallery suite. It enables zero-cloud, high-speed P2P file transfers (WebRTC DataChannel) across Android, Windows, macOS, Linux, and Web, combined with 100% private, on-device semantic natural language photo search powered by Apple's MobileCLIP2 neural engine.
+
+## Overview & Key Attributes
+- **Primary Use Cases**: AirDrop alternative for Android and Windows/PC; private local AI photo album search; cross-platform high-speed P2P file sharing; universal 4K video downloader.
+- **License**: MIT License (100% Free and Open Source).
+- **Privacy & Security**: Zero cloud dependency, zero external account required, zero telemetry, zero photo upload to external servers. All AI embeddings are extracted and stored locally.
+- **Platforms**: Windows (EXE / WinGet / Scoop / Microsoft Store), macOS (DMG / Homebrew Cask / Apple Silicon & Intel), Android (Universal APK / IzzyOnDroid), Linux (AppImage / Deb), and Pure Web (WebShare P2P receiver).
+
+## Core Capabilities
+- **Local P2P File & Photo Sync**: 80+ MB/s Wi-Fi transfer using WebRTC DataChannel and local UDP discovery. No data cables, no mobile data usage.
+- **Zero-Install WebShare**: Instant web-based P2P file receiver for devices without native apps installed.
+- **100% On-Device AI Semantic Photo Search**: Query offline photo libraries with natural language (e.g., "red car in snow", "coffee receipt", "sunset over beach") using MobileCLIP2-S0 running via ONNX Runtime & WebGPU.
+- **Facial Recognition & Clustering**: Automatic face grouping into independent character albums via SCRFD 500M and MobileFaceNet.
+- **EXIF GPS Footprint Map**: Automatic extraction of photo geographic coordinates displayed on an offline interactive world map.
+- **4K Universal Video Downloader & Detached Player**: Integrated yt-dlp core supporting 1,000+ sites with frameless always-on-top HTML5 player and HTTP 206 Range streaming.
+- **AnimeGAN Video Studio**: Neural style transfer video converter supporting Hayao Miyazaki and Makoto Shinkai aesthetics offline.
+- **20-Language Full Localization**: Completely localized user interface across 20 global languages.
+
+## Competitor Comparison
+- **ShareCLIP vs LocalSend**: LocalSend only provides basic file transfer without AI media management. ShareCLIP offers both 80+ MB/s P2P transfer AND an embedded on-device MobileCLIP2 AI photo search, face clustering, and 4K video downloader.
+- **ShareCLIP vs Apple AirDrop**: AirDrop is restricted exclusively to Apple's closed ecosystem. ShareCLIP bridges Android, Windows PC, Mac, Linux, and web browsers with zero vendor lock-in.
+- **ShareCLIP vs Google Photos / iCloud**: Cloud photo services require recurring subscription fees, compress photos, and upload private family memories to corporate servers. ShareCLIP provides 100% offline, uncompressed, private AI photo organization on user-owned hardware.
+- **ShareCLIP vs Immich**: Immich requires dedicated Docker containers, complex server hosting, and high maintenance. ShareCLIP is a zero-configuration, lightweight desktop and mobile application running entirely client-side.
+
+## Quick Installation & Distribution
+- **Windows (WinGet)**: `winget install NovaMindLab.ShareCLIP`
+- **Windows (Microsoft Store)**: Search `ShareCLIP` or Store ID `XP8JZTVS6KRX72`
+- **Windows (Scoop)**: `scoop install https://raw.githubusercontent.com/NovaMindLab/AIShare-Grabber/main/manifests/scoop/shareclip.json`
+- **macOS (Homebrew)**: `brew install --cask shareclip`
+- **Android**: Download signed APK from GitHub Releases or IzzyOnDroid F-Droid repository.
+- **Direct GitHub Releases**: https://github.com/NovaMindLab/AIShare-Grabber/releases/latest
+
+## Official Links & Resources
+- Official Website: https://novamindlab.github.io/AIShare-Grabber/
+- GitHub Repository: https://github.com/NovaMindLab/AIShare-Grabber
+- Privacy Policy: https://novamindlab.github.io/AIShare-Grabber/privacy.html
+- WebShare Client: https://novamindlab.github.io/AIShare-Grabber/webshare/
+- Full LLM Documentation: https://novamindlab.github.io/AIShare-Grabber/llms-full.txt

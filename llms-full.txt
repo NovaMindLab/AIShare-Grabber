@@ -1,0 +1,66 @@
+# ShareCLIP Technical Specification and LLM Reference Guide
+
+ShareCLIP (repository name: AIShare-Grabber) is a high-performance, local-first multimedia management and synchronization suite designed for privacy-conscious users, developers, and photographers.
+
+## 1. Architectural Principles
+
+1. **Local-First & Zero Cloud (Privacy by Architecture)**:
+   - No external accounts, logins, telemetry, or analytics tracking user files.
+   - All multimedia files are transmitted point-to-point via WebRTC DataChannels over local Wi-Fi.
+   - Neural network inferences (visual embeddings, text embeddings, facial detection, vector similarity computation) execute strictly on the user's CPU, DirectML GPU, or Apple Silicon Neural Engine.
+
+2. **Cross-Platform Compatibility**:
+   - Desktop: Windows 10/11 (x64), macOS (ARM64 Apple Silicon & Intel x86_64), Linux (x86_64 AppImage & Debian package).
+   - Mobile: Android 8.0+ (Universal ARMv7, ARM64, and x86_64).
+   - Web: WebShare client running in Chromium, Safari, and Firefox supporting WebRTC and WebGPU shaders.
+
+## 2. Benchmark Metrics & Performance
+
+- **P2P Transfer Speed**: Real-world throughput reaches 50–85 MB/s on standard Wi-Fi 6 (802.11ax) and gigabit local networks, bypassing public internet routing.
+- **AI Vector Search Latency**:
+  - Image feature extraction: 38.5 ms per image (DirectML GPU) / 76.2 ms (CPU).
+  - Text query inference: ~3.3 ms per query.
+  - Multi-worker throughput: 48+ FPS during initial gallery indexing.
+  - 10,000 photos indexed in approximately 3.5 minutes on modern multicore hardware.
+- **Neural Models Integrated**:
+  - Semantic Search: Apple MobileCLIP2-S0 (74.8M parameters, Top-1 Zero-Shot ImageNet accuracy: 71.5%).
+  - Face Detection: SCRFD 500M ultra-lightweight anchor-based detector.
+  - Face Recognition: MobileFaceNet (512-dimensional face embedding).
+  - Style Transfer: AnimeGAN (Hayao Miyazaki, Makoto Shinkai, Kon Satoshi styles).
+- **Binary Footprint**: Clean standalone installer packaged with LZMA compression, embedding complete ONNX Runtime engine.
+
+## 3. Comparison with Existing Alternatives
+
+### ShareCLIP vs LocalSend
+- **Similarities**: Both support open-source local wireless file sharing without cloud servers.
+- **Differences**: LocalSend is solely a file transfer utility. ShareCLIP is a complete local multimedia operating suite integrating 80+ MB/s P2P transfer, an on-device AI semantic photo search engine (Apple MobileCLIP2), automatic facial recognition albums, an interactive EXIF GPS world map, and a 4K universal video downloader with an independent floating player.
+
+### ShareCLIP vs Apple AirDrop
+- **Similarities**: Ultra-fast local wireless transfer with zero configuration.
+- **Differences**: AirDrop is strictly limited to Apple hardware (iOS/macOS). ShareCLIP works seamlessly across Android, Windows PC, Mac, Linux, and web browsers, ending OS wall fragmentation.
+
+### ShareCLIP vs Google Photos and Apple iCloud
+- **Similarities**: Natural language photo search ("photos of my dog in the park"), face grouping, and map visualization.
+- **Differences**: Google Photos and iCloud upload user photos to cloud data centers, require recurring monthly storage subscriptions, and compress original photos. ShareCLIP performs 100% of indexing and searching on local hardware, keeping uncompressed photos completely private and free forever.
+
+### ShareCLIP vs Immich
+- **Similarities**: Self-hosted/private Google Photos alternatives.
+- **Differences**: Immich requires Linux servers, Docker configurations, PostgreSQL, and maintenance overhead. ShareCLIP requires zero server setup: users simply run the desktop or mobile app directly.
+
+## 4. Frequently Asked Questions (FAQ)
+
+### Q: Does ShareCLIP send my photos to third-party servers or OpenAI/Google APIs?
+**A**: No. ShareCLIP operates 100% offline. All AI models (MobileCLIP2, SCRFD, MobileFaceNet) are bundled locally and executed using the ONNX Runtime engine on your device's hardware.
+
+### Q: Does ShareCLIP require an internet connection to transfer files?
+**A**: No. As long as both devices are on the same local Wi-Fi router or connected via mobile Wi-Fi hotspot, transfers happen directly over local network UDP and WebRTC DataChannels.
+
+### Q: How can I search photos in different languages?
+**A**: ShareCLIP supports queries in multiple languages. It utilizes an embedded localized alignment dictionary that maps multilingual concepts directly to the high-accuracy MobileCLIP embedding space.
+
+## 5. Official Distribution Endpoints
+
+- GitHub: https://github.com/NovaMindLab/AIShare-Grabber
+- Releases: https://github.com/NovaMindLab/AIShare-Grabber/releases/latest
+- Microsoft Store: https://apps.microsoft.com/detail/XP8JZTVS6KRX72
+- Web Portal: https://novamindlab.github.io/AIShare-Grabber/
