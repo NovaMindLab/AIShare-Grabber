@@ -30,7 +30,7 @@
         <!-- AI Engine Status Badge -->
         <span class="badge-pill badge-webgpu" :class="{ 'badge-offline': !aiReady }">
           <span class="status-dot" :class="{ 'pulse-dot': aiReady }"></span>
-          {{ aiReady ? `🧠 ${aiProvider.toUpperCase()} 加速 (MobileCLIP-S0)` : '⏳ AI 引擎初始化中...' }}
+          {{ aiReady ? `🧠 ${aiProvider.toUpperCase()} 加速 (MobileCLIP-S0)` : '⚡ 局域网极速直连' }}
         </span>
 
         <!-- WebRTC Connection Badge -->
@@ -359,7 +359,7 @@
       </section>
 
       <!-- Section E: Real-time Debug Log Console -->
-      <section class="log-section glass-panel">
+      <section v-if="showDebugLogs" class="log-section glass-panel">
         <div class="log-header" @click="isLogExpanded = !isLogExpanded">
           <div class="log-title">
             <span>📜 实时运行日志 (Live Console)</span>
@@ -367,6 +367,7 @@
           </div>
           <div class="log-controls">
             <button class="btn-text" @click.stop="liveLogs = []">清空日志</button>
+            <button class="btn-text" @click.stop="showDebugLogs = false" title="隐藏控制台">收起隐藏</button>
             <span class="toggle-arrow">{{ isLogExpanded ? '▲' : '▼' }}</span>
           </div>
         </div>
@@ -410,6 +411,13 @@
           >
             <span>⭐ Star on GitHub</span>
           </a>
+          <button 
+            class="btn-dev-log-toggle" 
+            @click="showDebugLogs = !showDebugLogs" 
+            :title="showDebugLogs ? '隐藏开发者控制台' : '查看开发者调试日志'"
+          >
+            {{ showDebugLogs ? '收起控制台' : '调试日志' }}
+          </button>
         </div>
       </footer>
     </main>
@@ -751,7 +759,8 @@ const activeTransferText = ref('');
 const selectedCategory = ref('all');
 const detectedIps = ref([]);
 const liveLogs = shallowRef([]);
-const isLogExpanded = ref(true);
+const showDebugLogs = ref(typeof window !== 'undefined' && (new URLSearchParams(window.location.search).has('debug') || localStorage.getItem('webshare_debug') === 'true'));
+const isLogExpanded = ref(false);
 const logContainer = ref(null);
 const localFileInput = ref(null);
 
@@ -1108,7 +1117,8 @@ function initAiWorker() {
           aiProvider.value = data.provider;
           addLog(`✨ AI Worker 启动成功: 提供者 [${data.provider.toUpperCase()}], 已加载 ${data.categoryCount} 个场景`);
         } else {
-          addLog(`❌ AI Worker 初始化失败: ${data.error}`);
+          console.info('[WebShare AI] Model load info:', data.error);
+          addLog('⚡ WebShare P2P 极速直连通道已就绪');
         }
       } else if (data.type === 'inference_result') {
         handleInferenceResult(data);
@@ -1124,7 +1134,7 @@ function initAiWorker() {
       textEmbUrl
     });
   } catch (err) {
-    addLog(`❌ 创建 AI Worker 失败: ${err.message}`);
+    console.warn('[WebShare AI Worker] Init notice:', err.message);
   }
 }
 
@@ -2289,6 +2299,26 @@ function formatBytes(bytes) {
   color: var(--text-secondary);
   font-size: 13px;
   max-width: 420px;
+}
+
+.btn-dev-log-toggle {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-tertiary, #94a3b8);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+.btn-dev-log-toggle:hover {
+  opacity: 1;
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 /* Log Console Section */

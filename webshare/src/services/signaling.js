@@ -35,7 +35,8 @@ export class SignalingClient {
     this.sessionId = sessionId;
     this.relayUrl = customWsUrl || getDefaultSignalingUrl();
 
-    this._log(`[Signaling] 正在连接信令服务器: ${this.relayUrl}...`);
+    const displayUrl = (this.relayUrl || '').replace(/api_key=[^&]+/, 'api_key=******');
+    this._log(`[Signaling] 正在建立安全信令通道: ${displayUrl}...`);
 
     try {
       this.ws = new WebSocket(this.relayUrl);
@@ -47,7 +48,7 @@ export class SignalingClient {
 
     this.ws.onopen = () => {
       this.isConnected = true;
-      this._log(`[Signaling] 🟢 信令通道已连接！注册会话口令: ${this.sessionId}`);
+      this._log(`[Signaling] 🟢 信令通道已就绪，等待扫码直连 (口令: ${this.sessionId})`);
       this._send({
         type: 'register_session',
         sessionId: this.sessionId
