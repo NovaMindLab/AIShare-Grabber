@@ -36,10 +36,10 @@ $coreChannels = @(
     },
     @{
         Platform = "WinGet Official PR"
-        Url = "https://github.com/microsoft/winget-pkgs/pull/456376"
-        Status = "[SUBMITTED / Under Review]"
-        Note = "microsoft/winget-pkgs PR #456376 for v4.5.15"
-        Color = "Cyan"
+        Url = "https://github.com/microsoft/winget-pkgs/pull/451411"
+        Status = "[CLA SIGNED / Awaiting Moderator Merge]"
+        Note = "microsoft/winget-pkgs PR #451411 (Validation passed, CLA signed, awaiting moderator review)"
+        Color = "Green"
     }
 )
 

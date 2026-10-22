@@ -1,13 +1,13 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
 PackageIdentifier: NovaMindLab.ShareCLIP
-PackageVersion: 4.5.15
+PackageVersion: 4.5.24
 DefaultLocale: en-US
 ManifestType: version
 ManifestVersion: 1.6.0
 ---
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 PackageIdentifier: NovaMindLab.ShareCLIP
-PackageVersion: 4.5.15
+PackageVersion: 4.5.24
 PackageLocale: en-US
 Publisher: NovaMindLab
 PublisherUrl: https://github.com/NovaMindLab
@@ -33,13 +33,13 @@ Tags:
   - yt-dlp
   - privacy
   - webrtc
-ReleaseNotesUrl: https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v4.5.15
+ReleaseNotesUrl: https://github.com/NovaMindLab/AIShare-Grabber/releases/tag/v4.5.24
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0
 ---
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 PackageIdentifier: NovaMindLab.ShareCLIP
-PackageVersion: 4.5.15
+PackageVersion: 4.5.24
 InstallerType: nullsoft
 InstallModes:
   - interactive
@@ -47,8 +47,8 @@ InstallModes:
   - silentWithProgress
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.15/ShareCLIP-Setup-4.5.15.exe
-    InstallerSha256: 7FB6B76BAC0984B05D39DFB687261C3BFC8F7BE3CA526CEBCC6466CF7E2BCA8B # auto-calculated via scripts/generate-package-manifests.mjs
+    InstallerUrl: https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v4.5.24/ShareCLIP-Setup-4.5.24.exe
+    InstallerSha256: 1F9BF99C4415B4D1667E988499E8601FF59B6F49C056C9AF351AE42AB98B05C7 # auto-calculated via scripts/generate-package-manifests.mjs
     Scope: user
 ManifestType: installer
 ManifestVersion: 1.6.0
