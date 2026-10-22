@@ -82,63 +82,83 @@
 
       <!-- 1. Interconnection / Connect -->
       <div class="sidebar-section">
-        <h2 class="section-title">{{ t.sidebar.connHeader || '互联互传' }}</h2>
+        <h2 class="section-title">{{ t.sidebar.connHeader || '互联互通' }}</h2>
         <div class="category-list">
           <div 
             class="category-item" 
             :class="{ active: currentTab === 'link' }"
             @click="currentTab = 'link'"
           >
-            <span style="display: flex; align-items: center; gap: 8px;">
-              {{ t.sidebar.linkMobile }}
-            </span>
-            <span v-if="syncStatus === 'connected'" style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--success); display: inline-block; box-shadow: 0 0 6px var(--success);"></span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/></svg>
+              <span>{{ cleanSidebarLabel(t.sidebar.linkMobile) || '极速隔空投送' }}</span>
+            </div>
+            <span v-if="syncStatus === 'connected'" class="sidebar-online-dot"></span>
           </div>
         </div>
       </div>
 
       <!-- 2. Photos & AI Albums -->
       <div class="sidebar-section">
-        <h2 class="section-title">{{ t.sidebar.photosHeader || '照片与相册' }}</h2>
+        <h2 class="section-title">{{ t.sidebar.photosHeader || '照片与端侧 AI' }}</h2>
         <div class="category-list">
           <div 
             class="category-item" 
             :class="{ active: currentTab === 'images' }"
             @click="currentTab = 'images'"
           >
-            <span>{{ t.sidebar.tabImages }}</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>{{ cleanSidebarLabel(t.sidebar.tabImages) || '照片库与搜图' }}</span>
+            </div>
             <span class="category-count" v-if="localImages.length > 0 || isReclassifying || aiQueueProgress.isProcessing" :class="{ 'ai-processing-badge': isReclassifying || aiQueueProgress.isProcessing }">{{ picturesBadgeText }}</span>
           </div>
+
           <div 
             class="category-item" 
             :class="{ active: currentTab === 'album' }"
             @click="currentTab = 'album'"
           >
-            <span>{{ t.sidebar.tabAlbum }}</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6" stroke-linecap="round"/></svg>
+              <span>{{ cleanSidebarLabel(t.sidebar.tabAlbum) || '备份相册' }}</span>
+            </div>
             <span class="category-count" v-if="albumBackupImages.length > 0">{{ albumBackupImages.length }}</span>
           </div>
+
           <div 
             class="category-item" 
             :class="{ active: currentTab === 'people' }"
             @click="currentTab = 'people'"
           >
-            <span>{{ t.sidebar.tabPeople || '👥 人物相册' }}</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              <span>{{ cleanSidebarLabel(t.sidebar.tabPeople) || '人物相册聚类' }}</span>
+            </div>
             <span class="category-count" v-if="personClusters.length > 0">{{ personClusters.length }}</span>
           </div>
+
           <div 
             class="category-item" 
             :class="{ active: currentTab === 'map' }"
             @click="currentTab = 'map'"
           >
-            <span>{{ t.sidebar.tabMap || '🗺️ 足迹地图' }}</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+              <span>{{ cleanSidebarLabel(t.sidebar.tabMap) || '足迹地图' }}</span>
+            </div>
             <span class="category-count" v-if="imagesWithGps.length > 0">{{ imagesWithGps.length }}</span>
           </div>
+
           <div 
             class="category-item" 
             :class="{ active: currentTab === 'similar' }"
             @click="currentTab = 'similar'"
           >
-            <span>{{ t.sidebar.tabSimilar }}</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              <span>{{ cleanSidebarLabel(t.sidebar.tabSimilar) || '相似排重' }}</span>
+            </div>
             <span class="category-count" v-if="similarGroups.length > 0">{{ similarGroups.length }}</span>
           </div>
         </div>
@@ -153,24 +173,35 @@
             :class="{ active: currentTab === 'videos' }"
             @click="currentTab = 'videos'"
           >
-            <span>{{ t.sidebar.tabVideos }}</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span>{{ cleanSidebarLabel(t.sidebar.tabVideos) || '视频库' }}</span>
+            </div>
             <span class="category-count" v-if="totalAllVideosCount > 0">{{ totalAllVideosCount }}</span>
             <span class="category-count" v-else-if="localVideos.length > 0">{{ localVideos.length }}</span>
           </div>
+
           <div 
             class="category-item" 
             :class="{ active: currentTab === 'audios' }"
             @click="currentTab = 'audios'"
           >
-            <span>{{ t.sidebar.tabAudios }}</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+              <span>{{ cleanSidebarLabel(t.sidebar.tabAudios) || '音频库' }}</span>
+            </div>
             <span class="category-count" v-if="localAudios.length > 0">{{ localAudios.length }}</span>
           </div>
+
           <div 
             class="category-item" 
             :class="{ active: currentTab === 'files' }"
             @click="currentTab = 'files'"
           >
-            <span>{{ t.sidebar.tabFiles }}</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              <span>{{ cleanSidebarLabel(t.sidebar.tabFiles) || '文档与文件' }}</span>
+            </div>
             <span class="category-count" v-if="localDocs.length > 0">{{ localDocs.length }}</span>
           </div>
         </div>
@@ -185,7 +216,11 @@
             :class="{ active: currentTab === 'yt-dlp' }"
             @click="currentTab = 'yt-dlp'"
           >
-            <span>{{ t.sidebar.tabYtDlp || '📺 视频下载' }}</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg class="sidebar-svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <span>{{ cleanSidebarLabel(t.sidebar.tabYtDlp) || '4K 视频下载' }}</span>
+            </div>
+            <span class="category-count" style="font-family: monospace; font-size: 10px; color: #60a5fa;">yt-dlp</span>
           </div>
         </div>
       </div>
@@ -300,33 +335,26 @@
           </div>
         </div>
 
-        <!-- Scenario B: Images Tab Header (Search Bar Only) -->
-        <div v-else-if="currentTab === 'images' && localImages.length > 0" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-              <span>🖼️</span> {{ selectedCategory ? (getShortCategory(selectedCategory) || selectedCategory) : (t.sidebar?.allImages || '全部照片') }}
-              <span class="category-count" style="font-size: 11.5px; opacity: 0.8;">({{ filteredImages.length }})</span>
-            </h3>
-          </div>
-
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <!-- Search Bar -->
-            <div class="search-bar-container">
-              <input 
-                type="text" 
-                class="search-input" 
-                :placeholder="t.header.searchPlaceholder"
-                v-model="searchQuery"
-                @keyup.enter="handleSearch"
-                :disabled="isSearching"
-              />
-              <button class="btn btn-search" @click="handleSearch" :disabled="isSearching">
-                <span v-if="isSearching" class="spinner" style="width: 12px; height: 12px;"></span>
-                <span v-else>{{ t.header.searchBtn }}</span>
-              </button>
-              <button class="btn btn-clear-search" v-if="isSearchActive" @click="handleClearSearch">
-                ✕
-              </button>
+        <!-- Scenario B: Images Tab Header (AI Search Capsule & Category Info) -->
+        <div v-else-if="currentTab === 'images' && localImages.length > 0" style="display: flex; flex-direction: column; width: 100%; gap: 12px; padding: 4px 0 8px 0;">
+          <AISearchCapsule 
+            v-model="searchQuery"
+            :is-searching="isSearching"
+            :search-count="isSearchActive ? filteredImages.length : null"
+            :confidence="88"
+            :t="t"
+            @search="handleSearch"
+            @clear="handleClearSearch"
+          />
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+                {{ selectedCategory ? (getShortCategory(selectedCategory) || selectedCategory) : (t.sidebar?.allImages || '全部照片') }}
+              </span>
+              <span class="category-count" style="font-size: 11px; opacity: 0.85;">({{ filteredImages.length }})</span>
+            </div>
+            <div v-if="isSearchActive" style="font-size: 11px; color: #38bdf8; font-weight: 600; cursor: pointer;" @click="handleClearSearch">
+              ✕ {{ t.header?.clearSearch || '清除搜索筛选' }}
             </div>
           </div>
         </div>
@@ -350,54 +378,22 @@
         
         <div v-if="currentTab === 'link'" style="display: flex; flex-direction: column; width: 100%; gap: 14px;">
 
-          <!-- Main Simplified Pairing Card (Clean & Focused) -->
-          <div v-if="syncStatus !== 'connected'" style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(147, 51, 234, 0.2); box-shadow: 0 8px 32px rgba(147, 51, 234, 0.05); border-radius: 16px; padding: 28px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; width: 100%; box-sizing: border-box; flex-shrink: 0; position: relative; backdrop-filter: blur(12px);">
-            
-            <!-- Card Header -->
-            <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #a855f7; box-shadow: 0 0 10px #a855f7;"></span>
-              {{ t.link.qrTitle }}
-            </h4>
-            
-            <!-- QR Code Block with glow -->
-            <div style="position: relative; padding: 12px; background: white; border-radius: 14px; box-shadow: 0 4px 24px rgba(168, 85, 247, 0.25); display: flex; align-items: center; justify-content: center; width: 184px; height: 184px; box-sizing: border-box; flex-shrink: 0; transition: transform 0.25s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-              <canvas ref="qrCanvas" style="width: 160px; height: 160px; display: block; flex-shrink: 0;"></canvas>
-            </div>
-
-            <!-- SSID & Password Credentials card when Local Hotspot is active -->
-            <div v-if="isHotspotActive && hotspotStatus === 'started'" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 8px 16px; width: 100%; max-width: 320px; box-sizing: border-box;">
-              <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px;">📡 {{ t.link.hotspotRunning }}:</div>
-              <div style="font-size: 13px; font-weight: 700; color: #38bdf8;">SSID: {{ hotspotSsid }}</div>
-              <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-top: 2px;">{{ t.link?.hotspotPassword || '密码' }}: {{ hotspotPassword }}</div>
-            </div>
-            <div v-if="qrPayload?.pc_ips && qrPayload.pc_ips.length > 0" style="display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 11px; color: #10b981; font-weight: 500; margin-top: -4px;">
-              <span>⚡</span> {{ t.link?.lanDirectIp || '局域网直连 IP' }}: {{ qrPayload.pc_ips.join(', ') }}
-            </div>
-            <p v-else style="color: var(--text-secondary); font-size: 12px; margin: 0; max-width: 320px;">{{ t.link.qrSub }}</p>
-
-            <!-- Status Pills Row -->
-            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 2px;">
-              <!-- BLE Status Pill -->
-              <button 
-                @click="toggleSyncService"
-                style="display: flex; align-items: center; gap: 6px; padding: 6px 16px; font-size: 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; border: none; font-weight: 600;"
-                :style="isSyncActive ? 'background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981;' : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary);'"
-              >
-                <span style="width: 6px; height: 6px; border-radius: 50%;" :style="isSyncActive ? 'background: #10b981; box-shadow: 0 0 8px #10b981;' : 'background: #94a3b8;'"></span>
-                {{ t.link.bleLabel }}: {{ isSyncActive ? t.link.enabled : t.link.disabled }}
-              </button>
-
-              <!-- Wi-Fi/Hotspot Status Pill -->
-              <button 
-                @click="toggleHotspot"
-                style="display: flex; align-items: center; gap: 6px; padding: 6px 16px; font-size: 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; border: none; font-weight: 600;"
-                :style="isHotspotActive ? 'background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.3); color: #38bdf8;' : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary);'"
-              >
-                <span style="width: 6px; height: 6px; border-radius: 50%;" :style="isHotspotActive ? 'background: #38bdf8; box-shadow: 0 0 8px #38bdf8;' : 'background: #94a3b8;'"></span>
-                {{ t.link.hotspotLabel }}: {{ isHotspotActive ? t.link.enabled : t.link.disabled }}
-              </button>
-            </div>
-          </div>
+          <!-- Celestial Radar Pairing Hub (QR Centerpiece & Orbiting Satellites) -->
+          <CelestialRadarHub 
+            v-if="syncStatus !== 'connected'"
+            :qr-code-data-url="qrDataUrl"
+            :session-pin="qrPayload?.pin || sessionPin || 'RQLPVZ'"
+            :connected-device-name="activeDeviceName"
+            :is-hotspot-active="isHotspotActive"
+            :local-ip="qrPayload?.pc_ips?.[0] || '192.168.1.108'"
+            :active-peers="discoveredPeers || []"
+            :t="t"
+            @refresh-qr="refreshPairingCode"
+            @toggle-hotspot="toggleHotspot"
+            @select-files="handleSelectFilesForPeer"
+            @copy-pin="copySessionPin"
+            @send-to-peer="handleSelectFilesForPeer"
+          />
 
           <!-- C. CONNECTED VIEW (Shared by both modes) -->
           <div v-else class="connected-dashboard-layout" style="display: flex; gap: 24px; width: 100%; align-items: stretch; height: 580px; box-sizing: border-box;">
@@ -4095,6 +4091,8 @@ import { useVirtualList, useElementSize } from '@vueuse/core';
 import VirtualGrid from './components/VirtualGrid.vue';
 import VirtualTimeline from './components/VirtualTimeline.vue';
 import VideoAnimeStudioModal from './components/VideoAnimeStudioModal.vue';
+import CelestialRadarHub from './components/CelestialRadarHub.vue';
+import AISearchCapsule from './components/AISearchCapsule.vue';
 import QRCode from 'qrcode';
 import { locales, languages } from './locales.js';
 import { initAnalytics, trackEvent, trackFeatureUse, identifyUser, setTelemetryOptOut, isTelemetryEnabled } from './analytics.js';
@@ -4125,6 +4123,11 @@ function getInitialLocale() {
 
 const currentLocale = ref(getInitialLocale());
 const t = computed(() => locales[currentLocale.value] || locales.en);
+
+function cleanSidebarLabel(str) {
+  if (!str) return '';
+  return str.replace(/^[\p{Emoji}\u200d\s?？]+/u, '').trim();
+}
 
 watch(currentLocale, (newLoc) => {
   if (typeof localStorage !== 'undefined') {
@@ -5506,23 +5509,67 @@ function formatQrPayload(payload) {
   return `${baseShareUrl}?${params.toString()}`;
 }
 
+const qrDataUrl = ref('');
+
 function renderQrCode(payload) {
-  if (!qrCanvas.value) return;
   const targetPayload = payload || qrPayload.value;
   if (!targetPayload) return;
   const content = formatQrPayload(targetPayload);
-  QRCode.toCanvas(
-    qrCanvas.value,
+  QRCode.toDataURL(
     content,
     {
-      width: 160,
+      width: 240,
       margin: 1,
-      errorCorrectionLevel: 'L'
+      errorCorrectionLevel: 'M',
+      color: { dark: '#090d16', light: '#ffffff' }
     },
-    (error) => {
-      if (error) console.error("QR Code rendering error:", error);
+    (err, url) => {
+      if (!err && url) qrDataUrl.value = url;
     }
   );
+  if (qrCanvas.value) {
+    QRCode.toCanvas(
+      qrCanvas.value,
+      content,
+      {
+        width: 160,
+        margin: 1,
+        errorCorrectionLevel: 'L'
+      },
+      (error) => {
+        if (error) console.error("QR Code rendering error:", error);
+      }
+    );
+  }
+}
+
+function copySessionPin(pin) {
+  const code = pin || qrPayload.value?.pin || sessionPin.value || '';
+  if (code && typeof navigator !== 'undefined' && navigator.clipboard) {
+    navigator.clipboard.writeText(code);
+  }
+}
+
+function refreshPairingCode() {
+  if (typeof initSessionPin === 'function') {
+    initSessionPin();
+  }
+  if (qrPayload.value) {
+    renderQrCode(qrPayload.value);
+  }
+}
+
+async function handleSelectFilesForPeer() {
+  if (hasApi && window.api?.selectImages) {
+    try {
+      const selected = await window.api.selectImages();
+      if (selected && selected.length > 0) {
+        await sendFilesByPaths(selected);
+      }
+    } catch (err) {
+      console.warn("Select files failed:", err);
+    }
+  }
 }
 
 // Watch tab and payload changes to render the QR Code reliably
