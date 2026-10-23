@@ -356,26 +356,33 @@
         </div>
 
         <!-- Scenario B: Images & Album Tab Header (Category Title + Fast AI Search Bar + Inspiration Pills) -->
-        <div v-else-if="currentTab === 'images' || currentTab === 'album'" style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 16px;">
-          <!-- Left: Category Title & Count -->
-          <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex-shrink: 0;">
-            <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; white-space: nowrap;">
-              <span v-if="currentTab === 'images'">🖼️</span>
-              <span v-else>📸</span>
-              <span>{{ currentTab === 'images' ? (selectedCategory ? (getShortCategory(selectedCategory) || selectedCategory) : (t.sidebar?.allImages || '全部照片')) : (t.sidebar?.tabAlbum || '备份相册') }}</span>
-              <span class="category-count" style="font-size: 11.5px; opacity: 0.85;">
-                ({{ currentTab === 'images' ? (isSearchActive ? filteredImages.length : localImages.length) : albumBackupImages.length }})
+        <div v-else-if="currentTab === 'images' || currentTab === 'album'" style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 14px;">
+          <!-- Left: Category Title, Count Badge & Clear Filter -->
+          <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 15px;" v-if="currentTab === 'images'">🖼️</span>
+              <span style="font-size: 15px;" v-else>📸</span>
+              <h3 style="margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-primary); white-space: nowrap;">
+                {{ currentTab === 'images' ? (selectedCategory ? (getShortCategory(selectedCategory) || selectedCategory) : (t.sidebar?.allImages || '全部照片')) : (t.sidebar?.tabAlbum || '备份相册') }}
+              </h3>
+              <span class="category-count" style="font-size: 11px; padding: 2px 7px; border-radius: 99px;">
+                {{ currentTab === 'images' ? (isSearchActive ? filteredImages.length : localImages.length) : albumBackupImages.length }}
               </span>
-            </h3>
-            <span v-if="isSearchActive" style="font-size: 11px; color: #38bdf8; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 2px;" @click="handleClearSearch">
+            </div>
+            <button 
+              v-if="isSearchActive" 
+              style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.28); color: #0284c7; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; transition: all 0.15s ease;"
+              @click="handleClearSearch"
+              title="清除筛选条件"
+            >
               ✕ {{ t.header?.clearSearch || '清除筛选' }}
-            </span>
+            </button>
           </div>
 
           <!-- Right: AI Search Bar + Inspiration Pills -->
-          <div style="display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end; max-width: 720px;">
+          <div style="display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end; max-width: 680px;">
             <!-- Inspiration quick pills -->
-            <div class="search-inspiration-pills" style="display: flex; align-items: center; gap: 5px;">
+            <div class="search-inspiration-pills">
               <button type="button" class="inspiration-pill-btn" @click="searchQuery = '雪山下的红色跑车'; handleSearch()">🏔️ 跑车</button>
               <button type="button" class="inspiration-pill-btn" @click="searchQuery = '报销发票小票'; handleSearch()">🧾 发票</button>
               <button type="button" class="inspiration-pill-btn" @click="searchQuery = '沙滩上的可爱小狗'; handleSearch()">🐶 小狗</button>
@@ -393,12 +400,17 @@
                 @keyup.enter="handleSearch"
                 :disabled="isSearching"
               />
+              <button 
+                class="btn-clear-inline" 
+                v-if="isSearchActive || (searchQuery && searchQuery.length > 0)" 
+                @click="handleClearSearch" 
+                title="清空搜索"
+              >
+                ✕
+              </button>
               <button class="btn btn-search" @click="handleSearch" :disabled="isSearching" title="执行 AI 毫秒检索">
                 <span v-if="isSearching" class="spinner" style="width: 12px; height: 12px;"></span>
-                <span v-else style="display: flex; align-items: center; gap: 4px;">⚡ {{ t.header?.searchBtn || 'AI 搜图' }}</span>
-              </button>
-              <button class="btn btn-clear-search" v-if="isSearchActive || (searchQuery && searchQuery.length > 0)" @click="handleClearSearch" title="清空搜索">
-                ✕
+                <span v-else style="display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;">⚡ {{ t.header?.searchBtn || 'AI 搜图' }}</span>
               </button>
             </div>
           </div>
@@ -4171,7 +4183,7 @@ const t = computed(() => locales[currentLocale.value] || locales.en);
 
 function cleanSidebarLabel(str) {
   if (!str) return '';
-  return str.replace(/^[\p{Emoji}\u200d\ufe00-\ufe0f\s?*•·-？]+/u, '').trim();
+  return str.replace(/^[\p{Extended_Pictographic}\p{Emoji_Presentation}\u200d\ufe00-\ufe0f\s•·]+/u, '').trim();
 }
 
 watch(currentLocale, (newLoc) => {

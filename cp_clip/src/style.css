@@ -1108,103 +1108,167 @@ body {
   line-height: 1.4;
 }
 
-/* Search Bar Styles */
+/* Modern Unified AI Search Bar */
 .search-bar-container {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(30, 41, 66, 0.45);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius-lg);
-  padding: 2px 4px 2px 14px;
-  width: 380px;
-  transition: all var(--transition-normal);
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  padding: 3px 4px 3px 12px;
+  width: 310px;
+  min-width: 230px;
+  height: 36px;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .search-bar-container:focus-within {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 12px var(--accent-glow);
-  background: rgba(30, 41, 66, 0.7);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .search-input {
   background: transparent;
   border: none;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12.5px;
+  font-weight: 500;
   outline: none;
   width: 100%;
-  padding: 6px 0;
+  min-width: 0;
+  padding: 0;
 }
 
 .search-input::placeholder {
   color: var(--text-muted);
+  font-size: 12px;
+  opacity: 0.85;
 }
 
 .btn-search {
-  padding: 6px 14px !important;
-  font-size: 12px !important;
-  border-radius: 16px !important;
-  background-color: var(--accent-primary) !important;
-  color: white !important;
+  height: 28px !important;
+  padding: 0 12px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  border-radius: 9999px !important;
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px;
+  white-space: nowrap !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  transition: all 0.18s ease;
 }
 
 .btn-search:hover {
-  background-color: var(--accent-secondary) !important;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 100%) !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.45);
+  transform: translateY(-0.5px);
 }
 
-.btn-clear-search {
-  padding: 6px 12px !important;
-  font-size: 12px !important;
-  border-radius: 16px !important;
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  color: var(--text-secondary) !important;
-  border: 1px solid var(--glass-border) !important;
+.btn-search:active {
+  transform: translateY(0);
 }
 
-.btn-clear-search:hover {
-  background-color: var(--glass-hover) !important;
+.btn-search:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
-/* Search Badge */
-.badge-search-match {
-  background-color: var(--accent-primary) !important;
-  color: white !important;
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+.btn-clear-inline {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  border: none;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.btn-clear-inline:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
 /* Header Inspiration Pills */
+.search-inspiration-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .inspiration-pill-btn {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 500;
-  padding: 4px 8px;
-  border-radius: 8px;
+  padding: 0 8px;
+  height: 26px;
+  border-radius: 7px;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .inspiration-pill-btn:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.3);
   color: #c7d2fe;
   transform: translateY(-1px);
 }
 
 .light-mode .inspiration-pill-btn {
-  background: rgba(15, 23, 42, 0.04);
+  background: #f1f5f9;
   border-color: rgba(15, 23, 42, 0.08);
   color: #475569;
 }
 
 .light-mode .inspiration-pill-btn:hover {
-  background: rgba(99, 102, 241, 0.08);
-  border-color: rgba(99, 102, 241, 0.25);
-  color: #4f46e5;
+  background: rgba(99, 102, 241, 0.09);
+  border-color: rgba(99, 102, 241, 0.28);
+  color: #4338ca;
+}
+
+.light-mode .search-bar-container {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.14);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.light-mode .search-bar-container:focus-within {
+  background: #ffffff;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.light-mode .btn-clear-inline {
+  background: rgba(15, 23, 42, 0.08);
+  color: #64748b;
+}
+
+.light-mode .btn-clear-inline:hover {
+  background: rgba(15, 23, 42, 0.14);
+  color: #0f172a;
 }
 
 @media (max-width: 950px) {
@@ -1228,7 +1292,7 @@ body {
   --glass-hover: rgba(15, 23, 42, 0.04);
   
   --text-primary: #0f172a;
-  --text-secondary: #475569;
+  --text-secondary: #334155;
   --text-muted: #64748b;
   
   --accent-blue: #2563eb;
@@ -1244,6 +1308,9 @@ body {
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
+
+  -webkit-text-fill-color: initial;
+  color: #0f172a;
 }
 
 /* Light mode overrides for text contrast & sidebar */
@@ -4517,3 +4584,93 @@ body {
   pointer-events: none;
 }
 
+
+/* 📡 Celestial Radar Hub - Light Mode Styling */
+.light-mode .celestial-radar-hub {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.06);
+  color: #1e293b;
+}
+
+.light-mode .hub-title {
+  color: #0f172a !important;
+  background: linear-gradient(135deg, #0f172a 0%, #334155 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.light-mode .hub-subtitle {
+  color: #64748b !important;
+}
+
+.light-mode .udp-badge {
+  background: rgba(59, 130, 246, 0.08) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+  color: #2563eb !important;
+}
+
+.light-mode .ip-pill {
+  background: rgba(15, 23, 42, 0.04) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.light-mode .ip-label {
+  color: #64748b !important;
+}
+
+.light-mode .ip-val {
+  color: #0f172a !important;
+}
+
+.light-mode .btn-hotspot,
+.light-mode .btn-refresh {
+  background: rgba(15, 23, 42, 0.04) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  color: #334155 !important;
+}
+
+.light-mode .btn-hotspot:hover,
+.light-mode .btn-refresh:hover {
+  background: rgba(15, 23, 42, 0.08) !important;
+  color: #0f172a !important;
+}
+
+.light-mode .satellite-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+}
+
+.light-mode .satellite-title {
+  color: #0f172a !important;
+}
+
+.light-mode .feature-item {
+  color: #475569 !important;
+}
+
+.light-mode .pin-display {
+  background: rgba(15, 23, 42, 0.05) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.light-mode .pin-code {
+  color: #2563eb !important;
+}
+
+.light-mode .qr-tip-main {
+  color: #334155 !important;
+}
+
+.light-mode .qr-tip-sub {
+  color: #64748b !important;
+}
+
+.light-mode .radar-ring {
+  border-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+.light-mode .radar-dashed-orbit {
+  border-color: rgba(15, 23, 42, 0.06) !important;
+}
