@@ -76,7 +76,7 @@
         <img src="/favicon.png" class="brand-icon-img" alt="ShareCLIP Logo" style="width: 28px; height: 28px; border-radius: 7px; object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,0.35);" />
         <div style="display: flex; flex-direction: column; text-align: left;">
           <h1 class="brand-title" style="margin: 0; line-height: 1.1;">ShareCLIP</h1>
-          <span style="font-size: 11px; font-weight: 600; color: var(--text-muted); opacity: 0.75; letter-spacing: 0.5px; margin-top: 3px;">v{{ currentVersion || '1.2.50' }}</span>
+          <span style="font-size: 11px; font-weight: 600; color: var(--text-muted); opacity: 0.75; letter-spacing: 0.5px; margin-top: 3px;">v{{ currentVersion || '4.5.26' }}</span>
         </div>
       </div>
 
@@ -427,11 +427,11 @@
           <CelestialRadarHub 
             v-if="syncStatus !== 'connected'"
             :qr-code-data-url="qrDataUrl"
-            :session-pin="qrPayload?.pin || sessionPin || 'RQLPVZ'"
+            :session-pin="qrPayload?.pin || 'RQLPVZ'"
             :connected-device-name="activeDeviceName"
             :is-hotspot-active="isHotspotActive"
             :local-ip="qrPayload?.pc_ips?.[0] || '192.168.1.108'"
-            :active-peers="discoveredPeers || []"
+            :active-peers="displayDevices || []"
             :t="t"
             @refresh-qr="refreshPairingCode"
             @toggle-hotspot="toggleHotspot"
@@ -5589,7 +5589,7 @@ function renderQrCode(payload) {
 }
 
 function copySessionPin(pin) {
-  const code = pin || qrPayload.value?.pin || sessionPin.value || '';
+  const code = pin || qrPayload.value?.pin || 'RQLPVZ';
   if (code && typeof navigator !== 'undefined' && navigator.clipboard) {
     navigator.clipboard.writeText(code);
   }
