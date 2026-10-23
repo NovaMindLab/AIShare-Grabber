@@ -76,7 +76,7 @@
         <img src="/favicon.png" class="brand-icon-img" alt="ShareCLIP Logo" style="width: 28px; height: 28px; border-radius: 7px; object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,0.35);" />
         <div style="display: flex; flex-direction: column; text-align: left;">
           <h1 class="brand-title" style="margin: 0; line-height: 1.1;">ShareCLIP</h1>
-          <span style="font-size: 11px; font-weight: 600; color: var(--text-muted); opacity: 0.75; letter-spacing: 0.5px; margin-top: 3px;">v{{ currentVersion || '4.5.26' }}</span>
+          <span style="font-size: 11px; font-weight: 600; color: var(--text-muted); opacity: 0.75; letter-spacing: 0.5px; margin-top: 3px;">v{{ currentVersion || '5.0.0' }}</span>
         </div>
       </div>
 

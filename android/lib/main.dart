@@ -15,7 +15,7 @@ import 'services/theme_service.dart';
 import 'services/analytics_service.dart';
 import 'models/qr_payload.dart';
 
-const String kDefaultAppVersion = '4.5.26';
+const String kDefaultAppVersion = '5.0.0';
 const String appVersion = String.fromEnvironment('APP_VERSION', defaultValue: kDefaultAppVersion);
 
 void main() async {

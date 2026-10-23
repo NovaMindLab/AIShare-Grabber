@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: NovaMindLab.ShareCLIP
+PackageVersion: 5.0.0
+InstallerType: nullsoft
+InstallModes:
+  - interactive
+  - silent
+  - silentWithProgress
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/NovaMindLab/AIShare-Grabber/releases/download/v5.0.0/ShareCLIP-Setup-5.0.0.exe
+    InstallerSha256: 54AA2996100B017DDFEB1F9B509AD4C42BB6486684EC29EE07F3C93D1C254792
+    Scope: user
+ManifestType: installer
+ManifestVersion: 1.6.0
